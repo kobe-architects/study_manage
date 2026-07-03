@@ -21,6 +21,11 @@ body,
   height: 100%;
 }
 
+/* スマホでのダブルタップ拡大を無効化（ピンチ拡大・スクロールは維持） */
+html {
+  touch-action: manipulation;
+}
+
 body {
   font-family: 'Zen Kaku Gothic New', -apple-system, sans-serif;
   font-size: 14px;
