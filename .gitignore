@@ -1,0 +1,3 @@
+# DBダンプ（機密データを含むためGit管理しない）
+*.sql
+study_manage_dump.sql
