@@ -1,0 +1,337 @@
+{
+ "title": "スタディサプリ ベーシックレベル 数B",
+ "type": "講義",
+ "subject": "数学",
+ "items": [
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第1講 数列，等差数列",
+   "seqNo": "PART1",
+   "title": "数列",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "等差数列と等比数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第1講 数列，等差数列",
+   "seqNo": "PART2",
+   "title": "等差数列",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "等差数列と等比数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第1講 数列，等差数列",
+   "seqNo": "PART3",
+   "title": "等差数列の一般項",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "等差数列と等比数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第1講 数列，等差数列",
+   "seqNo": "PART4",
+   "title": "等差数列の和",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "等差数列と等比数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第2講 等比数列",
+   "seqNo": "PART1",
+   "title": "等比数列",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "等差数列と等比数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第2講 等比数列",
+   "seqNo": "PART2",
+   "title": "等比数列の一般項",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "等差数列と等比数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第2講 等比数列",
+   "seqNo": "PART3",
+   "title": "等比数列の和",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "等差数列と等比数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第3講 和の記号Σ，階差数列",
+   "seqNo": "PART1",
+   "title": "和の記号Σ",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "いろいろな数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第3講 和の記号Σ，階差数列",
+   "seqNo": "PART2",
+   "title": "自然数の和の公式，Σの性質",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "いろいろな数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第3講 和の記号Σ，階差数列",
+   "seqNo": "PART3",
+   "title": "自然数の2乗の和の公式",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "いろいろな数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第3講 和の記号Σ，階差数列",
+   "seqNo": "PART4",
+   "title": "階差数列と一般項",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "いろいろな数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第4講 いろいろな数列の和",
+   "seqNo": "PART1",
+   "title": "数列の和と一般項",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "いろいろな数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第4講 いろいろな数列の和",
+   "seqNo": "PART2",
+   "title": "分数で表された数列の和",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "いろいろな数列"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第5講 漸化式と数学的帰納法",
+   "seqNo": "PART1",
+   "title": "漸化式",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "漸化式と数学的帰納法"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第5講 漸化式と数学的帰納法",
+   "seqNo": "PART2",
+   "title": "漸化式と一般項",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "漸化式と数学的帰納法"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第5講 漸化式と数学的帰納法",
+   "seqNo": "PART3",
+   "title": "aₙ₊₁＝paₙ＋q の形の漸化式",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "漸化式と数学的帰納法"
+  },
+  {
+   "chapter": "第1章 数列",
+   "lecture": "第5講 漸化式と数学的帰納法",
+   "seqNo": "PART4",
+   "title": "数学的帰納法",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "数列",
+   "sub": "漸化式と数学的帰納法"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第6講 確率分布",
+   "seqNo": "PART1",
+   "title": "確率変数と確率分布",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "確率分布"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第6講 確率分布",
+   "seqNo": "PART2",
+   "title": "確率変数の期待値",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "確率分布"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第6講 確率分布",
+   "seqNo": "PART3",
+   "title": "確率変数の分散と標準偏差",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "確率分布"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第6講 確率分布",
+   "seqNo": "PART4",
+   "title": "確率変数の変換",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "確率分布"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第7講 確率変数の和と積",
+   "seqNo": "PART1",
+   "title": "確率変数の和の期待値",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "確率分布"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第7講 確率変数の和と積",
+   "seqNo": "PART2",
+   "title": "独立な確率変数",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "確率分布"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第8講 二項分布",
+   "seqNo": "PART1",
+   "title": "二項分布",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "確率分布"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第8講 二項分布",
+   "seqNo": "PART2",
+   "title": "二項分布の期待値，分散，標準偏差",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "確率分布"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第9講 正規分布",
+   "seqNo": "PART1",
+   "title": "連続分布",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "正規分布"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第9講 正規分布",
+   "seqNo": "PART2",
+   "title": "正規分布",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "正規分布"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第9講 正規分布",
+   "seqNo": "PART3",
+   "title": "確率変数の標準化",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "正規分布"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第9講 正規分布",
+   "seqNo": "PART4",
+   "title": "二項分布の正規分布による近似",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "正規分布"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第10講 統計的な推測",
+   "seqNo": "PART1",
+   "title": "母集団と標本",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "統計的な推測"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第10講 統計的な推測",
+   "seqNo": "PART2",
+   "title": "標本平均の分布",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "統計的な推測"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第10講 統計的な推測",
+   "seqNo": "PART3",
+   "title": "母平均の推定",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "統計的な推測"
+  },
+  {
+   "chapter": "第2章 統計的な推測",
+   "lecture": "第10講 統計的な推測",
+   "seqNo": "PART4",
+   "title": "仮説検定",
+   "subject": "数学",
+   "major": "数学B",
+   "mid": "確率分布と統計的な推測",
+   "sub": "統計的な推測"
+  }
+ ]
+}

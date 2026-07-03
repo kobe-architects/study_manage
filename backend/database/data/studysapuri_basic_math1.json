@@ -1,0 +1,607 @@
+{
+ "title": "スタディサプリ ベーシックレベル 数Ⅰ",
+ "type": "講義",
+ "subject": "数学",
+ "items": [
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第1講 式の計算と展開",
+   "seqNo": "PART1",
+   "title": "単項式と多項式",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "整式の計算・因数分解"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第1講 式の計算と展開",
+   "seqNo": "PART2",
+   "title": "整式の整理",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "整式の計算・因数分解"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第1講 式の計算と展開",
+   "seqNo": "PART3",
+   "title": "整式の加法と減法，乗法",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "整式の計算・因数分解"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第1講 式の計算と展開",
+   "seqNo": "PART4",
+   "title": "展開",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "整式の計算・因数分解"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第2講 因数分解",
+   "seqNo": "PART1",
+   "title": "共通因数",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "整式の計算・因数分解"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第2講 因数分解",
+   "seqNo": "PART2",
+   "title": "因数分解の公式",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "整式の計算・因数分解"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第2講 因数分解",
+   "seqNo": "PART3",
+   "title": "たすきがけによる因数分解",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "整式の計算・因数分解"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第2講 因数分解",
+   "seqNo": "PART4",
+   "title": "いろいろな因数分解",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "整式の計算・因数分解"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第3講 実数",
+   "seqNo": "PART1",
+   "title": "実数",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "実数と式の値"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第3講 実数",
+   "seqNo": "PART2",
+   "title": "絶対値",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "実数と式の値"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第3講 実数",
+   "seqNo": "PART3",
+   "title": "根号を含む式の計算",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "実数と式の値"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第4講 1次不等式",
+   "seqNo": "PART1",
+   "title": "1次不等式とその解き方",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "1次不等式"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第4講 1次不等式",
+   "seqNo": "PART2",
+   "title": "いろいろな1次不等式",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "1次不等式"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第4講 1次不等式",
+   "seqNo": "PART3",
+   "title": "絶対値を含む方程式・不等式",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "1次不等式"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第5講 集合，命題と条件",
+   "seqNo": "PART1",
+   "title": "集合と要素，部分集合",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "集合と命題",
+   "sub": "集合"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第5講 集合，命題と条件",
+   "seqNo": "PART2",
+   "title": "共通部分と和集合，全体集合と補集合",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "集合と命題",
+   "sub": "集合"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第5講 集合，命題と条件",
+   "seqNo": "PART3",
+   "title": "命題と条件",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "集合と命題",
+   "sub": "命題と条件"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第5講 集合，命題と条件",
+   "seqNo": "PART4",
+   "title": "必要条件と十分条件，条件の否定",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "集合と命題",
+   "sub": "命題と条件"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第6講 命題と論証",
+   "seqNo": "PART1",
+   "title": "逆・裏・対偶",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "集合と命題",
+   "sub": "命題と証明"
+  },
+  {
+   "chapter": "第1章 数と式",
+   "lecture": "第6講 命題と論証",
+   "seqNo": "PART2",
+   "title": "命題と証明",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "集合と命題",
+   "sub": "命題と証明"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第7講 2次関数とグラフ",
+   "seqNo": "PART1",
+   "title": "関数とその表し方",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "関数のグラフ"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第7講 2次関数とグラフ",
+   "seqNo": "PART2",
+   "title": "1次関数のグラフと最大値，最小値",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "関数のグラフ"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第7講 2次関数とグラフ",
+   "seqNo": "PART3",
+   "title": "y=ax²+q のグラフ，y=a(x−p)² のグラフ",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次関数のグラフ"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第7講 2次関数とグラフ",
+   "seqNo": "PART4",
+   "title": "y=a(x−p)²+q のグラフ",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次関数のグラフ"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第7講 2次関数とグラフ",
+   "seqNo": "PART5",
+   "title": "平方完成と y=ax²+bx+c のグラフ",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次関数のグラフ"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第7講 2次関数とグラフ",
+   "seqNo": "PART6",
+   "title": "放物線の平行移動",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次関数のグラフ"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第8講 2次関数の最大・最小，2次関数の決定",
+   "seqNo": "PART1",
+   "title": "2次関数の最大・最小",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次関数の最大・最小"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第8講 2次関数の最大・最小，2次関数の決定",
+   "seqNo": "PART2",
+   "title": "定義域が限られた2次関数の最大・最小",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次関数の最大・最小"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第8講 2次関数の最大・最小，2次関数の決定",
+   "seqNo": "PART3",
+   "title": "2次関数の決定",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次関数のグラフ"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第9講 2次方程式",
+   "seqNo": "PART1",
+   "title": "2次方程式の解法",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第9講 2次方程式",
+   "seqNo": "PART2",
+   "title": "2次方程式の実数解の個数",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "数と式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第9講 2次方程式",
+   "seqNo": "PART3",
+   "title": "2次関数のグラフとx軸の共有点の座標",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次不等式とその応用"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第9講 2次方程式",
+   "seqNo": "PART4",
+   "title": "2次関数のグラフとx軸の位置関係",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次不等式とその応用"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第10講 2次不等式",
+   "seqNo": "PART1",
+   "title": "2次不等式と2次関数のグラフ",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次不等式とその応用"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第10講 2次不等式",
+   "seqNo": "PART2",
+   "title": "2次不等式（グラフが接するとき）",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次不等式とその応用"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第10講 2次不等式",
+   "seqNo": "PART3",
+   "title": "2次不等式（グラフが共有点をもたないとき）",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次不等式とその応用"
+  },
+  {
+   "chapter": "第2章 2次関数",
+   "lecture": "第10講 2次不等式",
+   "seqNo": "PART4",
+   "title": "2次不等式の利用",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "2次関数",
+   "sub": "2次不等式とその応用"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第11講 鋭角の三角比",
+   "seqNo": "PART1",
+   "title": "直角三角形と三角比",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "三角比の定義・性質"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第11講 鋭角の三角比",
+   "seqNo": "PART2",
+   "title": "有名角の三角比，三角比の表",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "三角比の定義・性質"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第11講 鋭角の三角比",
+   "seqNo": "PART3",
+   "title": "三角比の利用",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "三角比の定義・性質"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第11講 鋭角の三角比",
+   "seqNo": "PART4",
+   "title": "三角比の相互関係",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "三角比の定義・性質"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第11講 鋭角の三角比",
+   "seqNo": "PART5",
+   "title": "90°−θ の三角比",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "三角比の定義・性質"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第12講 三角比の拡張",
+   "seqNo": "PART1",
+   "title": "座標を用いた三角比の定義",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "三角比の定義・性質"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第12講 三角比の拡張",
+   "seqNo": "PART2",
+   "title": "単位円を用いた三角比の定義",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "三角比の定義・性質"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第12講 三角比の拡張",
+   "seqNo": "PART3",
+   "title": "三角比の値と角",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "三角比の定義・性質"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第12講 三角比の拡張",
+   "seqNo": "PART4",
+   "title": "180°−θ の三角比，単位円と三角比の相互関係",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "三角比の定義・性質"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第13講 正弦定理・余弦定理",
+   "seqNo": "PART1",
+   "title": "正弦定理",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "正弦定理と余弦定理"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第13講 正弦定理・余弦定理",
+   "seqNo": "PART2",
+   "title": "余弦定理",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "正弦定理と余弦定理"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第13講 正弦定理・余弦定理",
+   "seqNo": "PART3",
+   "title": "余弦定理の利用",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "正弦定理と余弦定理"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第13講 正弦定理・余弦定理",
+   "seqNo": "PART4",
+   "title": "三角形の決定",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "正弦定理と余弦定理"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第14講 図形の計量",
+   "seqNo": "PART1",
+   "title": "三角形の面積",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "図形の計量"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第14講 図形の計量",
+   "seqNo": "PART2",
+   "title": "三角形の内接円と面積",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "図形の計量"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第14講 図形の計量",
+   "seqNo": "PART3",
+   "title": "四角形の面積",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "図形の計量"
+  },
+  {
+   "chapter": "第3章 図形と計量",
+   "lecture": "第14講 図形の計量",
+   "seqNo": "PART4",
+   "title": "空間図形への応用",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "図形と計量",
+   "sub": "図形の計量"
+  },
+  {
+   "chapter": "第4章 データの分析",
+   "lecture": "第15講 データの分析",
+   "seqNo": "PART1",
+   "title": "データの整理と代表値",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "データの分析",
+   "sub": "データの散らばり"
+  },
+  {
+   "chapter": "第4章 データの分析",
+   "lecture": "第15講 データの分析",
+   "seqNo": "PART2",
+   "title": "データの散らばり",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "データの分析",
+   "sub": "データの散らばり"
+  },
+  {
+   "chapter": "第4章 データの分析",
+   "lecture": "第15講 データの分析",
+   "seqNo": "PART3",
+   "title": "分散と標準偏差",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "データの分析",
+   "sub": "データの散らばり"
+  },
+  {
+   "chapter": "第4章 データの分析",
+   "lecture": "第15講 データの分析",
+   "seqNo": "PART4",
+   "title": "データの相関",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "データの分析",
+   "sub": "データの相関"
+  },
+  {
+   "chapter": "第4章 データの分析",
+   "lecture": "第15講 データの分析",
+   "seqNo": "PART5",
+   "title": "外れ値",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "データの分析",
+   "sub": "データの散らばり"
+  },
+  {
+   "chapter": "第4章 データの分析",
+   "lecture": "第15講 データの分析",
+   "seqNo": "PART6",
+   "title": "仮説検定",
+   "subject": "数学",
+   "major": "数学I",
+   "mid": "データの分析",
+   "sub": "データの散らばり"
+  }
+ ]
+}

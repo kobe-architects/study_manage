@@ -1,0 +1,727 @@
+{
+ "title": "スタディサプリ ベーシックレベル 数Ⅱ",
+ "type": "講義",
+ "subject": "数学",
+ "items": [
+  {
+   "chapter": "第1章 式と証明",
+   "lecture": "第1講 式と計算",
+   "seqNo": "PART1",
+   "title": "3次式の展開と因数分解の公式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と証明",
+   "lecture": "第1講 式と計算",
+   "seqNo": "PART2",
+   "title": "二項定理",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と証明",
+   "lecture": "第1講 式と計算",
+   "seqNo": "PART3",
+   "title": "多項式の除法",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と証明",
+   "lecture": "第1講 式と計算",
+   "seqNo": "PART4",
+   "title": "分数式の計算",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と証明",
+   "lecture": "第2講 式と証明",
+   "seqNo": "PART1",
+   "title": "恒等式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "恒等式"
+  },
+  {
+   "chapter": "第1章 式と証明",
+   "lecture": "第2講 式と証明",
+   "seqNo": "PART2",
+   "title": "等式の証明",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第1章 式と証明",
+   "lecture": "第2講 式と証明",
+   "seqNo": "PART3",
+   "title": "不等式の証明",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第1章 式と証明",
+   "lecture": "第2講 式と証明",
+   "seqNo": "PART4",
+   "title": "平方の大小関係",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第1章 式と証明",
+   "lecture": "第2講 式と証明",
+   "seqNo": "PART5",
+   "title": "相加平均と相乗平均",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第2章 複素数と方程式",
+   "lecture": "第3講 複素数と2次方程式",
+   "seqNo": "PART1",
+   "title": "複素数とその計算",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "複素数"
+  },
+  {
+   "chapter": "第2章 複素数と方程式",
+   "lecture": "第3講 複素数と2次方程式",
+   "seqNo": "PART2",
+   "title": "負の数の平方根と2次方程式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 複素数と方程式",
+   "lecture": "第3講 複素数と2次方程式",
+   "seqNo": "PART3",
+   "title": "2次方程式の解の判別",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 複素数と方程式",
+   "lecture": "第3講 複素数と2次方程式",
+   "seqNo": "PART4",
+   "title": "2次方程式の解と係数の関係",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 複素数と方程式",
+   "lecture": "第4講 剰余の定理と因数定理，高次方程式",
+   "seqNo": "PART1",
+   "title": "剰余の定理",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 複素数と方程式",
+   "lecture": "第4講 剰余の定理と因数定理，高次方程式",
+   "seqNo": "PART2",
+   "title": "因数定理",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 複素数と方程式",
+   "lecture": "第4講 剰余の定理と因数定理，高次方程式",
+   "seqNo": "PART3",
+   "title": "組立除法と因数分解",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 複素数と方程式",
+   "lecture": "第4講 剰余の定理と因数定理，高次方程式",
+   "seqNo": "PART4",
+   "title": "高次方程式の解法",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第5講 点と直線",
+   "seqNo": "PART1",
+   "title": "2点間の距離，数直線上の分点の座標",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第5講 点と直線",
+   "seqNo": "PART2",
+   "title": "座標平面上の点",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第5講 点と直線",
+   "seqNo": "PART3",
+   "title": "直線の方程式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第5講 点と直線",
+   "seqNo": "PART4",
+   "title": "2直線の関係",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第5講 点と直線",
+   "seqNo": "PART5",
+   "title": "点と直線の距離",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第6講 円",
+   "seqNo": "PART1",
+   "title": "円の方程式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第6講 円",
+   "seqNo": "PART2",
+   "title": "円と直線の共有点の座標と個数",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第6講 円",
+   "seqNo": "PART3",
+   "title": "円と直線の位置関係",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第6講 円",
+   "seqNo": "PART4",
+   "title": "円の接線",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第7講 軌跡と領域",
+   "seqNo": "PART1",
+   "title": "軌跡の方程式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第7講 軌跡と領域",
+   "seqNo": "PART2",
+   "title": "不等式の表す領域",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第7講 軌跡と領域",
+   "seqNo": "PART3",
+   "title": "連立不等式の表す領域",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "lecture": "第7講 軌跡と領域",
+   "seqNo": "PART4",
+   "title": "領域と最大・最小",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第8講 三角関数とその性質",
+   "seqNo": "PART1",
+   "title": "動径と一般角",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "一般角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第8講 三角関数とその性質",
+   "seqNo": "PART2",
+   "title": "弧度法",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "一般角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第8講 三角関数とその性質",
+   "seqNo": "PART3",
+   "title": "三角関数",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "一般角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第8講 三角関数とその性質",
+   "seqNo": "PART4",
+   "title": "三角関数の相互関係",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "一般角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第8講 三角関数とその性質",
+   "seqNo": "PART5",
+   "title": "三角関数の性質",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "いろいろな角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第9講 三角関数のグラフ",
+   "seqNo": "PART1",
+   "title": "三角関数のグラフ",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "いろいろな角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第9講 三角関数のグラフ",
+   "seqNo": "PART2",
+   "title": "いろいろな三角関数のグラフ",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "いろいろな角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第10講 三角関数を含む方程式，不等式",
+   "seqNo": "PART1",
+   "title": "三角関数を含む方程式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "いろいろな角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第10講 三角関数を含む方程式，不等式",
+   "seqNo": "PART2",
+   "title": "三角関数を含む不等式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "いろいろな角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第11講 加法定理",
+   "seqNo": "PART1",
+   "title": "正弦・余弦の加法定理",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第11講 加法定理",
+   "seqNo": "PART2",
+   "title": "正接の加法定理，2直線のなす角",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第11講 加法定理",
+   "seqNo": "PART3",
+   "title": "2倍角の公式，半角の公式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "lecture": "第11講 加法定理",
+   "seqNo": "PART4",
+   "title": "三角関数の合成",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第12講 指数の拡張",
+   "seqNo": "PART1",
+   "title": "0や負の整数の指数",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第12講 指数の拡張",
+   "seqNo": "PART2",
+   "title": "累乗根",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第12講 指数の拡張",
+   "seqNo": "PART3",
+   "title": "有理数の指数",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第13講 指数関数",
+   "seqNo": "PART1",
+   "title": "指数関数のグラフ",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第13講 指数関数",
+   "seqNo": "PART2",
+   "title": "指数関数の性質",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第13講 指数関数",
+   "seqNo": "PART3",
+   "title": "指数関数を含む方程式・不等式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第14講 対数とその性質",
+   "seqNo": "PART1",
+   "title": "対数",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第14講 対数とその性質",
+   "seqNo": "PART2",
+   "title": "対数の性質",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第14講 対数とその性質",
+   "seqNo": "PART3",
+   "title": "底の変換公式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第15講 対数関数",
+   "seqNo": "PART1",
+   "title": "対数関数のグラフ",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第15講 対数関数",
+   "seqNo": "PART2",
+   "title": "対数関数の性質",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第15講 対数関数",
+   "seqNo": "PART3",
+   "title": "対数関数を含む方程式・不等式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数関数・対数関数",
+   "lecture": "第15講 対数関数",
+   "seqNo": "PART4",
+   "title": "常用対数",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第16講 微分係数と導関数",
+   "seqNo": "PART1",
+   "title": "平均の速さ，平均変化率",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第16講 微分係数と導関数",
+   "seqNo": "PART2",
+   "title": "極限値と微分係数",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第16講 微分係数と導関数",
+   "seqNo": "PART3",
+   "title": "導関数",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第16講 微分係数と導関数",
+   "seqNo": "PART4",
+   "title": "導関数の計算",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第17講 導関数の応用",
+   "seqNo": "PART1",
+   "title": "接線の方程式",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第17講 導関数の応用",
+   "seqNo": "PART2",
+   "title": "曲線上にない点から引いた接線",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第17講 導関数の応用",
+   "seqNo": "PART3",
+   "title": "関数の増減",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第17講 導関数の応用",
+   "seqNo": "PART4",
+   "title": "関数の極大・極小",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第17講 導関数の応用",
+   "seqNo": "PART5",
+   "title": "関数の最大・最小",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第17講 導関数の応用",
+   "seqNo": "PART6",
+   "title": "方程式への応用",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "方程式・不等式への応用"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第18講 不定積分，定積分",
+   "seqNo": "PART1",
+   "title": "不定積分",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第18講 不定積分，定積分",
+   "seqNo": "PART2",
+   "title": "xⁿ の不定積分，不定積分の性質",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第18講 不定積分，定積分",
+   "seqNo": "PART3",
+   "title": "定積分",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第18講 不定積分，定積分",
+   "seqNo": "PART4",
+   "title": "定積分の性質",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第19講 定積分と面積",
+   "seqNo": "PART1",
+   "title": "定積分と面積",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第6章 微分法・積分法",
+   "lecture": "第19講 定積分と面積",
+   "seqNo": "PART2",
+   "title": "2つの曲線の間の面積",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積"
+  }
+ ]
+}

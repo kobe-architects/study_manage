@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=DM+Sans:wght@500;600;700&display=swap');
+
+:root {
+  --ink: #1c2024;
+  --mut: #6b7280;
+  --faint: #9aa1ab;
+  --bg: #f6f7f9;
+  --line: #eceef1;
+  --primary: #3b50cc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: 'Zen Kaku Gothic New', -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg);
+}
+
+.dm {
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* Vuetify surface overrides to match the flat custom look */
+.v-application {
+  font-family: 'Zen Kaku Gothic New', -apple-system, sans-serif !important;
+  background: var(--bg) !important;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d3d7dd;
+  border-radius: 99px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #bcc2cb;
+  background-clip: content-box;
+}
+
+@keyframes lmsFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fade-in {
+  animation: lmsFade 0.3s ease;
+}
+
+/* shared card */
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+/* reset native buttons used as custom controls */
+button.bare {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+input,
+select,
+button,
+textarea {
+  font-family: inherit;
+}
+
+/* print helpers */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

@@ -1,0 +1,417 @@
+{
+ "title": "スタディサプリ ベーシックレベル 数A",
+ "type": "講義",
+ "subject": "数学",
+ "items": [
+  {
+   "chapter": "第1章 場合の数",
+   "lecture": "第1講 場合の数",
+   "seqNo": "PART1",
+   "title": "集合の要素の個数",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "場合の数",
+   "sub": "場合の数"
+  },
+  {
+   "chapter": "第1章 場合の数",
+   "lecture": "第1講 場合の数",
+   "seqNo": "PART2",
+   "title": "場合の数",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "場合の数",
+   "sub": "場合の数"
+  },
+  {
+   "chapter": "第1章 場合の数",
+   "lecture": "第1講 場合の数",
+   "seqNo": "PART3",
+   "title": "和の法則",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "場合の数",
+   "sub": "場合の数"
+  },
+  {
+   "chapter": "第1章 場合の数",
+   "lecture": "第1講 場合の数",
+   "seqNo": "PART4",
+   "title": "積の法則",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "場合の数",
+   "sub": "場合の数"
+  },
+  {
+   "chapter": "第1章 場合の数",
+   "lecture": "第2講 順列",
+   "seqNo": "PART1",
+   "title": "順列",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "場合の数",
+   "sub": "順列"
+  },
+  {
+   "chapter": "第1章 場合の数",
+   "lecture": "第2講 順列",
+   "seqNo": "PART2",
+   "title": "順列の利用",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "場合の数",
+   "sub": "順列"
+  },
+  {
+   "chapter": "第1章 場合の数",
+   "lecture": "第2講 順列",
+   "seqNo": "PART3",
+   "title": "円順列",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "場合の数",
+   "sub": "順列"
+  },
+  {
+   "chapter": "第1章 場合の数",
+   "lecture": "第2講 順列",
+   "seqNo": "PART4",
+   "title": "重複順列",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "場合の数",
+   "sub": "順列"
+  },
+  {
+   "chapter": "第1章 場合の数",
+   "lecture": "第3講 組合せ",
+   "seqNo": "PART1",
+   "title": "組合せ",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "場合の数",
+   "sub": "組合せ"
+  },
+  {
+   "chapter": "第1章 場合の数",
+   "lecture": "第3講 組合せ",
+   "seqNo": "PART2",
+   "title": "組合せの利用",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "場合の数",
+   "sub": "組合せ"
+  },
+  {
+   "chapter": "第1章 場合の数",
+   "lecture": "第3講 組合せ",
+   "seqNo": "PART3",
+   "title": "組分け",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "場合の数",
+   "sub": "組合せ"
+  },
+  {
+   "chapter": "第1章 場合の数",
+   "lecture": "第3講 組合せ",
+   "seqNo": "PART4",
+   "title": "同じものを含む順列",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "場合の数",
+   "sub": "順列"
+  },
+  {
+   "chapter": "第2章 確率",
+   "lecture": "第4講 事象と確率",
+   "seqNo": "PART1",
+   "title": "試行と事象",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "確率",
+   "sub": "確率の意味と基本性質"
+  },
+  {
+   "chapter": "第2章 確率",
+   "lecture": "第4講 事象と確率",
+   "seqNo": "PART2",
+   "title": "順列・組合せと確率",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "確率",
+   "sub": "確率の意味と基本性質"
+  },
+  {
+   "chapter": "第2章 確率",
+   "lecture": "第4講 事象と確率",
+   "seqNo": "PART3",
+   "title": "確率の基本性質",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "確率",
+   "sub": "確率の意味と基本性質"
+  },
+  {
+   "chapter": "第2章 確率",
+   "lecture": "第4講 事象と確率",
+   "seqNo": "PART4",
+   "title": "和事象の確率，余事象の確率",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "確率",
+   "sub": "確率の意味と基本性質"
+  },
+  {
+   "chapter": "第2章 確率",
+   "lecture": "第5講 独立な試行の確率，反復試行の確率",
+   "seqNo": "PART1",
+   "title": "独立な試行の確率",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "確率",
+   "sub": "いろいろな試行と確率"
+  },
+  {
+   "chapter": "第2章 確率",
+   "lecture": "第5講 独立な試行の確率，反復試行の確率",
+   "seqNo": "PART2",
+   "title": "反復試行の確率",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "確率",
+   "sub": "いろいろな試行と確率"
+  },
+  {
+   "chapter": "第2章 確率",
+   "lecture": "第6講 条件付き確率，期待値",
+   "seqNo": "PART1",
+   "title": "条件付き確率",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "確率",
+   "sub": "いろいろな試行と確率"
+  },
+  {
+   "chapter": "第2章 確率",
+   "lecture": "第6講 条件付き確率，期待値",
+   "seqNo": "PART2",
+   "title": "期待値",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "確率",
+   "sub": "いろいろな試行と確率"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第7講 三角形の性質",
+   "seqNo": "PART1",
+   "title": "線分の内分・外分，角の二等分線と比",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "三角形の性質"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第7講 三角形の性質",
+   "seqNo": "PART2",
+   "title": "三角形の外心・内心",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "三角形の性質"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第7講 三角形の性質",
+   "seqNo": "PART3",
+   "title": "三角形の重心",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "三角形の性質"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第7講 三角形の性質",
+   "seqNo": "PART4",
+   "title": "三角形の線分の比と面積比",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "三角形の性質"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第7講 三角形の性質",
+   "seqNo": "PART5",
+   "title": "チェバの定理，メネラウスの定理",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "三角形の性質"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第7講 三角形の性質",
+   "seqNo": "PART6",
+   "title": "三角形の辺と角",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "三角形の性質"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第8講 円の性質",
+   "seqNo": "PART1",
+   "title": "円に内接する四角形",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "円の性質"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第8講 円の性質",
+   "seqNo": "PART2",
+   "title": "円と接線",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "円の性質"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第8講 円の性質",
+   "seqNo": "PART3",
+   "title": "方べきの定理",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "円の性質"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第8講 円の性質",
+   "seqNo": "PART4",
+   "title": "2つの円の位置関係と共通接線",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "円の性質"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第8講 円の性質",
+   "seqNo": "PART5",
+   "title": "作図",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "作図"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第9講 空間図形",
+   "seqNo": "PART1",
+   "title": "直線と平面",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "空間図形"
+  },
+  {
+   "chapter": "第3章 図形の性質",
+   "lecture": "第9講 空間図形",
+   "seqNo": "PART2",
+   "title": "多面体",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "図形の性質",
+   "sub": "空間図形"
+  },
+  {
+   "chapter": "第4章 数学と人間の活動",
+   "lecture": "第10講 約数と倍数",
+   "seqNo": "PART1",
+   "title": "約数と倍数",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "整数の性質",
+   "sub": "約数と倍数"
+  },
+  {
+   "chapter": "第4章 数学と人間の活動",
+   "lecture": "第10講 約数と倍数",
+   "seqNo": "PART2",
+   "title": "素因数分解と約数",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "整数の性質",
+   "sub": "約数と倍数"
+  },
+  {
+   "chapter": "第4章 数学と人間の活動",
+   "lecture": "第10講 約数と倍数",
+   "seqNo": "PART3",
+   "title": "最大公約数と最小公倍数",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "整数の性質",
+   "sub": "約数と倍数"
+  },
+  {
+   "chapter": "第4章 数学と人間の活動",
+   "lecture": "第10講 約数と倍数",
+   "seqNo": "PART4",
+   "title": "余りによる分類",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "整数の性質",
+   "sub": "整数の除法と余りによる分類"
+  },
+  {
+   "chapter": "第4章 数学と人間の活動",
+   "lecture": "第11講 ユークリッドの互除法，整数の性質の活用",
+   "seqNo": "PART1",
+   "title": "ユークリッドの互除法",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "整数の性質",
+   "sub": "不定方程式"
+  },
+  {
+   "chapter": "第4章 数学と人間の活動",
+   "lecture": "第11講 ユークリッドの互除法，整数の性質の活用",
+   "seqNo": "PART2",
+   "title": "1次不定方程式",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "整数の性質",
+   "sub": "不定方程式"
+  },
+  {
+   "chapter": "第4章 数学と人間の活動",
+   "lecture": "第11講 ユークリッドの互除法，整数の性質の活用",
+   "seqNo": "PART3",
+   "title": "1次不定方程式とユークリッドの互除法",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "整数の性質",
+   "sub": "不定方程式"
+  },
+  {
+   "chapter": "第4章 数学と人間の活動",
+   "lecture": "第11講 ユークリッドの互除法，整数の性質の活用",
+   "seqNo": "PART4",
+   "title": "整数の性質の活用",
+   "subject": "数学",
+   "major": "数学A",
+   "mid": "整数の性質",
+   "sub": "整数の性質の活用"
+  }
+ ]
+}

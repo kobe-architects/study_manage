@@ -1,0 +1,757 @@
+{
+ "title": "スタディサプリ ベーシックレベル 数Ⅲ",
+ "type": "講義",
+ "subject": "数学",
+ "items": [
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第1講 いろいろな関数",
+   "seqNo": "PART1",
+   "title": "分数関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "関数の極限",
+   "sub": "分数関数と無理関数"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第1講 いろいろな関数",
+   "seqNo": "PART2",
+   "title": "無理関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "関数の極限",
+   "sub": "分数関数と無理関数"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第1講 いろいろな関数",
+   "seqNo": "PART3",
+   "title": "逆関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "関数の極限",
+   "sub": "逆関数と合成関数"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第1講 いろいろな関数",
+   "seqNo": "PART4",
+   "title": "合成関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "関数の極限",
+   "sub": "逆関数と合成関数"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第2講 数列の極限",
+   "seqNo": "PART1",
+   "title": "数列の極限",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "数列の極限",
+   "sub": "無限数列"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第2講 数列の極限",
+   "seqNo": "PART2",
+   "title": "不定形の極限",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "数列の極限",
+   "sub": "無限数列"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第2講 数列の極限",
+   "seqNo": "PART3",
+   "title": "無理式の極限",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "数列の極限",
+   "sub": "無限数列"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第2講 数列の極限",
+   "seqNo": "PART4",
+   "title": "数列の大小関係と極限",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "数列の極限",
+   "sub": "無限数列"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第3講 無限等比数列の極限",
+   "seqNo": "PART1",
+   "title": "無限等比数列の極限と収束条件",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "数列の極限",
+   "sub": "無限数列"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第3講 無限等比数列の極限",
+   "seqNo": "PART2",
+   "title": "漸化式と極限",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "数列の極限",
+   "sub": "無限数列"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第4講 無限級数",
+   "seqNo": "PART1",
+   "title": "無限級数の収束と発散",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "数列の極限",
+   "sub": "無限級数"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第4講 無限級数",
+   "seqNo": "PART2",
+   "title": "無限等比級数の収束と発散",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "数列の極限",
+   "sub": "無限級数"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第4講 無限級数",
+   "seqNo": "PART3",
+   "title": "無限級数と数列の一般項，無限級数の性質",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "数列の極限",
+   "sub": "無限級数"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第5講 関数の極限",
+   "seqNo": "PART1",
+   "title": "関数の極限",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "関数の極限",
+   "sub": "関数の極限"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第5講 関数の極限",
+   "seqNo": "PART2",
+   "title": "極限値の条件による関数の決定",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "関数の極限",
+   "sub": "関数の極限"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第5講 関数の極限",
+   "seqNo": "PART3",
+   "title": "±∞に発散，右極限と左極限",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "関数の極限",
+   "sub": "関数の極限"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第5講 関数の極限",
+   "seqNo": "PART4",
+   "title": "x→±∞のときの極限，指数・対数関数の極限",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "関数の極限",
+   "sub": "関数の極限"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第6講 三角関数の極限，関数の連続",
+   "seqNo": "PART1",
+   "title": "三角関数の極限",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "関数の極限",
+   "sub": "関数の極限"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第6講 三角関数の極限，関数の連続",
+   "seqNo": "PART2",
+   "title": "おき換え，はさみうちによる三角関数の極限",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "関数の極限",
+   "sub": "関数の極限"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第6講 三角関数の極限，関数の連続",
+   "seqNo": "PART3",
+   "title": "関数の連続",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "関数の極限",
+   "sub": "連続関数"
+  },
+  {
+   "chapter": "第1章 極限",
+   "lecture": "第6講 三角関数の極限，関数の連続",
+   "seqNo": "PART4",
+   "title": "中間値の定理",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "関数の極限",
+   "sub": "連続関数"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第7講 微分係数と導関数",
+   "seqNo": "PART1",
+   "title": "微分係数と微分可能",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第7講 微分係数と導関数",
+   "seqNo": "PART2",
+   "title": "導関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第7講 微分係数と導関数",
+   "seqNo": "PART3",
+   "title": "導関数の公式，積の導関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第7講 微分係数と導関数",
+   "seqNo": "PART4",
+   "title": "商の導関数，xⁿ の導関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第8講 合成関数の微分法，逆関数の微分法",
+   "seqNo": "PART1",
+   "title": "合成関数の微分法",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法",
+   "sub": "いろいろな関数の微分法"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第8講 合成関数の微分法，逆関数の微分法",
+   "seqNo": "PART2",
+   "title": "逆関数の微分法，xᵖ の導関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法",
+   "sub": "いろいろな関数の微分法"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第9講 三角・指数・対数関数の導関数，高次導関数",
+   "seqNo": "PART1",
+   "title": "三角関数の導関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法",
+   "sub": "いろいろな関数の微分法"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第9講 三角・指数・対数関数の導関数，高次導関数",
+   "seqNo": "PART2",
+   "title": "対数関数の導関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法",
+   "sub": "いろいろな関数の微分法"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第9講 三角・指数・対数関数の導関数，高次導関数",
+   "seqNo": "PART3",
+   "title": "指数関数の導関数，対数微分法",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法",
+   "sub": "いろいろな関数の微分法"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第9講 三角・指数・対数関数の導関数，高次導関数",
+   "seqNo": "PART4",
+   "title": "高次導関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第10講 接線と法線の方程式",
+   "seqNo": "PART1",
+   "title": "接線と法線の方程式",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "接線の方程式"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第10講 接線と法線の方程式",
+   "seqNo": "PART2",
+   "title": "いろいろな曲線の接線の方程式",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "接線の方程式"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第10講 接線と法線の方程式",
+   "seqNo": "PART3",
+   "title": "平均値の定理",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "関数の増減"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第11講 関数の増減",
+   "seqNo": "PART1",
+   "title": "関数の増加と減少",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "関数の増減"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第11講 関数の増減",
+   "seqNo": "PART2",
+   "title": "関数の極大・極小",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "関数の増減"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第11講 関数の増減",
+   "seqNo": "PART3",
+   "title": "極値をもつための条件",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "関数の増減"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第11講 関数の増減",
+   "seqNo": "PART4",
+   "title": "関数の最大・最小",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "関数の増減"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第12講 関数のグラフ",
+   "seqNo": "PART1",
+   "title": "曲線の凹凸と変曲点",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "関数の増減"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第12講 関数のグラフ",
+   "seqNo": "PART2",
+   "title": "関数のグラフの概形",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "関数の増減"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第12講 関数のグラフ",
+   "seqNo": "PART3",
+   "title": "指数関数・対数関数を含むグラフの概形",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "関数の増減"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第12講 関数のグラフ",
+   "seqNo": "PART4",
+   "title": "第2次導関数と極値",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "関数の増減"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第13講 方程式・不等式への応用",
+   "seqNo": "PART1",
+   "title": "不等式の証明",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "いろいろな応用"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第13講 方程式・不等式への応用",
+   "seqNo": "PART2",
+   "title": "方程式の実数解の個数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "いろいろな応用"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第14講 速度と加速度，関数の近似式",
+   "seqNo": "PART1",
+   "title": "直線上の点の運動",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "いろいろな応用"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第14講 速度と加速度，関数の近似式",
+   "seqNo": "PART2",
+   "title": "平面上の点の運動",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "いろいろな応用"
+  },
+  {
+   "chapter": "第2章 微分法",
+   "lecture": "第14講 速度と加速度，関数の近似式",
+   "seqNo": "PART3",
+   "title": "関数の近似式",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "微分法の応用",
+   "sub": "いろいろな応用"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第15講 不定積分",
+   "seqNo": "PART1",
+   "title": "不定積分の計算",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "不定積分"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第15講 不定積分",
+   "seqNo": "PART2",
+   "title": "三角関数・指数関数の不定積分",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "不定積分"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第15講 不定積分",
+   "seqNo": "PART3",
+   "title": "f(ax+b) の不定積分",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "不定積分"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第15講 不定積分",
+   "seqNo": "PART4",
+   "title": "次数下げと部分分数分解",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "不定積分"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第15講 不定積分",
+   "seqNo": "PART5",
+   "title": "三角関数の次数を下げる",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "不定積分"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第16講 置換積分法，部分積分法",
+   "seqNo": "PART1",
+   "title": "置換積分法",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "置換積分法と部分積分法"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第16講 置換積分法，部分積分法",
+   "seqNo": "PART2",
+   "title": "f(g(x))g'(x) の形の不定積分",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "置換積分法と部分積分法"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第16講 置換積分法，部分積分法",
+   "seqNo": "PART3",
+   "title": "置換積分法と三角関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "置換積分法と部分積分法"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第16講 置換積分法，部分積分法",
+   "seqNo": "PART4",
+   "title": "部分積分法",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "置換積分法と部分積分法"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第17講 定積分",
+   "seqNo": "PART1",
+   "title": "定積分の計算",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "定積分"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第17講 定積分",
+   "seqNo": "PART2",
+   "title": "定積分の置換積分法",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "定積分"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第17講 定積分",
+   "seqNo": "PART3",
+   "title": "特殊な形の置換積分法",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "定積分"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第17講 定積分",
+   "seqNo": "PART4",
+   "title": "偶関数・奇関数の定積分",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "定積分"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第17講 定積分",
+   "seqNo": "PART5",
+   "title": "定積分の部分積分法",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "定積分"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第18講 定積分関数",
+   "seqNo": "PART1",
+   "title": "定積分で表された関数",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "定積分と微分・区分求積法"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第18講 定積分関数",
+   "seqNo": "PART2",
+   "title": "関数方程式",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "定積分と微分・区分求積法"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第19講 区分求積法，定積分と不等式",
+   "seqNo": "PART1",
+   "title": "区分求積法と定積分",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "定積分と微分・区分求積法"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第19講 区分求積法，定積分と不等式",
+   "seqNo": "PART2",
+   "title": "定積分と不等式",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法",
+   "sub": "定積分と微分・区分求積法"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第20講 面積",
+   "seqNo": "PART1",
+   "title": "曲線とx軸の間の面積",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法の応用",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第20講 面積",
+   "seqNo": "PART2",
+   "title": "2曲線の間の面積",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法の応用",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第20講 面積",
+   "seqNo": "PART3",
+   "title": "曲線 x=g(y) とy軸の間の面積",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法の応用",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第20講 面積",
+   "seqNo": "PART4",
+   "title": "いろいろな曲線と面積",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法の応用",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第21講 体積",
+   "seqNo": "PART1",
+   "title": "定積分と体積",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法の応用",
+   "sub": "体積・道のり・微分方程式"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第21講 体積",
+   "seqNo": "PART2",
+   "title": "断面図と立体の体積",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法の応用",
+   "sub": "体積・道のり・微分方程式"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第21講 体積",
+   "seqNo": "PART3",
+   "title": "x軸の周りの回転体の体積",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法の応用",
+   "sub": "体積・道のり・微分方程式"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第21講 体積",
+   "seqNo": "PART4",
+   "title": "y軸の周りの回転体の体積",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法の応用",
+   "sub": "体積・道のり・微分方程式"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第22講 曲線の長さ，速度と道のり",
+   "seqNo": "PART1",
+   "title": "曲線の長さ",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法の応用",
+   "sub": "体積・道のり・微分方程式"
+  },
+  {
+   "chapter": "第3章 積分法",
+   "lecture": "第22講 曲線の長さ，速度と道のり",
+   "seqNo": "PART2",
+   "title": "速度と道のり",
+   "subject": "数学",
+   "major": "数学III",
+   "mid": "積分法の応用",
+   "sub": "体積・道のり・微分方程式"
+  }
+ ]
+}

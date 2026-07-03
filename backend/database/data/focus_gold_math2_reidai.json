@@ -1,0 +1,2616 @@
+{
+ "title": "Focus Gold 数学Ⅱ 例題",
+ "type": "問題集",
+ "subject": "数学",
+ "items": [
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "1",
+   "title": "因数分解と式の値",
+   "difficulty": "*",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "2",
+   "title": "多項式の除法",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "3",
+   "title": "等式 $A=BQ+R$",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "4",
+   "title": "割り算と式の値",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "5",
+   "title": "多項式の商・余りの決定",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "6",
+   "title": "分数の乗法・除法",
+   "difficulty": "*",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "7",
+   "title": "分数の加法・減法",
+   "difficulty": "*",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "8",
+   "title": "繁分数",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "9",
+   "title": "$(a+b)^n$ の展開",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "10",
+   "title": "二項係数",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "11",
+   "title": "$(a+b+c)^n$ の展開(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "12",
+   "title": "$(a+b+c)^n$ の展開(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "13",
+   "title": "二項定理の利用",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "14",
+   "title": "二項係数の関係式(1)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "15",
+   "title": "二項係数の関係式(2)",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "多項式の乗法・除法と分数式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "16",
+   "title": "恒等式",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "恒等式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "17",
+   "title": "分数式の恒等式",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "恒等式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "18",
+   "title": "割り算と恒等式",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "恒等式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "19",
+   "title": "2文字の恒等式",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "恒等式"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "20",
+   "title": "係数決定のあと恒等式",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "恒等式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "21",
+   "title": "等式の証明",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "22",
+   "title": "条件付きの等式の証明",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "23",
+   "title": "少なくとも1つは1",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "24",
+   "title": "すべてが1",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "25",
+   "title": "比例式と値",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "26",
+   "title": "比例式の証明",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "27",
+   "title": "不等式の証明(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "28",
+   "title": "コーシー・シュワルツの不等式",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "29",
+   "title": "不等式の証明(2)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "30",
+   "title": "条件付きの不等式の証明",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "31",
+   "title": "相加平均・相乗平均の関係(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "32",
+   "title": "相加平均・相乗平均の関係(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "33",
+   "title": "大小比較",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第1章 式と計算",
+   "seqNo": "34",
+   "title": "絶対値を含む不等式の証明",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "式と計算",
+   "sub": "等式・不等式の証明"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "35",
+   "title": "複素数の相等",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "複素数"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "36",
+   "title": "平方して虚数になる複素数",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "複素数"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "37",
+   "title": "複素数と式の値",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "複素数"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "38",
+   "title": "2次方程式の解法",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "39",
+   "title": "2次方程式の解の判別(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "40",
+   "title": "2次方程式の解の判別(2)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "41",
+   "title": "2次方程式の解の判別(3)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "42",
+   "title": "係数に虚数を含む2次方程式の解",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "43",
+   "title": "解と係数の関係(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "44",
+   "title": "2つの数を解とする2次方程式",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "45",
+   "title": "解と係数の関係(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "46",
+   "title": "解と係数の関係(3)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "47",
+   "title": "2次式の因数分解",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "48",
+   "title": "2次方程式の解の存在範囲",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "49",
+   "title": "判別式による最大・最小",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "50",
+   "title": "判別式と解と係数の関係",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "2次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "51",
+   "title": "因数定理",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "52",
+   "title": "剰余の定理(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "53",
+   "title": "剰余の定理(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "54",
+   "title": "剰余の定理(3)",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "55",
+   "title": "$x^n-1$ を $(x-1)^2$ で割り切れる条件",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "56",
+   "title": "$x^2+x+1=0$ の解 $\\omega$",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "57",
+   "title": "3次式の因数分解",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "58",
+   "title": "高次方程式の解法(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "59",
+   "title": "高次方程式の解法(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "60",
+   "title": "高次方程式の解法(3)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "61",
+   "title": "相反方程式",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "62",
+   "title": "高次方程式と虚数解",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "63",
+   "title": "高次方程式と実数解",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "64",
+   "title": "3次方程式の解と係数の関係(1)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "65",
+   "title": "3次方程式の解と係数の関係(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第2章 高次方程式",
+   "seqNo": "66",
+   "title": "3次方程式の解と係数の関係(3)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "高次方程式",
+   "sub": "高次方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "67",
+   "title": "平面上の2点間の距離",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "68",
+   "title": "三角形の形状",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "69",
+   "title": "平面上の内分点・外分点と重心の座標",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "70",
+   "title": "平行四辺形",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "71",
+   "title": "座標の利用",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "72",
+   "title": "平行な直線・垂直な直線",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "73",
+   "title": "平行条件・垂直条件",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "74",
+   "title": "線分の垂直二等分線",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "75",
+   "title": "三角形を作らない条件",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "76",
+   "title": "三角形を形作らない条件",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "77",
+   "title": "3点が一直線上にある条件",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "78",
+   "title": "定点を通る直線",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "79",
+   "title": "交点を通る直線群",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "80",
+   "title": "点と直線の距離",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "81",
+   "title": "点と直線の距離の利用",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "82",
+   "title": "三角形の面積",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "83",
+   "title": "三角形の面積の最大・最小",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "点の座標・直線の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "84",
+   "title": "円の方程式(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "85",
+   "title": "円の方程式(2)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "86",
+   "title": "円と直線の位置関係(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "87",
+   "title": "円と直線の位置関係(2)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "88",
+   "title": "円と直線の共有点の座標",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "89",
+   "title": "弦の長さ(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "90",
+   "title": "弦の長さ(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "91",
+   "title": "傾きが与えられた円の接線",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "92",
+   "title": "円外の点から引いた円の接線(1)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "93",
+   "title": "円外の点から引いた円の接線(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "94",
+   "title": "2円の位置関係",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "95",
+   "title": "共通接線",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "96",
+   "title": "2円の交点を通る図形",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "97",
+   "title": "円と直線の交点を通る円",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "98",
+   "title": "円の外の点から引いた接線(2)",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "99",
+   "title": "放物線と円の共有点",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "円の方程式",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "100",
+   "title": "基本的な軌跡",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "101",
+   "title": "動点に対する軌跡(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "102",
+   "title": "動点に対する軌跡(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "103",
+   "title": "媒介変数と軌跡",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "104",
+   "title": "対称な直線・角の二等分線",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "105",
+   "title": "2直線の交点の軌跡(1)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "106",
+   "title": "中点の軌跡",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "107",
+   "title": "反転による軌跡",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "108",
+   "title": "2直線の交点の軌跡(2)",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "109",
+   "title": "連立不等式と領域",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "110",
+   "title": "いろいろな不等式の表す領域(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "111",
+   "title": "いろいろな不等式の表す領域(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "112",
+   "title": "境界線の同じ側と反対側",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "113",
+   "title": "線形計画法",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "114",
+   "title": "領域と最大・最小(1)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "115",
+   "title": "領域と最大・最小(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "116",
+   "title": "領域と最大・最小(3)",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "117",
+   "title": "領域と最大・最小(4)",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "118",
+   "title": "直線の通過領域",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "119",
+   "title": "条件を満たす点の存在範囲",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第3章 図形と方程式",
+   "seqNo": "120",
+   "title": "命題と領域",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "図形と方程式",
+   "sub": "軌跡と領域"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "121",
+   "title": "弧度法と三角関数の値",
+   "difficulty": "*",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "一般角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "122",
+   "title": "三角関数の相互関係",
+   "difficulty": "*",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "一般角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "123",
+   "title": "三角関数の式の値",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "一般角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "124",
+   "title": "$\\sin \\theta, \\cos \\theta$ を解にもつ2次方程式",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "一般角の三角関数",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "125",
+   "title": "いろいろな角の三角関数",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "いろいろな角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "126",
+   "title": "三角関数のグラフ(1)",
+   "difficulty": "*",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "いろいろな角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "127",
+   "title": "三角関数のグラフ(2)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "いろいろな角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "128",
+   "title": "三角関数を含む不等式の基本",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "いろいろな角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "129",
+   "title": "三角関数を含む方程式・不等式(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "いろいろな角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "130",
+   "title": "三角関数を含む方程式・不等式(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "いろいろな角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "131",
+   "title": "三角関数を含む方程式・不等式(3)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "いろいろな角の三角関数"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "132",
+   "title": "三角関数の加法定理(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "133",
+   "title": "三角関数の加法定理(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "134",
+   "title": "三角関数の加法定理(応用)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "135",
+   "title": "2直線のなす角",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "136",
+   "title": "2倍角・3倍角・半角の公式",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "137",
+   "title": "2倍角・3倍角・半角の公式(応用)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "138",
+   "title": "三角関数を含む方程式・不等式(4)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "139",
+   "title": "3倍角の公式の応用",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "140",
+   "title": "三角関数の媒介変数表示",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "141",
+   "title": "(積)→(和)の公式の利用",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "142",
+   "title": "(和)→(積)の公式の利用",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "143",
+   "title": "三角関数の合成",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "144",
+   "title": "三角関数を含む方程式・不等式(5)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "145",
+   "title": "三角関数の最大・最小(2)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "146",
+   "title": "三角関数の最大・最小(3)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "147",
+   "title": "三角関数の最大・最小(4)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "148",
+   "title": "三角関数の最大・最小(5)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "149",
+   "title": "三角関数の最大・最小(6)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "150",
+   "title": "三角関数の最大・最小(7)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "151",
+   "title": "図形への応用",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第4章 三角関数",
+   "seqNo": "152",
+   "title": "三角関数を含む方程式の解の存在条件",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "三角関数",
+   "sub": "三角関数の加法定理"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "153",
+   "title": "指数の拡張",
+   "difficulty": "*",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "154",
+   "title": "指数の計算と式の値",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "155",
+   "title": "指数の大小",
+   "difficulty": "*",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "156",
+   "title": "指数を含む方程式",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "157",
+   "title": "指数を含む不等式",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "158",
+   "title": "指数を含む連立方程式・不等式",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "159",
+   "title": "指数関数の最大・最小(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "160",
+   "title": "指数関数の最大・最小(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "指数の拡張と指数関数",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "161",
+   "title": "対数の計算(1)",
+   "difficulty": "*",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "162",
+   "title": "対数の計算(2)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "163",
+   "title": "対数の計算(3)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "164",
+   "title": "指数・対数の関係",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "165",
+   "title": "対数関数のグラフ",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "166",
+   "title": "対数の大小(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "167",
+   "title": "対数関数を含む方程式(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "168",
+   "title": "対数関数を含む方程式(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "169",
+   "title": "対数関数を含む不等式(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "170",
+   "title": "対数関数を含む不等式(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "171",
+   "title": "無理数となる対数",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "172",
+   "title": "対数関数の最大・最小(1)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "173",
+   "title": "対数関数の最大・最小(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "174",
+   "title": "対数関数を含む不等式と領域",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数"
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "175",
+   "title": "対数の大小(2)",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "176",
+   "title": "桁数と小数第何位",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "177",
+   "title": "最高位の数字",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第5章 指数・対数関数",
+   "seqNo": "178",
+   "title": "常用対数の応用",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "指数関数と対数関数",
+   "sub": "対数と対数関数",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "179",
+   "title": "極限より係数決定",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "180",
+   "title": "平均変化率と微分係数",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "181",
+   "title": "微分係数",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "182",
+   "title": "導関数の計算(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "183",
+   "title": "導関数の計算(2)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "184",
+   "title": "積と累乗の微分",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "185",
+   "title": "導関数と微分係数",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "186",
+   "title": "関数の決定",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "187",
+   "title": "多項式が $(x-a)^2$ で割り切れる条件",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "188",
+   "title": "接線の方程式",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "189",
+   "title": "与えられた点を通る接線",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "190",
+   "title": "接線に垂直な直線(法線)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "191",
+   "title": "3次関数のグラフと接線",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "192",
+   "title": "共通接線(1)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "193",
+   "title": "共通接線(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "194",
+   "title": "3次関数のグラフ",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "195",
+   "title": "4次関数のグラフ",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "196",
+   "title": "極値をもたない条件",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "197",
+   "title": "絶対値記号を含む関数のグラフ",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "198",
+   "title": "極値より関数の決定",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "199",
+   "title": "極大値と極小値の差",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "200",
+   "title": "極大値と極小値の和",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "201",
+   "title": "区間における最大・最小",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "202",
+   "title": "最大・最小の応用(1)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "203",
+   "title": "最大・最小の応用(2)",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "204",
+   "title": "最大・最小の応用(3)",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "205",
+   "title": "最大・最小より関数の決定",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "206",
+   "title": "いろいろな関数の最大・最小(1)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "207",
+   "title": "いろいろな関数の最大・最小(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "208",
+   "title": "条件付きの最大・最小",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "209",
+   "title": "体積の最大値",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "関数の値の増加・減少"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "210",
+   "title": "実数解の個数(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "方程式・不等式への応用"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "211",
+   "title": "実数解の個数(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "方程式・不等式への応用",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "212",
+   "title": "不等式の証明",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "方程式・不等式への応用"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "213",
+   "title": "不等式を満たす定数の値の範囲",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "方程式・不等式への応用"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "214",
+   "title": "3本の接線が引けるための条件(1)",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "方程式・不等式への応用",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "215",
+   "title": "3本の接線が引けるための条件(2)",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "方程式・不等式への応用",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "216",
+   "title": "三角不等式",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "方程式・不等式への応用"
+  },
+  {
+   "chapter": "第6章 微分法",
+   "seqNo": "217",
+   "title": "運動と微分",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "微分法",
+   "sub": "微分係数と導関数",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "218",
+   "title": "不定積分",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "219",
+   "title": "原始関数を求める",
+   "difficulty": "*",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "220",
+   "title": "曲線の決定",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "221",
+   "title": "定積分(1) 偶関数・奇関数",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "222",
+   "title": "定積分(2) 絶対値を含む関数など",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "223",
+   "title": "絶対値記号を含む関数の定積分",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "224",
+   "title": "$(x-\\alpha)(x-\\beta)$ の定積分",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "225",
+   "title": "関数の直交性",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "226",
+   "title": "定積分の不等式の証明",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "227",
+   "title": "関数の決定(1)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "228",
+   "title": "関数の決定(2)",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "229",
+   "title": "定積分で表された関数の極値",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "不定積分と定積分"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "230",
+   "title": "曲線と $x$ 軸の間の面積",
+   "difficulty": "*",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "231",
+   "title": "直線・曲線の間の面積",
+   "difficulty": "**",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "232",
+   "title": "不等式の表す領域の面積",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "233",
+   "title": "放物線と接線の囲む面積(1)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "234",
+   "title": "放物線と接線の囲む面積(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "235",
+   "title": "3次関数のグラフと面積",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "236",
+   "title": "3次関数のグラフと接線の間の面積",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "237",
+   "title": "面積の比",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "238",
+   "title": "面積の最小値",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "239",
+   "title": "絶対値記号を含む関数と面積",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "240",
+   "title": "面積の相等",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "241",
+   "title": "放物線と円の間の面積",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "242",
+   "title": "4次関数のグラフと面積",
+   "difficulty": "****",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "243",
+   "title": "曲線と $y$ 軸の間の面積",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積"
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "244",
+   "title": "体積(1)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積",
+   "meta": {
+    "Think": "◯"
+   }
+  },
+  {
+   "chapter": "第7章 積分法",
+   "seqNo": "245",
+   "title": "体積(2)",
+   "difficulty": "***",
+   "subject": "数学",
+   "major": "数学II",
+   "mid": "積分法",
+   "sub": "面積",
+   "meta": {
+    "Think": "◯"
+   }
+  }
+ ]
+}
