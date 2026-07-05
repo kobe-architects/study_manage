@@ -147,6 +147,7 @@ export interface Vocabulary {
   sectionId: number
   word: string
   meaning: string
+  meaningSupplement: string | null
   partOfSpeech: string | null
   importance: number
   label: VocabularyLabel

@@ -14,6 +14,7 @@ import type {
 } from '@/types'
 import FlashcardPlayer from '@/components/FlashcardPlayer.vue'
 import TestSheetPrint from '@/components/TestSheetPrint.vue'
+import AuthImage from '@/components/AuthImage.vue'
 
 const router = useRouter()
 const vocab = useVocabularyStore()
@@ -360,7 +361,7 @@ function toggleSec(id: number) {
         <div class="card vstat"><div class="vstat-l">復習期限</div><div class="dm vstat-n" style="color: #d98a2b">{{ stats.dueForReview }}</div></div>
       </div>
 
-      <div style="display: grid; grid-template-columns: minmax(0, 380px) 1fr; gap: 18px; align-items: start" class="vq-grid">
+      <div style="display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 18px; align-items: start" class="vq-grid">
         <!-- settings -->
         <div class="card" style="padding: 20px">
           <div class="row-between" style="margin-bottom: 2px">
@@ -456,7 +457,7 @@ function toggleSec(id: number) {
         </div>
 
         <!-- word list -->
-        <div class="card" style="padding: 18px 20px">
+        <div class="card" style="padding: 18px 20px; min-width: 0">
           <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap">
             <div style="position: relative; flex: 1; min-width: 150px">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa1ab" stroke-width="2" style="position: absolute; left: 11px; top: 50%; transform: translateY(-50%)"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>
@@ -559,9 +560,10 @@ function toggleSec(id: number) {
           <!-- revealed -->
           <div v-if="revealed" style="margin-top: 18px; padding-top: 18px; border-top: 1px solid #f0f1f3">
             <div :style="{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '5px 12px', borderRadius: '99px', background: feedback.bg, color: feedback.color, fontSize: '13px', fontWeight: 700, marginBottom: '12px' }">{{ feedback.text }}</div>
-            <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px">
+            <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap">
               <span class="dm" style="font-size: 22px; font-weight: 700">{{ displayed.vocab.word }}</span>
               <span style="font-size: 14px; color: #4b5563">{{ displayed.vocab.meaning }}</span>
+              <span v-if="displayed.vocab.meaningSupplement" style="font-size: 12.5px; color: #9aa1ab">{{ displayed.vocab.meaningSupplement }}</span>
             </div>
             <div v-if="displayed.vocab.exampleSentence" style="background: #f8f9fb; border-radius: 12px; padding: 13px 15px; margin-bottom: 14px">
               <div style="font-size: 13.5px; line-height: 1.6">
@@ -581,7 +583,7 @@ function toggleSec(id: number) {
             </div>
 
             <div v-if="displayed.vocab.imageUrl" style="margin-bottom: 14px">
-              <img :src="displayed.vocab.imageUrl" style="max-width: 100%; max-height: 220px; border-radius: 12px; border: 1px solid #e3e6ea" />
+              <AuthImage :src="displayed.vocab.imageUrl" style="max-width: 100%; max-height: 220px; border-radius: 12px; border: 1px solid #e3e6ea" />
             </div>
 
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap">
@@ -625,7 +627,7 @@ function toggleSec(id: number) {
           <div style="display: flex; flex-direction: column">
             <div v-for="w in vocab.incorrectResults" :key="w.id" style="display: flex; align-items: baseline; gap: 10px; padding: 8px 0; border-top: 1px solid #f4f5f7">
               <span class="dm" style="font-size: 14px; font-weight: 700; min-width: 120px">{{ w.word }}</span>
-              <span v-if="showResultMeaning" style="font-size: 13px; color: var(--mut)">{{ w.meaning }}</span>
+              <span v-if="showResultMeaning" style="font-size: 13px; color: var(--mut)">{{ w.meaning }}<span v-if="w.meaningSupplement" style="color: #9aa1ab; margin-left: 6px">{{ w.meaningSupplement }}</span></span>
               <span v-else style="font-size: 13px; color: #cdd2d9">･････</span>
             </div>
           </div>
@@ -1071,11 +1073,11 @@ function toggleSec(id: number) {
   color: #fff;
 }
 .vq-grid {
-  grid-template-columns: minmax(0, 380px) 1fr;
+  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
 }
 @media (max-width: 860px) {
   .vq-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 }
 </style>

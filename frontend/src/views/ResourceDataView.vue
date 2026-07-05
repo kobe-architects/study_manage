@@ -852,8 +852,20 @@ async function saveRow() {
   box-shadow: 0 0 0 2px rgba(59, 80, 204, 0.18);
 }
 @media (max-width: 880px) {
+  /* スマホでは横幅ブレイクアウトを解除（100vw/translateによる見切れを防ぐ）。
+     通常フローに戻すことで、テーブルは overflow-x:auto ラッパー内で横スクロール可能になる。 */
+  .resource-view {
+    width: auto;
+    max-width: none;
+    margin-left: 0;
+    transform: none;
+  }
   .split {
     flex-direction: column;
+    /* 縦積みでは align-items が横方向の制御になる。flex-start のままだと
+       .data-col がテーブル(min-width:900)の幅まで広がり画面外に出て横スクロール不能になる。
+       stretch で画面幅に収め、内側の overflow-x:auto を効かせる。 */
+    align-items: stretch;
   }
   .book-col {
     flex: none;

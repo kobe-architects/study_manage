@@ -115,16 +115,16 @@ class VocabularyController extends Controller
 
     // ---------- Excel 入出力 ----------
 
-    /** エクスポート/テンプレートの見出し（日本語・11列） */
+    /** エクスポート/テンプレートの見出し（日本語・12列） */
     private array $excelHeader = [
-        'セクション', '単語', '意味', '品詞', '重要度',
+        'セクション', '単語', '意味', '意味の補足', '品詞', '重要度',
         'ラベル', '習熟度', 'メモ', '例文', '和訳', '例文説明',
     ];
 
     public function template(): StreamedResponse
     {
         $rows = [
-            ['Unit 1', 'example', '例', '名詞', '★', '普', '低', '覚え方メモ', 'This is an example.', 'これは例文です。', '補足説明'],
+            ['Unit 1', 'example', '例', '「名詞」としての意味の補足', '名詞', '★', '普', '低', '覚え方メモ', 'This is an example.', 'これは例文です。', '補足説明'],
         ];
 
         return $this->streamXlsx('vocabulary_template.xlsx', $rows);
@@ -144,6 +144,7 @@ class VocabularyController extends Controller
                 $v->section->name,
                 $v->word,
                 $v->meaning,
+                $v->meaning_supplement,
                 $v->part_of_speech,
                 $this->importanceToLabel((int) $v->importance),
                 $this->labelToJp($v->label),
@@ -226,6 +227,7 @@ class VocabularyController extends Controller
                     'study_resource_section_id' => $section->id,
                     'word' => $word,
                     'meaning' => $meaning,
+                    'meaning_supplement' => $get($cols, 'meaning_supplement') ?: null,
                     'part_of_speech' => $get($cols, 'part_of_speech') ?: null,
                     'importance' => $this->parseImportance($get($cols, 'importance')),
                     'label' => $this->parseLabel($get($cols, 'label')),
@@ -283,6 +285,7 @@ class VocabularyController extends Controller
         'section' => ['section', 'セクション'],
         'word' => ['word', '単語'],
         'meaning' => ['meaning', '意味'],
+        'meaning_supplement' => ['meaning_supplement', '意味の補足', '意味補足'],
         'part_of_speech' => ['part_of_speech', '品詞'],
         'importance' => ['importance', '重要度'],
         'label' => ['label', 'ラベル'],
@@ -323,9 +326,9 @@ class VocabularyController extends Controller
     private function defaultColumnMap(): array
     {
         return [
-            'section' => 0, 'word' => 1, 'meaning' => 2, 'part_of_speech' => 3,
-            'importance' => 4, 'label' => 5, 'proficiency' => 6, 'memo' => 7,
-            'example_sentence' => 8, 'example_translation' => 9, 'example_explanation' => 10,
+            'section' => 0, 'word' => 1, 'meaning' => 2, 'meaning_supplement' => 3,
+            'part_of_speech' => 4, 'importance' => 5, 'label' => 6, 'proficiency' => 7,
+            'memo' => 8, 'example_sentence' => 9, 'example_translation' => 10, 'example_explanation' => 11,
         ];
     }
 
@@ -391,6 +394,7 @@ class VocabularyController extends Controller
         $rules = [
             'word' => [$creating ? 'required' : 'sometimes', 'string', 'max:255'],
             'meaning' => [$creating ? 'required' : 'sometimes', 'string', 'max:500'],
+            'meaningSupplement' => ['nullable', 'string'],
             'partOfSpeech' => ['nullable', 'string', 'max:50'],
             'importance' => ['nullable', 'integer', 'in:0,1,2'],
             'label' => ['nullable', 'in:easy,normal,hard'],
@@ -404,7 +408,8 @@ class VocabularyController extends Controller
         $data = $request->validate($rules);
 
         $map = [
-            'word' => 'word', 'meaning' => 'meaning', 'partOfSpeech' => 'part_of_speech',
+            'word' => 'word', 'meaning' => 'meaning', 'meaningSupplement' => 'meaning_supplement',
+            'partOfSpeech' => 'part_of_speech',
             'importance' => 'importance', 'label' => 'label', 'proficiency' => 'proficiency',
             'memo' => 'memo', 'exampleSentence' => 'example_sentence',
             'exampleTranslation' => 'example_translation', 'exampleExplanation' => 'example_explanation',

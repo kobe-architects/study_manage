@@ -13,7 +13,7 @@ class Vocabulary extends Model
     protected $table = 'vocabularies';
 
     protected $fillable = [
-        'study_resource_section_id', 'word', 'meaning', 'part_of_speech',
+        'study_resource_section_id', 'word', 'meaning', 'meaning_supplement', 'part_of_speech',
         'importance', 'label', 'proficiency', 'memo', 'image_path',
         'example_sentence', 'example_translation', 'example_explanation', 'sort_order',
     ];

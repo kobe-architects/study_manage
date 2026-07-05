@@ -104,9 +104,13 @@ function buildHtml(): string {
     .map((w, i) => {
       const pos = w.partOfSpeech ? ` <span class="pos">［${esc(w.partOfSpeech)}］</span>` : ''
       const memo = w.memo ? `<span class="memo">※${esc(w.memo)}</span>` : ''
+      // 意味の補足（解答に意味が現れる場合は併記する）
+      const sup = w.meaningSupplement ? `<span class="asup">〔${esc(w.meaningSupplement)}〕</span>` : ''
       // 例文穴埋め（書き取り）はその単語の意味も併記する
-      const mean = isFill && w.meaning ? `<span class="amean">（${esc(w.meaning)}）</span>` : ''
-      return `<li><span class="n">${i + 1}</span><span class="qa"><strong>${esc(question(w))}</strong> — ${esc(answer(w))}${pos}${mean}</span>${memo}</li>`
+      const mean = isFill && w.meaning ? `<span class="amean">（${esc(w.meaning)}）${sup}</span>` : ''
+      // 意味を回答するテストは解答（意味）の隣に補足を併記する
+      const ansSup = props.testType === 'meaning' ? sup : ''
+      return `<li><span class="n">${i + 1}</span><span class="qa"><strong>${esc(question(w))}</strong> — ${esc(answer(w))}${ansSup}${pos}${mean}</span>${memo}</li>`
     })
     .join('')
 
@@ -158,6 +162,7 @@ function buildHtml(): string {
   .alist strong { font-weight: 700; }
   .pos { color: #6b7280; font-size: 11px; }
   .amean { color: #4b5563; font-size: 11.5px; }
+  .asup { color: #6b7280; font-size: 11px; margin-left: 3px; }
   .memo { grid-column: 2; color: #9aa1ab; font-size: 11px; }
 
   @media print {

@@ -21,6 +21,7 @@ class VocabularyResource extends JsonResource
             'sectionId' => $this->study_resource_section_id,
             'word' => $this->word,
             'meaning' => $this->meaning,
+            'meaningSupplement' => $this->meaning_supplement,
             'partOfSpeech' => $this->part_of_speech,
             'importance' => $this->importance,
             'label' => $this->label,

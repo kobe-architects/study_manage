@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import client from '@/api/client'
+import AuthImage from '@/components/AuthImage.vue'
 import { speak } from '@/lib/design'
 import { useVocabularyStore } from '@/stores/vocabulary'
 import { useUiStore } from '@/stores/ui'
@@ -51,7 +52,7 @@ const filtered = computed(() => {
     if (fImportance.value !== 'all' && w.importance !== fImportance.value) return false
     if (fProf.value !== 'all' && w.proficiency !== fProf.value) return false
     if (term) {
-      const hay = `${w.word} ${w.meaning} ${w.exampleSentence ?? ''} ${w.exampleTranslation ?? ''}`.toLowerCase()
+      const hay = `${w.word} ${w.meaning} ${w.meaningSupplement ?? ''} ${w.exampleSentence ?? ''} ${w.exampleTranslation ?? ''}`.toLowerCase()
       if (!hay.includes(term)) return false
     }
     return true
@@ -86,6 +87,7 @@ const form = reactive({
   sectionId: 0,
   word: '',
   meaning: '',
+  meaningSupplement: '',
   partOfSpeech: '',
   importance: 1,
   label: 'normal' as VocabularyLabel,
@@ -107,6 +109,7 @@ function blankForm() {
     sectionId: sections.value[0]?.id ?? 0,
     word: '',
     meaning: '',
+    meaningSupplement: '',
     partOfSpeech: '',
     importance: 1,
     label: 'normal' as VocabularyLabel,
@@ -152,6 +155,7 @@ function openEdit(w: Vocabulary) {
     sectionId: w.sectionId,
     word: w.word,
     meaning: w.meaning,
+    meaningSupplement: w.meaningSupplement ?? '',
     partOfSpeech: w.partOfSpeech ?? '',
     importance: w.importance,
     label: w.label,
@@ -174,6 +178,7 @@ async function save() {
   const payload = {
     word: form.word,
     meaning: form.meaning,
+    meaningSupplement: form.meaningSupplement || null,
     partOfSpeech: form.partOfSpeech || null,
     importance: form.importance,
     label: form.label,
@@ -329,30 +334,33 @@ async function deleteAll() {
           </thead>
           <tbody>
             <template v-for="(w, i) in paged" :key="w.id">
-              <tr>
-                <td><button class="bare" style="color: #9aa1ab" @click="expanded[w.id] = !expanded[w.id]"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" :style="{ transform: expanded[w.id] ? 'rotate(90deg)' : 'none' }"><path d="M9 6l6 6-6 6" /></svg></button></td>
-                <td style="color: #bcc2cb">{{ (curPage - 1) * perPage + i + 1 }}</td>
-                <td style="color: #9aa1ab; font-size: 12px">{{ sectionName(w.sectionId) }}</td>
-                <td>
+              <tr class="v-row">
+                <td class="c-toggle" data-label="詳細"><button class="bare" style="color: #9aa1ab" @click="expanded[w.id] = !expanded[w.id]"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" :style="{ transform: expanded[w.id] ? 'rotate(90deg)' : 'none' }"><path d="M9 6l6 6-6 6" /></svg></button></td>
+                <td class="c-no" data-label="No" style="color: #bcc2cb">{{ (curPage - 1) * perPage + i + 1 }}</td>
+                <td data-label="セクション" style="color: #9aa1ab; font-size: 12px">{{ sectionName(w.sectionId) }}</td>
+                <td class="c-word" data-label="単語">
                   <span style="display: inline-flex; align-items: center; gap: 7px">
-                    <img v-if="w.imageUrl" :src="w.imageUrl" style="width: 26px; height: 26px; object-fit: cover; border-radius: 5px; border: 1px solid #e3e6ea" />
+                    <AuthImage v-if="w.imageUrl" :src="w.imageUrl" style="width: 26px; height: 26px; object-fit: cover; border-radius: 5px; border: 1px solid #e3e6ea" />
                     <button class="bare dm" style="font-weight: 700; font-size: 13.5px" @click="speak(w.word)">{{ w.word }}</button>
                   </span>
                 </td>
-                <td style="color: #4b5563">{{ w.meaning }}</td>
-                <td style="color: #9aa1ab; white-space: nowrap">{{ w.partOfSpeech }}</td>
-                <td style="color: #e0a93b">{{ '★'.repeat(w.importance) || '–' }}</td>
-                <td><span :style="{ fontSize: '11px', fontWeight: 600, padding: '2px 7px', borderRadius: '99px', background: labelMap[w.label].bg, color: labelMap[w.label].fg }">{{ labelMap[w.label].t }}</span></td>
-                <td :style="{ fontWeight: 700, color: w.proficiency ? profMap[w.proficiency].c : '#cdd2d9' }">{{ w.proficiency ? profMap[w.proficiency].t : '—' }}</td>
-                <td><span :style="{ fontSize: '11.5px', fontWeight: 700, color: learnInfo(w).color }">{{ learnInfo(w).text }}</span></td>
-                <td style="text-align: right; white-space: nowrap">
+                <td data-label="意味" style="color: #4b5563">
+                  <div>{{ w.meaning }}</div>
+                  <div v-if="w.meaningSupplement" style="color: #9aa1ab; font-size: 11.5px; margin-top: 2px">{{ w.meaningSupplement }}</div>
+                </td>
+                <td data-label="品詞" style="color: #9aa1ab; white-space: nowrap">{{ w.partOfSpeech }}</td>
+                <td data-label="重要度" style="color: #e0a93b">{{ '★'.repeat(w.importance) || '–' }}</td>
+                <td data-label="ラベル"><span :style="{ fontSize: '11px', fontWeight: 600, padding: '2px 7px', borderRadius: '99px', background: labelMap[w.label].bg, color: labelMap[w.label].fg }">{{ labelMap[w.label].t }}</span></td>
+                <td data-label="習熟" :style="{ fontWeight: 700, color: w.proficiency ? profMap[w.proficiency].c : '#cdd2d9' }">{{ w.proficiency ? profMap[w.proficiency].t : '—' }}</td>
+                <td data-label="学習"><span :style="{ fontSize: '11.5px', fontWeight: 700, color: learnInfo(w).color }">{{ learnInfo(w).text }}</span></td>
+                <td class="c-actions" style="text-align: right; white-space: nowrap">
                   <button class="icon-btn" title="編集" @click="openEdit(w)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg></button>
                   <button class="icon-btn danger" title="削除" @click="remove(w)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg></button>
                 </td>
               </tr>
-              <tr v-if="expanded[w.id]">
-                <td></td>
-                <td colspan="10" style="background: #f8f9fb; color: #4b5563; font-size: 12.5px">
+              <tr v-if="expanded[w.id]" class="v-detail">
+                <td class="c-detail-pad"></td>
+                <td class="c-detail" colspan="10" style="background: #f8f9fb; color: #4b5563; font-size: 12.5px">
                   <div v-if="w.exampleSentence"><strong>例文:</strong> {{ w.exampleSentence }}</div>
                   <div v-if="w.exampleTranslation" style="color: #9aa1ab">{{ w.exampleTranslation }}</div>
                   <div v-if="w.memo"><strong>メモ:</strong> {{ w.memo }}</div>
@@ -393,6 +401,7 @@ async function deleteAll() {
           </label>
           <label class="fld"><span>語 *</span><input v-model="form.word" /></label>
           <label class="fld"><span>意味 *</span><input v-model="form.meaning" /></label>
+          <label class="fld" style="grid-column: span 2"><span>意味の補足</span><input v-model="form.meaningSupplement" placeholder="意味の補足説明" /></label>
           <label class="fld"><span>品詞</span><input v-model="form.partOfSpeech" placeholder="名/動/形/副" /></label>
           <label class="fld"><span>重要度</span><select v-model.number="form.importance"><option :value="0">無印</option><option :value="1">★</option><option :value="2">★★</option></select></label>
           <label class="fld"><span>ラベル</span><select v-model="form.label"><option value="easy">易</option><option value="normal">普</option><option value="hard">難</option></select></label>
@@ -404,7 +413,8 @@ async function deleteAll() {
           <div class="fld" style="grid-column: span 2">
             <span>画像</span>
             <div style="display: flex; align-items: center; gap: 12px">
-              <img v-if="imageUrl" :src="imageUrl" style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #e3e6ea" />
+              <img v-if="imageUrl && imageUrl.startsWith('blob:')" :src="imageUrl" style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #e3e6ea" />
+              <AuthImage v-else-if="imageUrl" :src="imageUrl" style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #e3e6ea" />
               <button class="btn-out" type="button" @click="pickImage">{{ imageUrl ? '差し替え' : 'アップロード' }}</button>
               <button v-if="imageUrl" class="btn-out" type="button" style="color: #cf5563" @click="removeImage">削除</button>
               <span v-if="!editingId" style="font-size: 11px; color: #9aa1ab">保存時に一緒に登録されます</span>
@@ -600,5 +610,81 @@ async function deleteAll() {
   outline: none;
   background: #fff;
   font-family: inherit;
+}
+
+/* ===== スマホ: テーブルをカード表示に切り替え ===== */
+@media (max-width: 720px) {
+  .tbl {
+    min-width: 0;
+  }
+  .tbl thead {
+    display: none;
+  }
+  .tbl,
+  .tbl tbody {
+    display: block;
+    width: 100%;
+  }
+  .tbl tbody tr.v-row {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 14px;
+    border-top: 6px solid #f3f4f6;
+  }
+  .tbl tbody tr.v-row td {
+    border-top: none;
+    padding: 3px 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    text-align: right;
+    min-width: 0;
+  }
+  .tbl tbody tr.v-row td::before {
+    content: attr(data-label);
+    color: var(--faint);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-right: auto;
+    text-align: left;
+  }
+  /* 単語は見出しとして目立たせ、カードの先頭に配置 */
+  .tbl tbody tr.v-row td.c-word {
+    order: -1;
+    justify-content: flex-start;
+    text-align: left;
+    padding-bottom: 6px;
+  }
+  .tbl tbody tr.v-row td.c-word::before {
+    display: none;
+  }
+  .tbl tbody tr.v-row td.c-word .dm {
+    font-size: 16px !important;
+  }
+  /* 操作ボタンはカード末尾に全幅で */
+  .tbl tbody tr.v-row td.c-actions {
+    order: 10;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 6px;
+    border-top: 1px solid #eceef1;
+    padding-top: 8px;
+  }
+  .tbl tbody tr.v-row td.c-actions .icon-btn {
+    padding: 8px;
+  }
+  /* 展開した詳細行 */
+  .tbl tbody tr.v-detail {
+    display: block;
+  }
+  .tbl tbody tr.v-detail td.c-detail-pad {
+    display: none;
+  }
+  .tbl tbody tr.v-detail td.c-detail {
+    display: block;
+    padding: 12px 14px;
+  }
 }
 </style>
