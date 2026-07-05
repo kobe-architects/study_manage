@@ -288,9 +288,10 @@ async function onImportSelected(e: Event) {
 }
 
 async function deleteAll() {
-  if (!window.confirm('教材内の全単語を削除します。よろしいですか？')) return
+  if (!window.confirm('教材内の全単語とセクションを削除します。よろしいですか？')) return
   await client.delete(`/study-resources/${resourceId.value}/vocabularies`)
-  await vocab.fetchByResource(resourceId.value)
+  // セクションも削除されるため、単語一覧と教材（セクション一覧）の両方を再取得する
+  await Promise.all([vocab.fetchByResource(resourceId.value), vocab.fetchResources()])
   ui.notify('全単語を削除しました')
 }
 </script>

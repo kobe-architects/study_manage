@@ -67,10 +67,14 @@ class VocabularyController extends Controller
     {
         $this->authorizeResource($request, $studyResource);
 
+        // 単語は Eloquent 経由で削除し、booted() の画像物理削除フックを効かせる
         Vocabulary::whereHas('section', fn ($q) => $q->where('study_resource_id', $studyResource->id))
             ->get()
             ->each
             ->delete();
+
+        // 空になったセクションも削除する（残すと再インポートでセクションが重複する）
+        $studyResource->sections()->delete();
 
         return response()->json(['message' => 'all deleted']);
     }
