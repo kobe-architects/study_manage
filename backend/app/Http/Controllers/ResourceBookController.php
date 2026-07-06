@@ -202,19 +202,21 @@ class ResourceBookController extends Controller
 
         $rows = $resourceBook->items()->with('studyItem.mid.major.subject')->get();
 
-        // 行ごとの記録集計
-        $stats = StudyRecord::query()
+        // 行ごとの学習記録（全学習日を昇順で保持）
+        $records = StudyRecord::query()
             ->where('user_id', $userId)
             ->whereIn('resource_book_item_id', $rows->pluck('id'))
-            ->selectRaw('resource_book_item_id, COUNT(*) as cnt, MAX(studied_on) as last_date')
-            ->groupBy('resource_book_item_id')
-            ->get()
-            ->keyBy('resource_book_item_id');
+            ->orderBy('studied_on')
+            ->orderBy('id')
+            ->get(['resource_book_item_id', 'studied_on'])
+            ->groupBy('resource_book_item_id');
 
-        $data = $rows->map(function (ResourceBookItem $r) use ($stats) {
+        $data = $rows->map(function (ResourceBookItem $r) use ($records) {
             $item = $r->studyItem;
             $subject = $item?->mid?->major?->subject;
-            $st = $stats->get($r->id);
+            $dates = ($records->get($r->id) ?? collect())
+                ->map(fn ($x) => $x->studied_on->toDateString())
+                ->all();
 
             return [
                 'id' => $r->id,
@@ -227,6 +229,7 @@ class ResourceBookController extends Controller
                 'meta' => $r->meta ?: null,
                 'studyItemId' => $r->study_item_id,
                 'included' => (bool) $r->included,
+                'important' => (bool) $r->important,
                 'subjectName' => $subject?->name,
                 'colorSoft' => $subject?->color_soft ?? '#475569',
                 'colorVivid' => $subject?->color_vivid ?? '#475569',
@@ -234,8 +237,9 @@ class ResourceBookController extends Controller
                 'mid' => $item?->mid?->name,
                 'sub' => $item?->name,
                 'sortOrder' => $r->sort_order,
-                'recordCount' => (int) ($st->cnt ?? 0),
-                'lastDate' => $st->last_date ?? null,
+                'recordCount' => count($dates),
+                'lastDate' => $dates ? end($dates) : null,
+                'dates' => $dates,
             ];
         });
 
@@ -282,6 +286,10 @@ class ResourceBookController extends Controller
         // 進捗対象フラグ
         if (array_key_exists('included', $data)) {
             $payload['included'] = $data['included'];
+        }
+        // 重要フラグ
+        if (array_key_exists('important', $data)) {
+            $payload['important'] = $data['important'];
         }
         // 紐づけ先: studyItemId 直接指定（null で解除）または 小分類パスで再解決
         if (array_key_exists('studyItemId', $data)) {
@@ -357,6 +365,81 @@ class ResourceBookController extends Controller
         ]);
 
         return response()->json(['data' => ['id' => $record->id]], 201);
+    }
+
+    /**
+     * 講義教材に関連する問題（=同じ小分類に紐づく「問題集」教材の行）を一覧で返す。
+     * 印刷/画面出力用。講義以外の教材でも動作するが、UIでは講義でのみ提供する。
+     */
+    public function relatedProblems(Request $request, ResourceBook $resourceBook): JsonResponse
+    {
+        $this->authorizeBook($request, $resourceBook);
+        $userId = $request->user()->id;
+
+        // この教材(講義)が紐づく小分類の集合
+        $itemIds = $resourceBook->items()
+            ->whereNotNull('study_item_id')
+            ->pluck('study_item_id')
+            ->unique()
+            ->values();
+
+        if ($itemIds->isEmpty()) {
+            return response()->json(['data' => []]);
+        }
+
+        // 同じ小分類に紐づく、自ユーザーの「問題集」教材の行
+        $rows = ResourceBookItem::query()
+            ->whereIn('study_item_id', $itemIds)
+            ->whereHas('book', fn ($q) => $q->where('user_id', $userId)->where('type', '問題集'))
+            ->with(['book:id,title,type', 'studyItem.mid.major.subject'])
+            ->get();
+
+        // 行ごとの学習日
+        $records = StudyRecord::query()
+            ->where('user_id', $userId)
+            ->whereIn('resource_book_item_id', $rows->pluck('id'))
+            ->orderBy('studied_on')
+            ->orderBy('id')
+            ->get(['resource_book_item_id', 'studied_on'])
+            ->groupBy('resource_book_item_id');
+
+        $data = $rows->map(function (ResourceBookItem $r) use ($records) {
+            $item = $r->studyItem;
+            $subject = $item?->mid?->major?->subject;
+            $dates = ($records->get($r->id) ?? collect())
+                ->map(fn ($x) => $x->studied_on->toDateString())
+                ->all();
+
+            return [
+                'id' => $r->id,
+                'bookTitle' => $r->book?->title,
+                'chapter' => $r->chapter,
+                'seqNo' => $r->seq_no,
+                'checkFlag' => $r->check_flag,
+                'think' => $r->meta['Think'] ?? null,
+                'title' => $r->title,
+                'difficulty' => $r->difficulty,
+                'important' => (bool) $r->important,
+                'subjectName' => $subject?->name,
+                'colorVivid' => $subject?->color_vivid ?? '#475569',
+                'major' => $item?->mid?->major?->name,
+                'mid' => $item?->mid?->name,
+                'sub' => $item?->name,
+                'recordCount' => count($dates),
+                'dates' => $dates,
+            ];
+        })
+            // 出典（問題集タイトル）→ 小分類 → 章 → 番号 の順で安定ソート
+            ->sortBy(fn ($x) => sprintf(
+                '%s|%s|%s|%s',
+                $x['bookTitle'] ?? '',
+                $x['sub'] ?? '',
+                $x['chapter'] ?? '',
+                str_pad($x['seqNo'] ?? '', 6, '0', STR_PAD_LEFT)
+            ))
+            ->values();
+
+        return response()->json(['data' => $data]);
     }
 
     // ====================== Excel 入出力 ======================
@@ -671,6 +754,7 @@ class ResourceBookController extends Controller
             'mid' => ['nullable', 'string', 'max:150'],
             'sub' => ['nullable', 'string', 'max:255'],
             'included' => ['sometimes', 'boolean'],
+            'important' => ['sometimes', 'boolean'],
             'studyItemId' => ['sometimes', 'nullable', 'integer'],
         ]);
     }

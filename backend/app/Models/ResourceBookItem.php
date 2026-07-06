@@ -10,10 +10,10 @@ class ResourceBookItem extends Model
 {
     protected $fillable = [
         'resource_book_id', 'study_item_id', 'chapter', 'seq_no',
-        'check_flag', 'title', 'difficulty', 'meta', 'included', 'sort_order',
+        'check_flag', 'title', 'difficulty', 'meta', 'included', 'important', 'sort_order',
     ];
 
-    protected $casts = ['meta' => 'array', 'included' => 'boolean'];
+    protected $casts = ['meta' => 'array', 'included' => 'boolean', 'important' => 'boolean'];
 
     public function book(): BelongsTo
     {

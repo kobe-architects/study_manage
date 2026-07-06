@@ -45,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/resource-books/{resourceBook}/image', [ResourceBookController::class, 'uploadImage']);
     Route::delete('/resource-books/{resourceBook}/image', [ResourceBookController::class, 'deleteImage']);
 
+    Route::get('/resource-books/{resourceBook}/related-problems', [ResourceBookController::class, 'relatedProblems']);
     Route::get('/resource-books/{resourceBook}/rows', [ResourceBookController::class, 'rowsIndex']);
     Route::post('/resource-books/{resourceBook}/rows', [ResourceBookController::class, 'rowStore']);
     Route::put('/resource-books/{resourceBook}/rows/included', [ResourceBookController::class, 'updateIncluded']);

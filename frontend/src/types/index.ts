@@ -56,6 +56,7 @@ export interface ResourceBookRow {
   meta: Record<string, string> | null
   studyItemId: number | null
   included: boolean
+  important: boolean
   subjectName: string | null
   colorSoft: string
   colorVivid: string
@@ -65,6 +66,27 @@ export interface ResourceBookRow {
   sortOrder: number
   recordCount: number
   lastDate: string | null
+  dates: string[] // 全学習日（昇順・ISO）
+}
+
+// 講義に関連する問題（同じ小分類に紐づく問題集の行）
+export interface RelatedProblemRow {
+  id: number
+  bookTitle: string | null
+  chapter: string | null
+  seqNo: string | null
+  checkFlag: string | null
+  think: string | null
+  title: string | null
+  difficulty: string | null
+  important: boolean
+  subjectName: string | null
+  colorVivid: string
+  major: string | null
+  mid: string | null
+  sub: string | null
+  recordCount: number
+  dates: string[]
 }
 
 export interface RecordStats {

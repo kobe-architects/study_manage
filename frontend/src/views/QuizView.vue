@@ -507,7 +507,7 @@ function toggleSec(id: number) {
           <!-- choice -->
           <template v-if="quizType === 'choice'">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px">
-              <span class="dm" style="font-size: 34px; font-weight: 700">{{ displayed.vocab.word }}</span>
+              <button class="bare dm word-tap" style="font-size: 34px; font-weight: 700" title="タップで発音" @click="speak(displayed.vocab.word)">{{ displayed.vocab.word }}</button>
               <button class="sq-btn" title="発音" @click="speak(displayed.vocab.word)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></svg>
               </button>
@@ -561,7 +561,7 @@ function toggleSec(id: number) {
           <div v-if="revealed" style="margin-top: 18px; padding-top: 18px; border-top: 1px solid #f0f1f3">
             <div :style="{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '5px 12px', borderRadius: '99px', background: feedback.bg, color: feedback.color, fontSize: '13px', fontWeight: 700, marginBottom: '12px' }">{{ feedback.text }}</div>
             <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap">
-              <span class="dm" style="font-size: 22px; font-weight: 700">{{ displayed.vocab.word }}</span>
+              <button class="bare dm word-tap" style="font-size: 22px; font-weight: 700" title="タップで発音" @click="speak(displayed.vocab.word)">{{ displayed.vocab.word }}</button>
               <span style="font-size: 14px; color: #4b5563">{{ displayed.vocab.meaning }}</span>
               <span v-if="displayed.vocab.meaningSupplement" style="font-size: 12.5px; color: #9aa1ab">{{ displayed.vocab.meaningSupplement }}</span>
             </div>
@@ -705,6 +705,19 @@ function toggleSec(id: number) {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+/* クイズの英単語自体をタップ→発音（スマホで押しやすいよう余白と下線ヒント） */
+.word-tap {
+  color: #1c2024;
+  text-align: left;
+  border-radius: 6px;
+  text-decoration: underline;
+  text-decoration-color: #d8dce1;
+  text-underline-offset: 4px;
+  -webkit-tap-highlight-color: rgba(59, 80, 204, 0.15);
+}
+.word-tap:active {
+  color: #3b50cc;
 }
 .vstat {
   padding: 13px 15px;

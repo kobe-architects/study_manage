@@ -2,10 +2,11 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import AuthImage from '@/components/AuthImage.vue'
 import { iso } from '@/lib/design'
+import { openListPrint, type PrintColumn } from '@/lib/printList'
 import { useResourceStore } from '@/stores/resource'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
-import { STUDY_TYPES, type ResourceBook, type ResourceBookRow, type StudyType } from '@/types'
+import { STUDY_TYPES, type RelatedProblemRow, type ResourceBook, type ResourceBookRow, type StudyType } from '@/types'
 
 const resource = useResourceStore()
 const study = useStudyStore()
@@ -167,13 +168,22 @@ async function onImportSelected(e: Event) {
 
 // ---- 行テーブル ----
 const q = ref('')
+const fImportant = ref(false) // 重要のみで絞り込み
+const fCheck = ref(false) // Check有りのみ
+const fThink = ref(false) // Think有りのみ
 const page = ref(1)
 const perPage = 20
 
 const filteredRows = computed(() => {
   const term = q.value.trim()
-  if (!term) return resource.rows
-  return resource.rows.filter((r) => `${r.title ?? ''}${r.chapter ?? ''}${r.sub ?? ''}${r.mid ?? ''}`.includes(term))
+  return resource.rows.filter((r) => {
+    if (fImportant.value && !r.important) return false
+    // Check/Think 列が無い教材では該当トグルは無視（全件が消えないように）
+    if (fCheck.value && visibleCols.value.check && !r.checkFlag) return false
+    if (fThink.value && hasThink.value && !r.meta?.Think) return false
+    if (term && !`${r.title ?? ''}${r.chapter ?? ''}${r.sub ?? ''}${r.mid ?? ''}`.includes(term)) return false
+    return true
+  })
 })
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / perPage)))
 const curPage = computed(() => Math.min(page.value, totalPages.value))
@@ -195,14 +205,17 @@ const visibleCols = computed(() => ({
   check: resource.rows.some((r) => r.checkFlag),
   difficulty: resource.rows.some((r) => r.difficulty),
 }))
-// インポートで取り込んだ教材固有の追加列（meta）を出現順に列挙
+// インポートで取り込んだ教材固有の追加列（meta）を出現順に列挙。
+// 「Think」は Check と同じ○印列としてタイトルの左に別途表示するため、ここからは除外する。
 const metaKeys = computed(() => {
   const keys: string[] = []
   for (const r of resource.rows) {
-    if (r.meta) for (const k of Object.keys(r.meta)) if (!keys.includes(k)) keys.push(k)
+    if (r.meta) for (const k of Object.keys(r.meta)) if (k !== 'Think' && !keys.includes(k)) keys.push(k)
   }
   return keys
 })
+// Think 列（meta.Think）を持つ行があるか
+const hasThink = computed(() => resource.rows.some((r) => r.meta?.Think))
 
 // ---- 章グルーピング（章がある教材は章を親項目として折りたたみ表示） ----
 const grouped = computed(() => visibleCols.value.chapter)
@@ -255,14 +268,123 @@ const listItems = computed<ListItem[]>(() => {
 })
 
 // 章見出し行の colspan 用（章列は見出しに集約するため通常列からは除外）
+// 基本7列: 対象 / 重要 / タイトル / 小分類 / 学習回数 / 学習日 / 操作
 const colCount = computed(
-  () => 6 + (visibleCols.value.seqNo ? 1 : 0) + (visibleCols.value.check ? 1 : 0) + (visibleCols.value.difficulty ? 1 : 0) + metaKeys.value.length,
+  () =>
+    7 +
+    (visibleCols.value.seqNo ? 1 : 0) +
+    (visibleCols.value.check ? 1 : 0) +
+    (hasThink.value ? 1 : 0) +
+    (visibleCols.value.difficulty ? 1 : 0) +
+    metaKeys.value.length,
 )
 
 function fmtMd(s: string | null) {
   if (!s) return '—'
   const d = new Date(s + 'T00:00:00')
   return `${d.getMonth() + 1}/${d.getDate()}`
+}
+
+// 全学習日を「7/1, 7/2」のように横並びで表示
+function fmtDates(dates: string[]) {
+  if (!dates.length) return '—'
+  return dates.map((d) => fmtMd(d)).join(', ')
+}
+
+function todayLabel() {
+  const d = new Date()
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
+}
+
+// ---- 重要フラグ ----
+async function toggleImportant(r: ResourceBookRow) {
+  await resource.toggleImportant(r.id, !r.important)
+  ui.notify(r.important ? '重要を解除しました' : '重要に登録しました')
+}
+
+// ---- 教材ごとの一覧を画面出力（PDF印刷可） ----
+function printBookList() {
+  const b = resource.activeBook
+  if (!b) return
+  const rows = filteredRows.value
+  if (!rows.length) {
+    ui.notify('印刷対象の行がありません')
+    return
+  }
+  const cols: PrintColumn[] = [{ label: 'No', align: 'right', width: '34px' }]
+  cols.push({ label: '章', width: '118px' })
+  if (visibleCols.value.check) cols.push({ label: 'Check', align: 'center', width: '46px' })
+  if (hasThink.value) cols.push({ label: 'Think', align: 'center', width: '46px' })
+  cols.push({ label: 'タイトル', width: '150px' })
+  if (visibleCols.value.difficulty) cols.push({ label: '難易度', align: 'center', width: '50px' })
+  cols.push(
+    { label: '小分類' }, // 幅指定なし＝残り幅を占有（最も広い）
+    { label: '重要', align: 'center', width: '36px' },
+    { label: '学習回数', align: 'center', width: '48px' },
+    { label: '学習日', width: '104px' },
+  )
+
+  const data = rows.map((r, i) => {
+    const cells: (string | number)[] = [i + 1, r.chapter ?? '']
+    if (visibleCols.value.check) cells.push(r.checkFlag ?? '')
+    if (hasThink.value) cells.push(r.meta?.Think ?? '')
+    cells.push(r.title ?? '')
+    if (visibleCols.value.difficulty) cells.push(r.difficulty ?? '')
+    cells.push(r.sub ?? '未紐づけ', r.important ? '★' : '', r.recordCount, fmtDates(r.dates))
+    return cells
+  })
+
+  const ok = openListPrint({
+    title: `${b.title}　学習データ一覧`,
+    subtitle: `${b.subjectName ?? '科目未設定'}・全${rows.length}行${fImportant.value ? '（重要のみ）' : ''}・出力日 ${todayLabel()}`,
+    columns: cols,
+    rows: data,
+  })
+  if (!ok) ui.notify('ポップアップがブロックされました。ブラウザ設定で許可してください。')
+}
+
+// ---- 講義に関連する問題を画面出力（PDF印刷可） ----
+async function printRelatedProblems() {
+  const b = resource.activeBook
+  if (!b) return
+  let rows: RelatedProblemRow[]
+  try {
+    rows = await resource.fetchRelatedProblems(b.id)
+  } catch {
+    ui.notify('関連問題の取得に失敗しました')
+    return
+  }
+  const hasCheck = rows.some((r) => r.checkFlag)
+  const hasThinkR = rows.some((r) => r.think)
+  const cols: PrintColumn[] = [
+    { label: 'No', align: 'right', width: '34px' },
+    { label: '出典（問題集）', width: '150px' },
+    { label: '章', width: '118px' },
+  ]
+  if (hasCheck) cols.push({ label: 'Check', align: 'center', width: '46px' })
+  if (hasThinkR) cols.push({ label: 'Think', align: 'center', width: '46px' })
+  cols.push(
+    { label: 'タイトル', width: '160px' },
+    { label: '難易度', align: 'center', width: '50px' },
+    { label: '小分類' }, // 幅指定なし＝残り幅を占有（最も広い）
+    { label: '重要', align: 'center', width: '36px' },
+    { label: '学習日', width: '104px' },
+  )
+  const data = rows.map((r, i) => {
+    const cells: (string | number)[] = [i + 1, r.bookTitle ?? '', r.chapter ?? '']
+    if (hasCheck) cells.push(r.checkFlag ?? '')
+    if (hasThinkR) cells.push(r.think ?? '')
+    cells.push(r.title ?? '', r.difficulty ?? '', r.sub ?? '', r.important ? '★' : '', fmtDates(r.dates))
+    return cells
+  })
+  const ok = openListPrint({
+    title: `${b.title}　関連問題一覧`,
+    subtitle: `講義「${b.title}」と同じ小分類に紐づく問題集の問題・全${rows.length}問・出力日 ${todayLabel()}`,
+    columns: cols,
+    rows: data,
+    emptyText: '関連する問題集の問題が見つかりませんでした（講義の各行が小分類に紐づいているか、同じ小分類の問題集があるかご確認ください）',
+  })
+  if (!ok) ui.notify('ポップアップがブロックされました。ブラウザ設定で許可してください。')
 }
 
 async function recordToday(r: ResourceBookRow) {
@@ -518,10 +640,15 @@ async function saveRow() {
           <div style="position: relative; flex: 1; min-width: 160px">
             <input v-model="q" placeholder="タイトル・章・小分類で検索…" class="search" @input="page = 1" />
           </div>
+          <button class="mini-btn imp-filter" :class="{ on: fImportant }" title="重要フラグの行のみ表示" @click="fImportant = !fImportant; page = 1">★ 重要のみ</button>
+          <button v-if="visibleCols.check" class="mini-btn flt-check" :class="{ on: fCheck }" title="Checkの付いた行のみ表示" @click="fCheck = !fCheck; page = 1">Checkのみ</button>
+          <button v-if="hasThink" class="mini-btn flt-think" :class="{ on: fThink }" title="Thinkの付いた行のみ表示" @click="fThink = !fThink; page = 1">Thinkのみ</button>
           <template v-if="grouped">
             <button class="mini-btn" style="color: #3b50cc" @click="setAllChapters(true)">全て展開</button>
             <button class="mini-btn" style="color: #9aa1ab" @click="setAllChapters(false)">全て折りたたむ</button>
           </template>
+          <button class="btn-out" @click="printBookList">一覧を印刷</button>
+          <button v-if="resource.activeType === '講義'" class="btn-out" @click="printRelatedProblems">関連問題を出力</button>
           <button class="btn-out" @click="openAddRow">＋ 行を追加</button>
         </template>
         <template v-else>
@@ -572,14 +699,16 @@ async function saveRow() {
           <thead>
             <tr>
               <th style="width: 46px; text-align: center">対象</th>
+              <th style="width: 40px; text-align: center">重要</th>
               <th v-if="visibleCols.seqNo" style="width: 52px">番号</th>
               <th v-if="visibleCols.check" style="width: 46px">Check</th>
+              <th v-if="hasThink" style="width: 46px; text-align: center">Think</th>
               <th>タイトル</th>
               <th v-if="visibleCols.difficulty" style="width: 70px">難易度</th>
               <th v-for="k in metaKeys" :key="k">{{ k }}</th>
               <th>小分類（科目›大›中）</th>
               <th style="width: 72px; text-align: center">学習回数</th>
-              <th style="width: 74px">最終日</th>
+              <th style="width: 150px">学習日</th>
               <th style="width: 130px; text-align: right">操作</th>
             </tr>
           </thead>
@@ -598,8 +727,12 @@ async function saveRow() {
               <td style="text-align: center">
                 <input type="checkbox" class="tgt-chk" :checked="item.row.included" :disabled="!item.row.studyItemId" :title="item.row.studyItemId ? '進捗対象（チェックを外すと集計から除外）' : '学習項目に未紐づけ'" @change="toggleRow(item.row)" />
               </td>
+              <td style="text-align: center">
+                <button class="imp-star" :class="{ on: item.row.important }" :title="item.row.important ? '重要（クリックで解除）' : '重要にする'" @click="toggleImportant(item.row)">★</button>
+              </td>
               <td v-if="visibleCols.seqNo" style="color: #aeb4bd">{{ item.row.seqNo ?? '' }}</td>
               <td v-if="visibleCols.check" style="text-align: center; color: #3a8a5c; font-weight: 700">{{ item.row.checkFlag ?? '' }}</td>
+              <td v-if="hasThink" style="text-align: center; color: #6b5bd0; font-weight: 700">{{ item.row.meta?.Think ?? '' }}</td>
               <td style="font-weight: 500">{{ item.row.title ?? '' }}</td>
               <td v-if="visibleCols.difficulty" style="color: #b85188; letter-spacing: 1px">{{ item.row.difficulty ?? '' }}</td>
               <td v-for="k in metaKeys" :key="k" style="font-size: 12px; color: #4b5563">{{ item.row.meta?.[k] ?? '' }}</td>
@@ -614,7 +747,7 @@ async function saveRow() {
               <td style="text-align: center">
                 <button class="cnt-btn" :disabled="!item.row.studyItemId" :style="{ color: item.row.recordCount > 0 ? '#1c2024' : '#cdd2d9', fontWeight: item.row.recordCount > 0 ? 700 : 400 }" title="学習記録を管理" @click="openRecords(item.row)">{{ item.row.recordCount }}</button>
               </td>
-              <td style="color: #6b7280; white-space: nowrap; font-size: 12px">{{ fmtMd(item.row.lastDate) }}</td>
+              <td style="color: #6b7280; font-size: 11.5px; line-height: 1.55">{{ fmtDates(item.row.dates) }}</td>
               <td style="text-align: right; white-space: nowrap">
                 <button class="rec-btn" title="今日学習を登録" @click="recordToday(item.row)">学習</button>
                 <button class="icon-btn danger" title="削除" @click="delRow(item.row)">
@@ -1117,6 +1250,49 @@ async function saveRow() {
   cursor: pointer;
   font-weight: 600;
   flex-shrink: 0;
+}
+/* 重要のみ 絞り込みトグル */
+.imp-filter {
+  color: #b0894b;
+}
+.imp-filter.on {
+  background: #fbf3df;
+  border-color: #e7c987;
+  color: #b07d18;
+}
+/* Check有りのみ 絞り込み */
+.flt-check {
+  color: #3a8a5c;
+}
+.flt-check.on {
+  background: #e8f5ee;
+  border-color: #a7d9bd;
+  color: #2e7d50;
+}
+/* Think有りのみ 絞り込み */
+.flt-think {
+  color: #6b5bd0;
+}
+.flt-think.on {
+  background: #eeecfa;
+  border-color: #c4bcf0;
+  color: #5849c0;
+}
+/* 行の重要スター */
+.imp-star {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: #d6dae0;
+  padding: 2px;
+}
+.imp-star:hover {
+  color: #e7c56b;
+}
+.imp-star.on {
+  color: #e0a53b;
 }
 .tree-row {
   display: flex;

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import client from '@/api/client'
-import type { ResourceBook, ResourceBookRow, StudyType } from '@/types'
+import type { RelatedProblemRow, ResourceBook, ResourceBookRow, StudyType } from '@/types'
 
 interface State {
   activeType: StudyType
@@ -126,6 +126,19 @@ export const useResourceStore = defineStore('resource', {
       await client.put(`/resource-book-rows/${rowId}`, payload)
       if (this.activeBookId) await this.fetchRows(this.activeBookId)
       await this.refreshBookSummary()
+    },
+
+    /** 行の重要フラグを切り替え（ローカル即時反映のうえ永続化） */
+    async toggleImportant(rowId: number, important: boolean) {
+      const r = this.rows.find((x) => x.id === rowId)
+      if (r) r.important = important
+      await client.put(`/resource-book-rows/${rowId}`, { important })
+    },
+
+    /** 講義教材に関連する問題（同じ小分類の問題集の行）を取得 */
+    async fetchRelatedProblems(bookId: number) {
+      const { data } = await client.get(`/resource-books/${bookId}/related-problems`)
+      return data.data as RelatedProblemRow[]
     },
 
     /** 行の進捗対象(紐づけ)を一括登録/解除 */
