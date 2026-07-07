@@ -151,6 +151,38 @@ async function remove(g: Goal) {
   await study.deleteGoal(g.id)
   ui.notify('削除しました')
 }
+
+// ---- 目標・中間目標の編集（タイトル・期限） ----
+const editModal = reactive<{ open: boolean; id: number; title: string; deadline: string; isSub: boolean; maxDeadline: string | null }>({
+  open: false,
+  id: 0,
+  title: '',
+  deadline: '',
+  isSub: false,
+  maxDeadline: null,
+})
+function openEdit(g: Goal) {
+  editModal.open = true
+  editModal.id = g.id
+  editModal.title = g.title
+  editModal.deadline = g.deadline
+  editModal.isSub = g.parentId !== null
+  // 中間目標は親の期限を上限に
+  editModal.maxDeadline = g.parentId !== null ? (study.goals.find((p) => p.id === g.parentId)?.deadline ?? null) : null
+}
+async function saveEdit() {
+  if (!editModal.title.trim()) {
+    ui.notify('タイトルを入力してください')
+    return
+  }
+  if (editModal.isSub && editModal.maxDeadline && editModal.deadline > editModal.maxDeadline) {
+    ui.notify('中間目標の期限は元の目標以前にしてください')
+    return
+  }
+  await study.updateGoal(editModal.id, { title: editModal.title.trim(), deadline: editModal.deadline })
+  editModal.open = false
+  ui.notify('目標を更新しました')
+}
 </script>
 
 <template>
@@ -162,7 +194,7 @@ async function remove(g: Goal) {
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 14px">
-      <GoalCard v-for="g in study.goals" :key="g.id" :goal="g" @link="openLink" @add-sub="openSubModal" @remove="remove" />
+      <GoalCard v-for="g in study.goals" :key="g.id" :goal="g" @link="openLink" @add-sub="openSubModal" @remove="remove" @edit="openEdit" />
       <div v-if="!study.goals.length" class="hint" style="text-align: center">
         目標がまだありません。「目標を追加」から、個別学習データを紐づけて目標を作成してください。
       </div>
@@ -216,6 +248,23 @@ async function remove(g: Goal) {
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
           <button class="btn-ghost" @click="subModal.open = false">キャンセル</button>
           <button class="btn-dark" :disabled="!subModal.title.trim() || !subModal.itemIds.length" @click="saveSub">追加する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 目標・中間目標の編集 -->
+    <div v-if="editModal.open" class="overlay" @click="editModal.open = false">
+      <div class="modal" @click.stop>
+        <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px">{{ editModal.isSub ? '中間目標を編集' : '目標を編集' }}</div>
+        <div v-if="editModal.isSub && editModal.maxDeadline" style="font-size: 12px; color: var(--faint); margin-bottom: 16px">期限は元の目標（{{ editModal.maxDeadline }}）以前にしてください</div>
+        <div v-else style="height: 8px"></div>
+        <div style="display: flex; flex-direction: column; gap: 13px">
+          <label class="fld"><span>タイトル</span><input v-model="editModal.title" placeholder="目標タイトル" /></label>
+          <label class="fld"><span>期限</span><input v-model="editModal.deadline" type="date" :max="editModal.isSub ? (editModal.maxDeadline ?? undefined) : undefined" /></label>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
+          <button class="btn-ghost" @click="editModal.open = false">キャンセル</button>
+          <button class="btn-dark" :disabled="!editModal.title.trim()" @click="saveEdit">保存</button>
         </div>
       </div>
     </div>

@@ -120,6 +120,12 @@ export const useStudyStore = defineStore('study', {
       await this.fetchGoals() // 中間目標を含む入れ子構造のため取り直す
     },
 
+    /** 目標・中間目標の編集（タイトル・期限） */
+    async updateGoal(id: number, payload: { title?: string; deadline?: string }) {
+      await client.put(`/goals/${id}`, payload)
+      await this.fetchGoals()
+    },
+
     /** 紐づけモーダル用ツリー（教材→章→行）を取得 */
     async fetchGoalLinkOptions() {
       const { data } = await client.get('/goals/link-options')

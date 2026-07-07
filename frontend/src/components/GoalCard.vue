@@ -7,7 +7,7 @@ import type { Goal, GoalItemDetail } from '@/types'
 
 defineOptions({ name: 'GoalCard' })
 const props = defineProps<{ goal: Goal; isSub?: boolean; nested?: boolean }>()
-const emit = defineEmits<{ link: [Goal]; addSub: [Goal]; remove: [Goal] }>()
+const emit = defineEmits<{ link: [Goal]; addSub: [Goal]; remove: [Goal]; edit: [Goal] }>()
 
 const study = useStudyStore()
 const ui = useUiStore()
@@ -111,6 +111,10 @@ async function setAchieved(value: boolean) {
 
     <!-- 操作 -->
     <div class="actions">
+      <button class="pill-btn" @click="emit('edit', goal)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+        編集
+      </button>
       <button class="pill-btn" @click="emit('link', goal)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
         紐づけ変更
@@ -136,6 +140,7 @@ async function setAchieved(value: boolean) {
         nested
         @link="(g) => emit('link', g)"
         @remove="(g) => emit('remove', g)"
+        @edit="(g) => emit('edit', g)"
       />
     </div>
   </div>

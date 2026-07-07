@@ -105,6 +105,16 @@ class GoalController extends Controller
             'achieved' => ['sometimes', 'nullable', 'boolean'],
         ]);
 
+        // 中間目標の期限は元の目標以前でなければならない
+        if (array_key_exists('deadline', $data) && $goal->parent_id) {
+            $parent = $goal->parent;
+            abort_if(
+                $parent && $data['deadline'] > $parent->deadline->toDateString(),
+                422,
+                '中間目標の期限は元の目標以前にしてください。'
+            );
+        }
+
         $payload = [];
         foreach (['title', 'deadline', 'target'] as $k) {
             if (array_key_exists($k, $data)) {
