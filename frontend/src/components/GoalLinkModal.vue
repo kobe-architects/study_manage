@@ -37,6 +37,20 @@ function marksW(bookId: number) {
   return (m.check ? 22 : 0) + (m.think ? 22 : 0)
 }
 
+// Check / Think を持つ問題があるか
+const hasAnyCheck = computed(() => props.books.some((b) => bookMarks.value[b.id]?.check))
+const hasAnyThink = computed(() => props.books.some((b) => bookMarks.value[b.id]?.think))
+// Check付き / Think付きの問題のみを一括選択（既存の選択に追加）
+function selectByMark(kind: 'check' | 'think') {
+  for (const b of props.books) {
+    for (const c of b.chapters) {
+      for (const r of c.rows) {
+        if ((kind === 'check' && r.checkFlag) || (kind === 'think' && r.think)) sel[r.id] = true
+      }
+    }
+  }
+}
+
 // 検索でフィルタした教材ツリー（行タイトル/章/教材名で絞り込み）
 const filteredBooks = computed<GoalLinkBook[]>(() => {
   const term = q.value.trim()
@@ -116,6 +130,12 @@ function save() {
       <div style="position: relative; margin: 14px 0 8px">
         <input v-model="q" placeholder="教材・章・タイトルで検索…" class="search" />
         <button v-if="selectedTotal" class="clear-link" @click="clearAll">全解除</button>
+      </div>
+
+      <div v-if="hasAnyCheck || hasAnyThink" class="quick-row">
+        <span class="quick-label">一括選択:</span>
+        <button v-if="hasAnyCheck" class="quick-chip check" @click="selectByMark('check')">Check付きの問題</button>
+        <button v-if="hasAnyThink" class="quick-chip think" @click="selectByMark('think')">Think付きの問題</button>
       </div>
 
       <div class="tree">
@@ -346,6 +366,37 @@ function save() {
   color: #aeb4bd;
 }
 /* Focus Gold の Check / Think（固定幅のマーク列で項目名の先頭を揃える） */
+.quick-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.quick-label {
+  font-size: 12px;
+  color: var(--faint);
+  font-weight: 600;
+}
+.quick-chip {
+  border: 1px solid #e3e6ea;
+  background: #fff;
+  border-radius: 8px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.quick-chip.check {
+  color: #3a8a5c;
+  border-color: #b6dcc4;
+  background: #f2faf5;
+}
+.quick-chip.think {
+  color: #6b5bd0;
+  border-color: #cbc3f0;
+  background: #f5f3fd;
+}
 .leaf-marks {
   flex-shrink: 0;
   display: inline-flex;
