@@ -267,6 +267,7 @@ class GoalController extends Controller
             'colorVivid' => $g->subject?->color_vivid ?? '#475569',
             'scope' => $g->scope,
             'rangeLabel' => $g->range_label ?? $g->scope,
+            'createdOn' => $g->created_at->toDateString(),
             'deadline' => $g->deadline->toDateString(),
             'target' => $g->target,
             'done' => $done,

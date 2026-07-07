@@ -147,6 +147,7 @@ export interface Goal {
   colorVivid: string
   scope: string
   rangeLabel: string
+  createdOn: string // 目標作成日（ISO）。ペース按分の起点。
   deadline: string
   target: number
   done: number

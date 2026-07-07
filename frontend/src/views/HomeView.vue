@@ -190,8 +190,9 @@ function toggleVocab(id: number) {
 }
 
 // ---- 目標設定状況（ガントチャート） ----
-const PX_PER_DAY = 44
-const GANTT_LABEL_W = 158
+const PX_PER_DAY = 34
+const GANTT_LABEL_W = 300
+const WD = ['日', '月', '火', '水', '木', '金', '土']
 const EXTEND_DAYS = 60 // スクロール端で読み込む日数
 const EDGE_PX = 400 // 端とみなすしきい値(px)
 function addDays(base: Date, n: number) {
@@ -208,11 +209,14 @@ interface GanttGoalRow {
   id: number
   title: string
   isSub: boolean
+  createdOn: string
   deadline: string
   done: number
   target: number
   pct: number
   remaining: number
+  expectedDone: number // 今日までに進んでおくべき項目数（按分）
+  behind: boolean // 予定より遅れているか
   color: string
   achieved: boolean | null
   overdue: boolean
@@ -270,28 +274,42 @@ const gantt = computed(() => {
   const total = Math.max(1, daysBetween(start, end))
   const width = total * PX_PER_DAY
 
-  const step = total <= 16 ? 2 : total <= 40 ? 5 : total <= 90 ? 7 : 14
-  const ticks: { px: number; label: string }[] = []
-  const d = new Date(start)
-  while (daysBetween(start, d) <= total) {
-    ticks.push({ px: daysBetween(start, d) * PX_PER_DAY, label: `${d.getMonth() + 1}/${d.getDate()}` })
-    d.setDate(d.getDate() + step)
+  // 1日ごとの見出し（日付＋曜日、土日の色分け）
+  const days: { px: number; num: number; wd: number; sat: boolean; sun: boolean }[] = []
+  const dc = new Date(start)
+  for (let i = 0; i <= total; i++) {
+    const wd = dc.getDay()
+    days.push({ px: i * PX_PER_DAY, num: dc.getDate(), wd, sat: wd === 6, sun: wd === 0 })
+    dc.setDate(dc.getDate() + 1)
   }
+  // 月境界（1日）にラベル用の目印
+  const months = days.filter((x) => x.num === 1).map((x) => x.px)
+
   const posPx = (isoDate: string) => daysBetween(start, parseDate(isoDate)) * PX_PER_DAY
   const todayPx = daysBetween(start, today) * PX_PER_DAY
 
   const rows: GanttRow[] = []
   for (const { g, isSub } of goalsFlat) {
+    const createdD = parseDate(g.createdOn)
+    const dlD = parseDate(g.deadline)
+    // 当日も1日として換算（作成日〜期限を両端含む日数で按分）
+    const elapsed = daysBetween(createdD, today) + 1
+    const span = daysBetween(createdD, dlD) + 1
+    const ratio = span > 0 ? Math.min(1, Math.max(0, elapsed / span)) : 1
+    const expectedDone = Math.min(g.target, Math.round(g.target * ratio))
     rows.push({
       kind: 'goal',
       id: g.id,
       title: g.title,
       isSub,
+      createdOn: g.createdOn,
       deadline: g.deadline,
       done: g.done,
       target: g.target,
       pct: pct(g.done, g.target),
       remaining: Math.max(0, g.target - g.done),
+      expectedDone,
+      behind: g.done < expectedDone,
       color: ui.colorOf(g.colorSoft, g.colorVivid),
       achieved: g.achieved,
       overdue: parseDate(g.deadline).getTime() < today.getTime() && g.done < g.target,
@@ -313,9 +331,26 @@ const gantt = computed(() => {
       }
     }
   }
-  return { rows, ticks, posPx, todayPx, width, labelW: GANTT_LABEL_W }
+  return { rows, days, months, posPx, todayPx, width, labelW: GANTT_LABEL_W }
 })
-// バー位置（今日→期限）を px で返す
+// 目標バー（作成日→期限）。ペース目安の位置(pacePx)＝今日をバー内にクランプ。
+function goalBar(row: GanttGoalRow) {
+  const g = gantt.value!
+  const l = g.posPx(row.createdOn)
+  const r = g.posPx(row.deadline)
+  const left = Math.min(l, r)
+  const width = Math.max(6, Math.abs(r - l))
+  return { left, width }
+}
+// 目安ライン（今日までに進めておくべき進捗位置）の px
+function goalPacePx(row: GanttGoalRow) {
+  const g = gantt.value!
+  const l = g.posPx(row.createdOn)
+  const r = g.posPx(row.deadline)
+  const frac = row.target > 0 ? row.expectedDone / row.target : 0
+  return Math.min(r, l + (r - l) * frac)
+}
+// 項目バー（今日→期限）
 function barPx(deadline: string) {
   const g = gantt.value!
   const dl = g.posPx(deadline)
@@ -325,14 +360,19 @@ function barPx(deadline: string) {
 const ganttScroll = ref<HTMLElement | null>(null)
 function onGanttWheel(e: WheelEvent) {
   const el = ganttScroll.value
-  if (!el || el.scrollWidth <= el.clientWidth) return
+  if (!el) return
+  // 見出し列（固定）の上では横スクロールに変換せず、ページの縦スクロールに委ねる
+  if (e.clientX - el.getBoundingClientRect().left < GANTT_LABEL_W) return
+  if (el.scrollWidth <= el.clientWidth) return
   const dy = e.deltaY
   if (dy === 0) return
   const atStart = el.scrollLeft <= 0
   const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1
   // 端に達したらページの縦スクロールに委ねる
   if ((dy < 0 && atStart) || (dy > 0 && atEnd)) return
-  el.scrollLeft += dy
+  // 行(deltaMode=1)は px 換算。1回の移動を控えめにして細かくスクロール。
+  const step = (e.deltaMode === 1 ? dy * 16 : dy) * 0.45
+  el.scrollLeft += step
   e.preventDefault()
 }
 // スクロールで端に近づいたら過去/未来を読み込む（レンジ拡張）
@@ -786,15 +826,24 @@ function toggle(id: number) {
       </div>
       <div v-else ref="ganttScroll" class="card gantt-card" @wheel="onGanttWheel" @scroll="onGanttScroll">
         <div class="gantt" :style="{ width: gantt.labelW + gantt.width + 'px' }">
-          <!-- 日付軸 -->
+          <!-- 日付軸（日付＋曜日、土=青 / 日=赤） -->
           <div class="g-axis-row">
             <div class="g-label-col g-corner">目標 / 中間目標</div>
             <div class="g-axis" :style="{ width: gantt.width + 'px' }">
-              <span v-for="(t, i) in gantt.ticks" :key="i" class="g-tick-label" :style="{ left: t.px + 'px' }">{{ t.label }}</span>
+              <div v-for="d in gantt.days" :key="d.px" class="g-day" :class="{ sat: d.sat, sun: d.sun }" :style="{ left: d.px + 'px', width: PX_PER_DAY + 'px' }">
+                <span class="g-day-num">{{ d.num }}</span>
+                <span class="g-day-wd">{{ WD[d.wd] }}</span>
+              </div>
             </div>
           </div>
           <!-- 行 -->
           <div class="g-rows">
+            <!-- 背景: 土日の帯 -->
+            <div class="g-weekend-layer" :style="{ left: gantt.labelW + 'px', width: gantt.width + 'px' }">
+              <template v-for="d in gantt.days" :key="'wk' + d.px">
+                <div v-if="d.sat || d.sun" class="g-weekend-band" :class="{ sat: d.sat, sun: d.sun }" :style="{ left: d.px + 'px', width: PX_PER_DAY + 'px' }"></div>
+              </template>
+            </div>
             <!-- 予定（カレンダー登録） -->
             <div v-if="eventsInRange.length" class="g-row g-evt-row">
               <div class="g-label-col"><div class="g-title"><span class="g-evt-cal">📅</span>予定</div></div>
@@ -818,22 +867,31 @@ function toggle(id: number) {
                   </div>
                   <div class="g-meta">
                     {{ row.done }}/{{ row.target }}・残り{{ row.remaining }}
+                    <span :class="['g-pace-tag', row.behind ? 'ng' : 'ok']">目安{{ row.expectedDone }}</span>
                     <span v-if="row.achieved === true" class="g-ach ok">達成</span>
                     <span v-else-if="row.achieved === false" class="g-ach ng">未達</span>
                   </div>
                 </div>
                 <div class="g-track">
-                  <div class="g-bar" :class="{ overdue: row.overdue }" :style="{ left: barPx(row.deadline).left + 'px', width: barPx(row.deadline).width + 'px', background: hexA(row.color, 0.16), borderColor: row.color }">
+                  <div class="g-bar" :class="{ overdue: row.overdue }" :style="{ left: goalBar(row).left + 'px', width: goalBar(row).width + 'px', background: hexA(row.color, 0.16), borderColor: row.color }">
                     <div class="g-fill" :style="{ width: row.pct + '%', background: row.color }"></div>
+                    <span class="g-bar-pct">{{ row.pct }}%</span>
                   </div>
+                  <!-- 目安ライン（緑の縦破線） -->
+                  <div class="g-pace-line" :style="{ left: goalPacePx(row) + 'px' }" title="今日の目安ライン"></div>
                   <span class="g-deadline" :class="{ overdue: row.overdue }" :style="{ left: gantt.posPx(row.deadline) + 'px' }">{{ fmtMd(row.deadline) }}</span>
                 </div>
               </div>
-              <!-- 紐づけ項目 -->
-              <div v-else class="g-row gi" title="クリックで学習済み切替" @click="toggleGanttItem(row.parentGoalId, row.id, row.studied)">
+              <!-- 紐づけ項目（1行: チェック → バッジ → 項目名） -->
+              <div v-else class="g-row gi">
                 <div class="g-label-col gi-label">
+                  <button
+                    class="gi-check"
+                    :class="{ on: row.studied }"
+                    :title="row.studied ? '学習済み（クリックで解除）' : 'クリックで学習済みにする'"
+                    @click.stop="toggleGanttItem(row.parentGoalId, row.id, row.studied)"
+                  >{{ row.studied ? '✓' : '' }}</button>
                   <span v-if="row.type" class="rv-badge" :style="{ background: TYPE_BADGE[row.type].bg, color: TYPE_BADGE[row.type].fg }">{{ row.type }}</span>
-                  <span class="gi-mk" :style="{ color: row.studied ? '#2e9d62' : '#cbd1d8' }">{{ row.studied ? '✓' : '○' }}</span>
                   <span class="gi-ttl" :style="{ textDecoration: row.studied ? 'line-through' : 'none', color: row.studied ? '#9aa1ab' : '#4b5563' }">{{ row.title }}</span>
                 </div>
                 <div class="g-track">
@@ -845,12 +903,12 @@ function toggle(id: number) {
               </div>
             </template>
             <div v-if="Object.values(ganttItemsLoading).some(Boolean)" class="g-loading">項目を読み込み中…</div>
-          </div>
-          <!-- 罫線 + 今日ライン（トラック領域に重ねる） -->
-          <div class="g-overlay" :style="{ left: gantt.labelW + 'px', width: gantt.width + 'px' }">
-            <div v-for="(t, i) in gantt.ticks" :key="i" class="g-grid" :style="{ left: t.px + 'px' }"></div>
-            <div v-for="e in eventsInRange" :key="'evl' + e.id" class="g-evt-line" :style="{ left: gantt.posPx(e.date) + 'px' }"></div>
-            <div class="g-today" :style="{ left: gantt.todayPx + 'px' }"><span>今日</span></div>
+            <!-- 罫線 + 予定線 + 今日ライン（行領域に重ねる。見出しには重ならない） -->
+            <div class="g-overlay" :style="{ left: gantt.labelW + 'px', width: gantt.width + 'px' }">
+              <div v-for="mx in gantt.months" :key="'m' + mx" class="g-grid" :style="{ left: mx + 'px' }"></div>
+              <div v-for="e in eventsInRange" :key="'evl' + e.id" class="g-evt-line" :style="{ left: gantt.posPx(e.date) + 'px' }"></div>
+              <div class="g-today" :style="{ left: gantt.todayPx + 'px' }"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1004,78 +1062,127 @@ function toggle(id: number) {
 }
 /* ===== ガントチャート ===== */
 .gantt-card {
-  padding: 14px 16px 16px;
+  padding: 14px 0 16px;
   overflow-x: auto;
-  /* 共通コンテンツ幅(約1280px)の制限を打ち消し、ビューポート幅いっぱいに広げる */
-  width: calc(100vw - 48px);
-  max-width: 1760px;
-  margin-left: 50%;
-  transform: translateX(-50%);
+  /* 共通コンテンツ幅(約1280px)を打ち消しビューポート幅へ拡張。
+     transform を使うと内部の position:sticky(見出し列固定)が壊れるため margin で実現する。 */
+  width: calc(100vw - 16px);
+  margin-left: calc(50% - 50vw + 8px);
 }
 @media (max-width: 880px) {
   /* スマホでは横幅ブレイクアウトを解除（見切れ防止） */
   .gantt-card {
     width: auto;
-    max-width: none;
     margin-left: 0;
-    transform: none;
   }
 }
 .gantt {
   position: relative;
 }
 .g-label-col {
-  width: 158px;
+  width: 300px;
   flex-shrink: 0;
-  padding-right: 10px;
+  padding-left: 16px;
+  padding-right: 12px;
   box-sizing: border-box;
   position: sticky;
   left: 0;
-  z-index: 3;
+  z-index: 5;
   background: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .g-axis-row {
   display: flex;
-  align-items: flex-end;
-  height: 24px;
+  align-items: stretch;
+  height: 46px;
   border-bottom: 1px solid #eceef1;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 .g-corner {
   font-size: 11px;
   font-weight: 700;
   color: var(--faint);
-  align-self: center;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: #fff;
 }
 .g-axis {
   position: relative;
   flex-shrink: 0;
   height: 100%;
 }
-.g-corner {
-  position: sticky;
-  left: 0;
-  z-index: 4;
-  background: #fff;
-}
-.g-tick-label {
+/* カレンダー見出し（日付＋曜日） */
+.g-day {
   position: absolute;
-  bottom: 2px;
-  transform: translateX(-50%);
-  font-size: 10px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border-left: 1px solid #f0f1f3;
+  box-sizing: border-box;
+}
+.g-day.sat {
+  background: rgba(37, 99, 235, 0.1);
+}
+.g-day.sun {
+  background: rgba(224, 83, 61, 0.1);
+}
+.g-day-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: #4b5563;
+  line-height: 1.1;
+}
+.g-day-wd {
+  font-size: 9.5px;
   color: #9aa1ab;
-  white-space: nowrap;
+  line-height: 1.1;
+}
+.g-day.sat .g-day-num,
+.g-day.sat .g-day-wd {
+  color: #2563eb;
+}
+.g-day.sun .g-day-num,
+.g-day.sun .g-day-wd {
+  color: #d64550;
 }
 .g-rows {
   position: relative;
   z-index: 1;
 }
+/* 土日の背景帯（本文） */
+.g-weekend-layer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.g-weekend-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.g-weekend-band.sat {
+  background: rgba(37, 99, 235, 0.05);
+}
+.g-weekend-band.sun {
+  background: rgba(224, 83, 61, 0.05);
+}
 .g-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   min-height: 40px;
   border-top: 1px solid #f4f5f7;
   cursor: pointer;
+  position: relative;
+  z-index: 1;
 }
 .g-row:first-child {
   border-top: none;
@@ -1108,9 +1215,9 @@ function toggle(id: number) {
   display: inline-block;
 }
 .g-title-txt {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  cursor: pointer;
 }
 /* 紐づけ項目行 */
 .g-row.gi {
@@ -1118,15 +1225,32 @@ function toggle(id: number) {
 }
 .gi-label {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
-  padding-left: 24px;
+  justify-content: flex-start;
+  gap: 7px;
+  padding-left: 22px;
 }
-.gi-mk {
-  width: 13px;
-  text-align: center;
-  font-weight: 700;
+.gi-check {
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
+  border: 1.6px solid #cbd1d8;
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.gi-check.on {
+  background: #2e9d62;
+  border-color: #2e9d62;
 }
 .gi-ttl {
   font-size: 12px;
@@ -1137,14 +1261,13 @@ function toggle(id: number) {
 .gi-bar {
   border: 1.2px solid #dfe3e8 !important;
   background: #fff !important;
-  top: 8px !important;
   height: 14px !important;
   border-radius: 5px !important;
 }
 .gi-date {
   position: absolute;
-  top: 8px;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
   font-size: 10px;
   color: #2e9d62;
 }
@@ -1196,12 +1319,25 @@ function toggle(id: number) {
   font-size: 12.5px;
   font-weight: 600;
   color: #1c2024;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 5px;
+  line-height: 1.35;
+}
+.g-pace-tag {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 99px;
+}
+.g-pace-tag.ok {
+  background: #eaf7ef;
+  color: #1f7a45;
+}
+.g-pace-tag.ng {
+  background: #fdeef0;
+  color: #c0444f;
 }
 .g-subtag {
   flex-shrink: 0;
@@ -1238,11 +1374,12 @@ function toggle(id: number) {
   position: relative;
   flex: 1;
   min-width: 0;
-  height: 40px;
+  min-height: 40px;
 }
 .g-bar {
   position: absolute;
-  top: 11px;
+  top: 50%;
+  transform: translateY(-50%);
   height: 18px;
   border: 1.5px solid;
   border-radius: 6px;
@@ -1255,10 +1392,21 @@ function toggle(id: number) {
 .g-fill {
   height: 100%;
 }
+.g-bar-pct {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  color: #1c2024;
+  line-height: 1;
+  pointer-events: none;
+}
 .g-deadline {
   position: absolute;
-  top: 13px;
-  transform: translateX(6px);
+  top: 50%;
+  transform: translate(6px, -50%);
   font-size: 10px;
   font-weight: 600;
   color: #6b7280;
@@ -1267,11 +1415,47 @@ function toggle(id: number) {
 .g-deadline.overdue {
   color: #e0533d;
 }
+/* 目安ライン（緑の縦破線・バー上に表示） */
+.g-pace-line {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 22px;
+  width: 0;
+  border-left: 2px dashed #2e9d62;
+  pointer-events: none;
+}
+/* 今日の目安（按分）フラグ */
+.g-pace {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 0;
+  border-left: 2px dotted #2e9d62;
+}
+.g-pace.behind {
+  border-left-color: #e0533d;
+}
+.g-pace-flag {
+  position: absolute;
+  top: -1px;
+  left: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #2e9d62;
+  background: #fff;
+  padding: 0 3px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.g-pace.behind .g-pace-flag {
+  color: #e0533d;
+}
 .g-overlay {
   position: absolute;
   top: 0;
   bottom: 0;
-  z-index: 2;
+  z-index: 0; /* 行の背面。見出し列(不透明)で覆えるようにする */
   pointer-events: none;
 }
 .g-grid {
