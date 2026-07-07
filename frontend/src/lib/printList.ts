@@ -8,11 +8,14 @@ export interface PrintColumn {
   nowrap?: boolean
 }
 
+// セルは文字列/数値（エスケープ表示）か、{ html } で生HTML（色付き学習日など安全な自前HTMLのみ）
+export type PrintCell = string | number | null | undefined | { html: string }
+
 export interface PrintListOptions {
   title: string
   subtitle?: string
   columns: PrintColumn[]
-  rows: (string | number | null | undefined)[][]
+  rows: PrintCell[][]
   emptyText?: string
 }
 
@@ -28,7 +31,7 @@ function buildHtml(o: PrintListOptions): string {
   const head = o.columns
     .map(
       (c) =>
-        `<th style="text-align:${c.align ?? 'left'}${c.width ? `;width:${c.width}` : ''}">${esc(c.label)}</th>`,
+        `<th style="text-align:${c.align ?? 'left'}${c.width ? `;width:${c.width}` : ''}${c.nowrap ? ';white-space:nowrap' : ''}">${esc(c.label)}</th>`,
     )
     .join('')
 
@@ -41,9 +44,9 @@ function buildHtml(o: PrintListOptions): string {
                 const c = o.columns[ci]
                 const align = c?.align ?? 'left'
                 const nowrap = c?.nowrap ? ';white-space:nowrap' : ''
-                // 先頭列が空なら連番を補完しない（呼び出し側で番号を渡す）
                 void i
-                return `<td style="text-align:${align}${nowrap}">${esc(cell)}</td>`
+                const content = cell && typeof cell === 'object' && 'html' in cell ? cell.html : esc(cell)
+                return `<td style="text-align:${align}${nowrap}">${content}</td>`
               })
               .join('')}</tr>`,
         )
@@ -54,7 +57,7 @@ function buildHtml(o: PrintListOptions): string {
 <html lang="ja"><head><meta charset="utf-8"><title>${esc(o.title)}</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; color: #1c2024; margin: 0; padding: 24px; background: #eceef1; }
+  body { font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; color: #1c2024; margin: 0; padding: 24px; background: #eceef1; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .sheet { width: 100%; max-width: 1000px; margin: 0 auto; background: #fff; padding: 30px 34px; box-shadow: 0 6px 24px rgba(0,0,0,0.12); }
   .toolbar { position: fixed; top: 14px; right: 16px; }
   .toolbar button { padding: 8px 18px; border: none; border-radius: 8px; background: #3b50cc; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import Heatmap from '@/components/Heatmap.vue'
-import { TYPE_BADGE, iso } from '@/lib/design'
+import { computeReviewOn, REVIEW_OPTIONS, TYPE_BADGE, iso } from '@/lib/design'
 import { useStudyStore } from '@/stores/study'
 import { useResourceStore } from '@/stores/resource'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
-import { STUDY_TYPES, type StudyType } from '@/types'
+import { STUDY_TYPES, type RecordColor, type StudyType } from '@/types'
 
 const study = useStudyStore()
 const resource = useResourceStore()
@@ -22,6 +22,22 @@ const form = reactive({
   bookId: 0,
   rowId: 0,
   date: iso(new Date()),
+  color: 'red' as RecordColor | null,
+  reviewIdx: 1,
+  customDays: 7 as number | null,
+})
+
+// 学習日の色（赤/青/緑）
+const DATE_COLORS: Record<RecordColor, string> = { red: '#d92d20', blue: '#2563eb', green: '#2e9d62' }
+const COLOR_LABEL: Record<RecordColor, string> = { red: '赤', blue: '青', green: '緑' }
+const RECORD_COLOR_KEYS: RecordColor[] = ['red', 'blue', 'green']
+
+const reviewPreview = computed(() => {
+  const opt = REVIEW_OPTIONS[form.reviewIdx]
+  const on = computeReviewOn(form.date, opt, form.customDays)
+  if (!on) return '復習項目一覧には表示されません'
+  const d = new Date(on + 'T00:00:00')
+  return `→ 復習期限: ${d.getMonth() + 1}/${d.getDate()}`
 })
 
 onMounted(async () => {
@@ -78,9 +94,10 @@ async function register() {
     return
   }
   const row = rows.value.find((r) => r.id === form.rowId)
-  await resource.recordRow(form.rowId, form.date)
-  await Promise.all([study.fetchItems(), study.fetchRecordStats(), study.fetchGoals()])
-  ui.notify(`「${row?.title ?? row?.sub ?? ''}」を登録しました`)
+  const reviewOn = computeReviewOn(form.date, REVIEW_OPTIONS[form.reviewIdx], form.customDays)
+  await resource.recordRow(form.rowId, form.date, form.color, reviewOn)
+  await Promise.all([study.fetchItems(), study.fetchRecordStats(), study.fetchGoals(), study.fetchReviews()])
+  ui.notify(reviewOn ? `「${row?.title ?? row?.sub ?? ''}」を登録しました（復習期限あり）` : `「${row?.title ?? row?.sub ?? ''}」を登録しました`)
 }
 
 async function removeRecord(id: number) {
@@ -118,6 +135,40 @@ async function removeRecord(id: number) {
         <label class="fld"><span>学習日</span>
           <input v-model="form.date" type="date" />
         </label>
+        <div class="fld"><span>色</span>
+          <div style="display: flex; align-items: center; gap: 9px">
+            <button class="rec-dot none" :class="{ sel: form.color === null }" title="色なし" @click="form.color = null"></button>
+            <button
+              v-for="c in RECORD_COLOR_KEYS"
+              :key="c"
+              class="rec-dot"
+              :class="{ sel: form.color === c }"
+              :style="{ background: DATE_COLORS[c] }"
+              :title="COLOR_LABEL[c]"
+              @click="form.color = c"
+            ></button>
+          </div>
+        </div>
+        <div class="fld"><span>復習期限</span>
+          <div class="review-opts">
+            <button
+              v-for="(opt, i) in REVIEW_OPTIONS"
+              :key="opt.label"
+              class="review-chip"
+              :class="{ on: form.reviewIdx === i }"
+              @click="form.reviewIdx = i"
+            >{{ opt.label }}</button>
+            <input
+              v-if="REVIEW_OPTIONS[form.reviewIdx].kind === 'custom'"
+              v-model.number="form.customDays"
+              type="number"
+              min="1"
+              class="review-custom"
+              placeholder="日数"
+            />
+          </div>
+          <span style="font-size: 11px; color: var(--faint); margin-top: 5px; font-weight: 400">{{ reviewPreview }}</span>
+        </div>
         <button class="register-btn" @click="register">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5" /></svg>
           学習日を登録
@@ -201,6 +252,57 @@ async function removeRecord(id: number) {
 .seg2 button.on {
   background: #fff;
   color: var(--ink);
+}
+.rec-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  padding: 0;
+}
+.rec-dot:hover {
+  transform: scale(1.12);
+}
+.rec-dot.sel {
+  box-shadow: 0 0 0 2px #1c2024;
+}
+.rec-dot.none {
+  background: #fff;
+  box-shadow: 0 0 0 1px #cbd1d8;
+}
+.rec-dot.none.sel {
+  box-shadow: 0 0 0 2px #1c2024;
+}
+.review-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.review-chip {
+  border: 1px solid #e3e6ea;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+}
+.review-chip.on {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
+}
+.fld input.review-custom {
+  width: 84px;
+  padding: 7px 9px;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+  font-size: 12.5px;
+  outline: none;
 }
 .register-btn {
   margin-top: 4px;

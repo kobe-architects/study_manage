@@ -28,6 +28,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/records', [RecordController::class, 'store']);
     Route::get('/records/stats', [RecordController::class, 'stats']);
+    Route::get('/records/reviews', [RecordController::class, 'reviews']);
+    Route::post('/records/{record}/review-complete', [RecordController::class, 'completeReview']);
     Route::delete('/records/{record}', [RecordController::class, 'destroy']);
 
     // ===== 個別学習一覧データ（教材: 講義/問題集/教科書） =====
@@ -54,8 +56,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/resource-book-rows/{row}/records', [ResourceBookController::class, 'rowRecords']);
     Route::post('/resource-book-rows/{row}/record', [ResourceBookController::class, 'recordRow']);
 
+    Route::get('/goals/link-options', [GoalController::class, 'linkOptions']);
     Route::get('/goals', [GoalController::class, 'index']);
     Route::post('/goals', [GoalController::class, 'store']);
+    Route::post('/goals/{goal}/sub-goals', [GoalController::class, 'storeSubGoal']);
+    Route::get('/goals/{goal}/link-options', [GoalController::class, 'subLinkOptions']);
+    Route::get('/goals/{goal}/items', [GoalController::class, 'linkedItems']);
+    Route::put('/goals/{goal}/items/studied', [GoalController::class, 'setItemStudied']);
+    Route::put('/goals/{goal}/items', [GoalController::class, 'updateItems']);
+    Route::put('/goals/{goal}', [GoalController::class, 'update']);
     Route::delete('/goals/{goal}', [GoalController::class, 'destroy']);
 
     Route::get('/events', [CalendarEventController::class, 'index']);

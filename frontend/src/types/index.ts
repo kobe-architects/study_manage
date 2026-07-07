@@ -28,6 +28,35 @@ export interface StudyItemRow {
   byType: Record<StudyType, TypeStat>
 }
 
+// 学習日ごとの色分け（color: 'red' | 'blue' | 'green' | null）
+export type RecordColor = 'red' | 'blue' | 'green'
+export interface StudyDate {
+  date: string // ISO (YYYY-MM-DD)
+  color: RecordColor | null
+  reviewOn: string | null // 復習期限日（ISO）。null は復習不要。
+}
+
+// 復習項目一覧（トップページ）: 復習期限を持つ学習記録を1件=1復習タスクとして表示
+export interface ReviewItem {
+  id: number // 学習記録ID（復習タスクの単位）
+  rowId: number | null // resource_book_item id
+  title: string | null
+  sub: string | null
+  bookTitle: string | null
+  type: StudyType | null
+  subjectName: string | null
+  colorSoft: string
+  colorVivid: string
+  major: string | null
+  mid: string | null
+  studiedOn: string
+  reviewOn: string // ISO
+  color: RecordColor | null
+  reviewed: boolean // 復習完了済みか
+  reviewedOn: string | null // 復習完了日（ISO）。未復習は null。
+  overdue: boolean
+}
+
 // ===== 個別学習一覧データ（教材） =====
 export interface ResourceBook {
   id: number
@@ -66,7 +95,7 @@ export interface ResourceBookRow {
   sortOrder: number
   recordCount: number
   lastDate: string | null
-  dates: string[] // 全学習日（昇順・ISO）
+  dates: StudyDate[] // 全学習日（昇順）＋色
 }
 
 // 講義に関連する問題（同じ小分類に紐づく問題集の行）
@@ -86,7 +115,7 @@ export interface RelatedProblemRow {
   mid: string | null
   sub: string | null
   recordCount: number
-  dates: string[]
+  dates: StudyDate[]
 }
 
 export interface RecordStats {
@@ -121,6 +150,46 @@ export interface Goal {
   deadline: string
   target: number
   done: number
+  itemIds: number[] // 紐づけた個別学習データ（教材の行）ID
+  linkedCount: number
+  achieved: boolean | null // true=達成 / false=未達成 / null=未記録
+  parentId: number | null
+  subGoals: Goal[] // 中間目標（親目標のときのみ）
+}
+
+// 目標の紐づけツリー（教材 → 章 → 行）
+export interface GoalLinkRow {
+  id: number
+  seqNo: string | null
+  title: string | null
+}
+export interface GoalLinkChapter {
+  name: string
+  rows: GoalLinkRow[]
+}
+export interface GoalLinkBook {
+  id: number
+  title: string
+  type: StudyType
+  subjectName: string | null
+  colorVivid: string
+  rowCount: number
+  chapters: GoalLinkChapter[]
+}
+
+// 目標に紐づく個別学習データの明細（学習済み/未学習）
+export interface GoalItemDetail {
+  id: number
+  bookTitle: string | null
+  type: StudyType | null
+  chapter: string | null
+  seqNo: string | null
+  title: string | null
+  sub: string | null
+  subjectName: string | null
+  colorVivid: string
+  studied: boolean
+  studiedOn: string | null // 最新学習日（ISO）。未学習は null。
 }
 
 export interface CalendarEvent {

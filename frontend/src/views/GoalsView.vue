@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
-import { daysBetween, hexA, iso, parseDate } from '@/lib/design'
+import { reactive, ref } from 'vue'
+import { iso } from '@/lib/design'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
+import GoalCard from '@/components/GoalCard.vue'
+import GoalLinkModal from '@/components/GoalLinkModal.vue'
+import type { GoalLinkBook, Goal } from '@/types'
 
 const study = useStudyStore()
 const ui = useUiStore()
@@ -10,69 +13,143 @@ const ui = useUiStore()
 const today = new Date()
 today.setHours(0, 0, 0, 0)
 
-const goalCards = computed(() =>
-  study.goals.map((g) => {
-    const color = ui.colorOf(g.colorSoft, g.colorVivid)
-    const dl = parseDate(g.deadline)
-    const daysLeft = Math.max(0, daysBetween(today, dl))
-    return {
-      ...g,
-      color,
-      light: hexA(color, 0.12),
-      daysLeft,
-      pct: g.target ? Math.round((g.done / g.target) * 1000) / 10 : 0,
-      urgentColor: daysLeft <= 7 ? '#e0533d' : '#9aa1ab',
-      deadlineLabel: `${dl.getFullYear()}.${dl.getMonth() + 1}.${dl.getDate()}`,
-    }
-  }),
-)
-
-// add modal
+// ---- 目標の追加（親目標） ----
 const open = ref(false)
-const form = reactive({ title: '', subjectId: 0, scope: 'all', deadline: '', target: 10 })
-
-const subjects = computed(() => {
-  const seen = new Map<number, string>()
-  study.items.forEach((i) => seen.set(i.subjectId, i.subjectName))
-  return [...seen.entries()].map(([id, name]) => ({ id, name }))
-})
-const majors = computed(() => {
-  const s = new Set<string>()
-  study.items.filter((i) => i.subjectId === form.subjectId).forEach((i) => s.add(i.major))
-  return ['all', ...s]
-})
+const form = reactive({ title: '', deadline: '', itemIds: [] as number[] })
 
 function openModal() {
   form.title = ''
-  form.subjectId = subjects.value[0]?.id ?? 0
-  form.scope = 'all'
   form.deadline = iso(new Date(today.getTime() + 14 * 86400000))
-  form.target = 10
+  form.itemIds = []
   open.value = true
 }
-
 async function save() {
   if (!form.title.trim()) {
     ui.notify('タイトルを入力してください')
     return
   }
-  const subjectName = subjects.value.find((s) => s.id === form.subjectId)?.name ?? ''
-  const rangeLabel = form.scope === 'all' ? `${subjectName} 全体` : form.scope
-  await study.createGoal({
+  if (!form.itemIds.length) {
+    ui.notify('個別学習データを1件以上紐づけてください')
+    return
+  }
+  const newId = await study.createGoal({
     title: form.title.trim(),
-    subjectId: form.subjectId,
-    scope: form.scope,
-    rangeLabel,
+    subjectId: null,
+    scope: 'all',
+    rangeLabel: '個別学習データ',
     deadline: form.deadline,
-    target: Number(form.target) || 10,
+    target: form.itemIds.length,
   })
+  if (newId) await study.updateGoalItems(newId, form.itemIds)
   open.value = false
-  ui.notify('目標を追加しました')
+  ui.notify(`目標を追加し、${form.itemIds.length}件紐づけました`)
 }
 
-async function remove(id: number) {
-  await study.deleteGoal(id)
-  ui.notify('目標を削除しました')
+// ---- 紐づけモーダル（既存目標の紐づけ変更／追加時の選択） ----
+const linkGoal = ref<Goal | null>(null)
+const linkBooks = ref<GoalLinkBook[]>([])
+const linkLoading = ref(false)
+const addLinkOpen = ref(false)
+
+async function openLink(g: Goal) {
+  linkLoading.value = true
+  try {
+    // 中間目標は親の項目のみ、親目標は全教材から
+    linkBooks.value = g.parentId ? await study.fetchSubLinkOptions(g.parentId) : await study.fetchGoalLinkOptions()
+    linkGoal.value = g
+  } catch {
+    ui.notify('紐づけ候補の取得に失敗しました')
+  } finally {
+    linkLoading.value = false
+  }
+}
+async function onLinkSave(ids: number[]) {
+  if (!linkGoal.value) return
+  await study.updateGoalItems(linkGoal.value.id, ids)
+  ui.notify(`紐づけを${ids.length}件に更新しました`)
+  linkGoal.value = null
+}
+
+async function openAddLink() {
+  linkLoading.value = true
+  try {
+    linkBooks.value = await study.fetchGoalLinkOptions()
+    addLinkOpen.value = true
+  } catch {
+    ui.notify('紐づけ候補の取得に失敗しました')
+  } finally {
+    linkLoading.value = false
+  }
+}
+function onAddLinkSave(ids: number[]) {
+  form.itemIds = ids
+  addLinkOpen.value = false
+}
+
+// ---- 中間目標の追加 ----
+const subModal = reactive<{ open: boolean; parent: Goal | null; title: string; deadline: string; itemIds: number[] }>({
+  open: false,
+  parent: null,
+  title: '',
+  deadline: '',
+  itemIds: [],
+})
+const subLinkOpen = ref(false)
+const subLinkBooks = ref<GoalLinkBook[]>([])
+
+function openSubModal(parent: Goal) {
+  subModal.open = true
+  subModal.parent = parent
+  subModal.title = ''
+  subModal.deadline = parent.deadline // 既定は親の期限（上限）
+  subModal.itemIds = []
+}
+async function openSubLink() {
+  if (!subModal.parent) return
+  linkLoading.value = true
+  try {
+    subLinkBooks.value = await study.fetchSubLinkOptions(subModal.parent.id)
+    subLinkOpen.value = true
+  } catch {
+    ui.notify('紐づけ候補の取得に失敗しました')
+  } finally {
+    linkLoading.value = false
+  }
+}
+function onSubLinkSave(ids: number[]) {
+  subModal.itemIds = ids
+  subLinkOpen.value = false
+}
+async function saveSub() {
+  if (!subModal.parent) return
+  if (!subModal.title.trim()) {
+    ui.notify('タイトルを入力してください')
+    return
+  }
+  if (!subModal.itemIds.length) {
+    ui.notify('中間目標に含める項目を1件以上選択してください')
+    return
+  }
+  if (subModal.deadline > subModal.parent.deadline) {
+    ui.notify('中間目標の期限は元の目標以前にしてください')
+    return
+  }
+  await study.createSubGoal(subModal.parent.id, {
+    title: subModal.title.trim(),
+    deadline: subModal.deadline,
+    ids: subModal.itemIds,
+  })
+  subModal.open = false
+  ui.notify('中間目標を追加しました')
+}
+
+async function remove(g: Goal) {
+  const msg = g.subGoals?.length
+    ? `「${g.title}」と中間目標${g.subGoals.length}件を削除しますか？`
+    : `「${g.title}」を削除しますか？`
+  if (!confirm(msg)) return
+  await study.deleteGoal(g.id)
+  ui.notify('削除しました')
 }
 </script>
 
@@ -84,58 +161,92 @@ async function remove(id: number) {
       </button>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 12px">
-      <div v-for="g in goalCards" :key="g.id" class="card goal-row">
-        <div style="flex: 1; min-width: 200px">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px">
-            <span :style="{ fontSize: '11px', fontWeight: 600, color: g.color, background: g.light, padding: '2px 8px', borderRadius: '99px' }">{{ g.rangeLabel }}</span>
-            <span :style="{ fontSize: '11.5px', color: g.urgentColor, fontWeight: 600 }">期限まで{{ g.daysLeft }}日</span>
-          </div>
-          <div style="font-size: 15px; font-weight: 700">{{ g.title }}</div>
-          <div style="font-size: 11.5px; color: var(--faint); margin-top: 3px">期限: {{ g.deadlineLabel }}</div>
-        </div>
-        <div style="width: 220px; flex-shrink: 0">
-          <div class="row-between" style="align-items: baseline; margin-bottom: 6px">
-            <span style="font-size: 12px; color: var(--mut)">進める項目</span>
-            <span class="dm" style="font-size: 13px; font-weight: 700">{{ g.done }}/{{ g.target }} <span :style="{ color: g.color }">{{ g.pct }}%</span></span>
-          </div>
-          <div class="track"><div :style="{ height: '100%', width: g.pct + '%', background: g.color, borderRadius: '99px' }"></div></div>
-        </div>
-        <button class="del-btn" title="削除" @click="remove(g.id)">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
-        </button>
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <GoalCard v-for="g in study.goals" :key="g.id" :goal="g" @link="openLink" @add-sub="openSubModal" @remove="remove" />
+      <div v-if="!study.goals.length" class="hint" style="text-align: center">
+        目標がまだありません。「目標を追加」から、個別学習データを紐づけて目標を作成してください。
       </div>
     </div>
 
     <div class="hint">
-      達成・未達成の判定は行いません。学習リストに学習日を登録していくことで、目標に対する「進めた項目数」が自動でカウントされます。復習のため同じ項目に何度でも学習日を登録できます。
+      「紐づけ変更」で対象データを選ぶと、進捗は<b>目標設定後に学習記録された、または直接「学習済み」にした行数</b>で集計されます。紐づけデータを展開して各行をクリックすると学習済みを直接切り替えられます。<b>中間目標</b>は元の目標より前の期限で、元の目標に含まれる項目の中から設定でき、中間目標で学習済みにした項目は元の目標にも反映されます。
     </div>
 
-    <!-- add modal -->
+    <!-- 目標を追加 -->
     <div v-if="open" class="overlay" @click="open = false">
       <div class="modal" @click.stop>
         <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">目標を追加</div>
         <div style="display: flex; flex-direction: column; gap: 13px">
           <label class="fld"><span>目標タイトル</span><input v-model="form.title" placeholder="例: 数学II 微分・積分を固める" /></label>
-          <div style="display: flex; gap: 10px">
-            <label class="fld" style="flex: 1"><span>科目</span>
-              <select v-model.number="form.subjectId"><option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option></select>
-            </label>
-            <label class="fld" style="flex: 1"><span>範囲（大分類）</span>
-              <select v-model="form.scope"><option v-for="m in majors" :key="m" :value="m">{{ m === 'all' ? '科目全体' : m }}</option></select>
-            </label>
+          <label class="fld"><span>期限</span><input v-model="form.deadline" type="date" /></label>
+          <div>
+            <span class="fld-label" style="margin-bottom: 2px">進める項目数は紐づけたデータ数になります</span>
           </div>
-          <div style="display: flex; gap: 10px">
-            <label class="fld" style="flex: 1"><span>期限</span><input v-model="form.deadline" type="date" /></label>
-            <label class="fld" style="flex: 1"><span>進める項目数</span><input v-model.number="form.target" type="number" min="1" /></label>
+          <div>
+            <span class="fld-label">個別学習データの紐づけ<span style="color: #cf5563">（必須）</span></span>
+            <button class="link-select" :class="{ empty: !form.itemIds.length }" :disabled="linkLoading" @click="openAddLink">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
+              {{ form.itemIds.length ? `${form.itemIds.length}件を紐づけ済み（変更）` : 'ツリーから対象を選択' }}
+            </button>
           </div>
         </div>
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
           <button class="btn-ghost" @click="open = false">キャンセル</button>
-          <button class="btn-dark" @click="save">追加する</button>
+          <button class="btn-dark" :disabled="!form.title.trim() || !form.itemIds.length" @click="save">追加する</button>
         </div>
       </div>
     </div>
+
+    <!-- 中間目標を追加 -->
+    <div v-if="subModal.open" class="overlay" @click="subModal.open = false">
+      <div class="modal" @click.stop>
+        <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px">中間目標を追加</div>
+        <div style="font-size: 12px; color: var(--faint); margin-bottom: 16px">元の目標: {{ subModal.parent?.title }}（期限 {{ subModal.parent?.deadline }}）</div>
+        <div style="display: flex; flex-direction: column; gap: 13px">
+          <label class="fld"><span>中間目標タイトル</span><input v-model="subModal.title" placeholder="例: 今週中に三角比を1周" /></label>
+          <label class="fld"><span>期限（元の目標以前）</span><input v-model="subModal.deadline" type="date" :max="subModal.parent?.deadline" /></label>
+          <div>
+            <span class="fld-label">対象項目<span style="color: #cf5563">（必須・元の目標の項目から）</span></span>
+            <button class="link-select" :class="{ empty: !subModal.itemIds.length }" :disabled="linkLoading" @click="openSubLink">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
+              {{ subModal.itemIds.length ? `${subModal.itemIds.length}件を選択済み（変更）` : 'ツリーから対象を選択' }}
+            </button>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
+          <button class="btn-ghost" @click="subModal.open = false">キャンセル</button>
+          <button class="btn-dark" :disabled="!subModal.title.trim() || !subModal.itemIds.length" @click="saveSub">追加する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 紐づけツリー: 既存目標 -->
+    <GoalLinkModal
+      v-if="linkGoal"
+      :goal-title="linkGoal.title"
+      :books="linkBooks"
+      :initial-ids="linkGoal.itemIds"
+      @save="onLinkSave"
+      @close="linkGoal = null"
+    />
+    <!-- 紐づけツリー: 目標追加時 -->
+    <GoalLinkModal
+      v-if="addLinkOpen"
+      :goal-title="form.title || '新しい目標'"
+      :books="linkBooks"
+      :initial-ids="form.itemIds"
+      @save="onAddLinkSave"
+      @close="addLinkOpen = false"
+    />
+    <!-- 紐づけツリー: 中間目標（親の項目のみ） -->
+    <GoalLinkModal
+      v-if="subLinkOpen"
+      :goal-title="subModal.title || '中間目標'"
+      :books="subLinkBooks"
+      :initial-ids="subModal.itemIds"
+      @save="onSubLinkSave"
+      @close="subLinkOpen = false"
+    />
   </div>
 </template>
 
@@ -153,29 +264,16 @@ async function remove(id: number) {
   font-weight: 600;
   cursor: pointer;
 }
-.goal-row {
-  padding: 16px 20px;
+.btn-dark:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.sub-list {
+  margin: 10px 0 0 26px;
   display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-.row-between {
-  display: flex;
-  justify-content: space-between;
-}
-.track {
-  height: 8px;
-  background: #eef0f3;
-  border-radius: 99px;
-  overflow: hidden;
-}
-.del-btn {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 6px;
-  color: #cbd1d8;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
 }
 .hint {
   background: #f8f9fb;
@@ -212,8 +310,7 @@ async function remove(id: number) {
   display: block;
   margin-bottom: 5px;
 }
-.fld input,
-.fld select {
+.fld input {
   width: 100%;
   padding: 9px 11px;
   border: 1px solid #e3e6ea;
@@ -221,6 +318,37 @@ async function remove(id: number) {
   font-size: 13px;
   outline: none;
   background: #fff;
+}
+.fld-label {
+  font-size: 12px;
+  color: var(--mut);
+  font-weight: 500;
+  display: block;
+  margin-bottom: 5px;
+}
+.link-select {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px dashed #c1c8f0;
+  border-radius: 9px;
+  background: #f7f8ff;
+  color: #3b50cc;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.link-select:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.link-select.empty {
+  border-color: #f0b8be;
+  background: #fdf3f4;
+  color: #c0444f;
 }
 .btn-ghost {
   padding: 9px 18px;

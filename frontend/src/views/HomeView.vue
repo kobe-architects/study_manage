@@ -1,24 +1,27 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import Heatmap from '@/components/Heatmap.vue'
 import MonthCalendar from '@/components/MonthCalendar.vue'
 import EventModal from '@/components/EventModal.vue'
-import { daysBetween, hexA, parseDate, pct } from '@/lib/design'
+import { computeReviewOn, daysBetween, hexA, iso, parseDate, pct, REVIEW_OPTIONS, TYPE_BADGE } from '@/lib/design'
+import { openListPrint, type PrintCell, type PrintColumn } from '@/lib/printList'
 import { useStudyStore } from '@/stores/study'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import { useVocabularyStore } from '@/stores/vocabulary'
-import { STUDY_TYPES, type StudyItemRow, type StudyType } from '@/types'
+import { useRouter } from 'vue-router'
+import { STUDY_TYPES, type Goal, type GoalItemDetail, type RecordColor, type ReviewItem, type StudyItemRow, type StudyType } from '@/types'
 
 const study = useStudyStore()
 const auth = useAuthStore()
 const ui = useUiStore()
 const vocab = useVocabularyStore()
+const router = useRouter()
 
 const today = new Date()
 today.setHours(0, 0, 0, 0)
 
-const tab = ref<'progress' | 'goals'>('progress')
+const tab = ref<'progress' | 'goals' | 'review'>('progress')
 const expanded = reactive<Record<number, boolean>>({})
 const vw = ref(window.innerWidth)
 window.addEventListener('resize', () => (vw.value = window.innerWidth))
@@ -186,23 +189,331 @@ function toggleVocab(id: number) {
   vocabExpanded[id] = !vocabExpanded[id]
 }
 
-// ---- 目標カード ----
-const goalCards = computed(() =>
-  study.goals.map((g) => {
-    const color = ui.colorOf(g.colorSoft, g.colorVivid)
-    const dl = parseDate(g.deadline)
-    const daysLeft = Math.max(0, daysBetween(today, dl))
-    return {
-      ...g,
-      color,
-      light: hexA(color, 0.12),
-      daysLeft,
-      pct: pct(g.done, g.target),
-      urgentColor: daysLeft <= 7 ? '#e0533d' : '#9aa1ab',
-      deadlineLabel: `${dl.getFullYear()}.${dl.getMonth() + 1}.${dl.getDate()}`,
+// ---- 目標設定状況（ガントチャート） ----
+const PX_PER_DAY = 44
+const GANTT_LABEL_W = 158
+const EXTEND_DAYS = 60 // スクロール端で読み込む日数
+const EDGE_PX = 400 // 端とみなすしきい値(px)
+function addDays(base: Date, n: number) {
+  const d = new Date(base)
+  d.setDate(d.getDate() + n)
+  return d
+}
+// 表示レンジ（スクロールで過去/未来を随時読み込む）。初期は今日を含む約1年強。
+const rangeStart = ref(addDays(today, -30))
+const rangeEnd = ref(addDays(today, 365))
+
+interface GanttGoalRow {
+  kind: 'goal'
+  id: number
+  title: string
+  isSub: boolean
+  deadline: string
+  done: number
+  target: number
+  pct: number
+  remaining: number
+  color: string
+  achieved: boolean | null
+  overdue: boolean
+  linkedCount: number
+}
+interface GanttItemRow {
+  kind: 'item'
+  id: number
+  parentGoalId: number
+  title: string
+  type: StudyType | null
+  studied: boolean
+  studiedOn: string | null
+  deadline: string
+  color: string
+}
+type GanttRow = GanttGoalRow | GanttItemRow
+
+// 紐づけ項目の展開状態と明細キャッシュ（目標IDで管理）
+const ganttExpanded = reactive<Record<number, boolean>>({})
+const ganttItems = reactive<Record<number, GoalItemDetail[]>>({})
+const ganttItemsLoading = reactive<Record<number, boolean>>({})
+async function toggleGanttExpand(goalId: number) {
+  ganttExpanded[goalId] = !ganttExpanded[goalId]
+  if (ganttExpanded[goalId] && !ganttItems[goalId]) {
+    ganttItemsLoading[goalId] = true
+    try {
+      ganttItems[goalId] = await study.fetchGoalItems(goalId)
+    } catch {
+      ganttItems[goalId] = []
+    } finally {
+      ganttItemsLoading[goalId] = false
     }
-  }),
+  }
+}
+async function toggleGanttItem(goalId: number, itemId: number, studied: boolean) {
+  try {
+    await study.setGoalItemStudied(goalId, itemId, !studied)
+    ganttItems[goalId] = await study.fetchGoalItems(goalId)
+  } catch {
+    ui.notify('学習済みの更新に失敗しました')
+  }
+}
+
+const gantt = computed(() => {
+  if (!study.goals.length) return null
+  const goalsFlat: { g: Goal; isSub: boolean }[] = []
+  for (const g of study.goals) {
+    goalsFlat.push({ g, isSub: false })
+    for (const s of g.subGoals ?? []) goalsFlat.push({ g: s, isSub: true })
+  }
+
+  const start = new Date(rangeStart.value)
+  const end = new Date(rangeEnd.value)
+  const total = Math.max(1, daysBetween(start, end))
+  const width = total * PX_PER_DAY
+
+  const step = total <= 16 ? 2 : total <= 40 ? 5 : total <= 90 ? 7 : 14
+  const ticks: { px: number; label: string }[] = []
+  const d = new Date(start)
+  while (daysBetween(start, d) <= total) {
+    ticks.push({ px: daysBetween(start, d) * PX_PER_DAY, label: `${d.getMonth() + 1}/${d.getDate()}` })
+    d.setDate(d.getDate() + step)
+  }
+  const posPx = (isoDate: string) => daysBetween(start, parseDate(isoDate)) * PX_PER_DAY
+  const todayPx = daysBetween(start, today) * PX_PER_DAY
+
+  const rows: GanttRow[] = []
+  for (const { g, isSub } of goalsFlat) {
+    rows.push({
+      kind: 'goal',
+      id: g.id,
+      title: g.title,
+      isSub,
+      deadline: g.deadline,
+      done: g.done,
+      target: g.target,
+      pct: pct(g.done, g.target),
+      remaining: Math.max(0, g.target - g.done),
+      color: ui.colorOf(g.colorSoft, g.colorVivid),
+      achieved: g.achieved,
+      overdue: parseDate(g.deadline).getTime() < today.getTime() && g.done < g.target,
+      linkedCount: g.linkedCount,
+    })
+    if (ganttExpanded[g.id]) {
+      for (const it of ganttItems[g.id] ?? []) {
+        rows.push({
+          kind: 'item',
+          id: it.id,
+          parentGoalId: g.id,
+          title: it.title ?? it.sub ?? '（無題）',
+          type: it.type,
+          studied: it.studied,
+          studiedOn: it.studiedOn,
+          deadline: g.deadline,
+          color: ui.colorOf(g.colorSoft, g.colorVivid),
+        })
+      }
+    }
+  }
+  return { rows, ticks, posPx, todayPx, width, labelW: GANTT_LABEL_W }
+})
+// バー位置（今日→期限）を px で返す
+function barPx(deadline: string) {
+  const g = gantt.value!
+  const dl = g.posPx(deadline)
+  return { left: Math.min(g.todayPx, dl), width: Math.max(6, Math.abs(dl - g.todayPx)) }
+}
+// マウスの縦ホイールで横スクロールさせる
+const ganttScroll = ref<HTMLElement | null>(null)
+function onGanttWheel(e: WheelEvent) {
+  const el = ganttScroll.value
+  if (!el || el.scrollWidth <= el.clientWidth) return
+  const dy = e.deltaY
+  if (dy === 0) return
+  const atStart = el.scrollLeft <= 0
+  const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1
+  // 端に達したらページの縦スクロールに委ねる
+  if ((dy < 0 && atStart) || (dy > 0 && atEnd)) return
+  el.scrollLeft += dy
+  e.preventDefault()
+}
+// スクロールで端に近づいたら過去/未来を読み込む（レンジ拡張）
+let extending = false
+async function onGanttScroll() {
+  const el = ganttScroll.value
+  if (!el || extending) return
+  if (el.scrollLeft < EDGE_PX) {
+    extending = true
+    rangeStart.value = addDays(rangeStart.value, -EXTEND_DAYS)
+    await nextTick()
+    el.scrollLeft += EXTEND_DAYS * PX_PER_DAY // 左に伸びた分だけ位置を保つ
+    extending = false
+  } else if (el.scrollLeft + el.clientWidth > el.scrollWidth - EDGE_PX) {
+    extending = true
+    rangeEnd.value = addDays(rangeEnd.value, EXTEND_DAYS)
+    await nextTick()
+    extending = false
+  }
+}
+// 目標・予定が現在レンジ外なら包含するよう拡張
+function ensureCovers() {
+  const dates: number[] = []
+  const collect = (g: Goal) => {
+    dates.push(parseDate(g.deadline).getTime())
+    ;(g.subGoals ?? []).forEach(collect)
+  }
+  study.goals.forEach(collect)
+  study.events.forEach((e) => dates.push(parseDate(e.date).getTime()))
+  if (!dates.length) return
+  const min = Math.min(...dates)
+  const max = Math.max(...dates)
+  if (min < rangeStart.value.getTime()) rangeStart.value = addDays(new Date(min), -14)
+  if (max > rangeEnd.value.getTime()) rangeEnd.value = addDays(new Date(max), 14)
+}
+watch(() => [study.goals, study.events], ensureCovers, { immediate: true })
+// レンジ内の予定
+const eventsInRange = computed(() => {
+  if (!gantt.value) return []
+  return study.events.filter((e) => {
+    const t = parseDate(e.date).getTime()
+    return t >= rangeStart.value.getTime() && t <= rangeEnd.value.getTime()
+  })
+})
+// 目標タブを開いて今日を左端付近に表示
+function selectGoals() {
+  tab.value = 'goals'
+  nextTick(() => {
+    const el = ganttScroll.value
+    const g = gantt.value
+    if (el && g) el.scrollLeft = Math.max(0, g.todayPx - 40)
+  })
+}
+
+// ---- 復習項目 ----
+function selectReview() {
+  tab.value = 'review'
+  study.fetchReviews().catch(() => {})
+}
+const reviewDueCount = computed(
+  () => study.reviews.filter((r) => !r.reviewed && (r.overdue || parseDate(r.reviewOn).getTime() === today.getTime())).length,
 )
+
+// 復習フィルター: 未復習 / 復習済み / すべて
+const reviewFilter = ref<'pending' | 'done' | 'all'>('pending')
+const pendingReviews = computed(() => study.reviews.filter((r) => !r.reviewed))
+const doneReviews = computed(() => study.reviews.filter((r) => r.reviewed))
+const filteredReviews = computed(() => {
+  if (reviewFilter.value === 'pending') return pendingReviews.value
+  if (reviewFilter.value === 'done') return doneReviews.value
+  return study.reviews
+})
+
+// 復習記録モーダル（学習記録と同じ設定項目）
+const reviewModal = reactive<{
+  open: boolean
+  item: ReviewItem | null
+  date: string
+  color: RecordColor | null
+  reviewIdx: number
+  customDays: number | null
+  saving: boolean
+}>({
+  open: false,
+  item: null,
+  date: iso(new Date()),
+  color: 'red',
+  reviewIdx: 1,
+  customDays: 7,
+  saving: false,
+})
+function openReviewRecord(r: ReviewItem) {
+  reviewModal.open = true
+  reviewModal.item = r
+  reviewModal.date = iso(new Date())
+  reviewModal.color = 'red'
+  reviewModal.reviewIdx = 1
+  reviewModal.customDays = 7
+  reviewModal.saving = false
+}
+const reviewModalPreview = computed(() => {
+  const opt = REVIEW_OPTIONS[reviewModal.reviewIdx]
+  const on = computeReviewOn(reviewModal.date, opt, reviewModal.customDays)
+  return on ? `→ 次回の復習期限: ${fmtMd(on)}` : '次回の復習は予約されません'
+})
+async function submitReviewRecord() {
+  if (!reviewModal.item || reviewModal.saving) return
+  reviewModal.saving = true
+  const opt = REVIEW_OPTIONS[reviewModal.reviewIdx]
+  const nextReviewOn = computeReviewOn(reviewModal.date, opt, reviewModal.customDays)
+  try {
+    await study.completeReview(reviewModal.item.id, reviewModal.date, reviewModal.color, nextReviewOn)
+    ui.notify(nextReviewOn ? `復習を記録しました（次回 ${fmtMd(nextReviewOn)}）` : '復習を記録しました')
+    reviewModal.open = false
+  } catch {
+    ui.notify('復習の記録に失敗しました')
+    reviewModal.saving = false
+  }
+}
+function fmtMd(isoDate: string) {
+  const d = parseDate(isoDate)
+  return `${d.getMonth() + 1}/${d.getDate()}`
+}
+function reviewDayLabel(isoDate: string) {
+  const diff = daysBetween(today, parseDate(isoDate))
+  if (diff < 0) return `${-diff}日超過`
+  if (diff === 0) return '本日'
+  return `あと${diff}日`
+}
+function reviewColor(r: ReviewItem) {
+  return ui.colorOf(r.colorSoft, r.colorVivid)
+}
+// 記録時に選んだ色（赤/青/緑）→ タイトル文字色。色なしは既定色。
+function recordColorHex(c: RecordColor | null): string {
+  return c === 'red' ? '#d92d20' : c === 'blue' ? '#2563eb' : c === 'green' ? '#2e9d62' : '#1c2024'
+}
+const DATE_COLORS: Record<RecordColor, string> = { red: '#d92d20', blue: '#2563eb', green: '#2e9d62' }
+const COLOR_LABEL: Record<RecordColor, string> = { red: '赤', blue: '青', green: '緑' }
+const RECORD_COLOR_KEYS: RecordColor[] = ['red', 'blue', 'green']
+function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+// 復習項目一覧をチェックシートとして画面出力（PDF印刷可）
+function printReviews() {
+  const list = filteredReviews.value
+  if (!list.length) {
+    ui.notify('出力対象の復習項目がありません')
+    return
+  }
+  const emptyBox = '<span style="display:inline-block;width:15px;height:15px;border:1.5px solid #333;border-radius:3px"></span>'
+  const doneBox = '<span style="display:inline-block;width:15px;height:15px;border:1.5px solid #2e9d62;border-radius:3px;background:#2e9d62;color:#fff;text-align:center;line-height:15px;font-size:11px">✓</span>'
+  const cols: PrintColumn[] = [
+    { label: '✓', align: 'center', width: '34px' },
+    { label: '復習期限', align: 'center', width: '78px', nowrap: true },
+    { label: '種別', align: 'center', width: '66px', nowrap: true },
+    { label: '科目', width: '84px', nowrap: true },
+    { label: 'タイトル' },
+    { label: '出典 ｜ 中分類', width: '176px' },
+    { label: '学習日', align: 'center', width: '70px', nowrap: true },
+    { label: '復習日', align: 'center', width: '70px', nowrap: true },
+  ]
+  const rows: PrintCell[][] = list.map((r) => [
+    { html: r.reviewed ? doneBox : emptyBox },
+    fmtMd(r.reviewOn),
+    r.type ?? '',
+    r.subjectName ?? '',
+    { html: `<span style="color:${recordColorHex(r.color)};font-weight:700">${escHtml(r.title ?? r.sub ?? '')}</span>` },
+    `${r.bookTitle ?? ''}${r.major ? ` ｜ ${r.major}›${r.mid}` : ''}`,
+    fmtMd(r.studiedOn),
+    r.reviewedOn ? fmtMd(r.reviewedOn) : '',
+  ])
+  const scope = reviewFilter.value === 'pending' ? '未復習' : reviewFilter.value === 'done' ? '復習済み' : 'すべて'
+  const n = new Date()
+  const ok = openListPrint({
+    title: '復習チェックシート',
+    subtitle: `${scope}・全${list.length}件・出力日 ${n.getFullYear()}/${n.getMonth() + 1}/${n.getDate()}`,
+    columns: cols,
+    rows,
+  })
+  if (!ok) ui.notify('ポップアップがブロックされました。ブラウザ設定で許可してください。')
+}
 
 // ---- カレンダー / 予定 ----
 const examDate = computed(() => auth.settings?.examDate ?? null)
@@ -264,7 +575,8 @@ function toggle(id: number) {
     <div style="display: flex; margin-bottom: 18px">
       <div class="seg">
         <button class="seg-btn" :class="{ on: tab === 'progress' }" @click="tab = 'progress'">進捗率</button>
-        <button class="seg-btn" :class="{ on: tab === 'goals' }" @click="tab = 'goals'">目標設定状況</button>
+        <button class="seg-btn" :class="{ on: tab === 'goals' }" @click="selectGoals">目標</button>
+        <button class="seg-btn" :class="{ on: tab === 'review' }" @click="selectReview">復習項目<span v-if="reviewDueCount" class="tab-badge">{{ reviewDueCount }}</span></button>
       </div>
     </div>
 
@@ -467,25 +779,186 @@ function toggle(id: number) {
       </div>
     </div>
 
-    <!-- Goals-status tab -->
-    <div v-else style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px">
-      <div v-for="g in goalCards" :key="g.id" class="card" style="padding: 18px 20px">
-        <div class="row-between" style="margin-bottom: 13px">
-          <div style="display: flex; align-items: center; gap: 8px">
-            <span :style="{ width: '9px', height: '9px', borderRadius: '50%', background: g.color }"></span>
-            <span :style="{ fontSize: '11px', fontWeight: 600, color: g.color, background: g.light, padding: '2px 8px', borderRadius: '99px' }">{{ g.rangeLabel }}</span>
+    <!-- Goals-status tab: ガントチャート -->
+    <div v-else-if="tab === 'goals'">
+      <div v-if="!gantt" class="card" style="padding: 40px; text-align: center; color: var(--faint); font-size: 13px; line-height: 1.7">
+        目標がありません。<br />「目標設定」から個別学習データを紐づけて目標を作成すると、ここに期限までのガントチャートが表示されます。
+      </div>
+      <div v-else ref="ganttScroll" class="card gantt-card" @wheel="onGanttWheel" @scroll="onGanttScroll">
+        <div class="gantt" :style="{ width: gantt.labelW + gantt.width + 'px' }">
+          <!-- 日付軸 -->
+          <div class="g-axis-row">
+            <div class="g-label-col g-corner">目標 / 中間目標</div>
+            <div class="g-axis" :style="{ width: gantt.width + 'px' }">
+              <span v-for="(t, i) in gantt.ticks" :key="i" class="g-tick-label" :style="{ left: t.px + 'px' }">{{ t.label }}</span>
+            </div>
           </div>
-          <span :style="{ fontSize: '11.5px', fontWeight: 600, color: g.urgentColor }">残り{{ g.daysLeft }}日</span>
+          <!-- 行 -->
+          <div class="g-rows">
+            <!-- 予定（カレンダー登録） -->
+            <div v-if="eventsInRange.length" class="g-row g-evt-row">
+              <div class="g-label-col"><div class="g-title"><span class="g-evt-cal">📅</span>予定</div></div>
+              <div class="g-track">
+                <div v-for="e in eventsInRange" :key="e.id" class="g-evt" :style="{ left: gantt.posPx(e.date) + 'px' }" :title="e.title">
+                  <span class="g-evt-pin"></span><span class="g-evt-txt">{{ e.title }}</span>
+                </div>
+              </div>
+            </div>
+            <template v-for="row in gantt.rows" :key="row.kind + row.id">
+              <!-- 目標 / 中間目標 -->
+              <div v-if="row.kind === 'goal'" class="g-row" :class="{ sub: row.isSub }">
+                <div class="g-label-col">
+                  <div class="g-title">
+                    <button v-if="row.linkedCount" class="g-chev" title="紐づけ項目を展開" @click.stop="toggleGanttExpand(row.id)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" :style="{ transform: ganttExpanded[row.id] ? 'rotate(90deg)' : 'none', transition: 'transform .12s' }"><path d="M9 6l6 6-6 6" /></svg>
+                    </button>
+                    <span v-else class="g-chev-sp"></span>
+                    <span v-if="row.isSub" class="g-subtag">中間</span>
+                    <span class="g-title-txt" @click="router.push({ name: 'goals' })">{{ row.title }}</span>
+                  </div>
+                  <div class="g-meta">
+                    {{ row.done }}/{{ row.target }}・残り{{ row.remaining }}
+                    <span v-if="row.achieved === true" class="g-ach ok">達成</span>
+                    <span v-else-if="row.achieved === false" class="g-ach ng">未達</span>
+                  </div>
+                </div>
+                <div class="g-track">
+                  <div class="g-bar" :class="{ overdue: row.overdue }" :style="{ left: barPx(row.deadline).left + 'px', width: barPx(row.deadline).width + 'px', background: hexA(row.color, 0.16), borderColor: row.color }">
+                    <div class="g-fill" :style="{ width: row.pct + '%', background: row.color }"></div>
+                  </div>
+                  <span class="g-deadline" :class="{ overdue: row.overdue }" :style="{ left: gantt.posPx(row.deadline) + 'px' }">{{ fmtMd(row.deadline) }}</span>
+                </div>
+              </div>
+              <!-- 紐づけ項目 -->
+              <div v-else class="g-row gi" title="クリックで学習済み切替" @click="toggleGanttItem(row.parentGoalId, row.id, row.studied)">
+                <div class="g-label-col gi-label">
+                  <span v-if="row.type" class="rv-badge" :style="{ background: TYPE_BADGE[row.type].bg, color: TYPE_BADGE[row.type].fg }">{{ row.type }}</span>
+                  <span class="gi-mk" :style="{ color: row.studied ? '#2e9d62' : '#cbd1d8' }">{{ row.studied ? '✓' : '○' }}</span>
+                  <span class="gi-ttl" :style="{ textDecoration: row.studied ? 'line-through' : 'none', color: row.studied ? '#9aa1ab' : '#4b5563' }">{{ row.title }}</span>
+                </div>
+                <div class="g-track">
+                  <div class="g-bar gi-bar" :style="{ left: barPx(row.deadline).left + 'px', width: barPx(row.deadline).width + 'px' }">
+                    <div v-if="row.studied" class="g-fill" :style="{ width: '100%', background: row.color }"></div>
+                  </div>
+                  <span v-if="row.studiedOn" class="gi-date" :style="{ left: gantt.posPx(row.studiedOn) + 'px' }">◆</span>
+                </div>
+              </div>
+            </template>
+            <div v-if="Object.values(ganttItemsLoading).some(Boolean)" class="g-loading">項目を読み込み中…</div>
+          </div>
+          <!-- 罫線 + 今日ライン（トラック領域に重ねる） -->
+          <div class="g-overlay" :style="{ left: gantt.labelW + 'px', width: gantt.width + 'px' }">
+            <div v-for="(t, i) in gantt.ticks" :key="i" class="g-grid" :style="{ left: t.px + 'px' }"></div>
+            <div v-for="e in eventsInRange" :key="'evl' + e.id" class="g-evt-line" :style="{ left: gantt.posPx(e.date) + 'px' }"></div>
+            <div class="g-today" :style="{ left: gantt.todayPx + 'px' }"><span>今日</span></div>
+          </div>
         </div>
-        <div style="font-size: 15px; font-weight: 700; margin-bottom: 14px; line-height: 1.4">{{ g.title }}</div>
-        <div class="row-between" style="align-items: baseline; margin-bottom: 6px">
-          <span style="font-size: 12px; color: var(--mut)">達成項目</span>
-          <span class="dm" style="font-size: 13px; font-weight: 700">{{ g.done }} / {{ g.target }}<span :style="{ color: g.color, marginLeft: '6px' }">{{ g.pct }}%</span></span>
-        </div>
-        <div class="track" style="height: 8px"><div :style="{ height: '100%', width: g.pct + '%', background: g.color, borderRadius: '99px' }"></div></div>
-        <div style="font-size: 11.5px; color: var(--faint); margin-top: 9px">期限: {{ g.deadlineLabel }}</div>
       </div>
     </div>
+
+    <!-- Review tab -->
+    <div v-else-if="tab === 'review'">
+      <div v-if="!study.reviews.length" class="card" style="padding: 40px; text-align: center; color: var(--faint); font-size: 13px; line-height: 1.7">
+        復習項目はありません。<br />個別学習一覧データで学習記録を追加する際に「復習期限」を設定すると、期限が近い順にここへ表示されます。
+      </div>
+      <template v-else>
+        <div class="row-between" style="margin-bottom: 13px; flex-wrap: wrap; gap: 10px">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+            <div class="seg rv-seg">
+              <button class="seg-btn" :class="{ on: reviewFilter === 'pending' }" @click="reviewFilter = 'pending'">未復習<span v-if="pendingReviews.length" class="flt-num">{{ pendingReviews.length }}</span></button>
+              <button class="seg-btn" :class="{ on: reviewFilter === 'done' }" @click="reviewFilter = 'done'">復習済み<span v-if="doneReviews.length" class="flt-num">{{ doneReviews.length }}</span></button>
+              <button class="seg-btn" :class="{ on: reviewFilter === 'all' }" @click="reviewFilter = 'all'">すべて</button>
+            </div>
+            <span v-if="reviewDueCount" style="color: #e0533d; font-weight: 700; font-size: 12px">要復習 {{ reviewDueCount }} 件</span>
+          </div>
+          <button class="btn-print" @click="printReviews">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" /></svg>
+            チェックシート出力
+          </button>
+        </div>
+        <div v-if="!filteredReviews.length" class="card" style="padding: 32px; text-align: center; color: var(--faint); font-size: 13px">
+          {{ reviewFilter === 'done' ? '復習済みの項目はまだありません。' : '該当する復習項目はありません。' }}
+        </div>
+        <div v-else class="card" style="overflow: hidden; padding: 0">
+          <div style="overflow-x: auto">
+            <table class="rv-tbl">
+              <thead>
+                <tr>
+                  <th style="width: 100px; text-align: center">復習記録</th>
+                  <th style="width: 78px; text-align: center">状態</th>
+                  <th style="width: 74px">種別</th>
+                  <th style="width: 96px">科目</th>
+                  <th>タイトル</th>
+                  <th>出典 ｜ 中分類</th>
+                  <th style="width: 62px; text-align: center">学習日</th>
+                  <th style="width: 74px; text-align: center">復習期限</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in filteredReviews" :key="r.id" :class="{ overdue: r.overdue, donerow: r.reviewed }">
+                  <td style="text-align: center">
+                    <button v-if="!r.reviewed" class="rv-rec-btn" title="復習を記録して完了にする" @click="openReviewRecord(r)">復習記録</button>
+                    <span v-else class="rv-done-badge">✓ {{ r.reviewedOn ? fmtMd(r.reviewedOn) : '完了' }}</span>
+                  </td>
+                  <td style="text-align: center">
+                    <span v-if="r.reviewed" style="font-size: 11.5px; color: #9aa1ab">復習済み</span>
+                    <span v-else :style="{ fontSize: '11.5px', fontWeight: 700, color: r.overdue ? '#e0533d' : '#2e9d62' }">{{ reviewDayLabel(r.reviewOn) }}</span>
+                  </td>
+                  <td>
+                    <span v-if="r.type" class="rv-badge" :style="{ background: TYPE_BADGE[r.type].bg, color: TYPE_BADGE[r.type].fg }">{{ r.type }}</span>
+                  </td>
+                  <td>
+                    <span style="display: inline-flex; align-items: center; gap: 6px; min-width: 0">
+                      <span :style="{ width: '8px', height: '8px', borderRadius: '50%', background: reviewColor(r), flexShrink: 0 }"></span>
+                      <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.subjectName }}</span>
+                    </span>
+                  </td>
+                  <td :style="{ fontWeight: 700, color: recordColorHex(r.color), textDecoration: r.reviewed ? 'line-through' : 'none', opacity: r.reviewed ? 0.6 : 1 }">{{ r.title ?? r.sub ?? '（無題）' }}</td>
+                  <td style="color: var(--faint); font-size: 11.5px">{{ r.bookTitle }}<span v-if="r.major"> ｜ {{ r.major }}›{{ r.mid }}</span></td>
+                  <td style="text-align: center; color: var(--faint)">{{ fmtMd(r.studiedOn) }}</td>
+                  <td style="text-align: center; font-weight: 700" :style="{ color: r.overdue ? '#e0533d' : '#1c2024' }">{{ fmtMd(r.reviewOn) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- 復習記録モーダル -->
+    <Teleport to="body">
+    <div v-if="reviewModal.open" class="modal-bg" @click.self="reviewModal.open = false">
+      <div class="modal">
+        <div class="modal-title">復習を記録</div>
+        <div v-if="reviewModal.item" style="font-size: 12.5px; color: var(--mut); margin-top: -4px">
+          {{ reviewModal.item.title ?? reviewModal.item.sub ?? '（無題）' }}
+          <span style="color: var(--faint)"> ｜ {{ reviewModal.item.bookTitle }}</span>
+        </div>
+        <div class="rv-form-row">
+          <label class="fld" style="flex: 1"><span>復習した日</span><input v-model="reviewModal.date" type="date" /></label>
+          <div class="fld" style="flex: 0 0 auto">
+            <span>色</span>
+            <div style="display: flex; align-items: center; gap: 8px; height: 37px">
+              <button class="rec-dot none" :class="{ sel: reviewModal.color === null }" title="色なし" @click="reviewModal.color = null"></button>
+              <button v-for="c in RECORD_COLOR_KEYS" :key="c" class="rec-dot" :class="{ sel: reviewModal.color === c }" :style="{ background: DATE_COLORS[c] }" :title="COLOR_LABEL[c]" @click="reviewModal.color = c"></button>
+            </div>
+          </div>
+        </div>
+        <div class="fld">
+          <span>次回の復習期限</span>
+          <div class="review-opts">
+            <button v-for="(opt, i) in REVIEW_OPTIONS" :key="opt.label" class="review-chip" :class="{ on: reviewModal.reviewIdx === i }" @click="reviewModal.reviewIdx = i">{{ opt.label }}</button>
+            <input v-if="REVIEW_OPTIONS[reviewModal.reviewIdx].kind === 'custom'" v-model.number="reviewModal.customDays" type="number" min="1" class="review-custom" placeholder="日数" />
+          </div>
+          <span style="font-size: 11px; color: var(--faint); font-weight: 400; margin-top: 4px">{{ reviewModalPreview }}</span>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-out" @click="reviewModal.open = false">キャンセル</button>
+          <button class="btn-dark" :disabled="reviewModal.saving" @click="submitReviewRecord">復習を記録して完了</button>
+        </div>
+      </div>
+    </div>
+    </Teleport>
 
     <EventModal
       v-if="eventModal"
@@ -519,6 +992,639 @@ function toggle(id: number) {
 .seg-btn.on {
   background: #1c2024;
   color: #fff;
+}
+.tab-badge {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #e0533d;
+  color: #fff;
+  border-radius: 99px;
+  padding: 1px 6px;
+}
+/* ===== ガントチャート ===== */
+.gantt-card {
+  padding: 14px 16px 16px;
+  overflow-x: auto;
+  /* 共通コンテンツ幅(約1280px)の制限を打ち消し、ビューポート幅いっぱいに広げる */
+  width: calc(100vw - 48px);
+  max-width: 1760px;
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+@media (max-width: 880px) {
+  /* スマホでは横幅ブレイクアウトを解除（見切れ防止） */
+  .gantt-card {
+    width: auto;
+    max-width: none;
+    margin-left: 0;
+    transform: none;
+  }
+}
+.gantt {
+  position: relative;
+}
+.g-label-col {
+  width: 158px;
+  flex-shrink: 0;
+  padding-right: 10px;
+  box-sizing: border-box;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #fff;
+}
+.g-axis-row {
+  display: flex;
+  align-items: flex-end;
+  height: 24px;
+  border-bottom: 1px solid #eceef1;
+  margin-bottom: 4px;
+}
+.g-corner {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--faint);
+  align-self: center;
+}
+.g-axis {
+  position: relative;
+  flex-shrink: 0;
+  height: 100%;
+}
+.g-corner {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  background: #fff;
+}
+.g-tick-label {
+  position: absolute;
+  bottom: 2px;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #9aa1ab;
+  white-space: nowrap;
+}
+.g-rows {
+  position: relative;
+  z-index: 1;
+}
+.g-row {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  border-top: 1px solid #f4f5f7;
+  cursor: pointer;
+}
+.g-row:first-child {
+  border-top: none;
+}
+.g-row:hover {
+  background: #f8f9fb;
+}
+.g-row:hover .g-label-col {
+  background: #f8f9fb;
+}
+.g-row.sub .g-label-col {
+  padding-left: 14px;
+}
+.g-chev {
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #9aa1ab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+}
+.g-chev-sp {
+  width: 16px;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.g-title-txt {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 紐づけ項目行 */
+.g-row.gi {
+  min-height: 30px;
+}
+.gi-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 24px;
+}
+.gi-mk {
+  width: 13px;
+  text-align: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.gi-ttl {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gi-bar {
+  border: 1.2px solid #dfe3e8 !important;
+  background: #fff !important;
+  top: 8px !important;
+  height: 14px !important;
+  border-radius: 5px !important;
+}
+.gi-date {
+  position: absolute;
+  top: 8px;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #2e9d62;
+}
+.g-loading {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--faint);
+}
+/* 予定（カレンダー） */
+.g-evt-row {
+  background: #fbfaff;
+}
+.g-evt-cal {
+  margin-right: 4px;
+}
+.g-evt {
+  position: absolute;
+  top: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transform: translateX(-4px);
+  white-space: nowrap;
+}
+.g-evt-pin {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #7c5cff;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.g-evt-txt {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #5849c0;
+  background: #fff;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+.g-evt-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(124, 92, 255, 0.35);
+}
+.g-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1c2024;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.g-subtag {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #5849c0;
+  background: #eeecfa;
+  padding: 0 5px;
+  border-radius: 99px;
+}
+.g-meta {
+  font-size: 10.5px;
+  color: var(--faint);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.g-ach {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 99px;
+}
+.g-ach.ok {
+  background: #eaf7ef;
+  color: #1f7a45;
+}
+.g-ach.ng {
+  background: #fdeef0;
+  color: #c0444f;
+}
+.g-track {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+}
+.g-bar {
+  position: absolute;
+  top: 11px;
+  height: 18px;
+  border: 1.5px solid;
+  border-radius: 6px;
+  overflow: hidden;
+  min-width: 6px;
+}
+.g-bar.overdue {
+  border-style: dashed;
+}
+.g-fill {
+  height: 100%;
+}
+.g-deadline {
+  position: absolute;
+  top: 13px;
+  transform: translateX(6px);
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+.g-deadline.overdue {
+  color: #e0533d;
+}
+.g-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.g-grid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(28, 32, 36, 0.05);
+}
+.g-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1.5px dashed #e0533d;
+}
+.g-today span {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #e0533d;
+  background: #fff;
+  padding: 0 3px;
+}
+.rv-badge {
+  display: inline-block;
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+/* 復習項目 一覧テーブル */
+.rv-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 760px;
+}
+.rv-tbl thead tr {
+  background: #f8f9fb;
+  color: var(--faint);
+  font-size: 11.5px;
+  text-align: left;
+}
+.rv-tbl th {
+  padding: 10px;
+  font-weight: 600;
+}
+.rv-tbl th:first-child {
+  padding-left: 14px;
+}
+.rv-tbl td {
+  padding: 10px;
+  border-top: 1px solid #f0f1f3;
+  vertical-align: middle;
+}
+.rv-tbl td:first-child {
+  padding-left: 14px;
+}
+.rv-tbl tbody tr.overdue {
+  background: #fff8f7;
+}
+.rv-tbl tbody tr:hover {
+  background: #f8f9fb;
+}
+.rv-tbl tbody tr.overdue:hover {
+  background: #fff2f0;
+}
+/* チェックシート出力ボタン */
+.btn-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid #e3e6ea;
+  border-radius: 10px;
+  background: #fff;
+  color: #1c2024;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-print:hover {
+  background: #1c2024;
+  color: #fff;
+  border-color: #1c2024;
+}
+/* 復習フィルター */
+.rv-seg {
+  padding: 3px;
+}
+.rv-seg .seg-btn {
+  padding: 6px 13px;
+  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.flt-num {
+  font-size: 10.5px;
+  font-weight: 700;
+  background: #eceef1;
+  color: #6b7280;
+  border-radius: 99px;
+  padding: 0 6px;
+  min-width: 16px;
+  text-align: center;
+}
+.rv-seg .seg-btn.on .flt-num {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+/* 復習記録ボタン / 完了バッジ */
+.rv-rec-btn {
+  border: 1px solid #d7dbe0;
+  background: #fff;
+  color: #1c2024;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rv-rec-btn:hover {
+  background: #1c2024;
+  color: #fff;
+  border-color: #1c2024;
+}
+.rv-done-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2e9d62;
+  background: #eaf6ee;
+  border: 1px solid #c4e6d0;
+  border-radius: 99px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+.rv-tbl tbody tr.donerow {
+  background: #fafbfc;
+}
+.rv-tbl tbody tr.donerow:hover {
+  background: #f4f6f8;
+}
+/* 復習記録モーダル */
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 22, 26, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+.modal {
+  background: #fff;
+  border-radius: 15px;
+  padding: 22px;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.modal-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+.modal .fld span {
+  font-size: 12px;
+  color: var(--mut);
+  font-weight: 500;
+  display: block;
+  margin-bottom: 5px;
+}
+.modal .fld input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+}
+.rv-form-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 4px;
+}
+.btn-out {
+  padding: 9px 15px;
+  border: 1px solid #e3e6ea;
+  border-radius: 10px;
+  background: #fff;
+  color: #1c2024;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-dark {
+  padding: 9px 15px;
+  border: none;
+  border-radius: 10px;
+  background: #1c2024;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-dark:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.rec-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  padding: 0;
+}
+.rec-dot:hover {
+  transform: scale(1.12);
+}
+.rec-dot.sel {
+  box-shadow: 0 0 0 2px #1c2024;
+}
+.rec-dot.none {
+  background: #fff;
+  box-shadow: 0 0 0 1px #cbd1d8;
+}
+.rec-dot.none.sel {
+  box-shadow: 0 0 0 2px #1c2024;
+}
+.review-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.review-chip {
+  border: 1px solid #e3e6ea;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+}
+.review-chip.on {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
+}
+.modal .fld input.review-custom {
+  width: 84px;
+  padding: 7px 9px;
+}
+.subgoal-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 2px;
+  font-size: 12px;
+}
+.sm-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  color: #4b5563;
+}
+.sm-meta {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--faint);
+}
+.goal-expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  padding: 2px 0;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3b50cc;
+}
+.goal-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px;
+  font-size: 12px;
+  min-width: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 6px;
+}
+.goal-item:hover {
+  background: #f6f8fb;
+}
+.gi-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 99px;
+  width: 44px;
+  text-align: center;
+}
+.gi-mark {
+  flex-shrink: 0;
+  font-weight: 700;
+  width: 14px;
+  text-align: center;
+}
+.gi-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gi-src {
+  flex-shrink: 0;
+  max-width: 40%;
+  font-size: 10.5px;
+  color: #aeb4bd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .row-between {
   display: flex;

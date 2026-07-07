@@ -1,6 +1,6 @@
-import { defineStore } from 'pinia'
+import { acceptHMRUpdate, defineStore } from 'pinia'
 import client from '@/api/client'
-import type { RelatedProblemRow, ResourceBook, ResourceBookRow, StudyType } from '@/types'
+import type { RecordColor, RelatedProblemRow, ResourceBook, ResourceBookRow, StudyType } from '@/types'
 
 interface State {
   activeType: StudyType
@@ -156,9 +156,9 @@ export const useResourceStore = defineStore('resource', {
       await this.refreshBookSummary()
     },
 
-    /** 行に学習記録を登録（行ベース） */
-    async recordRow(rowId: number, studiedOn: string) {
-      await client.post(`/resource-book-rows/${rowId}/record`, { studiedOn })
+    /** 行に学習記録を登録（行ベース）。color: red/blue/green（任意）, reviewOn: 復習期限（任意） */
+    async recordRow(rowId: number, studiedOn: string, color?: RecordColor | null, reviewOn?: string | null) {
+      await client.post(`/resource-book-rows/${rowId}/record`, { studiedOn, color: color ?? null, reviewOn: reviewOn ?? null })
       if (this.activeBookId) await this.fetchRows(this.activeBookId)
       await this.refreshBookSummary()
     },
@@ -166,7 +166,7 @@ export const useResourceStore = defineStore('resource', {
     /** 行に紐づく学習記録の一覧を取得（削除UI用） */
     async fetchRowRecords(rowId: number) {
       const { data } = await client.get(`/resource-book-rows/${rowId}/records`)
-      return data.data as { id: number; studiedOn: string }[]
+      return data.data as { id: number; studiedOn: string; color: RecordColor | null; reviewOn: string | null }[]
     },
 
     /** 学習記録を1件削除 */
@@ -203,3 +203,8 @@ export const useResourceStore = defineStore('resource', {
     },
   },
 })
+
+// Vite HMR: ストアにアクションを追加してもフルリロード不要で反映されるようにする
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useResourceStore, import.meta.hot))
+}

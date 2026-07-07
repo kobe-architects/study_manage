@@ -25,6 +25,39 @@ export function daysBetween(from: Date, to: Date): number {
   return Math.round((to.getTime() - from.getTime()) / 86400000)
 }
 
+// 復習期限の選択肢。kind: 'none'=復習不要 / 'days'=studied_on + days / 'month'=1ヶ月後 / 'custom'=整数入力
+export interface ReviewOption {
+  label: string
+  kind: 'none' | 'days' | 'month' | 'custom'
+  days?: number
+}
+export const REVIEW_OPTIONS: ReviewOption[] = [
+  { label: '復習不要', kind: 'none' },
+  { label: '2日後', kind: 'days', days: 2 },
+  { label: '5日後', kind: 'days', days: 5 },
+  { label: '7日後', kind: 'days', days: 7 },
+  { label: '14日後', kind: 'days', days: 14 },
+  { label: '1ヶ月後', kind: 'month' },
+  { label: 'カスタム', kind: 'custom' },
+]
+
+/**
+ * 学習日（ISO）と復習選択肢から復習期限日（ISO）を求める。
+ * 復習不要・不正なカスタム値のときは null。
+ */
+export function computeReviewOn(studiedOn: string, opt: ReviewOption, customDays?: number | null): string | null {
+  if (opt.kind === 'none') return null
+  const d = parseDate(studiedOn)
+  if (opt.kind === 'month') {
+    d.setMonth(d.getMonth() + 1)
+  } else {
+    const n = opt.kind === 'custom' ? Number(customDays) : (opt.days ?? 0)
+    if (!Number.isFinite(n) || n <= 0) return null
+    d.setDate(d.getDate() + Math.floor(n))
+  }
+  return iso(d)
+}
+
 // ナビ項目アイコン（SVG path 群）
 export const ICONS: Record<string, string[]> = {
   home: ['M3 10.5 12 4l9 6.5', 'M5 9.5V20h14V9.5', 'M9.5 20v-5h5v5'],
@@ -49,11 +82,11 @@ export interface NavDef {
 
 export const NAV: NavDef[] = [
   { key: 'home', route: 'home', label: 'トップページ', short: 'トップ' },
-  { key: 'data', route: 'data', label: '学習項目データ', short: '項目' },
   { key: 'resource', route: 'resource', label: '個別学習一覧データ', short: '一覧' },
   { key: 'record', route: 'record', label: '学習記録', short: '記録' },
   { key: 'quiz', route: 'quiz', label: '英単語クイズ', short: '単語' },
   { key: 'goal', route: 'goals', label: '目標設定', short: '目標' },
+  { key: 'data', route: 'data', label: '学習項目データ', short: '項目' },
   { key: 'settings', route: 'settings', label: 'システム設定', short: '設定' },
 ]
 

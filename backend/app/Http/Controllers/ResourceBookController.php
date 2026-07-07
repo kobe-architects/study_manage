@@ -208,14 +208,19 @@ class ResourceBookController extends Controller
             ->whereIn('resource_book_item_id', $rows->pluck('id'))
             ->orderBy('studied_on')
             ->orderBy('id')
-            ->get(['resource_book_item_id', 'studied_on'])
+            ->get(['resource_book_item_id', 'studied_on', 'color', 'review_on'])
             ->groupBy('resource_book_item_id');
 
         $data = $rows->map(function (ResourceBookItem $r) use ($records) {
             $item = $r->studyItem;
             $subject = $item?->mid?->major?->subject;
-            $dates = ($records->get($r->id) ?? collect())
-                ->map(fn ($x) => $x->studied_on->toDateString())
+            $recs = $records->get($r->id) ?? collect();
+            $dates = $recs
+                ->map(fn ($x) => [
+                    'date' => $x->studied_on->toDateString(),
+                    'color' => $x->color,
+                    'reviewOn' => $x->review_on?->toDateString(),
+                ])
                 ->all();
 
             return [
@@ -237,8 +242,8 @@ class ResourceBookController extends Controller
                 'mid' => $item?->mid?->name,
                 'sub' => $item?->name,
                 'sortOrder' => $r->sort_order,
-                'recordCount' => count($dates),
-                'lastDate' => $dates ? end($dates) : null,
+                'recordCount' => $recs->count(),
+                'lastDate' => $recs->count() ? $recs->last()->studied_on->toDateString() : null,
                 'dates' => $dates,
             ];
         });
@@ -342,17 +347,26 @@ class ResourceBookController extends Controller
             ->where('resource_book_item_id', $row->id)
             ->orderByDesc('studied_on')
             ->orderByDesc('id')
-            ->get(['id', 'studied_on'])
-            ->map(fn ($r) => ['id' => $r->id, 'studiedOn' => $r->studied_on->toDateString()]);
+            ->get(['id', 'studied_on', 'color', 'review_on'])
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'studiedOn' => $r->studied_on->toDateString(),
+                'color' => $r->color,
+                'reviewOn' => $r->review_on?->toDateString(),
+            ]);
 
         return response()->json(['data' => $records]);
     }
 
-    /** 行に対する学習記録の登録（1行=1問/1回） */
+    /** 行に対する学習記録の登録（1行=1問/1回）。color: red/blue/green（任意） */
     public function recordRow(Request $request, ResourceBookItem $row): JsonResponse
     {
         $this->authorizeRow($request, $row);
-        $data = $request->validate(['studiedOn' => ['required', 'date']]);
+        $data = $request->validate([
+            'studiedOn' => ['required', 'date'],
+            'color' => ['nullable', 'in:red,blue,green'],
+            'reviewOn' => ['nullable', 'date'],
+        ]);
 
         abort_if($row->study_item_id === null, 422, 'この行は学習項目に紐づいていません。');
 
@@ -362,6 +376,8 @@ class ResourceBookController extends Controller
             'resource_book_item_id' => $row->id,
             'type' => $row->book->type,
             'studied_on' => $data['studiedOn'],
+            'color' => $data['color'] ?? null,
+            'review_on' => $data['reviewOn'] ?? null,
         ]);
 
         return response()->json(['data' => ['id' => $record->id]], 201);
@@ -400,14 +416,14 @@ class ResourceBookController extends Controller
             ->whereIn('resource_book_item_id', $rows->pluck('id'))
             ->orderBy('studied_on')
             ->orderBy('id')
-            ->get(['resource_book_item_id', 'studied_on'])
+            ->get(['resource_book_item_id', 'studied_on', 'color'])
             ->groupBy('resource_book_item_id');
 
         $data = $rows->map(function (ResourceBookItem $r) use ($records) {
             $item = $r->studyItem;
             $subject = $item?->mid?->major?->subject;
             $dates = ($records->get($r->id) ?? collect())
-                ->map(fn ($x) => $x->studied_on->toDateString())
+                ->map(fn ($x) => ['date' => $x->studied_on->toDateString(), 'color' => $x->color])
                 ->all();
 
             return [

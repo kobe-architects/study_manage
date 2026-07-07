@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import AuthImage from '@/components/AuthImage.vue'
-import { iso } from '@/lib/design'
-import { openListPrint, type PrintColumn } from '@/lib/printList'
+import { computeReviewOn, iso, REVIEW_OPTIONS } from '@/lib/design'
+import { openListPrint, type PrintCell, type PrintColumn } from '@/lib/printList'
 import { useResourceStore } from '@/stores/resource'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
-import { STUDY_TYPES, type RelatedProblemRow, type ResourceBook, type ResourceBookRow, type StudyType } from '@/types'
+import { STUDY_TYPES, type RecordColor, type RelatedProblemRow, type ResourceBook, type ResourceBookRow, type StudyDate, type StudyType } from '@/types'
 
 const resource = useResourceStore()
 const study = useStudyStore()
@@ -285,10 +285,19 @@ function fmtMd(s: string | null) {
   return `${d.getMonth() + 1}/${d.getDate()}`
 }
 
-// 全学習日を「7/1, 7/2」のように横並びで表示
-function fmtDates(dates: string[]) {
+// 学習日の色分け（red/blue/green）。未指定はグレー。
+const DATE_COLORS: Record<RecordColor, string> = { red: '#d92d20', blue: '#2563eb', green: '#2e9d62' }
+const COLOR_LABEL: Record<RecordColor, string> = { red: '赤', blue: '青', green: '緑' }
+const RECORD_COLOR_KEYS: RecordColor[] = ['red', 'blue', 'green']
+function dateColorHex(c: RecordColor | null): string {
+  return c ? DATE_COLORS[c] : '#6b7280'
+}
+// 印刷用: 全学習日を色付きHTMLで「7/1, 7/2」のように横並び出力（値は固定の色/日付のみで安全）
+function datesHtml(dates: StudyDate[]) {
   if (!dates.length) return '—'
-  return dates.map((d) => fmtMd(d)).join(', ')
+  return dates
+    .map((d) => `<span style="color:${dateColorHex(d.color)};font-weight:${d.color ? 600 : 400}">${fmtMd(d.date)}</span>`)
+    .join(', ')
 }
 
 function todayLabel() {
@@ -325,12 +334,12 @@ function printBookList() {
   )
 
   const data = rows.map((r, i) => {
-    const cells: (string | number)[] = [i + 1, r.chapter ?? '']
+    const cells: PrintCell[] = [i + 1, r.chapter ?? '']
     if (visibleCols.value.check) cells.push(r.checkFlag ?? '')
     if (hasThink.value) cells.push(r.meta?.Think ?? '')
     cells.push(r.title ?? '')
     if (visibleCols.value.difficulty) cells.push(r.difficulty ?? '')
-    cells.push(r.sub ?? '未紐づけ', r.important ? '★' : '', r.recordCount, fmtDates(r.dates))
+    cells.push(r.sub ?? '未紐づけ', r.important ? '★' : '', r.recordCount, { html: datesHtml(r.dates) })
     return cells
   })
 
@@ -371,10 +380,10 @@ async function printRelatedProblems() {
     { label: '学習日', width: '104px' },
   )
   const data = rows.map((r, i) => {
-    const cells: (string | number)[] = [i + 1, r.bookTitle ?? '', r.chapter ?? '']
+    const cells: PrintCell[] = [i + 1, r.bookTitle ?? '', r.chapter ?? '']
     if (hasCheck) cells.push(r.checkFlag ?? '')
     if (hasThinkR) cells.push(r.think ?? '')
-    cells.push(r.title ?? '', r.difficulty ?? '', r.sub ?? '', r.important ? '★' : '', fmtDates(r.dates))
+    cells.push(r.title ?? '', r.difficulty ?? '', r.sub ?? '', r.important ? '★' : '', { html: datesHtml(r.dates) })
     return cells
   })
   const ok = openListPrint({
@@ -387,29 +396,31 @@ async function printRelatedProblems() {
   if (!ok) ui.notify('ポップアップがブロックされました。ブラウザ設定で許可してください。')
 }
 
-async function recordToday(r: ResourceBookRow) {
-  if (!r.studyItemId) {
-    ui.notify('この行は小分類に紐づいていません')
-    return
-  }
-  await resource.recordRow(r.id, iso(new Date()))
-  // 進捗・目標表示（学習項目データ/トップ）へ反映
-  Promise.all([study.fetchItems(), study.fetchRecordStats(), study.fetchGoals()]).catch(() => {})
-  ui.notify(`「${r.title ?? r.sub ?? ''}」を学習登録しました`)
-}
-
 async function delRow(r: ResourceBookRow) {
   if (!confirm('この行を削除しますか？')) return
   await resource.deleteRow(r.id)
   ui.notify('行を削除しました')
 }
 
-// ---- 学習記録の管理（一覧・追加・削除） ----
-const recModal = reactive<{ open: boolean; row: ResourceBookRow | null; records: { id: number; studiedOn: string }[]; loading: boolean }>({
+// ---- 学習記録の管理（一覧・追加・削除。色・復習期限を設定） ----
+const recModal = reactive<{
+  open: boolean
+  row: ResourceBookRow | null
+  records: { id: number; studiedOn: string; color: RecordColor | null; reviewOn: string | null }[]
+  loading: boolean
+  date: string
+  color: RecordColor | null
+  reviewIdx: number
+  customDays: number | null
+}>({
   open: false,
   row: null,
   records: [],
   loading: false,
+  date: iso(new Date()),
+  color: 'red',
+  reviewIdx: 1,
+  customDays: 7,
 })
 async function openRecords(r: ResourceBookRow) {
   if (!r.studyItemId) {
@@ -419,22 +430,35 @@ async function openRecords(r: ResourceBookRow) {
   recModal.open = true
   recModal.row = r
   recModal.loading = true
+  recModal.date = iso(new Date())
+  recModal.color = 'red'
+  recModal.reviewIdx = 1
+  recModal.customDays = 7
   recModal.records = await resource.fetchRowRecords(r.id)
   recModal.loading = false
 }
 async function addRecordInModal() {
   if (!recModal.row) return
-  await resource.recordRow(recModal.row.id, iso(new Date()))
+  const opt = REVIEW_OPTIONS[recModal.reviewIdx]
+  const reviewOn = computeReviewOn(recModal.date, opt, recModal.customDays)
+  await resource.recordRow(recModal.row.id, recModal.date, recModal.color, reviewOn)
   recModal.records = await resource.fetchRowRecords(recModal.row.id)
   refreshProgress()
-  ui.notify('学習日を登録しました')
+  study.fetchReviews().catch(() => {})
+  ui.notify(reviewOn ? `学習記録を追加しました（復習期限 ${fmtMd(reviewOn)}）` : '学習記録を追加しました')
 }
 async function deleteRecordInModal(id: number) {
   await resource.deleteRecord(id)
   recModal.records = recModal.records.filter((x) => x.id !== id)
   refreshProgress()
+  study.fetchReviews().catch(() => {})
   ui.notify('学習記録を削除しました')
 }
+const reviewPreview = computed(() => {
+  const opt = REVIEW_OPTIONS[recModal.reviewIdx]
+  const on = computeReviewOn(recModal.date, opt, recModal.customDays)
+  return on ? `→ この記録の復習期限: ${fmtMd(on)}` : '復習項目一覧には表示されません'
+})
 
 // ---- 進捗対象の設定（学習項目への紐づけ 登録/解除） ----
 const rowView = ref<'list' | 'target'>('list')
@@ -747,9 +771,21 @@ async function saveRow() {
               <td style="text-align: center">
                 <button class="cnt-btn" :disabled="!item.row.studyItemId" :style="{ color: item.row.recordCount > 0 ? '#1c2024' : '#cdd2d9', fontWeight: item.row.recordCount > 0 ? 700 : 400 }" title="学習記録を管理" @click="openRecords(item.row)">{{ item.row.recordCount }}</button>
               </td>
-              <td style="color: #6b7280; font-size: 11.5px; line-height: 1.55">{{ fmtDates(item.row.dates) }}</td>
+              <td style="font-size: 11.5px; line-height: 1.55">
+                <template v-if="item.row.dates.length"
+                  ><span v-for="(d, di) in item.row.dates" :key="di"
+                    ><span :style="{ color: dateColorHex(d.color), fontWeight: d.color ? 600 : 400 }">{{ fmtMd(d.date) }}</span
+                    ><span v-if="di < item.row.dates.length - 1" style="color: #c9ced6">, </span></span
+                  ></template
+                ><span v-else style="color: #c9ced6">—</span>
+              </td>
               <td style="text-align: right; white-space: nowrap">
-                <button class="rec-btn" title="今日学習を登録" @click="recordToday(item.row)">学習</button>
+                <button
+                  class="rec-log-btn"
+                  :disabled="!item.row.studyItemId"
+                  :title="item.row.studyItemId ? '学習記録を追加・管理（色・復習期限を設定）' : '学習項目に未紐づけ'"
+                  @click="openRecords(item.row)"
+                >学習記録</button>
                 <button class="icon-btn danger" title="削除" @click="delRow(item.row)">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
                 </button>
@@ -776,6 +812,7 @@ async function saveRow() {
     </div>
 
     <!-- 教材モーダル -->
+    <Teleport to="body">
     <div v-if="bookModal.open" class="modal-bg" @click.self="bookModal.open = false">
       <div class="modal">
         <div class="modal-title">{{ bookModal.id ? '一覧を編集' : `新規${TAB_LABEL[resource.activeType]}` }}</div>
@@ -792,31 +829,91 @@ async function saveRow() {
         </div>
       </div>
     </div>
+    </Teleport>
 
     <!-- 学習記録 管理モーダル -->
+    <Teleport to="body">
     <div v-if="recModal.open" class="modal-bg" @click.self="recModal.open = false">
-      <div class="modal">
+      <div class="modal rec-modal">
         <div class="modal-title">学習記録の管理</div>
         <div style="font-size: 12.5px; color: var(--mut); margin-top: -4px">
           {{ recModal.row?.title ?? recModal.row?.sub ?? '' }}
           <span v-if="recModal.row?.sub" style="color: var(--faint)"> ｜ {{ recModal.row?.subjectName }}›{{ recModal.row?.major }}›{{ recModal.row?.mid }}›{{ recModal.row?.sub }}</span>
         </div>
-        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #eceef0; border-radius: 10px">
+        <div style="max-height: 220px; overflow-y: auto; border: 1px solid #eceef0; border-radius: 10px">
           <div v-if="recModal.loading" style="padding: 20px; text-align: center; color: var(--faint); font-size: 13px">読み込み中…</div>
           <div v-else-if="!recModal.records.length" style="padding: 20px; text-align: center; color: var(--faint); font-size: 13px">学習記録はありません</div>
           <div v-for="rec in recModal.records" v-else :key="rec.id" class="rec-row">
-            <span style="font-size: 13px">{{ rec.studiedOn }}</span>
+            <span style="font-size: 13px; display: inline-flex; align-items: center; gap: 9px">
+              <span class="rec-dot-static" :style="{ background: dateColorHex(rec.color) }"></span>
+              <span :style="{ color: dateColorHex(rec.color), fontWeight: rec.color ? 600 : 400 }">{{ rec.studiedOn }}</span>
+              <span v-if="rec.reviewOn" class="review-pill">復習 {{ fmtMd(rec.reviewOn) }}</span>
+            </span>
             <button class="mini danger" @click="deleteRecordInModal(rec.id)">削除</button>
           </div>
         </div>
+
+        <!-- 記録の追加（学習日・色・復習期限を設定） -->
+        <div class="rec-form-head">記録を追加</div>
+        <div class="rec-form">
+          <div class="rec-form-row">
+            <label class="fld" style="flex: 1"><span>学習日</span><input v-model="recModal.date" type="date" /></label>
+            <div class="fld" style="flex: 0 0 auto">
+              <span>色</span>
+              <div style="display: flex; align-items: center; gap: 8px; height: 37px">
+                <button
+                  class="rec-dot none"
+                  :class="{ sel: recModal.color === null }"
+                  title="色なし"
+                  @click="recModal.color = null"
+                ></button>
+                <button
+                  v-for="c in RECORD_COLOR_KEYS"
+                  :key="c"
+                  class="rec-dot"
+                  :class="{ sel: recModal.color === c }"
+                  :style="{ background: DATE_COLORS[c] }"
+                  :title="COLOR_LABEL[c]"
+                  @click="recModal.color = c"
+                ></button>
+              </div>
+            </div>
+          </div>
+          <div class="fld">
+            <span>復習期限</span>
+            <div class="review-opts">
+              <button
+                v-for="(opt, i) in REVIEW_OPTIONS"
+                :key="opt.label"
+                class="review-chip"
+                :class="{ on: recModal.reviewIdx === i }"
+                @click="recModal.reviewIdx = i"
+              >{{ opt.label }}</button>
+              <input
+                v-if="REVIEW_OPTIONS[recModal.reviewIdx].kind === 'custom'"
+                v-model.number="recModal.customDays"
+                type="number"
+                min="1"
+                class="review-custom"
+                placeholder="日数"
+              />
+            </div>
+            <span style="font-size: 11px; color: var(--faint); font-weight: 400; margin-top: 4px">
+              {{ reviewPreview }}
+            </span>
+          </div>
+        </div>
+
         <div class="modal-actions">
-          <button class="btn-out" @click="addRecordInModal">＋ 今日を追加</button>
-          <button class="btn-dark" @click="recModal.open = false">閉じる</button>
+          <button class="btn-out" @click="recModal.open = false">閉じる</button>
+          <button class="btn-dark" @click="addRecordInModal">＋ 記録を追加</button>
         </div>
       </div>
     </div>
+    </Teleport>
 
     <!-- 行モーダル -->
+    <Teleport to="body">
     <div v-if="rowModal.open" class="modal-bg" @click.self="rowModal.open = false">
       <div class="modal">
         <div class="modal-title">行を追加</div>
@@ -834,6 +931,7 @@ async function saveRow() {
         </div>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
 
@@ -1169,6 +1267,136 @@ async function saveRow() {
   font-weight: 600;
   cursor: pointer;
   margin-right: 4px;
+}
+/* 学習日 登録用の色ドット（赤/青/緑） */
+.rec-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.rec-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  padding: 0;
+}
+.rec-dot:hover:not(:disabled) {
+  transform: scale(1.15);
+}
+.rec-dot:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+.rec-dot.sel {
+  box-shadow: 0 0 0 2px #1c2024;
+}
+.rec-dot-static {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.14);
+  flex-shrink: 0;
+}
+/* 色なしドット（グレーの輪郭のみ） */
+.rec-dot.none {
+  background: #fff;
+  box-shadow: 0 0 0 1px #cbd1d8;
+}
+.rec-dot.none.sel {
+  box-shadow: 0 0 0 2px #1c2024;
+}
+/* 学習記録ボタン（操作列） */
+.rec-log-btn {
+  border: 1px solid #d7dbe0;
+  background: #fff;
+  color: #1c2024;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.rec-log-btn:hover:not(:disabled) {
+  background: #1c2024;
+  color: #fff;
+  border-color: #1c2024;
+}
+.rec-log-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+/* 復習期限バッジ（記録一覧内） */
+.review-pill {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #b07d18;
+  background: #fbf3df;
+  border: 1px solid #eddfba;
+  padding: 1px 7px;
+  border-radius: 99px;
+}
+/* 学習記録モーダル（一覧＋追加フォームを収めるため広め・縦スクロール可） */
+.rec-modal {
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.rec-form-head {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1c2024;
+  border-top: 1px solid #eceef0;
+  padding-top: 12px;
+  margin-top: 2px;
+}
+/* 記録追加フォーム */
+.rec-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rec-form-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.review-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.review-chip {
+  border: 1px solid #e3e6ea;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+}
+.review-chip.on {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
+}
+.fld input.review-custom {
+  width: 84px;
+  padding: 7px 9px;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+  font-size: 12.5px;
+  outline: none;
 }
 .cnt-btn {
   border: 1px solid transparent;

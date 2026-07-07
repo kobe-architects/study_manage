@@ -128,6 +128,90 @@ class RecordController extends Controller
         ]);
     }
 
+    /**
+     * 復習項目一覧: 復習期限（review_on）を持つ学習記録を1件=1復習タスクとして返す。
+     * reviewed_at が null のものは未復習、値があるものは復習済み。
+     * 未復習を期限の昇順で先頭に、復習済みを完了日の降順で後ろに並べる。
+     */
+    public function reviews(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $today = Carbon::today();
+
+        $records = StudyRecord::query()
+            ->whereNotNull('resource_book_item_id')
+            ->whereNotNull('review_on')
+            ->whereHas('bookItem.book', fn ($q) => $q->where('user_id', $userId))
+            ->with(['bookItem.book:id,type,title,subject_id', 'bookItem.book.subject', 'item.mid.major'])
+            ->get();
+
+        $data = $records->map(function (StudyRecord $r) use ($today) {
+            $row = $r->bookItem;
+            $book = $row?->book;
+            $subject = $book?->subject;
+            $item = $r->item;
+            $reviewed = $r->reviewed_at !== null;
+
+            return [
+                'id' => $r->id,          // 学習記録ID（復習タスクの単位）
+                'rowId' => $row?->id,
+                'title' => $row?->title,
+                'sub' => $item?->name,
+                'bookTitle' => $book?->title,
+                'type' => $book?->type,
+                'subjectName' => $subject?->name,
+                'colorSoft' => $subject?->color_soft ?? '#475569',
+                'colorVivid' => $subject?->color_vivid ?? '#475569',
+                'major' => $item?->mid?->major?->name,
+                'mid' => $item?->mid?->name,
+                'studiedOn' => $r->studied_on->toDateString(),
+                'reviewOn' => $r->review_on->toDateString(),
+                'color' => $r->color,
+                'reviewed' => $reviewed,
+                'reviewedOn' => $r->reviewed_at?->toDateString(),
+                'overdue' => ! $reviewed && $r->review_on->lt($today),
+            ];
+        });
+
+        $pending = $data->where('reviewed', false)->sortBy('reviewOn')->values();
+        $done = $data->where('reviewed', true)->sortByDesc('reviewedOn')->values();
+
+        return response()->json(['data' => $pending->concat($done)->values()]);
+    }
+
+    /**
+     * 復習の完了記録。対象の学習記録を「復習済み」にし、復習セッションを
+     * 新しい学習記録として登録（次の復習期限も予約）する。
+     */
+    public function completeReview(Request $request, StudyRecord $record): JsonResponse
+    {
+        abort_unless($record->user_id === $request->user()->id, 403);
+        $data = $request->validate([
+            'studiedOn' => ['required', 'date'],
+            'color' => ['nullable', 'in:red,blue,green'],
+            'reviewOn' => ['nullable', 'date'],
+        ]);
+
+        $row = $record->bookItem;
+        abort_if($row === null || $row->study_item_id === null, 422, 'この記録は学習項目に紐づいていません。');
+
+        // 元の復習タスクを完了扱い
+        $record->update(['reviewed_at' => $data['studiedOn']]);
+
+        // 復習セッションを新しい学習記録として登録（次回の復習期限を予約）
+        $new = StudyRecord::create([
+            'user_id' => $request->user()->id,
+            'study_item_id' => $row->study_item_id,
+            'resource_book_item_id' => $row->id,
+            'type' => $row->book->type,
+            'studied_on' => $data['studiedOn'],
+            'color' => $data['color'] ?? null,
+            'review_on' => $data['reviewOn'] ?? null,
+        ]);
+
+        return response()->json(['data' => ['id' => $new->id]], 201);
+    }
+
     public function destroy(Request $request, StudyRecord $record): JsonResponse
     {
         abort_unless($record->user_id === $request->user()->id, 403);

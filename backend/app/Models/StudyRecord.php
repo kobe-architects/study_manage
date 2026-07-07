@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StudyRecord extends Model
 {
-    protected $fillable = ['user_id', 'study_item_id', 'resource_book_item_id', 'type', 'studied_on'];
+    protected $fillable = ['user_id', 'study_item_id', 'resource_book_item_id', 'type', 'studied_on', 'color', 'review_on', 'reviewed_at'];
 
-    protected $casts = ['studied_on' => 'date'];
+    protected $casts = ['studied_on' => 'date', 'review_on' => 'date', 'reviewed_at' => 'date'];
 
     public function user(): BelongsTo
     {

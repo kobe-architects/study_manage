@@ -83,6 +83,9 @@ const navItems = computed(() =>
   NAV.map((n) => ({ ...n, icon: ICONS[n.key], active: activeKey.value === n.key })),
 )
 
+// スマホのフッターには「学習項目データ」を表示しない
+const mobileNavItems = computed(() => navItems.value.filter((n) => n.key !== 'data'))
+
 function go(routeName: string) {
   router.push({ name: routeName })
 }
@@ -170,7 +173,7 @@ function go(routeName: string) {
 
     <!-- Mobile bottom tabs -->
     <nav v-if="isMobile" class="mobile-nav">
-      <button v-for="n in navItems" :key="n.key" class="mnav-btn" :class="{ active: n.active }" @click="go(n.route)">
+      <button v-for="n in mobileNavItems" :key="n.key" class="mnav-btn" :class="{ active: n.active }" @click="go(n.route)">
         <NavIcon :paths="n.icon" :size="22" />
         <span>{{ n.short }}</span>
       </button>
