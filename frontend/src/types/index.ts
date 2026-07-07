@@ -163,6 +163,8 @@ export interface GoalLinkRow {
   id: number
   seqNo: string | null
   title: string | null
+  checkFlag: string | null
+  think: string | null
 }
 export interface GoalLinkChapter {
   name: string

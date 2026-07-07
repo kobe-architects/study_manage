@@ -19,6 +19,24 @@ const q = ref('')
 
 const chapKey = (bookId: number, name: string) => `${bookId}::${name}`
 
+// 教材ごとに Check / Think 列を持つか（列がある教材は全行に固定幅のマーク列を確保して先頭を揃える）
+const bookMarks = computed<Record<number, { check: boolean; think: boolean }>>(() => {
+  const m: Record<number, { check: boolean; think: boolean }> = {}
+  for (const b of props.books) {
+    m[b.id] = {
+      check: b.chapters.some((c) => c.rows.some((r) => r.checkFlag)),
+      think: b.chapters.some((c) => c.rows.some((r) => r.think)),
+    }
+  }
+  return m
+})
+// マーク列の固定幅(px)。1マーク=22px（バッジ18＋余白）。0なら列を出さない。
+function marksW(bookId: number) {
+  const m = bookMarks.value[bookId]
+  if (!m) return 0
+  return (m.check ? 22 : 0) + (m.think ? 22 : 0)
+}
+
 // 検索でフィルタした教材ツリー（行タイトル/章/教材名で絞り込み）
 const filteredBooks = computed<GoalLinkBook[]>(() => {
   const term = q.value.trim()
@@ -142,6 +160,10 @@ function save() {
                     :style="{ borderColor: sel[r.id] ? '#1c2024' : '#cbd1d8', background: sel[r.id] ? '#1c2024' : '#fff', color: sel[r.id] ? '#fff' : 'transparent' }"
                     @click.stop="toggleRow(r.id)"
                   >{{ sel[r.id] ? '✓' : '' }}</button>
+                  <span v-if="marksW(b.id)" class="leaf-marks" :style="{ width: marksW(b.id) + 'px' }">
+                    <span v-if="r.checkFlag" class="mk mk-check" title="Check">{{ r.checkFlag }}</span>
+                    <span v-if="r.think" class="mk mk-think" title="Think">{{ r.think }}</span>
+                  </span>
                   <span class="leaf-title"><span v-if="r.seqNo" class="seq">{{ r.seqNo }}.</span> {{ r.title ?? '（無題）' }}</span>
                 </div>
               </template>
@@ -322,6 +344,30 @@ function save() {
 }
 .seq {
   color: #aeb4bd;
+}
+/* Focus Gold の Check / Think（固定幅のマーク列で項目名の先頭を揃える） */
+.leaf-marks {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.mk {
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  line-height: 16px;
+}
+.mk-check {
+  color: #3a8a5c;
+  background: #eaf6ef;
+}
+.mk-think {
+  color: #6b5bd0;
+  background: #eeecfa;
 }
 .empty {
   padding: 40px;

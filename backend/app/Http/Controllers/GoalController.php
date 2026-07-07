@@ -319,7 +319,13 @@ class GoalController extends Controller
             $chapters = [];
             foreach ($b->items as $r) {
                 $key = $r->chapter ?: '（章未設定）';
-                $chapters[$key][] = ['id' => $r->id, 'seqNo' => $r->seq_no, 'title' => $r->title];
+                $chapters[$key][] = [
+                    'id' => $r->id,
+                    'seqNo' => $r->seq_no,
+                    'title' => $r->title,
+                    'checkFlag' => $r->check_flag,
+                    'think' => $r->meta['Think'] ?? null,
+                ];
             }
 
             return [

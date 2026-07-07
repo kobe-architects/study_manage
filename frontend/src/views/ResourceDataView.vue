@@ -743,7 +743,10 @@ async function saveRow() {
                 <span class="chapter-cell">
                   <svg class="chapter-chev" :class="{ open: chapterExpand[item.group.key] }" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6l6 6-6 6" /></svg>
                   <span class="chapter-name">{{ item.group.label }}</span>
-                  <span class="chapter-count">{{ item.group.done }}/{{ item.group.rows.length }}（{{ pct1(item.group.done, item.group.rows.length) }}%）</span>
+                  <span class="chapter-prog">
+                    <span class="chapter-prog-fill" :style="{ width: pct1(item.group.done, item.group.rows.length) + '%' }"></span>
+                    <span class="chapter-prog-txt">{{ item.group.done }}/{{ item.group.rows.length }}（{{ pct1(item.group.done, item.group.rows.length) }}%）</span>
+                  </span>
                 </span>
               </td>
             </tr>
@@ -1235,9 +1238,10 @@ async function saveRow() {
   padding: 8px 14px;
 }
 .chapter-cell {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
 }
 .chapter-chev {
   color: #6b7280;
@@ -1252,10 +1256,34 @@ async function saveRow() {
   font-size: 12.5px;
   color: #1c2024;
 }
-.chapter-count {
+/* 章（親項目）の右寄せプログレスバー。中に件数と進捗率を右寄せで表示 */
+.chapter-prog {
+  margin-left: auto;
+  position: relative;
+  flex-shrink: 0;
+  width: 240px;
+  height: 18px;
+  background: #eef0f3;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.chapter-prog-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 99px;
+  background: #3b50cc;
+}
+.chapter-prog-txt {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 11px;
-  color: var(--faint);
-  font-weight: 500;
+  font-weight: 700;
+  color: #1c2024;
+  white-space: nowrap;
 }
 .rec-btn {
   border: none;
