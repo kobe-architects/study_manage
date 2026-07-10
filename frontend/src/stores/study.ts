@@ -1,6 +1,6 @@
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import client from '@/api/client'
-import type { CalendarEvent, Goal, GoalItemDetail, GoalLinkBook, RecordStats, ReviewItem, StudyItemRow, StudyType } from '@/types'
+import type { CalendarEvent, Goal, GoalItemDetail, GoalLinkBook, RecordListItem, RecordStats, ReviewItem, StudyItemRow, StudyType } from '@/types'
 
 interface State {
   items: StudyItemRow[]
@@ -72,6 +72,23 @@ export const useStudyStore = defineStore('study', {
     async addRecord(studyItemId: number, type: StudyType, studiedOn: string) {
       await client.post('/records', { studyItemId, type, studiedOn })
       await Promise.all([this.fetchItems(), this.fetchRecordStats(), this.fetchGoals()])
+    },
+
+    /** 学習記録一覧（期間指定）を取得（学習記録の出力機能・画面表示用） */
+    async fetchRecordList(from: string, to: string) {
+      const { data } = await client.get('/records', { params: { from, to } })
+      return data.data as RecordListItem[]
+    },
+
+    /** 学習記録（期間指定）を Excel でダウンロード */
+    async downloadRecordExport(from: string, to: string, filename: string) {
+      const res = await client.get('/records/export', { params: { from, to }, responseType: 'blob' })
+      const blobUrl = URL.createObjectURL(res.data)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(blobUrl)
     },
 
     async deleteRecord(id: number) {

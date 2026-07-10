@@ -5,12 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\ResourceBookItem;
 use App\Models\StudyItem;
 use App\Models\StudyRecord;
+use App\Support\XlsxHelper;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RecordController extends Controller
 {
+    private const EXPORT_HEADER = ['学習日', '種別', '科目', '大分類', '中分類', '小分類', '教材', '番号', 'タイトル', '色', '復習期限', '復習完了日'];
+
+    private const COLOR_LABEL = ['red' => '赤', 'blue' => '青', 'green' => '緑'];
+
     /**
      * 学習記録の登録。
      * - 教材の行ベース: resourceBookItemId を指定（type/study_item_id は行から導出）
@@ -126,6 +132,102 @@ class RecordController extends Controller
                 'recent' => $recent,
             ],
         ]);
+    }
+
+    /**
+     * 学習記録の一覧（期間指定）。学習記録の出力機能の画面表示用。
+     * from / to は YYYY-MM-DD（どちらも省略可、省略時は全期間）。
+     */
+    public function index(Request $request): JsonResponse
+    {
+        [$from, $to] = $this->validatePeriod($request);
+        $records = $this->recordsBetween($request->user()->id, $from, $to);
+
+        $data = $records->map(function (StudyRecord $r) {
+            $item = $r->item;
+            $subject = $item?->mid?->major?->subject;
+            $row = $r->bookItem;
+
+            return [
+                'id' => $r->id,
+                'date' => $r->studied_on->toDateString(),
+                'type' => $r->type,
+                'subjectName' => $subject?->name,
+                'colorSoft' => $subject?->color_soft ?? '#475569',
+                'colorVivid' => $subject?->color_vivid ?? '#475569',
+                'major' => $item?->mid?->major?->name,
+                'mid' => $item?->mid?->name,
+                'sub' => $item?->name,
+                'bookTitle' => $row?->book?->title,
+                'seqNo' => $row?->seq_no,
+                'rowTitle' => $row?->title,
+                'color' => $r->color,
+                'reviewOn' => $r->review_on?->toDateString(),
+                'reviewedOn' => $r->reviewed_at?->toDateString(),
+            ];
+        })->values();
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * 学習記録の Excel 出力（期間指定）。列構成は index() と同じ情報を xlsx で返す。
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        [$from, $to] = $this->validatePeriod($request);
+        $records = $this->recordsBetween($request->user()->id, $from, $to);
+
+        $rows = $records->map(function (StudyRecord $r) {
+            $item = $r->item;
+            $row = $r->bookItem;
+
+            return [
+                $r->studied_on->toDateString(),
+                $r->type,
+                $item?->mid?->major?->subject?->name,
+                $item?->mid?->major?->name,
+                $item?->mid?->name,
+                $item?->name,
+                $row?->book?->title,
+                $row?->seq_no,
+                $row?->title,
+                $r->color !== null ? (self::COLOR_LABEL[$r->color] ?? $r->color) : null,
+                $r->review_on?->toDateString(),
+                $r->reviewed_at?->toDateString(),
+            ];
+        })->all();
+
+        $binary = XlsxHelper::write(self::EXPORT_HEADER, $rows);
+        $filename = sprintf('study_records_%s_%s.xlsx', $from ?? 'all', $to ?? Carbon::today()->toDateString());
+
+        return response()->streamDownload(function () use ($binary) {
+            echo $binary;
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    private function validatePeriod(Request $request): array
+    {
+        $data = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+        ]);
+
+        return [$data['from'] ?? null, $data['to'] ?? null];
+    }
+
+    private function recordsBetween(int $userId, ?string $from, ?string $to)
+    {
+        return StudyRecord::query()
+            ->with(['item.mid.major.subject', 'bookItem.book'])
+            ->where('user_id', $userId)
+            ->when($from, fn ($q) => $q->whereDate('studied_on', '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate('studied_on', '<=', $to))
+            ->orderByDesc('studied_on')
+            ->orderByDesc('id')
+            ->get();
     }
 
     /**

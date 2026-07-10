@@ -138,6 +138,25 @@ export interface RecentRecord {
   type: StudyType
 }
 
+/** 学習記録の出力機能（期間指定一覧）の1行 */
+export interface RecordListItem {
+  id: number
+  date: string
+  type: StudyType
+  subjectName: string | null
+  colorSoft: string
+  colorVivid: string
+  major: string | null
+  mid: string | null
+  sub: string | null
+  bookTitle: string | null
+  seqNo: string | null
+  rowTitle: string | null
+  color: RecordColor | null
+  reviewOn: string | null
+  reviewedOn: string | null
+}
+
 export interface Goal {
   id: number
   title: string

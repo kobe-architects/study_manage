@@ -6,7 +6,7 @@ import { useStudyStore } from '@/stores/study'
 import { useResourceStore } from '@/stores/resource'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
-import { STUDY_TYPES, type RecordColor, type StudyType } from '@/types'
+import { STUDY_TYPES, type RecordColor, type RecordListItem, type StudyType } from '@/types'
 
 const study = useStudyStore()
 const resource = useResourceStore()
@@ -104,6 +104,77 @@ async function removeRecord(id: number) {
   await study.deleteRecord(id)
   resource.refreshBookSummary().catch(() => {})
   ui.notify('学習記録を削除しました')
+}
+
+// ===== 学習記録の出力（画面表示 / Excel） =====
+const EXPORT_RANGES = [
+  { key: '7', label: '直近1週間' },
+  { key: '14', label: '直近2週間' },
+  { key: '1m', label: '直近1ヵ月' },
+  { key: 'custom', label: '任意期間' },
+] as const
+type ExportRange = (typeof EXPORT_RANGES)[number]['key']
+
+const exportRange = ref<ExportRange>('7')
+const exportFrom = ref('')
+const exportTo = ref('')
+const exportRows = ref<RecordListItem[]>([])
+const exportLoaded = ref(false)
+const exportLoading = ref(false)
+const exportShownPeriod = ref('')
+
+onMounted(() => {
+  const today = new Date()
+  exportTo.value = iso(today)
+  const from = new Date()
+  from.setDate(from.getDate() - 7)
+  exportFrom.value = iso(from)
+})
+
+function exportPeriod(): { from: string; to: string } {
+  if (exportRange.value === 'custom') return { from: exportFrom.value, to: exportTo.value }
+  const from = new Date()
+  if (exportRange.value === '1m') from.setMonth(from.getMonth() - 1)
+  else from.setDate(from.getDate() - Number(exportRange.value))
+  return { from: iso(from), to: iso(new Date()) }
+}
+
+function validExportPeriod(): { from: string; to: string } | null {
+  const p = exportPeriod()
+  if (!p.from || !p.to) {
+    ui.notify('期間を指定してください')
+    return null
+  }
+  if (p.from > p.to) {
+    ui.notify('開始日は終了日以前にしてください')
+    return null
+  }
+  return p
+}
+
+async function showExportRecords() {
+  const p = validExportPeriod()
+  if (!p) return
+  exportLoading.value = true
+  try {
+    exportRows.value = await study.fetchRecordList(p.from, p.to)
+    exportShownPeriod.value = `${p.from} 〜 ${p.to}`
+    exportLoaded.value = true
+  } finally {
+    exportLoading.value = false
+  }
+}
+
+async function exportExcel() {
+  const p = validExportPeriod()
+  if (!p) return
+  exportLoading.value = true
+  try {
+    await study.downloadRecordExport(p.from, p.to, `学習記録_${p.from}_${p.to}.xlsx`)
+    ui.notify('Excelファイルを出力しました')
+  } finally {
+    exportLoading.value = false
+  }
 }
 </script>
 
@@ -208,6 +279,65 @@ async function removeRecord(id: number) {
             </button>
           </div>
           <div v-if="!recent.length" style="padding: 20px; text-align: center; color: var(--faint); font-size: 13px">まだ記録がありません</div>
+        </div>
+      </div>
+
+      <!-- 学習記録の出力 -->
+      <div class="card" style="padding: 18px 20px">
+        <div style="font-size: 13.5px; font-weight: 700; margin-bottom: 4px">学習記録の出力</div>
+        <div style="font-size: 12px; color: var(--faint); margin-bottom: 12px">期間を指定して学習記録を画面に表示、または Excel で出力します。</div>
+
+        <div style="font-size: 12px; color: var(--mut); font-weight: 600; margin-bottom: 8px">対象期間</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px">
+          <button v-for="r in EXPORT_RANGES" :key="r.key" class="period" :class="{ on: exportRange === r.key }" @click="exportRange = r.key">{{ r.label }}</button>
+        </div>
+        <div v-if="exportRange === 'custom'" style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap">
+          <input v-model="exportFrom" type="date" class="d-input" />
+          <span style="color: var(--faint)">〜</span>
+          <input v-model="exportTo" type="date" class="d-input" />
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <button class="btn-dark" :disabled="exportLoading" @click="showExportRecords">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 5px"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>画面に表示
+          </button>
+          <button class="btn-out" :disabled="exportLoading" @click="exportExcel">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 5px"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" /></svg>Excel出力
+          </button>
+        </div>
+
+        <div v-if="exportLoaded" style="margin-top: 16px">
+          <div style="font-size: 12.5px; font-weight: 700; margin-bottom: 8px">{{ exportShownPeriod }} の学習記録（{{ exportRows.length }}件）</div>
+          <div v-if="!exportRows.length" style="padding: 20px; text-align: center; color: var(--faint); font-size: 13px">この期間の学習記録はありません</div>
+          <div v-else class="exp-table-wrap">
+            <table class="exp-table">
+              <thead>
+                <tr><th>学習日</th><th>科目</th><th>内容</th><th>教材</th><th>種別</th><th>色</th><th>復習期限</th><th>復習完了</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in exportRows" :key="r.id">
+                  <td class="dm" style="white-space: nowrap">{{ r.date }}</td>
+                  <td style="white-space: nowrap">
+                    <span :style="{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: ui.colorOf(r.colorSoft, r.colorVivid), marginRight: '6px' }"></span>{{ r.subjectName ?? '—' }}
+                  </td>
+                  <td>
+                    <div style="font-weight: 500">{{ r.rowTitle ?? r.sub ?? '—' }}</div>
+                    <div style="font-size: 11px; color: var(--faint)">{{ [r.major, r.mid].filter(Boolean).join(' › ') }}</div>
+                  </td>
+                  <td>{{ r.bookTitle ?? '—' }}</td>
+                  <td style="white-space: nowrap">
+                    <span :style="{ fontSize: '10.5px', fontWeight: 600, padding: '2px 8px', borderRadius: '99px', background: TYPE_BADGE[r.type].bg, color: TYPE_BADGE[r.type].fg }">{{ r.type }}</span>
+                  </td>
+                  <td style="text-align: center">
+                    <span v-if="r.color" :style="{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: DATE_COLORS[r.color] }" :title="COLOR_LABEL[r.color]"></span>
+                    <span v-else style="color: var(--faint)">—</span>
+                  </td>
+                  <td class="dm" style="white-space: nowrap">{{ r.reviewOn ?? '—' }}</td>
+                  <td class="dm" style="white-space: nowrap">{{ r.reviewedOn ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -362,5 +492,81 @@ async function removeRecord(id: number) {
 }
 .del-rec:hover {
   color: #cf5563;
+}
+.period {
+  padding: 8px 14px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  background: #fff;
+  font-size: 12.5px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--mut);
+}
+.period.on {
+  background: #1c2024;
+  color: #fff;
+  border-color: #1c2024;
+}
+.d-input {
+  padding: 8px 11px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  font-size: 13px;
+  outline: none;
+}
+.btn-dark {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #1c2024;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-out {
+  padding: 10px 16px;
+  border: 1px solid #e3e6ea;
+  border-radius: 10px;
+  background: #fff;
+  color: #1c2024;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-dark:disabled,
+.btn-out:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.exp-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #eef0f3;
+  border-radius: 10px;
+}
+.exp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  min-width: 640px;
+}
+.exp-table th {
+  text-align: left;
+  font-size: 11px;
+  color: var(--faint);
+  font-weight: 600;
+  padding: 8px 10px;
+  background: #f8f9fb;
+  border-bottom: 1px solid #eef0f3;
+  white-space: nowrap;
+}
+.exp-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f4f5f7;
+  vertical-align: middle;
+}
+.exp-table tbody tr:last-child td {
+  border-bottom: none;
 }
 </style>

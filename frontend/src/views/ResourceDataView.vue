@@ -540,34 +540,85 @@ function toggleExpand(k: string) {
   expand[k] = !expand[k]
 }
 
-// 行 追加モーダル
-const rowModal = reactive<{ open: boolean; chapter: string; seqNo: string; title: string; difficulty: string; sub: string }>({
+// 行 追加/編集モーダル
+// id が null なら新規追加、値があれば既存行の編集。
+// subject/major/mid は編集時に元の小分類階層を保持し、小分類名(sub)を変えない限り紐づけ先が動かないようにする。
+const rowModal = reactive<{
+  open: boolean
+  id: number | null
+  chapter: string
+  seqNo: string
+  title: string
+  difficulty: string
+  checkFlag: string
+  sub: string
+  subject: string
+  major: string
+  mid: string
+}>({
   open: false,
+  id: null,
   chapter: '',
   seqNo: '',
   title: '',
   difficulty: '',
+  checkFlag: '',
   sub: '',
+  subject: '',
+  major: '',
+  mid: '',
 })
 function openAddRow() {
   if (!resource.activeBookId) {
     ui.notify('先に教材を選択してください')
     return
   }
-  Object.assign(rowModal, { open: true, chapter: '', seqNo: '', title: '', difficulty: '', sub: '' })
+  Object.assign(rowModal, { open: true, id: null, chapter: '', seqNo: '', title: '', difficulty: '', checkFlag: '', sub: '', subject: '', major: '', mid: '' })
+}
+function openEditRow(r: ResourceBookRow) {
+  Object.assign(rowModal, {
+    open: true,
+    id: r.id,
+    chapter: r.chapter ?? '',
+    seqNo: r.seqNo ?? '',
+    title: r.title ?? '',
+    difficulty: r.difficulty ?? '',
+    checkFlag: r.checkFlag ?? '',
+    sub: r.sub ?? '',
+    subject: r.subjectName ?? '',
+    major: r.major ?? '',
+    mid: r.mid ?? '',
+  })
 }
 async function saveRow() {
   if (!resource.activeBookId) return
   const b = resource.activeBook
-  await resource.createRow(resource.activeBookId, {
-    chapter: rowModal.chapter || null,
-    seqNo: rowModal.seqNo || null,
-    title: rowModal.title || null,
-    difficulty: rowModal.difficulty || null,
-    subject: b?.subjectName ?? '',
-    sub: rowModal.sub || '',
-  })
-  ui.notify('行を追加しました')
+  if (rowModal.id) {
+    await resource.updateRow(rowModal.id, {
+      chapter: rowModal.chapter || null,
+      seqNo: rowModal.seqNo || null,
+      title: rowModal.title || null,
+      difficulty: rowModal.difficulty || null,
+      checkFlag: rowModal.checkFlag || null,
+      // 元の小分類階層を維持しつつ小分類名で紐づけ先を再解決（空なら紐づけは変更しない）
+      subject: rowModal.subject || b?.subjectName || '',
+      major: rowModal.major || '',
+      mid: rowModal.mid || '',
+      sub: rowModal.sub || '',
+    })
+    ui.notify('保存しました')
+  } else {
+    await resource.createRow(resource.activeBookId, {
+      chapter: rowModal.chapter || null,
+      seqNo: rowModal.seqNo || null,
+      title: rowModal.title || null,
+      difficulty: rowModal.difficulty || null,
+      checkFlag: rowModal.checkFlag || null,
+      subject: b?.subjectName ?? '',
+      sub: rowModal.sub || '',
+    })
+    ui.notify('行を追加しました')
+  }
   rowModal.open = false
 }
 </script>
@@ -750,12 +801,12 @@ async function saveRow() {
                 </span>
               </td>
             </tr>
-            <tr v-else>
+            <tr v-else class="data-row" title="クリックで編集" @click="openEditRow(item.row)">
               <td style="text-align: center">
-                <input type="checkbox" class="tgt-chk" :checked="item.row.included" :disabled="!item.row.studyItemId" :title="item.row.studyItemId ? '進捗対象（チェックを外すと集計から除外）' : '学習項目に未紐づけ'" @change="toggleRow(item.row)" />
+                <input type="checkbox" class="tgt-chk" :checked="item.row.included" :disabled="!item.row.studyItemId" :title="item.row.studyItemId ? '進捗対象（チェックを外すと集計から除外）' : '学習項目に未紐づけ'" @click.stop @change="toggleRow(item.row)" />
               </td>
               <td style="text-align: center">
-                <button class="imp-star" :class="{ on: item.row.important }" :title="item.row.important ? '重要（クリックで解除）' : '重要にする'" @click="toggleImportant(item.row)">★</button>
+                <button class="imp-star" :class="{ on: item.row.important }" :title="item.row.important ? '重要（クリックで解除）' : '重要にする'" @click.stop="toggleImportant(item.row)">★</button>
               </td>
               <td v-if="visibleCols.seqNo" style="color: #aeb4bd">{{ item.row.seqNo ?? '' }}</td>
               <td v-if="visibleCols.check" style="text-align: center; color: #3a8a5c; font-weight: 700">{{ item.row.checkFlag ?? '' }}</td>
@@ -772,7 +823,7 @@ async function saveRow() {
                 <span v-if="item.row.sub && !item.row.included" style="margin-left: 6px; font-size: 10px; font-weight: 600; color: #9aa1ab; background: #f1f2f4; padding: 1px 6px; border-radius: 99px">対象外</span>
               </td>
               <td style="text-align: center">
-                <button class="cnt-btn" :disabled="!item.row.studyItemId" :style="{ color: item.row.recordCount > 0 ? '#1c2024' : '#cdd2d9', fontWeight: item.row.recordCount > 0 ? 700 : 400 }" title="学習記録を管理" @click="openRecords(item.row)">{{ item.row.recordCount }}</button>
+                <button class="cnt-btn" :disabled="!item.row.studyItemId" :style="{ color: item.row.recordCount > 0 ? '#1c2024' : '#cdd2d9', fontWeight: item.row.recordCount > 0 ? 700 : 400 }" title="学習記録を管理" @click.stop="openRecords(item.row)">{{ item.row.recordCount }}</button>
               </td>
               <td style="font-size: 11.5px; line-height: 1.55">
                 <template v-if="item.row.dates.length"
@@ -787,9 +838,9 @@ async function saveRow() {
                   class="rec-log-btn"
                   :disabled="!item.row.studyItemId"
                   :title="item.row.studyItemId ? '学習記録を追加・管理（色・復習期限を設定）' : '学習項目に未紐づけ'"
-                  @click="openRecords(item.row)"
+                  @click.stop="openRecords(item.row)"
                 >学習記録</button>
-                <button class="icon-btn danger" title="削除" @click="delRow(item.row)">
+                <button class="icon-btn danger" title="削除" @click.stop="delRow(item.row)">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
                 </button>
               </td>
@@ -919,18 +970,19 @@ async function saveRow() {
     <Teleport to="body">
     <div v-if="rowModal.open" class="modal-bg" @click.self="rowModal.open = false">
       <div class="modal">
-        <div class="modal-title">行を追加</div>
+        <div class="modal-title">{{ rowModal.id ? '行を編集' : '行を追加' }}</div>
         <label class="fld"><span>タイトル</span><input v-model="rowModal.title" placeholder="例: 整式の整理" /></label>
         <label class="fld"><span>小分類名（紐づけ先）</span><input v-model="rowModal.sub" placeholder="例: 整式の計算・因数分解" /></label>
         <div style="display: flex; gap: 10px">
           <label class="fld" style="flex: 1"><span>章</span><input v-model="rowModal.chapter" /></label>
           <label class="fld" style="width: 90px"><span>番号</span><input v-model="rowModal.seqNo" /></label>
           <label class="fld" style="width: 90px"><span>難易度</span><input v-model="rowModal.difficulty" placeholder="*" /></label>
+          <label v-if="visibleCols.check" class="fld" style="width: 90px"><span>Check</span><input v-model="rowModal.checkFlag" /></label>
         </div>
         <div style="font-size: 11px; color: var(--faint); margin-top: 4px">科目は教材の科目「{{ resource.activeBook?.subjectName ?? '未設定' }}」を使います。</div>
         <div class="modal-actions">
           <button class="btn-out" @click="rowModal.open = false">キャンセル</button>
-          <button class="btn-dark" @click="saveRow">追加</button>
+          <button class="btn-dark" @click="saveRow">{{ rowModal.id ? '保存' : '追加' }}</button>
         </div>
       </div>
     </div>
@@ -1225,6 +1277,13 @@ async function saveRow() {
 }
 .tbl td:first-child {
   padding-left: 14px;
+}
+/* データ行はクリックで編集モーダルを開く */
+.data-row {
+  cursor: pointer;
+}
+.data-row:hover {
+  background: #f8f9fb;
 }
 .chapter-row {
   cursor: pointer;

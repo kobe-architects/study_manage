@@ -312,6 +312,51 @@ const ex = computed(() => {
   return { before: w.exampleSentence, word: '', after: '' }
 })
 
+// セクションID→名称
+const sectionNameMap = computed(() => {
+  const m: Record<number, string> = {}
+  sections.value.forEach((s) => (m[s.id] = s.name))
+  return m
+})
+// 英単語一覧（vocab.items）を単語（小文字）で引ける索引。同語は先頭を採用。
+const wordIndex = computed(() => {
+  const m: Record<string, Vocabulary> = {}
+  for (const v of vocab.items) {
+    const key = v.word.trim().toLowerCase()
+    if (key && !(key in m)) m[key] = v
+  }
+  return m
+})
+// 例文中に登場する単語のうち、英単語一覧に登録されているもの（現在の出題語は除く）
+const exampleMatches = computed(() => {
+  const w = displayed.value?.vocab
+  if (!w || !w.exampleSentence) return []
+  const idx = wordIndex.value
+  const seen = new Set<number>()
+  const results: {
+    id: number
+    word: string
+    section: string
+    meaning: string
+    supplement: string | null
+  }[] = []
+  const tokens = w.exampleSentence.toLowerCase().match(/[a-z']+/g) ?? []
+  for (const t of tokens) {
+    const hit = idx[t]
+    if (hit && hit.id !== w.id && !seen.has(hit.id)) {
+      seen.add(hit.id)
+      results.push({
+        id: hit.id,
+        word: hit.word,
+        section: sectionNameMap.value[hit.sectionId] ?? '',
+        meaning: hit.meaning,
+        supplement: hit.meaningSupplement,
+      })
+    }
+  }
+  return results
+})
+
 const progress = computed(() => {
   const total = vocab.quizQuestions.length
   return total ? Math.round(((vocab.quizIndex + 1) / total) * 100) : 0
@@ -579,6 +624,16 @@ function toggleSec(id: number) {
               <div v-if="displayed.vocab.exampleExplanation" style="margin-top: 6px">
                 <button v-if="!showExpl" class="mini-link" @click="showExpl = true">例文の説明を表示</button>
                 <div v-else style="font-size: 12px; color: #4b5563; margin-top: 4px; line-height: 1.55; white-space: pre-wrap">{{ displayed.vocab.exampleExplanation }}</div>
+              </div>
+              <!-- 例文中に登場する登録済み単語（セクション・意味・意味の補足） -->
+              <div v-if="exampleMatches.length" style="margin-top: 10px; border-top: 1px dashed #e3e6ea; padding-top: 10px">
+                <div style="font-size: 11px; color: var(--faint); margin-bottom: 6px">例文中の登録単語</div>
+                <div v-for="m in exampleMatches" :key="m.id" style="display: flex; align-items: baseline; gap: 8px; padding: 3px 0; flex-wrap: wrap">
+                  <span v-if="m.section" style="font-size: 10.5px; font-weight: 600; color: #5b6b8c; background: #eef1f6; padding: 1px 7px; border-radius: 99px">{{ m.section }}</span>
+                  <button class="bare dm word-tap" style="font-size: 13px; font-weight: 700" title="タップで発音" @click="speak(m.word)">{{ m.word }}</button>
+                  <span style="font-size: 12.5px; color: #4b5563">{{ m.meaning }}</span>
+                  <span v-if="m.supplement" style="font-size: 11.5px; color: #9aa1ab">{{ m.supplement }}</span>
+                </div>
               </div>
             </div>
 

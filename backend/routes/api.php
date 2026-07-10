@@ -27,6 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/study-items/{studyItem}', [StudyItemController::class, 'destroy']);
 
     Route::post('/records', [RecordController::class, 'store']);
+    Route::get('/records', [RecordController::class, 'index']);
+    Route::get('/records/export', [RecordController::class, 'export']);
     Route::get('/records/stats', [RecordController::class, 'stats']);
     Route::get('/records/reviews', [RecordController::class, 'reviews']);
     Route::post('/records/{record}/review-complete', [RecordController::class, 'completeReview']);
