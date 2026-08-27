@@ -20,16 +20,39 @@ const router = createRouter({
         { path: 'flashcard', name: 'flashcard', component: () => import('@/views/FlashcardView.vue') },
       ],
     },
+    // 家庭教師用（tutor ロール）
+    {
+      path: '/tutor',
+      component: () => import('@/layouts/TutorLayout.vue'),
+      meta: { tutor: true },
+      children: [
+        { path: '', name: 'tutor-home', component: () => import('@/views/TutorHomeView.vue'), meta: { tutor: true } },
+        {
+          path: 'assignments',
+          name: 'tutor-assignments',
+          component: () => import('@/views/TutorAssignmentsView.vue'),
+          meta: { tutor: true },
+        },
+        { path: 'goals', name: 'tutor-goals', component: () => import('@/views/GoalsView.vue'), meta: { tutor: true } },
+      ],
+    },
   ],
 })
 
 router.beforeEach((to) => {
   const token = localStorage.getItem('sm_token')
+  const isTutor = localStorage.getItem('sm_role') === 'tutor'
+
   if (!to.meta.public && !token) {
     return { name: 'login' }
   }
   if (to.name === 'login' && token) {
-    return { name: 'home' }
+    return { name: isTutor ? 'tutor-home' : 'home' }
+  }
+  // ロールごとに入れる画面を分離（tutor は /tutor 配下のみ、owner は /tutor 以外）
+  if (token && !to.meta.public) {
+    if (isTutor && !to.meta.tutor) return { name: 'tutor-home' }
+    if (!isTutor && to.meta.tutor) return { name: 'home' }
   }
 })
 

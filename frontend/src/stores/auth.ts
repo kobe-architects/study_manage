@@ -16,6 +16,8 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isAuthenticated: (s) => !!s.token,
     settings: (s): UserSettings | null => s.user?.settings ?? null,
+    // ルーターガードは user 取得前にも動くため localStorage の役割を併用する
+    isTutor: (s) => (s.user ? s.user.role === 'tutor' : localStorage.getItem('sm_role') === 'tutor'),
   },
 
   actions: {
@@ -24,11 +26,13 @@ export const useAuthStore = defineStore('auth', {
       this.token = data.token
       this.user = data.user
       localStorage.setItem('sm_token', data.token)
+      localStorage.setItem('sm_role', data.user.role)
     },
 
     async fetchMe() {
       const { data } = await client.get('/me')
       this.user = data.user
+      localStorage.setItem('sm_role', data.user.role)
       return data.user as AuthUser
     },
 
@@ -49,6 +53,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = null
       this.user = null
       localStorage.removeItem('sm_token')
+      localStorage.removeItem('sm_role')
     },
   },
 })

@@ -16,7 +16,7 @@ async function submit() {
   loading.value = true
   try {
     await auth.login(email.value, password.value)
-    router.push({ name: 'home' })
+    router.push({ name: auth.user?.role === 'tutor' ? 'tutor-home' : 'home' })
   } catch (e: unknown) {
     error.value = 'メールアドレスまたはパスワードが正しくありません。'
   } finally {

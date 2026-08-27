@@ -1,6 +1,14 @@
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import client from '@/api/client'
-import type { CalendarEvent, Goal, GoalItemDetail, GoalLinkBook, RecordListItem, RecordStats, ReviewItem, StudyItemRow, StudyType } from '@/types'
+import type { Assignment, CalendarEvent, Goal, GoalItemDetail, GoalLinkBook, RecordListItem, RecordStats, ReviewItem, StudyItemRow, StudyType } from '@/types'
+
+/**
+ * API プレフィックス。家庭教師ログイン時は /tutor 配下の生徒スコープ API を使う。
+ * これにより目標・学習記録まわりの画面/コンポーネントを両ロールで共用できる。
+ */
+function p(): string {
+  return localStorage.getItem('sm_role') === 'tutor' ? '/tutor' : ''
+}
 
 interface State {
   items: StudyItemRow[]
@@ -8,6 +16,7 @@ interface State {
   goals: Goal[]
   events: CalendarEvent[]
   reviews: ReviewItem[]
+  assignments: Assignment[]
   loaded: boolean
 }
 
@@ -18,6 +27,7 @@ export const useStudyStore = defineStore('study', {
     goals: [],
     events: [],
     reviews: [],
+    assignments: [],
     loaded: false,
   }),
 
@@ -55,12 +65,12 @@ export const useStudyStore = defineStore('study', {
     },
 
     async fetchRecordStats() {
-      const { data } = await client.get('/records/stats')
+      const { data } = await client.get(`${p()}/records/stats`)
       this.recordStats = data.data
     },
 
     async fetchGoals() {
-      const { data } = await client.get('/goals')
+      const { data } = await client.get(`${p()}/goals`)
       this.goals = data.data
     },
 
@@ -76,7 +86,7 @@ export const useStudyStore = defineStore('study', {
 
     /** 学習記録一覧（期間指定）を取得（学習記録の出力機能・画面表示用） */
     async fetchRecordList(from: string, to: string) {
-      const { data } = await client.get('/records', { params: { from, to } })
+      const { data } = await client.get(`${p()}/records`, { params: { from, to } })
       return data.data as RecordListItem[]
     },
 
@@ -127,64 +137,100 @@ export const useStudyStore = defineStore('study', {
       deadline: string
       target: number
     }) {
-      const { data } = await client.post('/goals', payload)
+      const { data } = await client.post(`${p()}/goals`, payload)
       await this.fetchGoals()
       return data.data.id as number
     },
 
     async deleteGoal(id: number) {
-      await client.delete(`/goals/${id}`)
+      await client.delete(`${p()}/goals/${id}`)
       await this.fetchGoals() // 中間目標を含む入れ子構造のため取り直す
     },
 
     /** 目標・中間目標の編集（タイトル・期限） */
     async updateGoal(id: number, payload: { title?: string; deadline?: string }) {
-      await client.put(`/goals/${id}`, payload)
+      await client.put(`${p()}/goals/${id}`, payload)
       await this.fetchGoals()
     },
 
     /** 紐づけモーダル用ツリー（教材→章→行）を取得 */
     async fetchGoalLinkOptions() {
-      const { data } = await client.get('/goals/link-options')
+      const { data } = await client.get(`${p()}/goals/link-options`)
       return data.data as GoalLinkBook[]
     },
 
     /** 目標に紐づける個別学習データ（行ID配列）を一括設定 */
     async updateGoalItems(id: number, ids: number[]) {
-      await client.put(`/goals/${id}/items`, { ids })
+      await client.put(`${p()}/goals/${id}/items`, { ids })
       await this.fetchGoals()
     },
 
     /** 目標に紐づく個別学習データの明細（学習済み/未学習）を取得 */
     async fetchGoalItems(id: number) {
-      const { data } = await client.get(`/goals/${id}/items`)
+      const { data } = await client.get(`${p()}/goals/${id}/items`)
       return data.data as GoalItemDetail[]
     },
 
     /** 中間目標の紐づけ用ツリー（親目標の紐づけ項目のみ）を取得 */
     async fetchSubLinkOptions(parentId: number) {
-      const { data } = await client.get(`/goals/${parentId}/link-options`)
+      const { data } = await client.get(`${p()}/goals/${parentId}/link-options`)
       return data.data as GoalLinkBook[]
     },
 
     /** 中間目標を作成 */
     async createSubGoal(parentId: number, payload: { title: string; deadline: string; ids: number[] }) {
-      const { data } = await client.post(`/goals/${parentId}/sub-goals`, payload)
+      const { data } = await client.post(`${p()}/goals/${parentId}/sub-goals`, payload)
       await this.fetchGoals()
       return data.data.id as number
     },
 
     /** 紐づけ項目の学習済み/未学習を手動設定（トップ/目標画面からの直接設定） */
     async setGoalItemStudied(goalId: number, itemId: number, studied: boolean) {
-      await client.put(`/goals/${goalId}/items/studied`, { itemId, studied })
+      await client.put(`${p()}/goals/${goalId}/items/studied`, { itemId, studied })
       await this.fetchGoals()
     },
 
     /** 目標の達成/未達成を記録（true=達成 / false=未達成 / null=未記録） */
     async setGoalAchieved(id: number, achieved: boolean | null) {
-      await client.put(`/goals/${id}`, { achieved })
+      await client.put(`${p()}/goals/${id}`, { achieved })
       const g = this.goals.find((x) => x.id === id)
       if (g) g.achieved = achieved
+    },
+
+    // ===== 課題（家庭教師が設定 / 生徒は閲覧） =====
+
+    /** 課題一覧を取得（進捗集計付き） */
+    async fetchAssignments() {
+      const { data } = await client.get(`${p()}/assignments`)
+      this.assignments = data.data
+    },
+
+    /** 課題を作成（tutor のみ） */
+    async createAssignment(payload: { title: string; note: string | null; dueOn: string; ids: number[] }) {
+      const { data } = await client.post(`${p()}/assignments`, payload)
+      await this.fetchAssignments()
+      return data.data.id as number
+    },
+
+    /** 課題を更新（tutor のみ） */
+    async updateAssignment(
+      id: number,
+      payload: { title?: string; note?: string | null; dueOn?: string; achieved?: boolean | null; ids?: number[] },
+    ) {
+      await client.put(`${p()}/assignments/${id}`, payload)
+      await this.fetchAssignments()
+    },
+
+    /** 課題を削除（tutor のみ） */
+    async deleteAssignment(id: number) {
+      await client.delete(`${p()}/assignments/${id}`)
+      await this.fetchAssignments()
+    },
+
+    /** 課題に含めた個別学習データの明細（学習済み/未学習）を取得 */
+    async fetchAssignmentItems(id: number) {
+      const { data } = await client.get(`${p()}/assignments/${id}/items`)
+      return data.data as GoalItemDetail[]
     },
 
     async saveEvent(date: string, title: string) {

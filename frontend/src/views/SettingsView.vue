@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import client from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore, type ColorMode, type NavStyle, type ProgressStyle } from '@/stores/ui'
-import type { StudyType, UserSettings } from '@/types'
+import type { StudyType, TutorAccount, UserSettings } from '@/types'
 
 const auth = useAuthStore()
 const ui = useUiStore()
@@ -44,6 +45,74 @@ const examDateModel = computed({
   get: () => local.examDate ?? '',
   set: (v: string) => save({ examDate: v || null }),
 })
+
+// ---- 家庭教師アカウント管理 ----
+const tutors = ref<TutorAccount[]>([])
+const tutorForm = reactive({ open: false, name: '', email: '', password: '', saving: false })
+const pwEdit = reactive<{ id: number | null; password: string; saving: boolean }>({ id: null, password: '', saving: false })
+
+onMounted(async () => {
+  try {
+    const { data } = await client.get('/tutors')
+    tutors.value = data.data
+  } catch {
+    // 取得失敗時は空のまま
+  }
+})
+
+async function addTutor() {
+  if (!tutorForm.name.trim() || !tutorForm.email.trim() || tutorForm.password.length < 8) {
+    ui.notify('氏名・メールアドレス・パスワード（8文字以上）を入力してください')
+    return
+  }
+  tutorForm.saving = true
+  try {
+    const { data } = await client.post('/tutors', {
+      name: tutorForm.name.trim(),
+      email: tutorForm.email.trim(),
+      password: tutorForm.password,
+    })
+    tutors.value.push(data.data)
+    tutorForm.open = false
+    tutorForm.name = ''
+    tutorForm.email = ''
+    tutorForm.password = ''
+    ui.notify('家庭教師アカウントを追加しました')
+  } catch {
+    ui.notify('追加に失敗しました（メールアドレスの重複など）')
+  } finally {
+    tutorForm.saving = false
+  }
+}
+
+async function saveTutorPassword() {
+  if (pwEdit.id === null || pwEdit.password.length < 8) {
+    ui.notify('新しいパスワードは8文字以上で入力してください')
+    return
+  }
+  pwEdit.saving = true
+  try {
+    await client.put(`/tutors/${pwEdit.id}`, { password: pwEdit.password })
+    pwEdit.id = null
+    pwEdit.password = ''
+    ui.notify('パスワードを再設定しました')
+  } catch {
+    ui.notify('再設定に失敗しました')
+  } finally {
+    pwEdit.saving = false
+  }
+}
+
+async function removeTutor(t: TutorAccount) {
+  if (!confirm(`家庭教師アカウント「${t.name}」を削除しますか？`)) return
+  try {
+    await client.delete(`/tutors/${t.id}`)
+    tutors.value = tutors.value.filter((x) => x.id !== t.id)
+    ui.notify('削除しました')
+  } catch {
+    ui.notify('削除に失敗しました')
+  }
+}
 </script>
 
 <template>
@@ -102,6 +171,49 @@ const examDateModel = computed({
           <div><div class="opt-t">進捗インジケータ</div><div class="opt-s">科目カードの見せ方</div></div>
           <select v-model="ui.progressStyle"><option v-for="p in progressStyles" :key="p" :value="p">{{ p }}</option></select>
         </div>
+      </div>
+    </div>
+
+    <!-- tutors -->
+    <div class="card sec">
+      <div class="sec-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.8"><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5" /><path d="M16 4a3.5 3.5 0 0 1 0 7" /><path d="M17.5 14.7c2.4.6 4 2.3 4 5.3" /></svg>
+        家庭教師アカウント
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div v-for="t in tutors" :key="t.id" class="tutor-row">
+          <div style="flex: 1; min-width: 0">
+            <div style="font-size: 13px; font-weight: 600">{{ t.name }}</div>
+            <div style="font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ t.email }}</div>
+          </div>
+          <button class="mini-btn" @click="pwEdit.id = pwEdit.id === t.id ? null : t.id; pwEdit.password = ''">PW再設定</button>
+          <button class="mini-btn danger" @click="removeTutor(t)">削除</button>
+        </div>
+        <div v-if="pwEdit.id !== null" class="tutor-form">
+          <label class="fld"><span>新しいパスワード（8文字以上）</span>
+            <input v-model="pwEdit.password" type="password" autocomplete="new-password" />
+          </label>
+          <div style="display: flex; gap: 8px; justify-content: flex-end">
+            <button class="mini-btn" @click="pwEdit.id = null">キャンセル</button>
+            <button class="mini-btn primary" :disabled="pwEdit.saving" @click="saveTutorPassword">再設定する</button>
+          </div>
+        </div>
+        <div v-if="!tutors.length" style="font-size: 12px; color: var(--faint)">
+          家庭教師アカウントはまだありません。追加すると、家庭教師用のページ（学習記録の閲覧・課題設定・学習計画）にログインできます。
+        </div>
+
+        <div v-if="tutorForm.open" class="tutor-form">
+          <label class="fld"><span>氏名</span><input v-model="tutorForm.name" /></label>
+          <label class="fld"><span>メールアドレス（ログインID）</span><input v-model="tutorForm.email" type="email" autocomplete="off" /></label>
+          <label class="fld"><span>パスワード（8文字以上）</span><input v-model="tutorForm.password" type="password" autocomplete="new-password" /></label>
+          <div style="display: flex; gap: 8px; justify-content: flex-end">
+            <button class="mini-btn" @click="tutorForm.open = false">キャンセル</button>
+            <button class="mini-btn primary" :disabled="tutorForm.saving" @click="addTutor">追加する</button>
+          </div>
+        </div>
+        <button v-else class="data-btn" @click="tutorForm.open = true">
+          <span>＋ 家庭教師アカウントを追加</span>
+        </button>
       </div>
     </div>
 
@@ -226,5 +338,45 @@ const examDateModel = computed({
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
+}
+.tutor-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid #eceef0;
+  border-radius: 10px;
+}
+.tutor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px dashed #d8dce1;
+  border-radius: 10px;
+  background: #fafbfc;
+}
+.mini-btn {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--mut);
+  cursor: pointer;
+}
+.mini-btn.primary {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
+}
+.mini-btn.primary:disabled {
+  opacity: 0.5;
+}
+.mini-btn.danger {
+  color: #c0444f;
+  border-color: #f0b8be;
 }
 </style>

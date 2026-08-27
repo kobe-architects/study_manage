@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Goal extends Model
 {
     protected $fillable = [
-        'user_id', 'parent_id', 'subject_id', 'title', 'scope', 'range_label', 'deadline', 'target', 'achieved',
+        'user_id', 'created_by', 'parent_id', 'subject_id', 'title', 'scope', 'range_label', 'deadline', 'target', 'achieved',
     ];
 
     protected $casts = ['deadline' => 'date', 'target' => 'integer', 'achieved' => 'boolean'];
@@ -18,6 +18,12 @@ class Goal extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** 作成者。家庭教師が設定した目標では user_id と異なる */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function subject(): BelongsTo

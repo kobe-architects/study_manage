@@ -17,7 +17,7 @@ class GoalController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $userId = $this->targetUserId($request);
         // 親目標のみ取得し、中間目標(children)は入れ子で返す
         $goals = Goal::with('subject')
             ->where('user_id', $userId)
@@ -32,7 +32,7 @@ class GoalController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $userId = $this->targetUserId($request);
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'subjectId' => ['nullable', 'integer'],
@@ -44,6 +44,7 @@ class GoalController extends Controller
 
         $goal = Goal::create([
             'user_id' => $userId,
+            'created_by' => $request->user()->id,
             'subject_id' => $data['subjectId'] ?? null,
             'title' => $data['title'],
             'scope' => $data['scope'] ?? 'all',
@@ -58,7 +59,7 @@ class GoalController extends Controller
     /** 中間目標の作成。期限は親以前、対象は親の紐づけ項目のサブセットに限定する。 */
     public function storeSubGoal(Request $request, Goal $goal): JsonResponse
     {
-        abort_unless($goal->user_id === $request->user()->id, 403);
+        abort_unless($goal->user_id === $this->targetUserId($request), 403);
         abort_if($goal->parent_id !== null, 422, '中間目標に対して中間目標は作成できません。');
 
         $data = $request->validate([
@@ -74,6 +75,7 @@ class GoalController extends Controller
 
         $sub = Goal::create([
             'user_id' => $goal->user_id,
+            'created_by' => $request->user()->id,
             'parent_id' => $goal->id,
             'subject_id' => $goal->subject_id,
             'title' => $data['title'],
@@ -85,7 +87,7 @@ class GoalController extends Controller
         $sub->items()->sync($ids);
 
         // 親で既に学習済みの項目は中間目標でも学習済みで初期化（使いやすさ）
-        $parentStudied = $this->studiedItemIds($goal, $request->user()->id);
+        $parentStudied = $this->studiedItemIds($goal, $this->targetUserId($request));
         foreach (array_intersect($ids, $parentStudied) as $iid) {
             $sub->items()->updateExistingPivot($iid, ['studied' => true]);
         }
@@ -97,7 +99,7 @@ class GoalController extends Controller
     /** 目標の更新（達成/未達成の記録など） */
     public function update(Request $request, Goal $goal): JsonResponse
     {
-        abort_unless($goal->user_id === $request->user()->id, 403);
+        abort_unless($goal->user_id === $this->targetUserId($request), 403);
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
             'deadline' => ['sometimes', 'date'],
@@ -132,14 +134,14 @@ class GoalController extends Controller
     /** 紐づける個別学習データ（教材の行）の一括設定（sync）。自ユーザーの行のみ受け付ける */
     public function updateItems(Request $request, Goal $goal): JsonResponse
     {
-        abort_unless($goal->user_id === $request->user()->id, 403);
+        abort_unless($goal->user_id === $this->targetUserId($request), 403);
         $data = $request->validate([
             'ids' => ['present', 'array'],
             'ids.*' => ['integer'],
         ]);
 
         $ownIds = ResourceBookItem::whereIn('resource_book_items.id', $data['ids'])
-            ->whereHas('book', fn ($q) => $q->where('user_id', $request->user()->id))
+            ->whereHas('book', fn ($q) => $q->where('user_id', $this->targetUserId($request)))
             ->pluck('id')
             ->all();
 
@@ -158,7 +160,7 @@ class GoalController extends Controller
     /** 紐づけ項目の「学習済み」を手動で設定（トップ/目標画面からの直接設定）。中間目標→親へ波及。 */
     public function setItemStudied(Request $request, Goal $goal): JsonResponse
     {
-        abort_unless($goal->user_id === $request->user()->id, 403);
+        abort_unless($goal->user_id === $this->targetUserId($request), 403);
         $data = $request->validate([
             'itemId' => ['required', 'integer'],
             'studied' => ['required', 'boolean'],
@@ -187,7 +189,7 @@ class GoalController extends Controller
     public function linkOptions(Request $request): JsonResponse
     {
         $books = ResourceBook::with(['subject', 'items'])
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $this->targetUserId($request))
             ->orderBy('type')->orderBy('sort_order')->orderBy('id')
             ->get();
 
@@ -197,11 +199,11 @@ class GoalController extends Controller
     /** 中間目標の紐づけ用ツリー: 親目標の紐づけ項目のみに限定 */
     public function subLinkOptions(Request $request, Goal $goal): JsonResponse
     {
-        abort_unless($goal->user_id === $request->user()->id, 403);
+        abort_unless($goal->user_id === $this->targetUserId($request), 403);
         $itemIds = $goal->items()->pluck('resource_book_items.id')->all();
 
         $books = ResourceBook::with(['subject', 'items' => fn ($q) => $q->whereIn('resource_book_items.id', $itemIds)])
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $this->targetUserId($request))
             ->whereHas('items', fn ($q) => $q->whereIn('resource_book_items.id', $itemIds))
             ->orderBy('type')->orderBy('sort_order')->orderBy('id')
             ->get();
@@ -212,8 +214,8 @@ class GoalController extends Controller
     /** 目標に紐づく個別学習データの明細（学習済み/未学習付き） */
     public function linkedItems(Request $request, Goal $goal): JsonResponse
     {
-        abort_unless($goal->user_id === $request->user()->id, 403);
-        $userId = $request->user()->id;
+        abort_unless($goal->user_id === $this->targetUserId($request), 403);
+        $userId = $this->targetUserId($request);
 
         $rows = $goal->items()->with(['book:id,title,type', 'studyItem.mid.major.subject'])->get();
         $studiedSet = array_flip($this->studiedItemIds($goal, $userId, $rows));
@@ -251,7 +253,7 @@ class GoalController extends Controller
 
     public function destroy(Request $request, Goal $goal): JsonResponse
     {
-        abort_unless($goal->user_id === $request->user()->id, 403);
+        abort_unless($goal->user_id === $this->targetUserId($request), 403);
         $goal->delete(); // 子（中間目標）は FK cascade で削除
 
         return response()->json(['message' => 'deleted']);
@@ -284,6 +286,7 @@ class GoalController extends Controller
             'itemIds' => $linkedIds->values(),
             'linkedCount' => $linkedIds->count(),
             'achieved' => $g->achieved,
+            'createdByTutor' => $g->created_by !== null && $g->created_by !== $g->user_id,
             'subGoals' => [],
         ];
 

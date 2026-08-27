@@ -7,13 +7,14 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'role', 'student_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -26,6 +27,32 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function isTutor(): bool
+    {
+        return $this->role === 'tutor';
+    }
+
+    /** 家庭教師の担当生徒（owner） */
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'student_id');
+    }
+
+    /** 生徒(owner)が管理する家庭教師アカウント */
+    public function tutors(): HasMany
+    {
+        return $this->hasMany(User::class, 'student_id');
+    }
+
+    /**
+     * データ操作の対象ユーザー。owner は自分自身、tutor は担当生徒。
+     * 学習データはすべて生徒に属するため、家庭教師のリクエストは生徒スコープで処理する。
+     */
+    public function targetStudent(): User
+    {
+        return $this->isTutor() ? $this->student : $this;
     }
 
     public function subjects(): HasMany

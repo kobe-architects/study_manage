@@ -173,6 +173,7 @@ export interface Goal {
   itemIds: number[] // 紐づけた個別学習データ（教材の行）ID
   linkedCount: number
   achieved: boolean | null // true=達成 / false=未達成 / null=未記録
+  createdByTutor: boolean // 家庭教師が設定した目標
   parentId: number | null
   subGoals: Goal[] // 中間目標（親目標のときのみ）
 }
@@ -231,11 +232,47 @@ export interface UserSettings {
   startScreen: 'home' | 'record' | 'goal'
 }
 
+export type UserRole = 'owner' | 'tutor'
+
+/** 家庭教師ログイン時の担当生徒情報 */
+export interface StudentInfo {
+  name: string
+  school: string
+  examDate: string | null
+}
+
 export interface AuthUser {
   id: number
   name: string
   email: string
-  settings: UserSettings
+  role: UserRole
+  settings: UserSettings | null // tutor は null
+  student: StudentInfo | null // owner は null
+}
+
+// ===== 家庭教師（tutor） =====
+
+/** 家庭教師アカウント（owner の管理画面用） */
+export interface TutorAccount {
+  id: number
+  name: string
+  email: string
+  createdOn: string
+}
+
+/** 課題（家庭教師が個別学習データを選択して期限を設定） */
+export interface Assignment {
+  id: number
+  title: string
+  note: string | null
+  createdOn: string
+  dueOn: string
+  target: number
+  done: number
+  itemIds: number[]
+  achieved: boolean | null // true=達成 / false=未達成 / null=未記録
+  overdue: boolean
+  createdByName: string | null
 }
 
 // ===== 英単語クイズ =====

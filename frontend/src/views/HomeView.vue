@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref, watch } from 'vue'
+import AssignmentCard from '@/components/AssignmentCard.vue'
 import Heatmap from '@/components/Heatmap.vue'
 import MonthCalendar from '@/components/MonthCalendar.vue'
 import EventModal from '@/components/EventModal.vue'
@@ -22,6 +23,10 @@ const today = new Date()
 today.setHours(0, 0, 0, 0)
 
 const tab = ref<'progress' | 'goals' | 'review'>('progress')
+
+// 先生からの課題（未記録のみカード表示）
+study.fetchAssignments().catch(() => {})
+const pendingAssignments = computed(() => study.assignments.filter((a) => a.achieved === null))
 const expanded = reactive<Record<number, boolean>>({})
 const vw = ref(window.innerWidth)
 window.addEventListener('resize', () => (vw.value = window.innerWidth))
@@ -631,6 +636,12 @@ function toggle(id: number) {
           </div>
           <Heatmap :counts="study.recordStats?.heatmap ?? {}" :cell="11" />
         </div>
+
+        <!-- 先生からの課題 -->
+        <template v-if="pendingAssignments.length">
+          <div style="font-size: 13px; font-weight: 700; margin: 2px 2px -6px">先生からの課題</div>
+          <AssignmentCard v-for="a in pendingAssignments" :key="a.id" :assignment="a" readonly />
+        </template>
 
         <MonthCalendar :events="study.events" :exam-date="examDate" @day-click="openEvent" />
 

@@ -24,7 +24,7 @@ class RecordController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $userId = $this->targetUserId($request);
 
         if ($request->filled('resourceBookItemId')) {
             $data = $request->validate([
@@ -72,7 +72,7 @@ class RecordController extends Controller
      */
     public function stats(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $userId = $this->targetUserId($request);
         $today = Carbon::today();
 
         $records = StudyRecord::query()
@@ -141,7 +141,7 @@ class RecordController extends Controller
     public function index(Request $request): JsonResponse
     {
         [$from, $to] = $this->validatePeriod($request);
-        $records = $this->recordsBetween($request->user()->id, $from, $to);
+        $records = $this->recordsBetween($this->targetUserId($request), $from, $to);
 
         $data = $records->map(function (StudyRecord $r) {
             $item = $r->item;
@@ -176,7 +176,7 @@ class RecordController extends Controller
     public function export(Request $request): StreamedResponse
     {
         [$from, $to] = $this->validatePeriod($request);
-        $records = $this->recordsBetween($request->user()->id, $from, $to);
+        $records = $this->recordsBetween($this->targetUserId($request), $from, $to);
 
         $rows = $records->map(function (StudyRecord $r) {
             $item = $r->item;
@@ -237,7 +237,7 @@ class RecordController extends Controller
      */
     public function reviews(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $userId = $this->targetUserId($request);
         $today = Carbon::today();
 
         $records = StudyRecord::query()
@@ -287,7 +287,7 @@ class RecordController extends Controller
      */
     public function completeReview(Request $request, StudyRecord $record): JsonResponse
     {
-        abort_unless($record->user_id === $request->user()->id, 403);
+        abort_unless($record->user_id === $this->targetUserId($request), 403);
         $data = $request->validate([
             'studiedOn' => ['required', 'date'],
             'color' => ['nullable', 'in:red,blue,green'],
@@ -302,7 +302,7 @@ class RecordController extends Controller
 
         // 復習セッションを新しい学習記録として登録（次回の復習期限を予約）
         $new = StudyRecord::create([
-            'user_id' => $request->user()->id,
+            'user_id' => $this->targetUserId($request),
             'study_item_id' => $row->study_item_id,
             'resource_book_item_id' => $row->id,
             'type' => $row->book->type,
@@ -316,7 +316,7 @@ class RecordController extends Controller
 
     public function destroy(Request $request, StudyRecord $record): JsonResponse
     {
-        abort_unless($record->user_id === $request->user()->id, 403);
+        abort_unless($record->user_id === $this->targetUserId($request), 403);
         $record->delete();
 
         return response()->json(['message' => 'deleted']);

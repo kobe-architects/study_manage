@@ -48,13 +48,34 @@ class AuthController extends Controller
 
     private function userPayload(User $user): array
     {
+        // 家庭教師: 自分の設定は持たず、担当生徒の情報を返す
+        if ($user->isTutor()) {
+            $student = $user->student;
+            $studentSettings = $student?->settings;
+
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => 'tutor',
+                'settings' => null,
+                'student' => $student === null ? null : [
+                    'name' => $studentSettings?->name ?: $student->name,
+                    'school' => $studentSettings?->school ?? '',
+                    'examDate' => $studentSettings?->exam_date?->toDateString(),
+                ],
+            ];
+        }
+
         $settings = $user->settings ?? UserSetting::create(['user_id' => $user->id, 'name' => $user->name]);
 
         return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'role' => 'owner',
             'settings' => $this->settingsPayload($settings),
+            'student' => null,
         ];
     }
 

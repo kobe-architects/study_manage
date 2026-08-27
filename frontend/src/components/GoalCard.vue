@@ -65,6 +65,7 @@ async function setAchieved(value: boolean) {
     <div class="row-between" style="gap: 10px; flex-wrap: wrap">
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0">
         <span v-if="isSub" class="sub-tag">中間目標</span>
+        <span v-if="goal.createdByTutor" class="tutor-tag">先生</span>
         <span :style="{ fontSize: '11px', fontWeight: 600, color, background: hexA(color, 0.12), padding: '2px 8px', borderRadius: '99px' }">{{ goal.rangeLabel }}</span>
         <span :style="{ fontSize: '11.5px', color: daysLeft <= 7 ? '#e0533d' : '#9aa1ab', fontWeight: 600 }">期限まで{{ daysLeft }}日</span>
         <span v-if="goal.achieved === true" class="ach-badge ok">達成</span>
@@ -183,6 +184,14 @@ async function setAchieved(value: boolean) {
   font-weight: 700;
   color: #5849c0;
   background: #eeecfa;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+.tutor-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #2e4a8f;
+  background: #e8eefb;
   padding: 2px 8px;
   border-radius: 99px;
 }
