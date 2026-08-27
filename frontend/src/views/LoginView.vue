@@ -6,8 +6,8 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const auth = useAuthStore()
 
-const email = ref('user@example.com')
-const password = ref('password')
+const email = ref('')
+const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
@@ -18,7 +18,7 @@ async function submit() {
     await auth.login(email.value, password.value)
     router.push({ name: auth.user?.role === 'tutor' ? 'tutor-home' : 'home' })
   } catch (e: unknown) {
-    error.value = 'メールアドレスまたはパスワードが正しくありません。'
+    error.value = 'IDまたはパスワードが正しくありません。'
   } finally {
     loading.value = false
   }
@@ -38,8 +38,8 @@ async function submit() {
       <div style="font-size: 13px; color: var(--mut); margin: 6px 0 20px">アカウントにログインしてください</div>
       <form @submit.prevent="submit" style="display: flex; flex-direction: column; gap: 14px">
         <label class="fld">
-          <span>メールアドレス</span>
-          <input v-model="email" type="email" autocomplete="username" />
+          <span>ID</span>
+          <input v-model="email" type="text" autocomplete="username" />
         </label>
         <label class="fld">
           <span>パスワード</span>
@@ -50,9 +50,6 @@ async function submit() {
           {{ loading ? 'ログイン中…' : 'ログイン' }}
         </button>
       </form>
-      <div style="font-size: 11.5px; color: var(--faint); margin-top: 16px; line-height: 1.6">
-        デモ: user@example.com / password
-      </div>
     </div>
   </div>
 </template>

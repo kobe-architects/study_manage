@@ -89,6 +89,11 @@ const mobileNavItems = computed(() => navItems.value.filter((n) => n.key !== 'da
 function go(routeName: string) {
   router.push({ name: routeName })
 }
+
+async function logout() {
+  await auth.logout()
+  router.push({ name: 'login' })
+}
 </script>
 
 <template>
@@ -116,6 +121,9 @@ function go(routeName: string) {
           <div style="font-size: 11px; color: var(--faint)">受験まで {{ daysToExam }}日</div>
         </div>
         <div class="avatar">{{ userInitial }}</div>
+        <button class="logout-btn" title="ログアウト" @click="logout">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
+        </button>
       </div>
     </header>
 
@@ -149,6 +157,10 @@ function go(routeName: string) {
           </div>
           <div style="font-size: 11px; color: var(--faint); margin-top: 2px">{{ examDateLabel }}</div>
         </div>
+        <button class="side-btn" title="ログアウト" @click="logout">
+          <NavIcon :paths="['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'M16 17l5-5-5-5', 'M21 12H9']" :size="19" />
+          <span v-if="showLabels">ログアウト</span>
+        </button>
       </aside>
 
       <main class="main">
@@ -158,7 +170,12 @@ function go(routeName: string) {
             <div class="logo-sm dm" style="width: 28px; height: 28px; font-size: 14px">学</div>
             <div style="font-weight: 700; font-size: 16px">受験ナビ</div>
           </div>
-          <div class="avatar" style="width: 32px; height: 32px">{{ userInitial }}</div>
+          <div style="display: flex; align-items: center; gap: 6px">
+            <div class="avatar" style="width: 32px; height: 32px">{{ userInitial }}</div>
+            <button class="logout-btn" title="ログアウト" @click="logout">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
+            </button>
+          </div>
         </header>
 
         <div class="scroll">
@@ -288,6 +305,18 @@ function go(routeName: string) {
   font-weight: 700;
   color: #6b7280;
   font-size: 13px;
+}
+.logout-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px;
+  color: #9aa1ab;
+  display: flex;
+  align-items: center;
+}
+.logout-btn:hover {
+  color: var(--ink);
 }
 .body {
   flex: 1;

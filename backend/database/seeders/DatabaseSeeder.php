@@ -34,9 +34,10 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        // email カラムはログインIDとして使用（メール形式は必須ではない）
         $user = User::firstOrCreate(
-            ['email' => 'user@example.com'],
-            ['name' => '山田 太郎', 'password' => Hash::make('password')]
+            ['email' => 'admin'],
+            ['name' => '山田 太郎', 'password' => Hash::make('375012abc')]
         );
 
         UserSetting::updateOrCreate(
@@ -55,7 +56,7 @@ class DatabaseSeeder extends Seeder
 
         // 家庭教師アカウント（デモ）
         User::firstOrCreate(
-            ['email' => 'tutor@example.com'],
+            ['email' => 'tutor01'],
             ['name' => '佐藤 先生', 'password' => Hash::make('password'), 'role' => 'tutor', 'student_id' => $user->id]
         );
 

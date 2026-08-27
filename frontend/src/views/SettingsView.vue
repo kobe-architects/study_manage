@@ -62,7 +62,7 @@ onMounted(async () => {
 
 async function addTutor() {
   if (!tutorForm.name.trim() || !tutorForm.email.trim() || tutorForm.password.length < 8) {
-    ui.notify('氏名・メールアドレス・パスワード（8文字以上）を入力してください')
+    ui.notify('氏名・ログインID・パスワード（8文字以上）を入力してください')
     return
   }
   tutorForm.saving = true
@@ -79,7 +79,7 @@ async function addTutor() {
     tutorForm.password = ''
     ui.notify('家庭教師アカウントを追加しました')
   } catch {
-    ui.notify('追加に失敗しました（メールアドレスの重複など）')
+    ui.notify('追加に失敗しました（ログインIDの重複など）')
   } finally {
     tutorForm.saving = false
   }
@@ -204,7 +204,7 @@ async function removeTutor(t: TutorAccount) {
 
         <div v-if="tutorForm.open" class="tutor-form">
           <label class="fld"><span>氏名</span><input v-model="tutorForm.name" /></label>
-          <label class="fld"><span>メールアドレス（ログインID）</span><input v-model="tutorForm.email" type="email" autocomplete="off" /></label>
+          <label class="fld"><span>ログインID（メールアドレス形式でなくても可）</span><input v-model="tutorForm.email" type="text" autocomplete="off" /></label>
           <label class="fld"><span>パスワード（8文字以上）</span><input v-model="tutorForm.password" type="password" autocomplete="new-password" /></label>
           <div style="display: flex; gap: 8px; justify-content: flex-end">
             <button class="mini-btn" @click="tutorForm.open = false">キャンセル</button>

@@ -24,9 +24,10 @@ class TutorAccountController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        // email カラムをログインIDとして使用（メール形式は必須ではない）
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'email' => ['required', 'string', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:8'],
         ]);
 

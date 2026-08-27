@@ -13,8 +13,9 @@ class AuthController extends Controller
 {
     public function login(Request $request): JsonResponse
     {
+        // ログインは ID 方式（email カラムをログインIDとして使用。メール形式は必須ではない）
         $data = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
@@ -22,7 +23,7 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['メールアドレスまたはパスワードが正しくありません。'],
+                'email' => ['IDまたはパスワードが正しくありません。'],
             ]);
         }
 
