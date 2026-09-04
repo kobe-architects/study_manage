@@ -131,6 +131,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // 科目別学習状況（読み取りのみ）
         Route::get('/study-items', [StudyItemController::class, 'index']);
 
+        // カレンダー予定（生徒と共有・模試予定など）
+        Route::get('/events', [CalendarEventController::class, 'index']);
+        Route::post('/events', [CalendarEventController::class, 'store']);
+        Route::delete('/events/{calendarEvent}', [CalendarEventController::class, 'destroy']);
+
         // 課題の対象選択用ツリー（教材→章→行）
         Route::get('/goals/link-options', [GoalController::class, 'linkOptions']);
 

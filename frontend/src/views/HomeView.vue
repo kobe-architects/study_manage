@@ -2,6 +2,7 @@
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import AssignmentCard from '@/components/AssignmentCard.vue'
 import Heatmap from '@/components/Heatmap.vue'
+import SubjectProgressPanels from '@/components/SubjectProgressPanels.vue'
 import MonthCalendar from '@/components/MonthCalendar.vue'
 import EventModal from '@/components/EventModal.vue'
 import { computeReviewOn, daysBetween, hexA, iso, parseDate, pct, REVIEW_OPTIONS, TYPE_BADGE } from '@/lib/design'
@@ -11,7 +12,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import { useVocabularyStore } from '@/stores/vocabulary'
 import { useRouter } from 'vue-router'
-import { STUDY_TYPES, type Goal, type GoalItemDetail, type RecordColor, type ReviewItem, type StudyItemRow, type StudyType } from '@/types'
+import { type Goal, type GoalItemDetail, type RecordColor, type ReviewItem, type StudyType } from '@/types'
 
 const study = useStudyStore()
 const auth = useAuthStore()
@@ -27,137 +28,11 @@ const tab = ref<'progress' | 'goals' | 'review'>('progress')
 // 先生からの課題（未記録のみカード表示）
 study.fetchAssignments().catch(() => {})
 const pendingAssignments = computed(() => study.assignments.filter((a) => a.achieved === null))
-const expanded = reactive<Record<number, boolean>>({})
 const vw = ref(window.innerWidth)
 window.addEventListener('resize', () => (vw.value = window.innerWidth))
 const isMobile = computed(() => vw.value < 860)
 
 const hideEmpty = computed(() => auth.settings?.hideEmpty ?? false)
-
-// ---- 進捗集計（included のみ・教材の行ベース達成率） ----
-const incItems = computed(() => study.items.filter((i) => i.included))
-
-interface TypeAgg {
-  done: number // 1件以上記録のある行数
-  total: number // 紐づく教材行の総数
-}
-function emptyTypes(): Record<StudyType, TypeAgg> {
-  return { 講義: { done: 0, total: 0 }, 問題集: { done: 0, total: 0 }, 教科書: { done: 0, total: 0 } }
-}
-function addTypes(into: Record<StudyType, TypeAgg>, row: StudyItemRow) {
-  for (const t of STUDY_TYPES) {
-    into[t].done += row.byType[t]?.done ?? 0
-    into[t].total += row.byType[t]?.total ?? 0
-  }
-}
-function sumDone(t: Record<StudyType, TypeAgg>) {
-  return STUDY_TYPES.reduce((a, k) => a + t[k].done, 0)
-}
-function sumTotal(t: Record<StudyType, TypeAgg>) {
-  return STUDY_TYPES.reduce((a, k) => a + t[k].total, 0)
-}
-
-interface SubjAgg {
-  id: number
-  name: string
-  group: string
-  colorSoft: string
-  colorVivid: string
-  itemCount: number
-  types: Record<StudyType, TypeAgg>
-  majors: { name: string; types: Record<StudyType, TypeAgg> }[]
-}
-
-const subjAgg = computed<SubjAgg[]>(() => {
-  const map = new Map<number, SubjAgg>()
-  for (const it of incItems.value) {
-    if (!map.has(it.subjectId)) {
-      map.set(it.subjectId, {
-        id: it.subjectId,
-        name: it.subjectName,
-        group: it.group,
-        colorSoft: it.colorSoft,
-        colorVivid: it.colorVivid,
-        itemCount: 0,
-        types: emptyTypes(),
-        majors: [],
-      })
-    }
-    const s = map.get(it.subjectId)!
-    s.itemCount++
-    addTypes(s.types, it)
-    let mj = s.majors.find((m) => m.name === it.major)
-    if (!mj) {
-      mj = { name: it.major, types: emptyTypes() }
-      s.majors.push(mj)
-    }
-    addTypes(mj.types, it)
-  }
-  return [...map.values()]
-})
-
-const overall = computed(() => {
-  const t = emptyTypes()
-  for (const s of subjAgg.value) {
-    for (const k of STUDY_TYPES) {
-      t[k].done += s.types[k].done
-      t[k].total += s.types[k].total
-    }
-  }
-  const done = sumDone(t)
-  const total = sumTotal(t)
-  return {
-    lecPct: pct(t['講義'].done, t['講義'].total),
-    lecDone: t['講義'].done,
-    lecTotal: t['講義'].total,
-    quizPct: pct(t['問題集'].done, t['問題集'].total),
-    quizDone: t['問題集'].done,
-    quizTotal: t['問題集'].total,
-    textPct: pct(t['教科書'].done, t['教科書'].total),
-    textDone: t['教科書'].done,
-    textTotal: t['教科書'].total,
-    allPct: pct(done, total),
-    studied: done,
-    totalBoth: total,
-  }
-})
-
-const subjectCards = computed(() =>
-  subjAgg.value
-    .filter((s) => (!hideEmpty.value || sumDone(s.types) > 0) && sumTotal(s.types) > 0)
-    .map((s) => {
-      const color = ui.colorOf(s.colorSoft, s.colorVivid)
-      const overallPct = pct(sumDone(s.types), sumTotal(s.types))
-      const circ = 2 * Math.PI * 30
-      return {
-        id: s.id,
-        name: s.name,
-        group: s.group,
-        itemCount: s.itemCount,
-        color,
-        light: hexA(color, 0.12),
-        overallPct,
-        ringDash: `${((overallPct / 100) * circ).toFixed(1)} ${circ.toFixed(1)}`,
-        lecPct: pct(s.types['講義'].done, s.types['講義'].total),
-        lecDone: s.types['講義'].done,
-        lecTotal: s.types['講義'].total,
-        quizPct: pct(s.types['問題集'].done, s.types['問題集'].total),
-        quizDone: s.types['問題集'].done,
-        quizTotal: s.types['問題集'].total,
-        textPct: pct(s.types['教科書'].done, s.types['教科書'].total),
-        textDone: s.types['教科書'].done,
-        textTotal: s.types['教科書'].total,
-        majors: s.majors
-          .filter((m) => sumTotal(m.types) > 0)
-          .map((m) => ({
-            name: m.name,
-            pct: pct(sumDone(m.types), sumTotal(m.types)),
-            done: sumDone(m.types),
-            totalBoth: sumTotal(m.types),
-          })),
-      }
-    }),
-)
 
 // ---- 英単語カード（習得率 = 習得済み / 総単語数、セクション別に展開可） ----
 const VOCAB_COLOR = { soft: '#c9569b', vivid: '#e0338f' }
@@ -609,9 +484,6 @@ async function deleteEvent() {
 }
 
 const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1fr'))
-function toggle(id: number) {
-  expanded[id] = !expanded[id]
-}
 </script>
 
 <template>
@@ -670,103 +542,10 @@ function toggle(id: number) {
 
       <!-- RIGHT -->
       <div :style="{ minWidth: 0, order: isMobile ? 1 : 0 }">
-        <!-- overall summary -->
-        <div class="card" style="padding: 22px 24px; margin-bottom: 18px; display: flex; gap: 30px; align-items: center; flex-wrap: wrap">
-          <div style="flex: 1; min-width: 200px">
-            <div style="font-size: 12.5px; color: var(--faint); font-weight: 500; margin-bottom: 4px">全体の学習進捗</div>
-            <div style="display: flex; align-items: baseline; gap: 10px">
-              <span class="dm" style="font-size: 40px; font-weight: 700">{{ overall.allPct }}<span style="font-size: 19px">%</span></span>
-              <span style="font-size: 13px; color: var(--mut)">{{ overall.studied }} / {{ overall.totalBoth }} 行</span>
-            </div>
-            <div class="track" style="height: 9px; margin-top: 12px">
-              <div :style="{ height: '100%', width: overall.allPct + '%', background: 'linear-gradient(90deg,#3b50cc,#6678e6)', borderRadius: '99px' }"></div>
-            </div>
-          </div>
-          <div style="display: flex; gap: 20px">
-            <div style="text-align: center; min-width: 80px">
-              <div style="font-size: 11.5px; color: var(--faint); margin-bottom: 3px">講義</div>
-              <div class="dm" style="font-size: 23px; font-weight: 700">{{ overall.lecPct }}<span style="font-size: 13px">%</span></div>
-              <div style="font-size: 11px; color: var(--faint)">{{ overall.lecDone }} / {{ overall.lecTotal }}</div>
-            </div>
-            <div style="width: 1px; background: var(--line)"></div>
-            <div style="text-align: center; min-width: 80px">
-              <div style="font-size: 11.5px; color: var(--faint); margin-bottom: 3px">問題集</div>
-              <div class="dm" style="font-size: 23px; font-weight: 700">{{ overall.quizPct }}<span style="font-size: 13px">%</span></div>
-              <div style="font-size: 11px; color: var(--faint)">{{ overall.quizDone }} / {{ overall.quizTotal }}</div>
-            </div>
-            <div style="width: 1px; background: var(--line)"></div>
-            <div style="text-align: center; min-width: 80px">
-              <div style="font-size: 11.5px; color: var(--faint); margin-bottom: 3px">教科書</div>
-              <div class="dm" style="font-size: 23px; font-weight: 700">{{ overall.textPct }}<span style="font-size: 13px">%</span></div>
-              <div style="font-size: 11px; color: var(--faint)">{{ overall.textDone }} / {{ overall.textTotal }}</div>
-            </div>
-          </div>
-        </div>
+        <!-- 科目別進捗（講師の科目別学習状況と同じペラいち表示） -->
+        <SubjectProgressPanels :hide-empty="hideEmpty" style="margin-bottom: 16px" />
 
-        <!-- subject cards -->
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px">
-          <div v-for="s in subjectCards" :key="s.id" class="card" style="padding: 18px 20px">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px">
-              <div v-if="ui.progressStyle === 'リング'" style="position: relative; width: 56px; height: 56px; flex-shrink: 0">
-                <svg width="56" height="56" viewBox="0 0 70 70">
-                  <circle cx="35" cy="35" r="30" fill="none" stroke="#eef0f3" stroke-width="8" />
-                  <circle cx="35" cy="35" r="30" fill="none" :stroke="s.color" stroke-width="8" stroke-linecap="round" :stroke-dasharray="s.ringDash" transform="rotate(-90 35 35)" />
-                </svg>
-                <div class="dm" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">{{ s.overallPct }}</div>
-              </div>
-              <div v-else :style="{ width: '11px', height: '38px', borderRadius: '6px', background: s.color, flexShrink: 0 }"></div>
-              <div style="flex: 1; min-width: 0">
-                <div class="row-between">
-                  <div style="display: flex; align-items: center; gap: 8px">
-                    <span style="font-size: 16px; font-weight: 700">{{ s.name }}</span>
-                    <span :style="{ fontSize: '10.5px', fontWeight: 600, color: s.color, background: s.light, padding: '2px 7px', borderRadius: '99px' }">{{ s.group }}</span>
-                  </div>
-                  <span style="font-size: 11.5px; color: var(--faint)">{{ s.itemCount }}項目</span>
-                </div>
-                <template v-if="ui.progressStyle !== 'リング'">
-                  <div v-if="ui.progressStyle === 'ドット'" style="display: flex; gap: 3px; margin-top: 9px">
-                    <div v-for="i in 10" :key="i" :style="{ flex: 1, height: '7px', borderRadius: '2px', background: i <= Math.round(s.overallPct / 10) ? s.color : '#eef0f3' }"></div>
-                  </div>
-                  <div v-else class="track" style="height: 7px; margin-top: 9px">
-                    <div :style="{ height: '100%', width: s.overallPct + '%', background: s.color, borderRadius: '99px' }"></div>
-                  </div>
-                </template>
-              </div>
-            </div>
-
-            <div style="display: flex; gap: 8px; margin-bottom: 4px">
-              <div class="stat-box">
-                <div class="row-between"><span style="font-size: 11.5px; color: var(--mut); font-weight: 500">講義</span><span class="dm" style="font-size: 13px; font-weight: 700">{{ s.lecPct }}%</span></div>
-                <div style="font-size: 10.5px; color: var(--faint)">{{ s.lecDone }} / {{ s.lecTotal }}</div>
-              </div>
-              <div class="stat-box">
-                <div class="row-between"><span style="font-size: 11.5px; color: var(--mut); font-weight: 500">問題集</span><span class="dm" style="font-size: 13px; font-weight: 700">{{ s.quizPct }}%</span></div>
-                <div style="font-size: 10.5px; color: var(--faint)">{{ s.quizDone }} / {{ s.quizTotal }}</div>
-              </div>
-              <div class="stat-box">
-                <div class="row-between"><span style="font-size: 11.5px; color: var(--mut); font-weight: 500">教科書</span><span class="dm" style="font-size: 13px; font-weight: 700">{{ s.textPct }}%</span></div>
-                <div style="font-size: 10.5px; color: var(--faint)">{{ s.textDone }} / {{ s.textTotal }}</div>
-              </div>
-            </div>
-
-            <button class="toggle-btn" @click="toggle(s.id)">
-              {{ expanded[s.id] ? '大分類を閉じる' : '大分類別の進捗を見る' }}
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" :style="{ transform: expanded[s.id] ? 'rotate(180deg)' : 'none' }"><path d="M6 9l6 6 6-6" /></svg>
-            </button>
-
-            <div v-if="expanded[s.id]" style="border-top: 1px solid #f0f1f3; margin-top: 4px; padding-top: 12px; display: flex; flex-direction: column; gap: 11px">
-              <div v-for="(m, mi) in s.majors" :key="mi">
-                <div class="row-between" style="align-items: baseline; margin-bottom: 5px">
-                  <span style="font-size: 12.5px; font-weight: 500">{{ m.name }}</span>
-                  <span style="font-size: 11px; color: var(--faint)">{{ m.pct }}% · {{ m.done }}/{{ m.totalBoth }}</span>
-                </div>
-                <div class="track" style="height: 6px">
-                  <div :style="{ height: '100%', width: m.pct + '%', background: s.color, opacity: 0.85, borderRadius: '99px' }"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- 英単語カード（習得率 = 習得済み/総単語数、セクション別に展開可） -->
           <div v-for="v in vocabCards" :key="'vocab-' + v.id" class="card" style="padding: 18px 20px">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px">

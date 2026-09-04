@@ -10,7 +10,7 @@ class CalendarEventController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $events = CalendarEvent::where('user_id', $request->user()->id)
+        $events = CalendarEvent::where('user_id', $this->targetUserId($request))
             ->orderBy('date')
             ->get(['id', 'date', 'title']);
 
@@ -28,7 +28,7 @@ class CalendarEventController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $userId = $this->targetUserId($request);
         $data = $request->validate([
             'date' => ['required', 'date'],
             'title' => ['required', 'string', 'max:255'],
@@ -48,7 +48,7 @@ class CalendarEventController extends Controller
 
     public function destroy(Request $request, CalendarEvent $calendarEvent): JsonResponse
     {
-        abort_unless($calendarEvent->user_id === $request->user()->id, 403);
+        abort_unless($calendarEvent->user_id === $this->targetUserId($request), 403);
         $calendarEvent->delete();
 
         return response()->json(['message' => 'deleted']);

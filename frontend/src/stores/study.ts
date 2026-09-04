@@ -75,7 +75,7 @@ export const useStudyStore = defineStore('study', {
     },
 
     async fetchEvents() {
-      const { data } = await client.get('/events')
+      const { data } = await client.get(`${p()}/events`)
       this.events = data.data
     },
 
@@ -84,9 +84,12 @@ export const useStudyStore = defineStore('study', {
       await Promise.all([this.fetchItems(), this.fetchRecordStats(), this.fetchGoals()])
     },
 
-    /** 学習記録一覧（期間指定）を取得（学習記録の出力機能・画面表示用） */
-    async fetchRecordList(from: string, to: string) {
-      const { data } = await client.get(`${p()}/records`, { params: { from, to } })
+    /** 学習記録一覧（期間指定）を取得（学習記録の出力機能・画面表示用）。期間省略時は全期間 */
+    async fetchRecordList(from?: string, to?: string) {
+      const params: Record<string, string> = {}
+      if (from) params.from = from
+      if (to) params.to = to
+      const { data } = await client.get(`${p()}/records`, { params })
       return data.data as RecordListItem[]
     },
 
@@ -234,15 +237,21 @@ export const useStudyStore = defineStore('study', {
     },
 
     async saveEvent(date: string, title: string) {
-      const { data } = await client.post('/events', { date, title })
+      const { data } = await client.post(`${p()}/events`, { date, title })
       const idx = this.events.findIndex((e) => e.date === date)
       if (idx >= 0) this.events[idx] = data.data
       else this.events.push(data.data)
     },
 
     async deleteEvent(id: number) {
-      await client.delete(`/events/${id}`)
+      await client.delete(`${p()}/events/${id}`)
       this.events = this.events.filter((e) => e.id !== id)
+    },
+
+    /** 課題の対象行に学習記録を付ける（生徒のみ）。色・復習期限も設定できる */
+    async recordAssignmentItem(rowId: number, studiedOn: string, color: string | null, reviewOn: string | null) {
+      await client.post(`/resource-book-rows/${rowId}/record`, { studiedOn, color, reviewOn })
+      await Promise.all([this.fetchAssignments(), this.fetchItems(), this.fetchRecordStats(), this.fetchGoals()])
     },
   },
 })

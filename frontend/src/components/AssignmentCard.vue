@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { assignmentTitle, daysBetween, parseDate, pct, TYPE_BADGE } from '@/lib/design'
+import { computed, reactive, ref } from 'vue'
+import { assignmentTitle, computeReviewOn, daysBetween, iso, parseDate, pct, REVIEW_OPTIONS, TYPE_BADGE } from '@/lib/design'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
-import type { Assignment, GoalItemDetail } from '@/types'
+import type { Assignment, GoalItemDetail, RecordColor } from '@/types'
 
 const props = defineProps<{
   assignment: Assignment
-  readonly?: boolean // 生徒側は閲覧のみ
+  readonly?: boolean // 生徒側（課題の編集不可・行クリックで学習記録が可能）
 }>()
 const emit = defineEmits<{ edit: [Assignment]; remove: [Assignment] }>()
 
@@ -42,6 +42,62 @@ async function toggleExpand() {
     }
   }
 }
+
+// ---- 課題からの学習記録（生徒のみ）。行をクリック → 学習日・色・復習期限を指定して記録 ----
+const recModal = reactive<{
+  open: boolean
+  item: GoalItemDetail | null
+  date: string
+  color: RecordColor | null
+  reviewIdx: number
+  customDays: number | null
+  saving: boolean
+}>({ open: false, item: null, date: iso(new Date()), color: null, reviewIdx: 0, customDays: 7, saving: false })
+
+function openRecord(it: GoalItemDetail) {
+  if (!props.readonly) return
+  recModal.open = true
+  recModal.item = it
+  recModal.date = iso(new Date())
+  recModal.color = null
+  recModal.reviewIdx = 0
+  recModal.customDays = 7
+  recModal.saving = false
+}
+const recPreview = computed(() => {
+  const opt = REVIEW_OPTIONS[recModal.reviewIdx]
+  const on = computeReviewOn(recModal.date, opt, recModal.customDays)
+  if (!on) return '復習は予約されません'
+  const d = parseDate(on)
+  return `→ 復習期限: ${d.getMonth() + 1}/${d.getDate()}`
+})
+async function submitRecord() {
+  if (!recModal.item || recModal.saving) return
+  recModal.saving = true
+  const opt = REVIEW_OPTIONS[recModal.reviewIdx]
+  const reviewOn = computeReviewOn(recModal.date, opt, recModal.customDays)
+  try {
+    await study.recordAssignmentItem(recModal.item.id, recModal.date, recModal.color, reviewOn)
+    ui.notify('学習を記録しました')
+    recModal.open = false
+    // 明細を取り直して達成状態を反映
+    loading.value = true
+    try {
+      items.value = await study.fetchAssignmentItems(props.assignment.id)
+    } finally {
+      loading.value = false
+    }
+  } catch {
+    ui.notify('記録に失敗しました')
+    recModal.saving = false
+  }
+}
+const RECORD_COLORS: { value: RecordColor | null; label: string; hex: string }[] = [
+  { value: null, label: 'なし', hex: '#9aa1ab' },
+  { value: 'red', label: '赤', hex: '#d92d20' },
+  { value: 'blue', label: '青', hex: '#2563eb' },
+  { value: 'green', label: '緑', hex: '#2e9d62' },
+]
 
 // 達成/未達成の記録（tutor のみ）
 async function setAchieved(value: boolean) {
@@ -91,19 +147,74 @@ async function setAchieved(value: boolean) {
     <div style="margin-top: 9px; border-top: 1px solid #f0f1f3; padding-top: 8px">
       <button class="expand-btn" @click="toggleExpand">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" :style="{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform .12s' }"><path d="M9 6l6 6-6 6" /></svg>
-        対象データ {{ assignment.target }}件（未学習 {{ remaining }}）
+        対象データ {{ assignment.target }}件（未学習 {{ remaining }}）<span v-if="readonly" style="color: var(--faint); font-weight: 500">・クリックで学習記録</span>
       </button>
       <div v-if="expanded" style="margin-top: 6px">
         <div v-if="loading" style="font-size: 12px; color: var(--faint); padding: 6px 2px">読み込み中…</div>
         <div v-else style="max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px">
-          <div v-for="it in items" :key="it.id" class="gi-row">
+          <component
+            :is="readonly ? 'button' : 'div'"
+            v-for="it in items"
+            :key="it.id"
+            class="gi-row"
+            :class="{ clickable: readonly }"
+            @click="openRecord(it)"
+          >
             <span v-if="it.type" class="gi-badge" :style="{ background: TYPE_BADGE[it.type].bg, color: TYPE_BADGE[it.type].fg }">{{ it.type }}</span>
             <span v-else class="gi-badge" style="background: #f1f2f4; color: #aeb4bd">—</span>
             <span class="gi-mark" :style="{ color: it.studied ? '#2e9d62' : '#cbd1d8' }">{{ it.studied ? '✓' : '○' }}</span>
             <span class="gi-title" :style="{ color: it.studied ? '#9aa1ab' : '#1c2024', textDecoration: it.studied ? 'line-through' : 'none' }"><span v-if="it.seqNo" style="color: #aeb4bd">{{ it.seqNo }}.</span> {{ it.title ?? it.sub ?? '（無題）' }}</span>
             <span class="gi-src">{{ it.bookTitle }}</span>
-          </div>
+          </component>
           <div v-if="!items.length" style="font-size: 12px; color: var(--faint); padding: 6px 2px">対象データがありません</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 学習記録モーダル（生徒のみ） -->
+    <div v-if="recModal.open" class="overlay" @click="recModal.open = false">
+      <div class="modal" @click.stop>
+        <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px">学習を記録</div>
+        <div style="font-size: 12px; color: var(--faint); margin-bottom: 14px">
+          <span v-if="recModal.item?.seqNo">{{ recModal.item.seqNo }}. </span>{{ recModal.item?.title ?? recModal.item?.sub ?? '' }}
+          <span v-if="recModal.item?.bookTitle">（{{ recModal.item.bookTitle }}）</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 13px">
+          <label class="fld"><span>学習日</span><input v-model="recModal.date" type="date" /></label>
+          <div>
+            <span class="fld-label">色分け</span>
+            <div style="display: flex; gap: 7px">
+              <button
+                v-for="c in RECORD_COLORS"
+                :key="c.label"
+                class="color-chip"
+                :class="{ on: recModal.color === c.value }"
+                :style="recModal.color === c.value ? { borderColor: c.hex, color: c.hex } : {}"
+                @click="recModal.color = c.value"
+              >{{ c.label }}</button>
+            </div>
+          </div>
+          <div>
+            <span class="fld-label">復習期限</span>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+              <select v-model.number="recModal.reviewIdx" class="sel">
+                <option v-for="(o, i) in REVIEW_OPTIONS" :key="o.label" :value="i">{{ o.label }}</option>
+              </select>
+              <input
+                v-if="REVIEW_OPTIONS[recModal.reviewIdx].kind === 'custom'"
+                v-model.number="recModal.customDays"
+                type="number"
+                min="1"
+                class="sel"
+                style="width: 76px"
+              />
+              <span style="font-size: 11.5px; color: var(--faint)">{{ recPreview }}</span>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px">
+          <button class="btn-ghost" @click="recModal.open = false">キャンセル</button>
+          <button class="btn-dark" :disabled="recModal.saving" @click="submitRecord">記録する</button>
         </div>
       </div>
     </div>
@@ -186,6 +297,96 @@ async function setAchieved(value: boolean) {
   font-size: 12px;
   min-width: 0;
   border-radius: 6px;
+  border: none;
+  background: none;
+  text-align: left;
+  width: 100%;
+}
+.gi-row.clickable {
+  cursor: pointer;
+}
+.gi-row.clickable:hover {
+  background: #f6f8fb;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 24, 32, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 70;
+  padding: 20px;
+}
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+.fld span,
+.fld-label {
+  font-size: 12px;
+  color: var(--mut);
+  font-weight: 500;
+  display: block;
+  margin-bottom: 5px;
+}
+.fld input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+}
+.color-chip {
+  padding: 6px 14px;
+  border: 1.5px solid #e3e6ea;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9aa1ab;
+  cursor: pointer;
+}
+.color-chip.on {
+  font-weight: 700;
+  background: #fafbff;
+}
+.sel {
+  padding: 8px 10px;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+  font-size: 12.5px;
+  outline: none;
+  background: #fff;
+}
+.btn-ghost {
+  padding: 9px 18px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mut);
+}
+.btn-dark {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 9px;
+  background: #1c2024;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-dark:disabled {
+  opacity: 0.5;
 }
 .gi-badge {
   flex-shrink: 0;
