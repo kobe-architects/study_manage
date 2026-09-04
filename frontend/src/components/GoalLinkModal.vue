@@ -17,6 +17,21 @@ const expandBook = reactive<Record<number, boolean>>({})
 const expandChap = reactive<Record<string, boolean>>({})
 const q = ref('')
 
+// 科目別の絞り込み（null = 全科目）
+const subjFilter = ref<string | null>(null)
+const subjects = computed<string[]>(() => {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const b of props.books) {
+    const name = b.subjectName ?? '（科目未設定）'
+    if (!seen.has(name)) {
+      seen.add(name)
+      out.push(name)
+    }
+  }
+  return out
+})
+
 const chapKey = (bookId: number, name: string) => `${bookId}::${name}`
 
 // 教材ごとに Check / Think 列を持つか（列がある教材は全行に固定幅のマーク列を確保して先頭を揃える）
@@ -37,12 +52,14 @@ function marksW(bookId: number) {
   return (m.check ? 22 : 0) + (m.think ? 22 : 0)
 }
 
-// Check / Think を持つ問題があるか
-const hasAnyCheck = computed(() => props.books.some((b) => bookMarks.value[b.id]?.check))
-const hasAnyThink = computed(() => props.books.some((b) => bookMarks.value[b.id]?.think))
-// Check付き / Think付きの問題のみを一括選択（既存の選択に追加）
+// Check / Think の一括選択は数学のみ表示（マークは FocusGold 等の数学教材のみ）
+const mathBooks = computed(() => props.books.filter((b) => b.subjectName === '数学'))
+const showMarkChips = computed(() => subjFilter.value === '数学')
+const hasAnyCheck = computed(() => mathBooks.value.some((b) => bookMarks.value[b.id]?.check))
+const hasAnyThink = computed(() => mathBooks.value.some((b) => bookMarks.value[b.id]?.think))
+// Check付き / Think付きの問題のみを一括選択（数学教材のみ・既存の選択に追加）
 function selectByMark(kind: 'check' | 'think') {
-  for (const b of props.books) {
+  for (const b of mathBooks.value) {
     for (const c of b.chapters) {
       for (const r of c.rows) {
         if ((kind === 'check' && r.checkFlag) || (kind === 'think' && r.think)) sel[r.id] = true
@@ -51,11 +68,15 @@ function selectByMark(kind: 'check' | 'think') {
   }
 }
 
-// 検索でフィルタした教材ツリー（行タイトル/章/教材名で絞り込み）
+// 科目・検索でフィルタした教材ツリー（行タイトル/章/教材名で絞り込み）
 const filteredBooks = computed<GoalLinkBook[]>(() => {
+  let books = props.books
+  if (subjFilter.value !== null) {
+    books = books.filter((b) => (b.subjectName ?? '（科目未設定）') === subjFilter.value)
+  }
   const term = q.value.trim()
-  if (!term) return props.books
-  return props.books
+  if (!term) return books
+  return books
     .map((b) => {
       const chapters = b.chapters
         .map((c) => ({
@@ -117,7 +138,8 @@ function save() {
 </script>
 
 <template>
-  <div class="overlay" @click="emit('close')">
+  <!-- キャンセルボタンでのみ閉じる（オーバーレイクリックでは閉じない） -->
+  <div class="overlay">
     <div class="modal" @click.stop>
       <div class="modal-head">
         <div>
@@ -132,7 +154,14 @@ function save() {
         <button v-if="selectedTotal" class="clear-link" @click="clearAll">全解除</button>
       </div>
 
-      <div v-if="hasAnyCheck || hasAnyThink" class="quick-row">
+      <!-- 科目別の絞り込み -->
+      <div v-if="subjects.length > 1" class="quick-row">
+        <span class="quick-label">科目:</span>
+        <button class="subj-chip" :class="{ on: subjFilter === null }" @click="subjFilter = null">全科目</button>
+        <button v-for="s in subjects" :key="s" class="subj-chip" :class="{ on: subjFilter === s }" @click="subjFilter = subjFilter === s ? null : s">{{ s }}</button>
+      </div>
+
+      <div v-if="showMarkChips && (hasAnyCheck || hasAnyThink)" class="quick-row">
         <span class="quick-label">一括選択:</span>
         <button v-if="hasAnyCheck" class="quick-chip check" @click="selectByMark('check')">Check付きの問題</button>
         <button v-if="hasAnyThink" class="quick-chip think" @click="selectByMark('think')">Think付きの問題</button>
@@ -217,7 +246,7 @@ function save() {
   border-radius: 16px;
   padding: 22px;
   width: 100%;
-  max-width: 560px;
+  max-width: 820px;
   max-height: 86vh;
   display: flex;
   flex-direction: column;
@@ -396,6 +425,21 @@ function save() {
   color: #6b5bd0;
   border-color: #cbc3f0;
   background: #f5f3fd;
+}
+.subj-chip {
+  border: 1px solid #e3e6ea;
+  background: #fff;
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mut);
+  cursor: pointer;
+}
+.subj-chip.on {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
 }
 .leaf-marks {
   flex-shrink: 0;

@@ -58,6 +58,13 @@ export function computeReviewOn(studiedOn: string, opt: ReviewOption, customDays
   return iso(d)
 }
 
+/** 課題の表示タイトル。未設定（空）の場合は期限をタイトルにする */
+export function assignmentTitle(title: string | null, dueOn: string): string {
+  if (title && title.trim()) return title
+  const d = parseDate(dueOn)
+  return `${d.getMonth() + 1}/${d.getDate()}までの課題`
+}
+
 // ナビ項目アイコン（SVG path 群）
 export const ICONS: Record<string, string[]> = {
   home: ['M3 10.5 12 4l9 6.5', 'M5 9.5V20h14V9.5', 'M9.5 20v-5h5v5'],

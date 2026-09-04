@@ -128,17 +128,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/records', [RecordController::class, 'index']);
         Route::get('/records/stats', [RecordController::class, 'stats']);
 
-        // 学習計画（目標設定）: 生徒側と同じ機能を生徒スコープで提供
+        // 科目別学習状況（読み取りのみ）
+        Route::get('/study-items', [StudyItemController::class, 'index']);
+
+        // 課題の対象選択用ツリー（教材→章→行）
         Route::get('/goals/link-options', [GoalController::class, 'linkOptions']);
-        Route::get('/goals', [GoalController::class, 'index']);
-        Route::post('/goals', [GoalController::class, 'store']);
-        Route::post('/goals/{goal}/sub-goals', [GoalController::class, 'storeSubGoal']);
-        Route::get('/goals/{goal}/link-options', [GoalController::class, 'subLinkOptions']);
-        Route::get('/goals/{goal}/items', [GoalController::class, 'linkedItems']);
-        Route::put('/goals/{goal}/items/studied', [GoalController::class, 'setItemStudied']);
-        Route::put('/goals/{goal}/items', [GoalController::class, 'updateItems']);
-        Route::put('/goals/{goal}', [GoalController::class, 'update']);
-        Route::delete('/goals/{goal}', [GoalController::class, 'destroy']);
 
         // 課題設定（個別学習データから選択して期限を設定）
         Route::get('/assignments', [AssignmentController::class, 'index']);

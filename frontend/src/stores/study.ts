@@ -60,7 +60,7 @@ export const useStudyStore = defineStore('study', {
     },
 
     async fetchItems() {
-      const { data } = await client.get('/study-items')
+      const { data } = await client.get(`${p()}/study-items`)
       this.items = data.data
     },
 
@@ -205,8 +205,8 @@ export const useStudyStore = defineStore('study', {
       this.assignments = data.data
     },
 
-    /** 課題を作成（tutor のみ） */
-    async createAssignment(payload: { title: string; note: string | null; dueOn: string; ids: number[] }) {
+    /** 課題を作成（tutor のみ）。タイトルは任意（null で期限がタイトルになる） */
+    async createAssignment(payload: { title: string | null; note: string | null; dueOn: string; ids: number[] }) {
       const { data } = await client.post(`${p()}/assignments`, payload)
       await this.fetchAssignments()
       return data.data.id as number
@@ -215,7 +215,7 @@ export const useStudyStore = defineStore('study', {
     /** 課題を更新（tutor のみ） */
     async updateAssignment(
       id: number,
-      payload: { title?: string; note?: string | null; dueOn?: string; achieved?: boolean | null; ids?: number[] },
+      payload: { title?: string | null; note?: string | null; dueOn?: string; achieved?: boolean | null; ids?: number[] },
     ) {
       await client.put(`${p()}/assignments/${id}`, payload)
       await this.fetchAssignments()

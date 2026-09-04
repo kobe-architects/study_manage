@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { iso } from '@/lib/design'
+import { assignmentTitle, iso } from '@/lib/design'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
 import AssignmentCard from '@/components/AssignmentCard.vue'
@@ -44,16 +44,13 @@ function openEdit(a: Assignment) {
   modal.itemIds = [...a.itemIds]
 }
 async function save() {
-  if (!modal.title.trim()) {
-    ui.notify('課題タイトルを入力してください')
-    return
-  }
   if (!modal.itemIds.length) {
     ui.notify('個別学習データを1件以上選択してください')
     return
   }
+  // タイトルは任意（未入力の場合は期限がタイトルとして表示される）
   const payload = {
-    title: modal.title.trim(),
+    title: modal.title.trim() || null,
     note: modal.note.trim() || null,
     dueOn: modal.dueOn,
     ids: modal.itemIds,
@@ -73,7 +70,7 @@ async function save() {
 }
 
 async function remove(a: Assignment) {
-  if (!confirm(`課題「${a.title}」を削除しますか？`)) return
+  if (!confirm(`課題「${assignmentTitle(a.title, a.dueOn)}」を削除しますか？`)) return
   await study.deleteAssignment(a.id)
   ui.notify('削除しました')
 }
@@ -125,7 +122,7 @@ function onLinkSave(ids: number[]) {
       <div class="modal" @click.stop>
         <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">{{ modal.id === null ? '課題を追加' : '課題を編集' }}</div>
         <div style="display: flex; flex-direction: column; gap: 13px">
-          <label class="fld"><span>課題タイトル</span><input v-model="modal.title" placeholder="例: 今週中に三角比の例題を1周" /></label>
+          <label class="fld"><span>課題タイトル（任意・未入力の場合は期限がタイトルになります）</span><input v-model="modal.title" placeholder="例: 今週中に三角比の例題を1周" /></label>
           <label class="fld"><span>期限</span><input v-model="modal.dueOn" type="date" /></label>
           <label class="fld"><span>メモ（任意）</span><textarea v-model="modal.note" rows="2" placeholder="生徒への補足・指示など"></textarea></label>
           <div>
@@ -138,7 +135,7 @@ function onLinkSave(ids: number[]) {
         </div>
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
           <button class="btn-ghost" @click="modal.open = false">キャンセル</button>
-          <button class="btn-dark" :disabled="!modal.title.trim() || !modal.itemIds.length" @click="save">{{ modal.id === null ? '追加する' : '保存' }}</button>
+          <button class="btn-dark" :disabled="!modal.itemIds.length" @click="save">{{ modal.id === null ? '追加する' : '保存' }}</button>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Heatmap from '@/components/Heatmap.vue'
-import { daysBetween, iso, parseDate, TYPE_BADGE } from '@/lib/design'
+import { assignmentTitle, daysBetween, iso, parseDate, TYPE_BADGE } from '@/lib/design'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
 import type { RecordListItem } from '@/types'
@@ -14,7 +14,6 @@ const router = useRouter()
 const today = new Date()
 today.setHours(0, 0, 0, 0)
 
-const WD = ['日', '月', '火', '水', '木', '金', '土']
 const DAYS = 7 // 直近1週間
 
 const records = ref<RecordListItem[]>([])
@@ -34,31 +33,22 @@ onMounted(async () => {
   study.fetchAssignments().catch(() => {})
 })
 
-/** 直近7日を日付降順で並べ、記録を日付ごとにグルーピング（記録0件の日も表示） */
-const dayGroups = computed(() => {
-  const byDate = new Map<string, RecordListItem[]>()
+/** 直近の学習記録を科目別にグルーピング（最新の記録がある科目を先頭に、科目内は日付降順） */
+const subjectGroups = computed(() => {
+  const map = new Map<string, { name: string; colorSoft: string; colorVivid: string; rows: RecordListItem[] }>()
   for (const r of records.value) {
-    if (!byDate.has(r.date)) byDate.set(r.date, [])
-    byDate.get(r.date)!.push(r)
+    const key = r.subjectName ?? '（科目未設定）'
+    if (!map.has(key)) {
+      map.set(key, { name: key, colorSoft: r.colorSoft, colorVivid: r.colorVivid, rows: [] })
+    }
+    map.get(key)!.rows.push(r)
   }
-  const groups: { date: string; label: string; wd: string; isToday: boolean; rows: RecordListItem[] }[] = []
-  for (let i = 0; i < DAYS; i++) {
-    const d = new Date(today)
-    d.setDate(d.getDate() - i)
-    const key = iso(d)
-    groups.push({
-      date: key,
-      label: `${d.getMonth() + 1}/${d.getDate()}`,
-      wd: WD[d.getDay()],
-      isToday: i === 0,
-      rows: byDate.get(key) ?? [],
-    })
-  }
-  return groups
+  // records は日付降順で返るため rows の順序は維持し、科目は最新記録日の降順に並べる
+  return [...map.values()].sort((a, b) => (a.rows[0].date < b.rows[0].date ? 1 : -1))
 })
 
 const weekTotal = computed(() => records.value.length)
-const activeDays = computed(() => dayGroups.value.filter((g) => g.rows.length).length)
+const activeDayCount = computed(() => new Set(records.value.map((r) => r.date)).size)
 
 // 課題サマリ（未記録のみ・期限昇順で3件）
 const pendingAssignments = computed(() =>
@@ -67,9 +57,15 @@ const pendingAssignments = computed(() =>
     .slice(0, 3)
     .map((a) => ({
       ...a,
+      displayTitle: assignmentTitle(a.title, a.dueOn),
       daysLeft: daysBetween(today, parseDate(a.dueOn)),
     })),
 )
+
+function fmtMd(isoDate: string) {
+  const d = parseDate(isoDate)
+  return `${d.getMonth() + 1}/${d.getDate()}`
+}
 
 function recordColorHex(c: string | null): string {
   return c === 'red' ? '#d92d20' : c === 'blue' ? '#2563eb' : c === 'green' ? '#2e9d62' : '#1c2024'
@@ -78,7 +74,7 @@ function recordColorHex(c: string | null): string {
 
 <template>
   <div>
-    <div style="font-size: 17px; font-weight: 700; margin-bottom: 14px">直近1週間の学習記録</div>
+    <div style="font-size: 17px; font-weight: 700; margin-bottom: 14px">直近の学習記録（科目別・過去{{ DAYS }}日）</div>
 
     <div class="grid">
       <!-- LEFT: 週間サマリ + 課題 + ヒートマップ -->
@@ -91,7 +87,7 @@ function recordColorHex(c: string | null): string {
           <div style="width: 1px; background: var(--line)"></div>
           <div style="flex: 1; text-align: center">
             <div style="font-size: 11.5px; color: var(--faint); margin-bottom: 3px">学習した日</div>
-            <div class="dm" style="font-size: 26px; font-weight: 700">{{ activeDays }}<span style="font-size: 12px; color: var(--mut); margin-left: 2px">/ 7日</span></div>
+            <div class="dm" style="font-size: 26px; font-weight: 700">{{ activeDayCount }}<span style="font-size: 12px; color: var(--mut); margin-left: 2px">/ {{ DAYS }}日</span></div>
           </div>
           <div style="width: 1px; background: var(--line)"></div>
           <div style="flex: 1; text-align: center">
@@ -108,10 +104,10 @@ function recordColorHex(c: string | null): string {
           <div v-if="pendingAssignments.length" style="display: flex; flex-direction: column; gap: 10px">
             <div v-for="a in pendingAssignments" :key="a.id" style="display: flex; align-items: center; gap: 10px">
               <div style="flex: 1; min-width: 0">
-                <div style="font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ a.title }}</div>
+                <div style="font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ a.displayTitle }}</div>
                 <div style="font-size: 11px; color: var(--faint)">{{ a.done }} / {{ a.target }} 項目</div>
               </div>
-              <span :style="{ fontSize: '11px', fontWeight: 700, flexShrink: 0, color: a.daysLeft < 0 ? '#e0533d' : a.daysLeft <= 3 ? '#e0533d' : '#9aa1ab' }">
+              <span :style="{ fontSize: '11px', fontWeight: 700, flexShrink: 0, color: a.daysLeft <= 3 ? '#e0533d' : '#9aa1ab' }">
                 {{ a.daysLeft < 0 ? `${-a.daysLeft}日超過` : a.daysLeft === 0 ? '本日期限' : `あと${a.daysLeft}日` }}
               </span>
             </div>
@@ -128,21 +124,20 @@ function recordColorHex(c: string | null): string {
         </div>
       </div>
 
-      <!-- RIGHT: 日別の記録一覧 -->
+      <!-- RIGHT: 科目別の記録一覧 -->
       <div class="card" style="padding: 6px 0">
         <div v-if="loading" style="padding: 40px; text-align: center; color: var(--faint); font-size: 13px">読み込み中…</div>
         <template v-else>
-          <div v-for="g in dayGroups" :key="g.date" class="day-block">
-            <div class="day-head">
-              <span class="day-date" :class="{ today: g.isToday }">{{ g.label }}<span class="day-wd">（{{ g.wd }}）</span></span>
-              <span v-if="g.isToday" class="today-tag">今日</span>
+          <div v-for="g in subjectGroups" :key="g.name" class="subj-block">
+            <div class="subj-head">
+              <span class="subj-dot" :style="{ background: ui.colorOf(g.colorSoft, g.colorVivid) }"></span>
+              <span class="subj-name">{{ g.name }}</span>
               <span style="flex: 1"></span>
-              <span style="font-size: 11.5px; color: var(--faint)">{{ g.rows.length ? `${g.rows.length}件` : '記録なし' }}</span>
+              <span style="font-size: 11.5px; color: var(--faint)">{{ g.rows.length }}件</span>
             </div>
-            <div v-if="g.rows.length" style="display: flex; flex-direction: column">
+            <div style="display: flex; flex-direction: column">
               <div v-for="r in g.rows" :key="r.id" class="rec-row">
-                <span class="rec-dot" :style="{ background: ui.colorOf(r.colorSoft, r.colorVivid) }"></span>
-                <span style="font-size: 11.5px; color: var(--mut); width: 44px; flex-shrink: 0">{{ r.subjectName ?? '—' }}</span>
+                <span style="font-size: 11.5px; color: var(--mut); width: 36px; flex-shrink: 0">{{ fmtMd(r.date) }}</span>
                 <span class="rec-badge" :style="{ background: TYPE_BADGE[r.type]?.bg ?? '#f1f2f4', color: TYPE_BADGE[r.type]?.fg ?? '#6b7280' }">{{ r.type }}</span>
                 <span class="rec-title" :style="{ color: recordColorHex(r.color) }">
                   <span v-if="r.seqNo" style="color: #aeb4bd">{{ r.seqNo }}.</span>
@@ -151,6 +146,9 @@ function recordColorHex(c: string | null): string {
                 <span class="rec-src">{{ r.bookTitle ?? (r.major ? `${r.major}›${r.mid}` : '') }}</span>
               </div>
             </div>
+          </div>
+          <div v-if="!subjectGroups.length" style="padding: 40px; text-align: center; color: var(--faint); font-size: 13px">
+            直近{{ DAYS }}日間の学習記録はありません
           </div>
         </template>
       </div>
@@ -184,51 +182,35 @@ function recordColorHex(c: string | null): string {
   cursor: pointer;
   padding: 0;
 }
-.day-block {
-  padding: 8px 18px 10px;
+.subj-block {
+  padding: 10px 18px 12px;
   border-top: 1px solid #f2f3f5;
 }
-.day-block:first-child {
+.subj-block:first-child {
   border-top: none;
 }
-.day-head {
+.subj-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
-.day-date {
-  font-size: 13px;
+.subj-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.subj-name {
+  font-size: 13.5px;
   font-weight: 700;
-}
-.day-date.today {
-  color: #2e4a8f;
-}
-.day-wd {
-  font-size: 11px;
-  color: var(--faint);
-  font-weight: 500;
-}
-.today-tag {
-  font-size: 10px;
-  font-weight: 700;
-  color: #2e4a8f;
-  background: #e8eefb;
-  padding: 1px 7px;
-  border-radius: 99px;
 }
 .rec-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 0;
+  padding: 5px 0 5px 17px;
   min-width: 0;
-}
-.rec-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
 }
 .rec-badge {
   flex-shrink: 0;

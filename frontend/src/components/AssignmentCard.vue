@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { daysBetween, parseDate, pct, TYPE_BADGE } from '@/lib/design'
+import { assignmentTitle, daysBetween, parseDate, pct, TYPE_BADGE } from '@/lib/design'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
 import type { Assignment, GoalItemDetail } from '@/types'
@@ -18,6 +18,7 @@ const today = new Date()
 today.setHours(0, 0, 0, 0)
 
 const daysLeft = computed(() => daysBetween(today, parseDate(props.assignment.dueOn)))
+const displayTitle = computed(() => assignmentTitle(props.assignment.title, props.assignment.dueOn))
 const dueLabel = computed(() => {
   const d = parseDate(props.assignment.dueOn)
   return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`
@@ -72,7 +73,7 @@ async function setAchieved(value: boolean) {
       </button>
     </div>
 
-    <div style="font-size: 15px; font-weight: 700; margin: 8px 0 4px; line-height: 1.4">{{ assignment.title }}</div>
+    <div style="font-size: 15px; font-weight: 700; margin: 8px 0 4px; line-height: 1.4">{{ displayTitle }}</div>
     <div v-if="assignment.note" style="font-size: 12px; color: var(--mut); margin-bottom: 8px; white-space: pre-wrap; line-height: 1.6">{{ assignment.note }}</div>
 
     <div class="row-between" style="align-items: baseline; margin: 6px 0">

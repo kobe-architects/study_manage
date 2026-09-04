@@ -17,8 +17,7 @@ onMounted(async () => {
   try {
     await auth.fetchMe()
     ready.value = true
-    // 生徒の学習データ（目標・記録統計・課題）をバックグラウンドで取得
-    study.fetchGoals().catch(() => {})
+    // 生徒の学習データ（記録統計・課題）をバックグラウンドで取得
     study.fetchRecordStats().catch(() => {})
     study.fetchAssignments().catch(() => {})
   } catch {
@@ -41,15 +40,15 @@ const daysToExam = computed(() => {
 
 const NAV_TUTOR = [
   { key: 'home', route: 'tutor-home', label: 'トップページ', icon: ICONS.home },
+  { key: 'subjects', route: 'tutor-subjects', label: '科目別学習状況', icon: ICONS.data },
   { key: 'assignment', route: 'tutor-assignments', label: '課題設定', icon: ICONS.record },
-  { key: 'goal', route: 'tutor-goals', label: '学習計画', icon: ICONS.goal },
 ]
 
 const activeKey = computed(() => {
   const map: Record<string, string> = {
     'tutor-home': 'home',
+    'tutor-subjects': 'subjects',
     'tutor-assignments': 'assignment',
-    'tutor-goals': 'goal',
   }
   return map[route.name as string] ?? 'home'
 })

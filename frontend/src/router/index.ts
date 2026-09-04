@@ -28,12 +28,17 @@ const router = createRouter({
       children: [
         { path: '', name: 'tutor-home', component: () => import('@/views/TutorHomeView.vue'), meta: { tutor: true } },
         {
+          path: 'subjects',
+          name: 'tutor-subjects',
+          component: () => import('@/views/TutorSubjectsView.vue'),
+          meta: { tutor: true },
+        },
+        {
           path: 'assignments',
           name: 'tutor-assignments',
           component: () => import('@/views/TutorAssignmentsView.vue'),
           meta: { tutor: true },
         },
-        { path: 'goals', name: 'tutor-goals', component: () => import('@/views/GoalsView.vue'), meta: { tutor: true } },
       ],
     },
   ],

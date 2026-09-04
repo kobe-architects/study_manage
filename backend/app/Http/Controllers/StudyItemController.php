@@ -16,7 +16,7 @@ class StudyItemController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $userId = $this->targetUserId($request);
 
         $items = StudyItem::query()
             ->with('mid.major.subject')
@@ -93,7 +93,7 @@ class StudyItemController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $userId = $this->targetUserId($request);
         $data = $request->validate([
             'midCategoryId' => ['required', 'integer'],
             'name' => ['required', 'string', 'max:255'],
@@ -137,7 +137,7 @@ class StudyItemController extends Controller
      */
     public function updateIncluded(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $userId = $this->targetUserId($request);
         $data = $request->validate([
             'ids' => ['required', 'array'],
             'ids.*' => ['integer'],
@@ -155,7 +155,7 @@ class StudyItemController extends Controller
     private function authorizeItem(Request $request, StudyItem $item): void
     {
         abort_unless(
-            $item->mid->major->subject->user_id === $request->user()->id,
+            $item->mid->major->subject->user_id === $this->targetUserId($request),
             403
         );
     }

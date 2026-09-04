@@ -39,8 +39,9 @@ class AssignmentController extends Controller
     public function store(Request $request): JsonResponse
     {
         $userId = $this->targetUserId($request);
+        // タイトルは任意（未設定時は表示側で期限をタイトルにする）
         $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
+            'title' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string', 'max:2000'],
             'dueOn' => ['required', 'date'],
             'ids' => ['required', 'array', 'min:1'],
@@ -50,7 +51,7 @@ class AssignmentController extends Controller
         $assignment = Assignment::create([
             'user_id' => $userId,
             'created_by' => $request->user()->id,
-            'title' => $data['title'],
+            'title' => $data['title'] ?? '',
             'note' => $data['note'] ?? null,
             'due_on' => $data['dueOn'],
         ]);
@@ -65,7 +66,7 @@ class AssignmentController extends Controller
         abort_unless($assignment->user_id === $userId, 403);
 
         $data = $request->validate([
-            'title' => ['sometimes', 'string', 'max:255'],
+            'title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'note' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'dueOn' => ['sometimes', 'date'],
             'achieved' => ['sometimes', 'nullable', 'boolean'],
@@ -78,6 +79,9 @@ class AssignmentController extends Controller
             if (array_key_exists($k, $data)) {
                 $payload[$k] = $data[$k];
             }
+        }
+        if (array_key_exists('title', $payload)) {
+            $payload['title'] = $payload['title'] ?? ''; // カラムは NOT NULL のため空文字で保存
         }
         if (array_key_exists('dueOn', $data)) {
             $payload['due_on'] = $data['dueOn'];
