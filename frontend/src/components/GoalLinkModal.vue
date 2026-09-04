@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import type { GoalLinkBook, GoalLinkChapter } from '@/types'
+import type { GoalLinkBook, GoalLinkChapter, StudyType } from '@/types'
 
 const props = defineProps<{
   goalTitle: string
@@ -16,6 +16,10 @@ props.initialIds.forEach((id) => (sel[id] = true))
 const expandBook = reactive<Record<number, boolean>>({})
 const expandChap = reactive<Record<string, boolean>>({})
 const q = ref('')
+
+// 種別の絞り込み（null = すべて）。表示順は 問題集 → 講義 → 教科書
+const TYPE_FILTERS: StudyType[] = ['問題集', '講義', '教科書']
+const typeFilter = ref<StudyType | null>(null)
 
 // 科目別の絞り込み（null = 全科目）
 const subjFilter = ref<string | null>(null)
@@ -68,11 +72,14 @@ function selectByMark(kind: 'check' | 'think') {
   }
 }
 
-// 科目・検索でフィルタした教材ツリー（行タイトル/章/教材名で絞り込み）
+// 科目・種別・検索でフィルタした教材ツリー（行タイトル/章/教材名で絞り込み）
 const filteredBooks = computed<GoalLinkBook[]>(() => {
   let books = props.books
   if (subjFilter.value !== null) {
     books = books.filter((b) => (b.subjectName ?? '（科目未設定）') === subjFilter.value)
+  }
+  if (typeFilter.value !== null) {
+    books = books.filter((b) => b.type === typeFilter.value)
   }
   const term = q.value.trim()
   if (!term) return books
@@ -159,6 +166,13 @@ function save() {
         <span class="quick-label">科目:</span>
         <button class="subj-chip" :class="{ on: subjFilter === null }" @click="subjFilter = null">全科目</button>
         <button v-for="s in subjects" :key="s" class="subj-chip" :class="{ on: subjFilter === s }" @click="subjFilter = subjFilter === s ? null : s">{{ s }}</button>
+      </div>
+
+      <!-- 種別の絞り込み -->
+      <div class="quick-row">
+        <span class="quick-label">種別:</span>
+        <button class="subj-chip" :class="{ on: typeFilter === null }" @click="typeFilter = null">すべて</button>
+        <button v-for="t in TYPE_FILTERS" :key="t" class="subj-chip" :class="{ on: typeFilter === t }" @click="typeFilter = typeFilter === t ? null : t">{{ t }}</button>
       </div>
 
       <div v-if="showMarkChips && (hasAnyCheck || hasAnyThink)" class="quick-row">
