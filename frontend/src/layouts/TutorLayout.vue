@@ -17,8 +17,7 @@ onMounted(async () => {
   try {
     await auth.fetchMe()
     ready.value = true
-    // 生徒の学習データ（記録統計・課題）をバックグラウンドで取得
-    study.fetchRecordStats().catch(() => {})
+    // 生徒の学習データ（課題）をバックグラウンドで取得
     study.fetchAssignments().catch(() => {})
   } catch {
     // 認証エラー時はインターセプタが /login へ

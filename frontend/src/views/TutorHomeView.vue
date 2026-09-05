@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import EventModal from '@/components/EventModal.vue'
-import Heatmap from '@/components/Heatmap.vue'
 import MonthCalendar from '@/components/MonthCalendar.vue'
 import { assignmentTitle, daysBetween, iso, parseDate, TYPE_BADGE } from '@/lib/design'
 import { useAuthStore } from '@/stores/auth'
@@ -70,7 +69,6 @@ function selectPeriod(key: PeriodKey) {
 
 onMounted(() => {
   fetchRecords()
-  study.fetchRecordStats().catch(() => {})
   study.fetchAssignments().catch(() => {})
   study.fetchEvents().catch(() => {})
 })
@@ -166,14 +164,6 @@ function recordColorHex(c: string | null): string {
         </div>
 
         <MonthCalendar :events="study.events" :exam-date="examDate" @day-click="openEvent" />
-
-        <div class="card" style="padding: 16px 18px">
-          <div class="row-between" style="margin-bottom: 12px">
-            <span style="font-size: 13px; font-weight: 700">学習カレンダー</span>
-            <span style="font-size: 10.5px; color: var(--faint)">直近16週間</span>
-          </div>
-          <Heatmap :counts="study.recordStats?.heatmap ?? {}" :cell="11" />
-        </div>
       </div>
 
       <!-- RIGHT: 直近の学習記録（科目別・期間選択付き） -->
