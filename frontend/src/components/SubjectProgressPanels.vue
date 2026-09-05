@@ -39,6 +39,12 @@ function sumTotal(t: Record<StudyType, TypeAgg>) {
 // 種別の短縮ラベル（1行に収めるため）
 const TYPE_SHORT: Record<StudyType, string> = { 講義: '講義', 問題集: '問題', 教科書: '教科' }
 
+interface MajorAgg {
+  name: string
+  types: Record<StudyType, TypeAgg>
+  mids: { name: string; types: Record<StudyType, TypeAgg> }[]
+}
+
 interface SubjAgg {
   id: number
   name: string
@@ -46,7 +52,7 @@ interface SubjAgg {
   colorSoft: string
   colorVivid: string
   types: Record<StudyType, TypeAgg>
-  majors: { name: string; types: Record<StudyType, TypeAgg> }[]
+  majors: MajorAgg[]
   lastDate: string | null
 }
 
@@ -73,10 +79,17 @@ const subjAgg = computed<SubjAgg[]>(() => {
     }
     let mj = s.majors.find((m) => m.name === it.major)
     if (!mj) {
-      mj = { name: it.major, types: emptyTypes() }
+      mj = { name: it.major, types: emptyTypes(), mids: [] }
       s.majors.push(mj)
     }
     addTypes(mj.types, it)
+    // 中分類別の内訳（大分類行のホバーで表示）
+    let md = mj.mids.find((m) => m.name === it.mid)
+    if (!md) {
+      md = { name: it.mid, types: emptyTypes() }
+      mj.mids.push(md)
+    }
+    addTypes(md.types, it)
   }
   return [...map.values()]
 })
@@ -133,6 +146,14 @@ const subjectPanels = computed(() =>
             pct: pct(sumDone(m.types), sumTotal(m.types)),
             done: sumDone(m.types),
             totalBoth: sumTotal(m.types),
+            mids: m.mids
+              .filter((x) => sumTotal(x.types) > 0)
+              .map((x) => ({
+                name: x.name,
+                pct: pct(sumDone(x.types), sumTotal(x.types)),
+                done: sumDone(x.types),
+                totalBoth: sumTotal(x.types),
+              })),
           })),
       }
     }),
@@ -195,6 +216,21 @@ function fmtMd(isoDate: string) {
             </div>
             <span class="m-num dm">{{ m.pct }}%</span>
             <span class="m-cnt">{{ m.done }}/{{ m.totalBoth }}</span>
+
+            <!-- ホバーで中分類別の内訳を表示 -->
+            <div v-if="m.mids.length" class="mid-pop">
+              <div class="mid-pop-title">{{ m.name }} の内訳（中分類別）</div>
+              <div class="mid-pop-rows">
+                <div v-for="md in m.mids" :key="md.name" class="mid-row">
+                  <span class="mid-name">{{ md.name }}</span>
+                  <div class="mid-bar track">
+                    <div :style="{ height: '100%', width: md.pct + '%', background: s.color, borderRadius: '99px' }"></div>
+                  </div>
+                  <span class="m-num dm">{{ md.pct }}%</span>
+                  <span class="m-cnt">{{ md.done }}/{{ md.totalBoth }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -314,6 +350,61 @@ function fmtMd(isoDate: string) {
   align-items: center;
   gap: 8px;
   min-width: 0;
+  position: relative;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: 7px;
+}
+.major-row:hover {
+  background: #f6f8fb;
+}
+.mid-pop {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 40;
+  background: #fff;
+  border: 1px solid #e3e6ea;
+  border-radius: 12px;
+  padding: 11px 13px;
+  box-shadow: 0 10px 30px rgba(15, 20, 30, 0.16);
+}
+.major-row:hover .mid-pop {
+  display: block;
+}
+.mid-pop-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mut);
+  margin-bottom: 7px;
+}
+.mid-pop-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.mid-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.mid-name {
+  width: 40%;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mid-bar {
+  flex: 1;
+  height: 5px;
 }
 .m-name {
   width: 96px;
