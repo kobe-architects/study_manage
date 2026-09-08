@@ -85,6 +85,7 @@ export const useVocabularyStore = defineStore('vocabulary', {
       if (settings.importances?.length) params.set('importances', settings.importances.join(','))
       if (settings.labels?.length) params.set('labels', settings.labels.join(','))
       if (settings.ordered) params.set('ordered', '1')
+      if (settings.offset) params.set('offset', String(settings.offset))
       if (settings.vocabularyIds?.length)
         params.set('vocabularyIds', settings.vocabularyIds.join(','))
 

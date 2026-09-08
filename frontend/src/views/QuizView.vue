@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { shuffle, speak } from '@/lib/design'
+import { playResultSound } from '@/lib/sound'
 import { useVocabularyStore } from '@/stores/vocabulary'
 import { useUiStore } from '@/stores/ui'
 import type {
@@ -208,6 +209,30 @@ function settingsObj(extra?: Partial<QuizSettings>): QuizSettings {
   }
 }
 
+// ---- 「順番」×問題数指定の連続モード（10問ずつ最後まで進める） ----
+const session = ref<{ offset: number; size: number; total: number } | null>(null)
+const everIncorrect = ref<Vocabulary[]>([]) // 連続モード中に一度でも誤答した単語（重複なし）
+
+const sessionHasMore = computed(
+  () => !!session.value && session.value.offset + session.value.size < session.value.total,
+)
+// 続けるボタン：今回のラウンドが全問正解（誤答の再挑戦も含めクリア）かつ続きがある場合のみ
+const canContinue = computed(
+  () => !!session.value && !vocab.incorrectResults.length && sessionHasMore.value,
+)
+// 連続モード完走：最終バッチまで到達し、誤答もすべて正答済み
+const sessionFinished = computed(
+  () => !!session.value && !vocab.incorrectResults.length && !sessionHasMore.value,
+)
+const nextBatchSize = computed(() =>
+  session.value
+    ? Math.min(session.value.size, session.value.total - (session.value.offset + session.value.size))
+    : 0,
+)
+const sessionRangeEnd = computed(() =>
+  session.value ? Math.min(session.value.offset + session.value.size, session.value.total) : 0,
+)
+
 async function startQuiz(vocabularyIds?: number[]) {
   const extra: Partial<QuizSettings> = {}
   if (vocabularyIds) extra.vocabularyIds = vocabularyIds
@@ -227,6 +252,28 @@ async function startQuiz(vocabularyIds?: number[]) {
     ui.notify('対象の単語がありません')
     return
   }
+  if (!vocabularyIds) {
+    // 新規スタート時のみ連続モードを初期化（誤答再挑戦では維持する）
+    if (!incorrectOnly.value && ordered.value && wantCount.value > 0 && wantCount.value < selCount.value) {
+      session.value = { offset: 0, size: wantCount.value, total: selCount.value }
+    } else {
+      session.value = null
+    }
+    everIncorrect.value = []
+  }
+  phase.value = 'quiz'
+  primeDisplay()
+}
+
+async function continueSession() {
+  if (!session.value) return
+  const next = session.value.offset + session.value.size
+  const n = await vocab.startQuiz(resourceId.value, settingsObj({ offset: next }))
+  if (!n) {
+    ui.notify('続きの単語がありません')
+    return
+  }
+  session.value = { ...session.value, offset: next }
   phase.value = 'quiz'
   primeDisplay()
 }
@@ -247,23 +294,37 @@ function answerChoice(i: number) {
   selected.value = i
   revealed.value = true
   vocab.submitAnswer({ isCorrect: ok, selected: i })
-  if (!ok) speak(displayed.value.vocab.word)
+  playResultSound(ok)
+  // 効果音とかぶらないよう少し待ってから発音
+  if (!ok) {
+    const word = displayed.value.vocab.word
+    setTimeout(() => speak(word), 700)
+  }
 }
 function dontKnow() {
   if (revealed.value) return
   selected.value = -1
   revealed.value = true
   vocab.submitAnswer({ isCorrect: false, selected: -1 })
+  playResultSound(false)
 }
 function submitInput() {
   if (revealed.value || !displayed.value) return
   const ok = inputVal.value.trim().toLowerCase() === displayed.value.vocab.word.toLowerCase()
   revealed.value = true
   vocab.submitAnswer({ isCorrect: ok, input: inputVal.value })
+  playResultSound(ok)
 }
 function nextQ() {
   vocab.advanceQuiz()
   if (vocab.isQuizComplete) {
+    if (session.value) {
+      // 連続モード：このラウンドの誤答を累積（重複なし）
+      const seen = new Set(everIncorrect.value.map((w) => w.id))
+      for (const w of vocab.incorrectResults) {
+        if (!seen.has(w.id)) everIncorrect.value.push(w)
+      }
+    }
     phase.value = 'results'
     return
   }
@@ -284,6 +345,8 @@ async function setProf(p: 'high' | 'medium' | 'low') {
 
 function exitQuiz() {
   vocab.resetQuiz()
+  session.value = null
+  everIncorrect.value = []
   phase.value = 'home'
   if (resourceId.value) vocab.fetchStats(resourceId.value)
 }
@@ -611,9 +674,9 @@ function toggleSec(id: number) {
               <span v-if="displayed.vocab.meaningSupplement" style="font-size: 12.5px; color: #9aa1ab">{{ displayed.vocab.meaningSupplement }}</span>
             </div>
             <div v-if="displayed.vocab.exampleSentence" style="background: #f8f9fb; border-radius: 12px; padding: 13px 15px; margin-bottom: 14px">
-              <div style="font-size: 13.5px; line-height: 1.6">
+              <div class="ex-tap" style="font-size: 13.5px; line-height: 1.6" title="タップで例文を読み上げ" @click="speak(displayed.vocab.exampleSentence!)">
                 {{ ex.before }}<span style="font-weight: 700; color: #3b50cc">{{ ex.word }}</span>{{ ex.after }}
-                <button class="bare" style="color: #9aa1ab; vertical-align: middle; margin-left: 4px" @click="speak(displayed.vocab.exampleSentence!)">
+                <button class="bare" style="color: #9aa1ab; vertical-align: middle; margin-left: 4px" @click.stop="speak(displayed.vocab.exampleSentence!)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>
                 </button>
               </div>
@@ -671,6 +734,24 @@ function toggleSec(id: number) {
           <div style="font-size: 13px; color: var(--faint); margin-bottom: 8px">クイズ結果</div>
           <div class="dm" :style="{ fontSize: '48px', fontWeight: 700, color: resultColor, lineHeight: 1 }">{{ resultPct }}<span style="font-size: 22px">%</span></div>
           <div style="font-size: 14px; color: var(--mut); margin-top: 6px">{{ score.correct }} / {{ score.total }} 問 正解</div>
+          <div v-if="session" style="font-size: 12px; color: var(--faint); margin-top: 8px">
+            {{ session.offset + 1 }}〜{{ sessionRangeEnd }}語目 / 全{{ session.total }}語
+          </div>
+        </div>
+
+        <!-- 連続モード完走：一度でも誤答した単語の一覧 -->
+        <div v-if="sessionFinished" class="card" style="padding: 18px 20px; margin-bottom: 16px; border: 1.5px solid #9ed4b3">
+          <div style="font-size: 14px; font-weight: 700; color: #1f7a45; margin-bottom: 6px">🎉 最後まで完了しました！</div>
+          <template v-if="everIncorrect.length">
+            <div style="font-size: 12.5px; color: var(--mut); margin-bottom: 10px">一度でも不正解になった単語（{{ everIncorrect.length }}）</div>
+            <div style="display: flex; flex-direction: column">
+              <div v-for="w in everIncorrect" :key="w.id" style="display: flex; align-items: baseline; gap: 10px; padding: 8px 0; border-top: 1px solid #f4f5f7">
+                <button class="bare dm word-tap" style="font-size: 14px; font-weight: 700; min-width: 120px; text-align: left" title="タップで発音" @click="speak(w.word)">{{ w.word }}</button>
+                <span style="font-size: 13px; color: var(--mut)">{{ w.meaning }}<span v-if="w.meaningSupplement" style="color: #9aa1ab; margin-left: 6px">{{ w.meaningSupplement }}</span></span>
+              </div>
+            </div>
+          </template>
+          <div v-else style="font-size: 12.5px; color: var(--mut)">すべて一度で正解でした。素晴らしい！</div>
         </div>
         <div v-if="vocab.incorrectResults.length" class="card" style="padding: 18px 20px; margin-bottom: 16px">
           <div class="row-between" style="margin-bottom: 10px">
@@ -687,8 +768,12 @@ function toggleSec(id: number) {
             </div>
           </div>
         </div>
+        <div v-if="session && vocab.incorrectResults.length" style="font-size: 12px; color: var(--faint); text-align: center; margin-bottom: 10px">
+          誤答をすべて正解すると「続ける」が表示されます
+        </div>
         <div style="display: flex; gap: 10px">
           <button v-if="vocab.incorrectResults.length" class="next-btn" @click="retryIncorrect">誤答だけ再挑戦</button>
+          <button v-else-if="canContinue" class="next-btn" @click="continueSession">続ける（次の{{ nextBatchSize }}問）</button>
           <button class="prev-btn" style="flex: 1" @click="exitQuiz">設定に戻る</button>
         </div>
       </div>
@@ -773,6 +858,15 @@ function toggleSec(id: number) {
 }
 .word-tap:active {
   color: #3b50cc;
+}
+/* 例文タップ→読み上げ */
+.ex-tap {
+  cursor: pointer;
+  border-radius: 6px;
+  -webkit-tap-highlight-color: rgba(59, 80, 204, 0.15);
+}
+.ex-tap:active {
+  background: rgba(59, 80, 204, 0.06);
 }
 .vstat {
   padding: 13px 15px;

@@ -27,6 +27,7 @@ class VocabularyQuizController extends Controller
             'importances' => $this->csv($request->query('importances')),
             'labels' => $this->csv($request->query('labels'), false),
             'ordered' => filter_var($request->query('ordered', false), FILTER_VALIDATE_BOOLEAN),
+            'offset' => max(0, (int) $request->query('offset', 0)),
             'vocabularyIds' => $this->csv($request->query('vocabularyIds')),
         ];
 

@@ -33,6 +33,7 @@ class VocabularyService
         $importances = $params['importances'] ?? null;
         $labels = $params['labels'] ?? null;
         $ordered = (bool) ($params['ordered'] ?? false);
+        $offset = max(0, (int) ($params['offset'] ?? 0));
         $vocabularyIds = $params['vocabularyIds'] ?? null;
 
         $base = Vocabulary::query()
@@ -60,9 +61,12 @@ class VocabularyService
             return collect();
         }
 
-        // 3. 順番通り
+        // 3. 順番通り（offset で「続きから」の出題に対応）
         if ($ordered) {
             $sorted = $pool->sortBy('sort_order')->values();
+            if ($offset > 0) {
+                $sorted = $sorted->slice($offset)->values();
+            }
 
             return $count > 0 ? $sorted->take($count)->values() : $sorted;
         }

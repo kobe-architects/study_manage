@@ -342,6 +342,7 @@ export interface QuizSettings {
   importances?: number[]
   labels?: VocabularyLabel[]
   ordered?: boolean
+  offset?: number
   vocabularyIds?: number[]
 }
 
