@@ -50,6 +50,23 @@ const examDateModel = computed({
 const tutors = ref<TutorAccount[]>([])
 const tutorForm = reactive({ open: false, name: '', email: '', password: '', saving: false })
 const pwEdit = reactive<{ id: number | null; password: string; saving: boolean }>({ id: null, password: '', saving: false })
+// 講師のパスワード表示（行ごとに表示/非表示を切り替え）
+const shownPw = ref<Set<number>>(new Set())
+function togglePw(id: number) {
+  const next = new Set(shownPw.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  shownPw.value = next
+}
+async function copyPw(t: TutorAccount) {
+  if (!t.password) return
+  try {
+    await navigator.clipboard.writeText(t.password)
+    ui.notify('パスワードをコピーしました')
+  } catch {
+    ui.notify('コピーに失敗しました')
+  }
+}
 
 onMounted(async () => {
   try {
@@ -92,7 +109,9 @@ async function saveTutorPassword() {
   }
   pwEdit.saving = true
   try {
-    await client.put(`/tutors/${pwEdit.id}`, { password: pwEdit.password })
+    const { data } = await client.put(`/tutors/${pwEdit.id}`, { password: pwEdit.password })
+    const idx = tutors.value.findIndex((x) => x.id === pwEdit.id)
+    if (idx >= 0) tutors.value[idx] = data.data
     pwEdit.id = null
     pwEdit.password = ''
     ui.notify('パスワードを再設定しました')
@@ -184,7 +203,21 @@ async function removeTutor(t: TutorAccount) {
         <div v-for="t in tutors" :key="t.id" class="tutor-row">
           <div style="flex: 1; min-width: 0">
             <div style="font-size: 13px; font-weight: 600">{{ t.name }}</div>
-            <div style="font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ t.email }}</div>
+            <div style="font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">ID: {{ t.email }}</div>
+            <div class="pw-line">
+              <span style="color: var(--faint)">PW:</span>
+              <template v-if="t.password">
+                <span class="pw-value" :class="{ masked: !shownPw.has(t.id) }">{{ shownPw.has(t.id) ? t.password : '●'.repeat(Math.min(t.password.length, 12)) }}</span>
+                <button class="pw-icon" :title="shownPw.has(t.id) ? '隠す' : '表示'" @click="togglePw(t.id)">
+                  <svg v-if="!shownPw.has(t.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18" /><path d="M10.6 10.6a3 3 0 0 0 4.2 4.2" /><path d="M9.9 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.1" /><path d="M6.6 6.6C3.7 8.6 2 12 2 12s3.5 7 10 7c1.4 0 2.7-.3 3.8-.7" /></svg>
+                </button>
+                <button class="pw-icon" title="コピー" @click="copyPw(t)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
+                </button>
+              </template>
+              <span v-else style="color: var(--faint)">未保存（「PW再設定」で保存すると表示されます）</span>
+            </div>
           </div>
           <button class="mini-btn" @click="pwEdit.id = pwEdit.id === t.id ? null : t.id; pwEdit.password = ''">PW再設定</button>
           <button class="mini-btn danger" @click="removeTutor(t)">削除</button>
@@ -346,6 +379,39 @@ async function removeTutor(t: TutorAccount) {
   padding: 9px 11px;
   border: 1px solid #eceef0;
   border-radius: 10px;
+}
+.pw-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  margin-top: 2px;
+  min-width: 0;
+}
+.pw-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pw-value.masked {
+  letter-spacing: 1px;
+  color: var(--mut);
+}
+.pw-icon {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: #9aa1ab;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+.pw-icon:hover {
+  color: var(--ink);
 }
 .tutor-form {
   display: flex;

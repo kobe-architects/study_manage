@@ -78,6 +78,7 @@ export const ICONS: Record<string, string[]> = {
   settings: ['M4 7h9', 'M17 7h3', 'M14 5v4', 'M4 12h3', 'M11 12h9', 'M8 10v4', 'M4 17h11', 'M19 17h1', 'M16 15v4'],
   quiz: ['M4 5.5h13a1.5 1.5 0 0 1 1.5 1.5v12.5H5.5A1.5 1.5 0 0 1 4 18z', 'M18.5 7v12.5', 'M8 9.5h7', 'M8 13h5'],
   resource: ['M4 5h7v15H4z', 'M13 5h7v15h-7z', 'M7 9h1.5', 'M16 9h1.5', 'M7 13h1.5', 'M16 13h1.5'],
+  test: ['M6 3.5h9l4 4v13H6z', 'M15 3.5v4h4', 'M9 11h6', 'M9 14.5h6', 'M9 18h3'],
 }
 
 export interface NavDef {
@@ -92,6 +93,7 @@ export const NAV: NavDef[] = [
   { key: 'resource', route: 'resource', label: '個別学習一覧データ', short: '一覧' },
   { key: 'record', route: 'record', label: '学習記録', short: '記録' },
   { key: 'quiz', route: 'quiz', label: '英単語クイズ', short: '単語' },
+  { key: 'test', route: 'quizzes', label: '小テスト', short: '小テスト' },
   { key: 'goal', route: 'goals', label: '目標設定', short: '目標' },
   { key: 'data', route: 'data', label: '学習項目データ', short: '項目' },
   { key: 'settings', route: 'settings', label: 'システム設定', short: '設定' },

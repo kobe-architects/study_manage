@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import AssignmentCard from '@/components/AssignmentCard.vue'
+import QuizHomePanel from '@/components/QuizHomePanel.vue'
 import Heatmap from '@/components/Heatmap.vue'
 import SubjectProgressPanels from '@/components/SubjectProgressPanels.vue'
 import MonthCalendar from '@/components/MonthCalendar.vue'
@@ -514,6 +515,9 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
           <div style="font-size: 13px; font-weight: 700; margin: 2px 2px -6px">先生からの課題</div>
           <AssignmentCard v-for="a in pendingAssignments" :key="a.id" :assignment="a" readonly />
         </template>
+
+        <!-- 小テスト（未提出・添削待ち・直近の結果） -->
+        <QuizHomePanel />
 
         <MonthCalendar :events="study.events" :exam-date="examDate" @day-click="openEvent" />
 

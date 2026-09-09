@@ -4,8 +4,10 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\GoalController;
+use App\Http\Controllers\QuizController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\ResourceBookController;
+use App\Http\Controllers\ResourceBookPdfController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudyItemController;
 use App\Http\Controllers\StudyResourceController;
@@ -91,6 +93,26 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/assignments', [AssignmentController::class, 'index']);
         Route::get('/assignments/{assignment}/items', [AssignmentController::class, 'items']);
 
+        // ===== 教材への PDF 紐づけ（小テスト出題元） =====
+        Route::get('/resource-books/{resourceBook}/pdfs', [ResourceBookPdfController::class, 'index']);
+        Route::post('/resource-books/{resourceBook}/pdfs/chunk', [ResourceBookPdfController::class, 'uploadChunk']);
+        Route::post('/resource-books/{resourceBook}/pdfs', [ResourceBookPdfController::class, 'store']);
+        Route::put('/resource-book-pdfs/{pdf}', [ResourceBookPdfController::class, 'update']);
+        Route::delete('/resource-book-pdfs/{pdf}', [ResourceBookPdfController::class, 'destroy']);
+        Route::get('/resource-book-pdfs/{pdf}/file', [ResourceBookPdfController::class, 'file']);
+        Route::get('/resource-book-pdfs/{pdf}/pages/{page}', [ResourceBookPdfController::class, 'page'])->whereNumber('page');
+
+        // ===== 小テスト（生徒: ダウンロード・写真提出・結果閲覧・分析） =====
+        Route::get('/quizzes', [QuizController::class, 'index']);
+        Route::get('/quizzes/stats', [QuizController::class, 'stats']);
+        Route::get('/quizzes/{quiz}', [QuizController::class, 'show']);
+        Route::get('/quizzes/{quiz}/download', [QuizController::class, 'download']);
+        Route::get('/quizzes/{quiz}/result-pdf', [QuizController::class, 'resultPdf']);
+        Route::get('/quizzes/{quiz}/pages/{page}/answer-image', [QuizController::class, 'answerImage']);
+        Route::get('/quizzes/{quiz}/pages/{page}/annotated-image', [QuizController::class, 'annotatedImage']);
+        Route::post('/quizzes/{quiz}/pages/{page}/answer', [QuizController::class, 'uploadAnswer']);
+        Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit']);
+
         // ===== 英単語クイズ サブシステム =====
         Route::get('/study-resources', [StudyResourceController::class, 'index']);
 
@@ -145,5 +167,32 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/assignments/{assignment}', [AssignmentController::class, 'update']);
         Route::delete('/assignments/{assignment}', [AssignmentController::class, 'destroy']);
         Route::get('/assignments/{assignment}/items', [AssignmentController::class, 'items']);
+
+        // 教材への PDF 紐づけ（担当生徒の教材に対して操作）
+        Route::get('/resource-books/{resourceBook}/pdfs', [ResourceBookPdfController::class, 'index']);
+        Route::post('/resource-books/{resourceBook}/pdfs/chunk', [ResourceBookPdfController::class, 'uploadChunk']);
+        Route::post('/resource-books/{resourceBook}/pdfs', [ResourceBookPdfController::class, 'store']);
+        Route::put('/resource-book-pdfs/{pdf}', [ResourceBookPdfController::class, 'update']);
+        Route::delete('/resource-book-pdfs/{pdf}', [ResourceBookPdfController::class, 'destroy']);
+        Route::get('/resource-book-pdfs/{pdf}/file', [ResourceBookPdfController::class, 'file']);
+        Route::get('/resource-book-pdfs/{pdf}/pages/{page}', [ResourceBookPdfController::class, 'page'])->whereNumber('page');
+
+        // 小テスト（出題・添削・採点・分析）
+        Route::get('/quiz-books', [QuizController::class, 'books']);
+        Route::get('/resource-books/{resourceBook}/quiz-rows', [QuizController::class, 'bookRows']);
+        Route::get('/quizzes', [QuizController::class, 'index']);
+        Route::get('/quizzes/stats', [QuizController::class, 'stats']);
+        Route::post('/quizzes', [QuizController::class, 'store']);
+        Route::get('/quizzes/{quiz}', [QuizController::class, 'show']);
+        Route::put('/quizzes/{quiz}', [QuizController::class, 'update']);
+        Route::delete('/quizzes/{quiz}', [QuizController::class, 'destroy']);
+        Route::get('/quizzes/{quiz}/download', [QuizController::class, 'download']);
+        Route::get('/quizzes/{quiz}/result-pdf', [QuizController::class, 'resultPdf']);
+        Route::get('/quizzes/{quiz}/pages/{page}/answer-image', [QuizController::class, 'answerImage']);
+        Route::get('/quizzes/{quiz}/pages/{page}/annotated-image', [QuizController::class, 'annotatedImage']);
+        Route::post('/quizzes/{quiz}/pages/{page}/annotations', [QuizController::class, 'saveAnnotations']); // multipart のため POST
+        Route::put('/quizzes/{quiz}/pages/{page}/grade', [QuizController::class, 'grade']);
+        Route::post('/quizzes/{quiz}/finish', [QuizController::class, 'finish']);
+        Route::post('/quizzes/{quiz}/reopen', [QuizController::class, 'reopen']);
     });
 });

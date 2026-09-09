@@ -257,6 +257,8 @@ export interface TutorAccount {
   id: number
   name: string
   email: string
+  /** 表示用パスワード（機能追加前に作成したアカウントは null。PW再設定で保存される） */
+  password: string | null
   createdOn: string
 }
 
@@ -380,3 +382,170 @@ export interface QuizAnswerRecord {
   selected?: number | null
   input?: string
 }
+
+// ===== 小テスト =====
+
+/** 教材に紐づく PDF。pageMap=seq: 行の番号 + pageOffset = PDF ページ / none: 手動選択 */
+export type PdfPageMap = 'seq' | 'none'
+export interface BookPdf {
+  id: number
+  bookId: number
+  title: string
+  pageCount: number
+  sizeBytes: number
+  pageMap: PdfPageMap
+  pageOffset: number
+  sortOrder: number
+  createdOn: string | null
+}
+
+/** 出題対象の教材（PDF 紐づけ数付き） */
+export interface QuizBook {
+  id: number
+  type: StudyType
+  title: string
+  subjectName: string | null
+  colorVivid: string
+  pdfCount: number
+  rowCount: number
+}
+
+export type QuizMark = 'o' | 'tri' | 'x'
+export type QuizStatus = 'assigned' | 'submitted' | 'graded'
+
+/** 出題ページ選択用の教材行 */
+export interface QuizRow {
+  id: number
+  chapter: string | null
+  seqNo: string | null
+  title: string | null
+  difficulty: string | null
+  checkFlag: string | null
+  important: boolean
+  recordCount: number
+  lastDate: string | null
+  quizCount: number
+  lastMark: QuizMark | null
+  /** PDF ID → 対応ページ（番号=ページ対応の PDF のみ） */
+  pages: Record<string, number>
+}
+
+export interface QuizSummary {
+  id: number
+  title: string
+  note: string | null
+  dueOn: string | null
+  createdOn: string
+  status: QuizStatus
+  pageCount: number
+  answeredCount: number
+  maxScorePerPage: number
+  maxScore: number
+  score: number | null
+  rate: number | null
+  submittedAt: string | null
+  gradedAt: string | null
+  bookId: number | null
+  bookTitle: string | null
+  createdByName: string | null
+  overdue: boolean
+}
+
+/** 添削注釈（画像ピクセル座標） */
+export type AnnotationShape = 'circle' | 'cross' | 'triangle' | 'check' | 'line' | 'rect'
+export type AnnotationItem =
+  | { id: string; type: 'pen'; color: string; width: number; points: number[] }
+  | { id: string; type: AnnotationShape; color: string; width: number; x1: number; y1: number; x2: number; y2: number }
+  | { id: string; type: 'text'; color: string; size: number; x: number; y: number; text: string }
+export interface AnnotationDoc {
+  version: 1
+  width: number
+  height: number
+  items: AnnotationItem[]
+}
+
+export interface QuizPageDetail {
+  id: number
+  pageNo: number
+  label: string | null
+  pdfId: number | null
+  pdfTitle: string | null
+  pdfPage: number
+  itemId: number | null
+  chapter: string | null
+  seqNo: string | null
+  itemTitle: string | null
+  difficulty: string | null
+  refPdfId: number | null
+  refPdfTitle: string | null
+  refPage: number | null
+  hasAnswer: boolean
+  answerUploadedAt: string | null
+  answerVersion: number | null
+  annotations: AnnotationDoc | null
+  hasAnnotated: boolean
+  annotatedVersion: number | null
+  mark: QuizMark | null
+  score: number | null
+  comment: string | null
+}
+
+export interface QuizDetail extends QuizSummary {
+  pages: QuizPageDetail[]
+}
+
+/** 出題時のページ指定 */
+export interface QuizPageSpec {
+  pdfId: number
+  page: number
+  itemId?: number | null
+  label?: string | null
+  refPdfId?: number | null
+  refPage?: number | null
+}
+
+export interface QuizStatGroup {
+  key: string
+  label: string
+  sub: string | null
+  pages: number
+  o: number
+  tri: number
+  x: number
+  rate: number | null
+  score: number
+  max: number
+}
+export interface QuizWeakItem {
+  itemId: number | null
+  label: string | null
+  chapter: string | null
+  seqNo: string | null
+  title: string | null
+  difficulty: string | null
+  attempts: number
+  lastMark: QuizMark | null
+  lastOn: string | null
+  rate: number | null
+  score: number
+  max: number
+}
+export interface QuizStats {
+  summary: {
+    quizCount: number
+    assignedCount: number
+    submittedCount: number
+    gradedCount: number
+    pageCount: number
+    score: number
+    max: number
+    avgRate: number | null
+    marks: { o: number; tri: number; x: number }
+  }
+  timeline: { id: number; title: string; gradedOn: string | null; score: number; max: number; rate: number | null }[]
+  byChapter: QuizStatGroup[]
+  byMid: QuizStatGroup[]
+  byDifficulty: QuizStatGroup[]
+  weak: QuizWeakItem[]
+}
+

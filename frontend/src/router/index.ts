@@ -18,6 +18,7 @@ const router = createRouter({
         { path: 'vocabulary', name: 'vocabulary', component: () => import('@/views/VocabularyManageView.vue') },
         { path: 'review', name: 'review', component: () => import('@/views/ReviewView.vue') },
         { path: 'flashcard', name: 'flashcard', component: () => import('@/views/FlashcardView.vue') },
+        { path: 'quizzes', name: 'quizzes', component: () => import('@/views/QuizzesView.vue') },
       ],
     },
     // 家庭教師用（tutor ロール）
@@ -37,6 +38,18 @@ const router = createRouter({
           path: 'assignments',
           name: 'tutor-assignments',
           component: () => import('@/views/TutorAssignmentsView.vue'),
+          meta: { tutor: true },
+        },
+        {
+          path: 'quizzes',
+          name: 'tutor-quizzes',
+          component: () => import('@/views/TutorQuizzesView.vue'),
+          meta: { tutor: true },
+        },
+        {
+          path: 'quizzes/:id',
+          name: 'tutor-quiz-grade',
+          component: () => import('@/views/TutorQuizGradeView.vue'),
           meta: { tutor: true },
         },
       ],

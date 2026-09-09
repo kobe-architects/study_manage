@@ -35,6 +35,7 @@ class TutorAccountController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
+            'plain_password' => $data['password'], // 生徒が確認できる表示用（暗号化保存）
             'role' => 'tutor',
             'student_id' => $request->user()->id,
         ]);
@@ -51,6 +52,9 @@ class TutorAccountController extends Controller
             'password' => ['sometimes', 'string', 'min:8'],
         ]);
 
+        if (array_key_exists('password', $data)) {
+            $data['plain_password'] = $data['password'];
+        }
         $tutor->update($data);
 
         // パスワード変更時は既存トークンを失効させる
@@ -81,6 +85,8 @@ class TutorAccountController extends Controller
             'id' => $t->id,
             'name' => $t->name,
             'email' => $t->email,
+            // 表示用パスワード（この機能追加前に作成したアカウントは null。PW再設定で保存される）
+            'password' => $t->plain_password,
             'createdOn' => $t->created_at->toDateString(),
         ];
     }

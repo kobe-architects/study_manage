@@ -74,6 +74,7 @@ const activeKey = computed(() => {
     review: 'quiz',
     flashcard: 'quiz',
     goals: 'goal',
+    quizzes: 'test',
     settings: 'settings',
   }
   return map[route.name as string] ?? 'home'

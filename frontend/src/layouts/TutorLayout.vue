@@ -41,6 +41,7 @@ const NAV_TUTOR = [
   { key: 'home', route: 'tutor-home', label: 'トップページ', icon: ICONS.home },
   { key: 'subjects', route: 'tutor-subjects', label: '科目別学習状況', icon: ICONS.data },
   { key: 'assignment', route: 'tutor-assignments', label: '課題設定', icon: ICONS.record },
+  { key: 'quiz', route: 'tutor-quizzes', label: '小テスト', icon: ICONS.test },
 ]
 
 const activeKey = computed(() => {
@@ -48,6 +49,8 @@ const activeKey = computed(() => {
     'tutor-home': 'home',
     'tutor-subjects': 'subjects',
     'tutor-assignments': 'assignment',
+    'tutor-quizzes': 'quiz',
+    'tutor-quiz-grade': 'quiz',
   }
   return map[route.name as string] ?? 'home'
 })

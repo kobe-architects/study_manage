@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import AuthImage from '@/components/AuthImage.vue'
+import BookPdfManager from '@/components/BookPdfManager.vue'
 import { computeReviewOn, iso, REVIEW_OPTIONS } from '@/lib/design'
 import { openListPrint, type PrintCell, type PrintColumn } from '@/lib/printList'
 import { useResourceStore } from '@/stores/resource'
@@ -115,6 +116,14 @@ async function onDrop(target: ResourceBook) {
 function onDragEnd() {
   dragId.value = null
   dragOverId.value = null
+}
+
+// PDF 紐づけ（小テスト出題元）
+const pdfMgr = reactive({ open: false, bookId: 0, bookTitle: '' })
+function openPdf(b: ResourceBook) {
+  pdfMgr.bookId = b.id
+  pdfMgr.bookTitle = b.title
+  pdfMgr.open = true
 }
 
 // 画像
@@ -684,6 +693,7 @@ async function saveRow() {
           <div class="book-actions">
             <button class="mini" @click.stop="pickImage(b.id)">画像</button>
             <button v-if="b.imageUrl" class="mini" @click.stop="removeImage(b)">画像削除</button>
+            <button class="mini" title="小テスト出題用の PDF を紐づける" @click.stop="openPdf(b)">PDF</button>
             <button class="mini" @click.stop="openEditBook(b)">編集</button>
             <button class="mini danger" @click.stop="delBook(b)">削除</button>
           </div>
@@ -864,6 +874,9 @@ async function saveRow() {
         </div>
       </section>
     </div>
+
+    <!-- PDF 紐づけモーダル -->
+    <BookPdfManager v-if="pdfMgr.open" :book-id="pdfMgr.bookId" :book-title="pdfMgr.bookTitle" @close="pdfMgr.open = false" />
 
     <!-- 教材モーダル -->
     <Teleport to="body">

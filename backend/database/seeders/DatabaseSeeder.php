@@ -57,7 +57,7 @@ class DatabaseSeeder extends Seeder
         // 家庭教師アカウント（デモ）
         User::firstOrCreate(
             ['email' => 'tutor01'],
-            ['name' => '佐藤 先生', 'password' => Hash::make('password'), 'role' => 'tutor', 'student_id' => $user->id]
+            ['name' => '佐藤 先生', 'password' => Hash::make('password'), 'plain_password' => 'password', 'role' => 'tutor', 'student_id' => $user->id]
         );
 
         $this->seedStudy($user);

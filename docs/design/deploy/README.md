@@ -268,3 +268,20 @@ php artisan config:cache && php artisan route:cache
 
 > サーバー上ではコードを直接編集しない（`.env` 除く）。編集はローカル→push→
 > サーバーで pull を徹底すると `git pull` の衝突が起きない。
+
+## 12. 小テスト機能（2026-09-10 追加）の運用メモ
+
+- 依存パッケージが増えている（`setasign/fpdi` / `setasign/fpdf`）。更新時は必ず
+  `php -d memory_limit=-1 ~/www/composer.phar install --no-dev --optimize-autoloader` を実行する。
+- 教材 PDF・出題 PDF・回答写真・添削画像は `backend/storage/app/private/`（Git 管理外）に保存される。
+  - `book-pdfs/{教材ID}/` … 紐づけた PDF 本体と、ページ単位に抽出したキャッシュ（`pages/{pdfID}/pN.pdf`）
+  - `quizzes/{小テストID}/` … 出題 PDF（quiz.pdf）・回答写真（answers/）・添削画像（annotated/）・添削結果 PDF
+- 大容量 PDF を画面からアップロードする場合は 4MB ずつの分割アップロードなので `post_max_size` の影響を受けない。
+  SFTP で置いたファイルを登録する場合は artisan コマンドを使う:
+  ```
+  cd ~/www/study_manage/backend
+  php artisan quiz:register-pdf {教材ID} /path/to/file.pdf --title="例題のみ（例題No.=ページ）" --map=seq --offset=0 --move
+  ```
+  `--map=seq` は「一覧データの番号 + オフセット = PDF ページ」の対応、`--map=none` は手動選択。
+- 教材 ID は `php artisan tinker --execute='print_r(\App\Models\ResourceBook::pluck("title","id")->all());'` で確認できる。
+

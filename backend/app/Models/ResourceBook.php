@@ -37,4 +37,10 @@ class ResourceBook extends Model
     {
         return $this->hasMany(ResourceBookItem::class)->orderBy('sort_order')->orderBy('id');
     }
+
+    /** 小テスト出題元の PDF（複数可） */
+    public function pdfs(): HasMany
+    {
+        return $this->hasMany(ResourceBookPdf::class)->orderBy('sort_order')->orderBy('id');
+    }
 }
