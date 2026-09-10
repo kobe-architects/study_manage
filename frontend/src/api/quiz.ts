@@ -1,5 +1,5 @@
 import client from '@/api/client'
-import type { AnnotationDoc, BookPdf, PdfPageMap, QuizBook, QuizDetail, QuizMark, QuizPageSpec, QuizRow, QuizStats, QuizSummary } from '@/types'
+import type { AnnotationDoc, BookPdf, PdfPageMap, QuizBook, QuizDetail, QuizMark, QuizPageSpec, QuizRow, QuizStats, QuizSummary, StudyResource, Vocabulary } from '@/types'
 
 /** API プレフィックス。家庭教師ログイン時は /tutor 配下の生徒スコープ API を使う */
 function p(): string {
@@ -29,6 +29,16 @@ export async function downloadFile(url: string, filename: string): Promise<void>
   a.click()
   a.remove()
   setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+}
+
+function toForm(payload: object, renders: Record<number, { question: Blob; answer: Blob }>): FormData {
+  const fd = new FormData()
+  fd.append('payload', JSON.stringify(payload))
+  for (const [idx, r] of Object.entries(renders)) {
+    fd.append(`renders[${idx}]`, r.question, `q${idx}.jpg`)
+    fd.append(`answerRenders[${idx}]`, r.answer, `a${idx}.jpg`)
+  }
+  return fd
 }
 
 export const quizApi = {
@@ -93,23 +103,46 @@ export const quizApi = {
     return data.data
   },
 
-  async create(payload: {
-    title: string | null
-    note: string | null
-    dueOn: string | null
-    maxScore: number
-    bookId: number
-    pages: QuizPageSpec[]
-  }): Promise<number> {
-    const { data } = await client.post(`${p()}/quizzes`, payload)
+  /** 担当生徒の単語帳一覧（英単語テスト出題用） */
+  async resources(): Promise<StudyResource[]> {
+    const { data } = await client.get(`${p()}/study-resources`)
+    return data.data
+  },
+
+  async vocabularies(resourceId: number): Promise<Vocabulary[]> {
+    const { data } = await client.get(`${p()}/study-resources/${resourceId}/vocabularies`)
+    return data.data
+  },
+
+  /**
+   * 出題。英単語テストのページがある場合は問題用紙／解答用紙の画像を multipart で同送する
+   * （renders[index] / answerRenders[index]、index は pages 配列の位置）。
+   */
+  async create(
+    payload: { title: string | null; note: string | null; dueOn: string | null; maxScore: number; bookId: number | null; pages: QuizPageSpec[] },
+    renders: Record<number, { question: Blob; answer: Blob }> = {},
+  ): Promise<number> {
+    const { data } = await client.post(`${p()}/quizzes`, toForm(payload, renders))
     return data.data.id
   },
 
   async update(
     id: number,
     payload: { title?: string | null; note?: string | null; dueOn?: string | null; maxScore?: number; pages?: QuizPageSpec[] },
+    renders: Record<number, { question: Blob; answer: Blob }> = {},
   ): Promise<void> {
-    await client.put(`${p()}/quizzes/${id}`, payload)
+    // multipart は PUT で解析されないため POST + _method
+    const fd = toForm(payload, renders)
+    fd.append('_method', 'PUT')
+    await client.post(`${p()}/quizzes/${id}`, fd)
+  },
+
+  downloadAnswersPdf(id: number, title: string): Promise<void> {
+    return downloadFile(`${p()}/quizzes/${id}/answers-pdf`, `${title}_解答.pdf`)
+  },
+
+  renderImageUrl(quizId: number, pageId: number): string {
+    return `${p()}/quizzes/${quizId}/pages/${pageId}/render-image`
   },
 
   async remove(id: number): Promise<void> {

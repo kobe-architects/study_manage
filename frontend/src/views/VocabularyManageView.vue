@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import VocabResourceSwitch from '@/components/VocabResourceSwitch.vue'
 import client from '@/api/client'
 import AuthImage from '@/components/AuthImage.vue'
 import { speak } from '@/lib/design'
@@ -299,7 +300,10 @@ async function deleteAll() {
 <template>
   <div>
     <div class="row-between" style="margin-bottom: 14px">
-      <div style="font-size: 16px; font-weight: 700">単語帳管理 <span style="font-size: 12px; color: var(--faint); font-weight: 400">{{ vocab.resource?.name }}</span></div>
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+        <div style="font-size: 16px; font-weight: 700">単語帳管理</div>
+        <VocabResourceSwitch @change="resetPage()" />
+      </div>
       <button class="link-btn" @click="router.push({ name: 'quiz' })">クイズへ</button>
     </div>
 

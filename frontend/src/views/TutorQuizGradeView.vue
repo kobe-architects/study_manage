@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AnnotationEditor from '@/components/AnnotationEditor.vue'
+import AuthImage from '@/components/AuthImage.vue'
 import PdfThumb from '@/components/PdfThumb.vue'
 import { MARK_COLOR, MARK_LABEL, fetchBlobUrl, quizApi, scoreForMark } from '@/api/quiz'
 import { useUiStore } from '@/stores/ui'
@@ -25,6 +26,8 @@ const saving = ref(false)
 const dirty = ref(false)
 const answerUrl = ref<string | null>(null)
 const refMode = ref<'question' | 'answer'>('question')
+/** 英単語テストの解答一覧（採点用） */
+const vocabAnswers = computed(() => page.value?.kind === 'vocab' ? page.value.vocabWords ?? [] : [])
 
 const form = reactive<{ mark: QuizMark | null; score: number | null; comment: string; saving: boolean }>({ mark: null, score: null, comment: '', saving: false })
 
@@ -104,7 +107,17 @@ async function onSave(doc: AnnotationDoc, blob: Blob) {
 }
 
 // ---- 採点 ----
-const max = computed(() => quiz.value?.maxScorePerPage ?? 10)
+const max = computed(() => page.value?.maxScore ?? quiz.value?.maxScorePerPage ?? 10)
+const hasVocab = computed(() => quiz.value?.pages.some((p) => p.kind === 'vocab') ?? false)
+const sheetOpen = ref(false)
+async function downloadAnswers() {
+  if (!quiz.value) return
+  try {
+    await quizApi.downloadAnswersPdf(quiz.value.id, quiz.value.title)
+  } catch {
+    ui.notify('ダウンロードに失敗しました')
+  }
+}
 function setMark(m: QuizMark) {
   form.mark = form.mark === m ? null : m
   form.score = form.mark ? scoreForMark(form.mark, max.value) : null
@@ -185,6 +198,7 @@ async function downloadResult() {
       </div>
       <span class="chip" :class="quiz.status">{{ quiz.status === 'graded' ? '添削済み' : quiz.status === 'submitted' ? '添削待ち' : '未提出' }}</span>
       <div class="total">採点 {{ gradedCount }}/{{ quiz.pageCount }}・<b>{{ total }}</b> / {{ quiz.maxScore }}点</div>
+      <button v-if="hasVocab" class="btn" @click="downloadAnswers">英単語 解答PDF</button>
       <button v-if="quiz.status === 'graded'" class="btn" @click="downloadResult">添削済みPDF</button>
       <button v-if="quiz.status === 'graded'" class="btn" @click="reopen">やり直す</button>
       <button v-else class="btn primary" :disabled="quiz.status === 'assigned'" @click="finish">添削を完了</button>
@@ -203,6 +217,7 @@ async function downloadResult() {
       <div class="main">
         <div class="label-bar">
           <b>{{ page.pageNo }}. {{ page.label }}</b>
+          <span v-if="page.kind === 'vocab'" class="vtag">英単語テスト・満点 {{ page.maxScore }}点</span>
           <span v-if="page.chapter">{{ page.chapter }}</span>
           <span v-if="page.difficulty" style="color: #d98a1a">{{ page.difficulty }}</span>
           <span v-if="page.answerUploadedAt" style="margin-left: auto">撮影 {{ page.answerUploadedAt.slice(0, 16).replace(/-/g, '/') }}</span>
@@ -222,7 +237,24 @@ async function downloadResult() {
       </div>
 
       <aside class="side">
-        <div class="card ref">
+        <div v-if="page.kind === 'vocab'" class="card ref">
+          <div class="ref-head">
+            <div style="font-size: 12.5px; font-weight: 700">解答一覧（{{ vocabAnswers.length }}問）</div>
+            <button class="btn" style="padding: 5px 10px; font-size: 11.5px" @click="sheetOpen = true">問題用紙を見る</button>
+          </div>
+          <div class="ref-body">
+            <table class="ans">
+              <tbody>
+                <tr v-for="(w, i) in vocabAnswers" :key="w.id">
+                  <td class="n">{{ i + 1 }}</td>
+                  <td class="q">{{ w.question }}</td>
+                  <td class="a">{{ w.answer }}<span v-if="w.choices?.length" class="ch">（{{ 'ABCD'[w.choices.indexOf(w.answer)] ?? '?' }}）</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div v-else class="card ref">
           <div class="ref-head">
             <div class="seg">
               <button :class="{ on: refMode === 'question' }" @click="refMode = 'question'">問題ページ</button>
@@ -234,7 +266,7 @@ async function downloadResult() {
           </div>
           <div class="ref-body">
             <PdfThumb v-if="refMode === 'answer' && page.refPdfId && page.refPage" :key="'r' + page.id" :pdf-id="page.refPdfId" :page="page.refPage" :width="520" eager />
-            <PdfThumb v-else-if="page.pdfId" :key="'q' + page.id" :pdf-id="page.pdfId" :page="page.pdfPage" :width="520" eager />
+            <PdfThumb v-else-if="page.pdfId" :key="'q' + page.id" :pdf-id="page.pdfId" :page="page.pdfPage ?? 1" :width="520" eager />
           </div>
         </div>
 
@@ -262,6 +294,12 @@ async function downloadResult() {
     </div>
   </div>
   <div v-else class="empty">読み込み中…</div>
+  <div v-if="sheetOpen && quiz && page" class="sheet-overlay" @click="sheetOpen = false">
+    <div class="sheet-modal" @click.stop>
+      <button class="sheet-x" @click="sheetOpen = false">×</button>
+      <AuthImage :src="quizApi.renderImageUrl(quiz.id, page.id)" />
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -531,5 +569,78 @@ textarea {
   justify-content: space-between;
   gap: 8px;
   margin-top: 10px;
+}
+.vtag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2f7a4f;
+  background: #e6f5ec;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.ans {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.ans td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #f1f2f4;
+  vertical-align: top;
+}
+.ans .n {
+  width: 26px;
+  color: var(--faint);
+  text-align: right;
+}
+.ans .q {
+  color: var(--mut);
+  width: 42%;
+}
+.ans .a {
+  font-weight: 700;
+}
+.ans .ch {
+  color: #2e4a8f;
+  font-weight: 600;
+  margin-left: 4px;
+}
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 24, 32, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 70;
+  padding: 16px;
+}
+.sheet-modal {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  max-width: 900px;
+  width: 100%;
+  max-height: 94vh;
+  overflow: auto;
+  padding: 10px;
+}
+.sheet-modal :deep(img) {
+  width: 100%;
+  display: block;
+}
+.sheet-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #1c2024;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 1;
 }
 </style>

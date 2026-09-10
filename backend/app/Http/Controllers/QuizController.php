@@ -8,6 +8,7 @@ use App\Models\ResourceBook;
 use App\Models\ResourceBookItem;
 use App\Models\ResourceBookPdf;
 use App\Models\StudyRecord;
+use App\Models\StudyResource;
 use App\Support\ImageTools;
 use App\Support\PdfTools;
 use Carbon\Carbon;
@@ -15,18 +16,26 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 
 /**
  * 小テスト。
- *   講師(tutor): 出題（教材の PDF からページを選んで出題 PDF を生成）・添削・採点
+ *   講師(tutor): 出題（教材の PDF ページ / 英単語テストを組み合わせて出題 PDF を生成）・添削・採点
  *   生徒(owner): 出題 PDF のダウンロード・回答写真の提出・結果閲覧
  *   両方: 一覧・詳細・分析
  * targetUserId により生徒スコープで動作する（公開ルートは routes/api.php で制限）。
+ *
+ * 英単語テストのページは、画面側（講師のブラウザ）で描画した問題用紙画像・解答用紙画像を
+ * multipart（payload=JSON, renders[i], answerRenders[i]）で受け取り、出題 PDF に画像として組み込む。
  */
 class QuizController extends Controller
 {
+    public const VOCAB_TEST_TYPES = ['meaning', 'spelling', 'fill_spelling'];
+
+    public const VOCAB_TEST_FORMATS = ['free', 'choice'];
+
     // ====================== 出題用データ（講師） ======================
 
     /** 教材一覧（PDF 紐づけ数付き）。pdfCount > 0 の教材が出題可能 */
@@ -136,30 +145,34 @@ class QuizController extends Controller
         $quiz->loadCount(['pages', 'pages as answered_count' => fn ($q) => $q->whereNotNull('answer_path')]);
 
         $data = $this->summary($quiz, $this->scoreSums([$quiz->id])->get($quiz->id), Carbon::today());
-        $data['pages'] = $quiz->pages->map(fn (QuizPage $p) => $this->pagePayload($p))->values();
+        // 解答（英単語テスト）は講師、または添削済みの場合のみ返す
+        $withAnswers = $request->user()->isTutor() || $quiz->status === Quiz::STATUS_GRADED;
+        $data['pages'] = $quiz->pages->map(fn (QuizPage $p) => $this->pagePayload($p, $quiz, $withAnswers))->values();
 
         return response()->json(['data' => $data]);
     }
 
-    /** 出題（tutor）: ページ指定から小テストを作成し、選択ページのみの PDF を生成する */
+    /** 出題（tutor）: ページ指定から小テストを作成し、出題 PDF を生成する */
     public function store(Request $request): JsonResponse
     {
         $userId = $this->targetUserId($request);
-        $data = $request->validate($this->rules(true));
-        $book = ResourceBook::where('user_id', $userId)->findOrFail($data['bookId']);
+        $data = $this->validatePayload($request, true);
+        // 教材は任意（英単語テストのみの小テストは教材なし）
+        $book = ! empty($data['bookId']) ? ResourceBook::where('user_id', $userId)->findOrFail($data['bookId']) : null;
         $pages = $this->normalizePages($data['pages'], $userId);
+        $this->requireRenders($request, $pages);
 
         $quiz = DB::transaction(function () use ($request, $userId, $data, $book, $pages) {
             $quiz = Quiz::create([
                 'user_id' => $userId,
                 'created_by' => $request->user()->id,
-                'resource_book_id' => $book->id,
+                'resource_book_id' => $book?->id,
                 'title' => $this->titleOf($data['title'] ?? null, $book),
                 'note' => $data['note'] ?? null,
                 'due_on' => $data['dueOn'] ?? null,
                 'max_score_per_page' => $data['maxScore'] ?? 10,
             ]);
-            $this->createPages($quiz, $pages);
+            $this->createPages($quiz, $pages, $request);
 
             return $quiz;
         });
@@ -171,7 +184,7 @@ class QuizController extends Controller
     public function update(Request $request, Quiz $quiz): JsonResponse
     {
         $this->authorizeQuiz($request, $quiz);
-        $data = $request->validate($this->rules(false));
+        $data = $this->validatePayload($request, false);
 
         $payload = [];
         if (array_key_exists('title', $data)) {
@@ -193,9 +206,11 @@ class QuizController extends Controller
         if (array_key_exists('pages', $data)) {
             abort_unless($quiz->status === Quiz::STATUS_ASSIGNED, 422, '提出後は出題ページを変更できません。');
             $pages = $this->normalizePages($data['pages'], $quiz->user_id);
-            DB::transaction(function () use ($quiz, $pages) {
+            $this->requireRenders($request, $pages);
+            DB::transaction(function () use ($quiz, $pages, $request) {
+                Storage::disk('local')->deleteDirectory($quiz->dir().'/vocab');
                 $quiz->pages()->delete();
-                $this->createPages($quiz, $pages);
+                $this->createPages($quiz, $pages, $request);
             });
             $this->generatePdf($quiz);
         }
@@ -213,7 +228,7 @@ class QuizController extends Controller
 
     // ====================== ファイル ======================
 
-    /** 出題 PDF（選択ページのみ） */
+    /** 出題 PDF（教材ページ + 英単語テスト） */
     public function download(Request $request, Quiz $quiz): BinaryFileResponse
     {
         $this->authorizeQuiz($request, $quiz);
@@ -224,6 +239,27 @@ class QuizController extends Controller
         return response()->file($abs, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => HeaderUtils::makeDisposition('attachment', $this->safeName($quiz->title).'.pdf', 'quiz-'.$quiz->id.'.pdf'),
+        ]);
+    }
+
+    /** 英単語テストの解答 PDF（講師用） */
+    public function answersPdf(Request $request, Quiz $quiz): BinaryFileResponse
+    {
+        $this->authorizeQuiz($request, $quiz);
+        $disk = Storage::disk('local');
+        $images = [];
+        foreach ($quiz->pages()->get() as $p) {
+            if ($p->answer_render_path && $disk->exists($p->answer_render_path)) {
+                $images[] = ['path' => $disk->path($p->answer_render_path), 'header' => "Page {$p->page_no}  (answer key)"];
+            }
+        }
+        abort_if($images === [], 404, '英単語テストのページがありません。');
+        $rel = $quiz->dir().'/answers.pdf';
+        PdfTools::imagesToPdf($images, $disk->path($rel));
+
+        return response()->file($disk->path($rel), [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => HeaderUtils::makeDisposition('attachment', $this->safeName($quiz->title).'_解答.pdf', 'quiz-'.$quiz->id.'-answers.pdf'),
         ]);
     }
 
@@ -246,11 +282,12 @@ class QuizController extends Controller
                 'x' => 'X',
                 default => '-',
             };
-            $scoreText = $p->score !== null ? $p->score.'/'.$quiz->max_score_per_page : '-';
+            $scoreText = $p->score !== null ? $p->score.'/'.$p->maxScore($quiz) : '-';
             $no = $p->item?->seq_no !== null && preg_match('/^[0-9A-Za-z.\-]+$/', (string) $p->item->seq_no) ? '  No.'.$p->item->seq_no : '';
+            $kind = $p->isVocab() ? '  (vocabulary test)' : '';
             $images[] = [
                 'path' => $disk->path($rel),
-                'header' => "Page {$p->page_no}/{$n}{$no}   Mark: {$markText}   Score: {$scoreText}",
+                'header' => "Page {$p->page_no}/{$n}{$no}{$kind}   Mark: {$markText}   Score: {$scoreText}",
             ];
         }
         abort_if($images === [], 404, '回答画像がありません。');
@@ -276,6 +313,14 @@ class QuizController extends Controller
         $this->authorizePage($request, $quiz, $page);
 
         return $this->imageResponse($page->annotated_path);
+    }
+
+    /** 英単語テストの問題用紙画像 */
+    public function renderImage(Request $request, Quiz $quiz, QuizPage $page): BinaryFileResponse
+    {
+        $this->authorizePage($request, $quiz, $page);
+
+        return $this->imageResponse($page->render_path);
     }
 
     // ====================== 生徒: 提出 ======================
@@ -309,7 +354,7 @@ class QuizController extends Controller
             'comment' => null,
         ]);
 
-        return response()->json(['data' => $this->pagePayload($page->fresh(['pdf', 'refPdf', 'item']))]);
+        return response()->json(['data' => $this->pagePayload($page->fresh(['pdf', 'refPdf', 'item']), $quiz, false)]);
     }
 
     /** 全ページ撮影済みで提出（status: submitted） */
@@ -355,14 +400,14 @@ class QuizController extends Controller
         }
         $page->update($payload);
 
-        return response()->json(['data' => $this->pagePayload($page->fresh(['pdf', 'refPdf', 'item']))]);
+        return response()->json(['data' => $this->pagePayload($page->fresh(['pdf', 'refPdf', 'item']), $quiz, true)]);
     }
 
     /** 採点（○△× / 点数 / コメント）。点数省略時は ○=満点 △=半分 ×=0 */
     public function grade(Request $request, Quiz $quiz, QuizPage $page): JsonResponse
     {
         $this->authorizePage($request, $quiz, $page);
-        $max = $quiz->max_score_per_page;
+        $max = $page->maxScore($quiz);
         $data = $request->validate([
             'mark' => ['nullable', 'in:o,tri,x'],
             'score' => ['nullable', 'integer', 'min:0', 'max:'.$max],
@@ -379,7 +424,7 @@ class QuizController extends Controller
         }
         $page->update(['mark' => $data['mark'] ?? null, 'score' => $score, 'comment' => $data['comment'] ?? null]);
 
-        return response()->json(['data' => $this->pagePayload($page->fresh(['pdf', 'refPdf', 'item']))]);
+        return response()->json(['data' => $this->pagePayload($page->fresh(['pdf', 'refPdf', 'item']), $quiz, true)]);
     }
 
     /** 添削完了（全ページ採点済みで status: graded） */
@@ -414,7 +459,7 @@ class QuizController extends Controller
         $graded = $all->where('status', Quiz::STATUS_GRADED)
             ->sortBy(fn (Quiz $q) => ($q->graded_at?->timestamp ?? 0) * 100000 + $q->id)
             ->values();
-        $maxById = $graded->pluck('max_score_per_page', 'id');
+        $defaultMax = $graded->pluck('max_score_per_page', 'id');
         $order = $graded->pluck('id')->flip();
 
         $pages = QuizPage::with(['item.studyItem.mid.major.subject', 'item.book:id,title'])
@@ -423,13 +468,14 @@ class QuizController extends Controller
             ->get()
             ->sortBy(fn (QuizPage $p) => ($order[$p->quiz_id] ?? 0) * 1000 + $p->page_no)
             ->values();
+        $maxOf = fn (QuizPage $p) => (int) ($p->max_score ?? $defaultMax[$p->quiz_id]);
 
         $sum = 0;
         $max = 0;
         $marks = ['o' => 0, 'tri' => 0, 'x' => 0];
         $perQuiz = [];
         foreach ($pages as $p) {
-            $m = (int) $maxById[$p->quiz_id];
+            $m = $maxOf($p);
             $sum += $p->score;
             $max += $m;
             if ($p->mark && isset($marks[$p->mark])) {
@@ -453,7 +499,7 @@ class QuizController extends Controller
             ];
         })->values();
 
-        $group = function (callable $keyFn) use ($pages, $maxById) {
+        $group = function (callable $keyFn) use ($pages, $maxOf) {
             $g = [];
             foreach ($pages as $p) {
                 $k = $keyFn($p);
@@ -464,7 +510,7 @@ class QuizController extends Controller
                 $g[$key] ??= ['key' => $key, 'label' => $label, 'sub' => $sub, 'pages' => 0, 's' => 0, 'm' => 0, 'o' => 0, 'tri' => 0, 'x' => 0];
                 $g[$key]['pages']++;
                 $g[$key]['s'] += $p->score;
-                $g[$key]['m'] += (int) $maxById[$p->quiz_id];
+                $g[$key]['m'] += $maxOf($p);
                 if ($p->mark && isset($g[$key][$p->mark])) {
                     $g[$key][$p->mark]++;
                 }
@@ -481,6 +527,11 @@ class QuizController extends Controller
         };
 
         $byChapter = $group(function (QuizPage $p) {
+            if ($p->isVocab()) {
+                $spec = $p->vocab_spec ?? [];
+
+                return ['vocab:'.($spec['resourceId'] ?? 0), '英単語テスト', $spec['resourceName'] ?? null];
+            }
             $i = $p->item;
             if (! $i || ! $i->chapter) {
                 return null;
@@ -506,9 +557,12 @@ class QuizController extends Controller
             return ['d:'.$d, $d, null];
         })->sortBy(fn (array $x) => mb_strlen($x['label']))->values();
 
-        // 弱点: 例題ごとの得点率が 60% 未満、または最新の判定が × / △
+        // 弱点: 例題ごとの得点率が 60% 未満、または最新の判定が × / △（英単語テストは除く）
         $items = [];
         foreach ($pages as $p) {
+            if ($p->isVocab()) {
+                continue;
+            }
             $key = $p->resource_book_item_id ? 'i:'.$p->resource_book_item_id : 'l:'.$p->label;
             $items[$key] ??= [
                 'itemId' => $p->resource_book_item_id,
@@ -521,7 +575,7 @@ class QuizController extends Controller
             ];
             $items[$key]['attempts']++;
             $items[$key]['s'] += $p->score;
-            $items[$key]['m'] += (int) $maxById[$p->quiz_id];
+            $items[$key]['m'] += $maxOf($p);
             $items[$key]['lastMark'] = $p->mark;
             $items[$key]['lastOn'] = $graded->firstWhere('id', $p->quiz_id)?->graded_at?->toDateString();
         }
@@ -561,24 +615,42 @@ class QuizController extends Controller
 
     // ====================== 内部処理 ======================
 
-    private function rules(bool $create): array
+    /**
+     * JSON または multipart（payload=JSON 文字列 + renders[i] / answerRenders[i]）を受け取り検証する。
+     */
+    private function validatePayload(Request $request, bool $create): array
     {
+        $input = $request->has('payload') ? json_decode((string) $request->input('payload'), true) : $request->all();
+        abort_if(! is_array($input), 422, '入力データが不正です。');
         $req = $create ? 'required' : 'sometimes';
 
-        return [
+        return Validator::make($input, [
             'title' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string', 'max:2000'],
             'dueOn' => ['nullable', 'date'],
             'maxScore' => ['nullable', 'integer', 'min:1', 'max:1000'],
-            'bookId' => [$req, 'integer'],
+            'bookId' => ['nullable', 'integer'],
             'pages' => [$req, 'array', 'min:1', 'max:50'],
-            'pages.*.pdfId' => ['required', 'integer'],
-            'pages.*.page' => ['required', 'integer', 'min:1'],
+            'pages.*.kind' => ['nullable', 'in:pdf,vocab'],
+            'pages.*.pdfId' => ['nullable', 'integer'],
+            'pages.*.page' => ['nullable', 'integer', 'min:1'],
             'pages.*.itemId' => ['nullable', 'integer'],
             'pages.*.label' => ['nullable', 'string', 'max:255'],
             'pages.*.refPdfId' => ['nullable', 'integer'],
             'pages.*.refPage' => ['nullable', 'integer', 'min:1'],
-        ];
+            'pages.*.vocab' => ['nullable', 'array'],
+            'pages.*.vocab.resourceId' => ['required_with:pages.*.vocab', 'integer'],
+            'pages.*.vocab.testType' => ['required_with:pages.*.vocab', 'in:meaning,spelling,fill_spelling'],
+            'pages.*.vocab.testFormat' => ['required_with:pages.*.vocab', 'in:free,choice'],
+            'pages.*.vocab.sectionNames' => ['nullable', 'array'],
+            'pages.*.vocab.words' => ['required_with:pages.*.vocab', 'array', 'min:1', 'max:60'],
+            'pages.*.vocab.words.*.id' => ['required', 'integer'],
+            'pages.*.vocab.words.*.question' => ['required', 'string', 'max:1000'],
+            'pages.*.vocab.words.*.answer' => ['required', 'string', 'max:1000'],
+            'pages.*.vocab.words.*.choices' => ['nullable', 'array', 'max:4'],
+            'pages.*.vocab.words.*.choices.*' => ['string', 'max:500'],
+            'pages.*.vocab.words.*.extra' => ['nullable', 'string', 'max:1000'],
+        ])->validate();
     }
 
     private function titleOf(?string $title, ?ResourceBook $book): string
@@ -589,10 +661,10 @@ class QuizController extends Controller
         }
         $now = now();
 
-        return ($book?->title ?? '').' 小テスト '.$now->format('n').'月'.$now->format('j').'日';
+        return ($book ? $book->title.' ' : '').'小テスト '.$now->format('n').'月'.$now->format('j').'日';
     }
 
-    /** ページ指定を検証（生徒の教材に属する PDF / 行のみ許可し、ページ範囲を確認） */
+    /** ページ指定を検証（生徒の教材に属する PDF / 行 / 単語帳のみ許可し、ページ範囲を確認） */
     private function normalizePages(array $pages, int $userId): array
     {
         $pdfs = ResourceBookPdf::whereHas('book', fn ($q) => $q->where('user_id', $userId))->get()->keyBy('id');
@@ -600,12 +672,52 @@ class QuizController extends Controller
         $items = $itemIds === []
             ? collect()
             : ResourceBookItem::whereIn('id', $itemIds)->whereHas('book', fn ($q) => $q->where('user_id', $userId))->get()->keyBy('id');
+        $resources = StudyResource::where('user_id', $userId)->get()->keyBy('id');
 
         $out = [];
         foreach (array_values($pages) as $i => $p) {
-            $pdf = $pdfs->get((int) $p['pdfId']);
+            $kind = $p['kind'] ?? (isset($p['vocab']) ? QuizPage::KIND_VOCAB : QuizPage::KIND_PDF);
+
+            if ($kind === QuizPage::KIND_VOCAB) {
+                $v = $p['vocab'] ?? null;
+                abort_if(! is_array($v), 422, '英単語テストの設定がありません。');
+                $resource = $resources->get((int) $v['resourceId']);
+                abort_if($resource === null, 422, '単語帳が見つかりません。');
+                $words = array_values(array_map(fn ($w) => [
+                    'id' => (int) $w['id'],
+                    'question' => (string) $w['question'],
+                    'answer' => (string) $w['answer'],
+                    'choices' => array_values(array_map('strval', $w['choices'] ?? [])),
+                    'extra' => isset($w['extra']) ? (string) $w['extra'] : null,
+                ], $v['words']));
+                $label = trim((string) ($p['label'] ?? '')) ?: '英単語テスト（'.$resource->name.'・'.count($words).'問）';
+                $out[] = [
+                    'index' => $i,
+                    'page_no' => $i + 1,
+                    'kind' => QuizPage::KIND_VOCAB,
+                    'resource_book_pdf_id' => null,
+                    'pdf_page' => null,
+                    'resource_book_item_id' => null,
+                    'label' => mb_substr($label, 0, 255),
+                    'vocab_spec' => [
+                        'resourceId' => $resource->id,
+                        'resourceName' => $resource->name,
+                        'sectionNames' => array_values(array_map('strval', $v['sectionNames'] ?? [])),
+                        'testType' => $v['testType'],
+                        'testFormat' => $v['testFormat'],
+                        'count' => count($words),
+                    ],
+                    'vocab_words' => $words,
+                    'max_score' => count($words),
+                ];
+
+                continue;
+            }
+
+            $pdf = ! empty($p['pdfId']) ? $pdfs->get((int) $p['pdfId']) : null;
             abort_if($pdf === null, 422, 'PDF が見つかりません。');
-            abort_if((int) $p['page'] > $pdf->page_count, 422, "ページ番号が範囲外です（{$pdf->title} p.{$p['page']}）。");
+            $pageNo = (int) ($p['page'] ?? 0);
+            abort_if($pageNo < 1 || $pageNo > $pdf->page_count, 422, "ページ番号が範囲外です（{$pdf->title} p.{$pageNo}）。");
             $refPdf = ! empty($p['refPdfId']) ? $pdfs->get((int) $p['refPdfId']) : null;
             $item = ! empty($p['itemId']) ? $items->get((int) $p['itemId']) : null;
 
@@ -613,13 +725,15 @@ class QuizController extends Controller
             if ($label === '') {
                 $label = $item
                     ? trim(($item->seq_no !== null && $item->seq_no !== '' ? 'No.'.$item->seq_no.' ' : '').(string) $item->title)
-                    : $pdf->title.' p.'.$p['page'];
+                    : $pdf->title.' p.'.$pageNo;
             }
 
             $out[] = [
+                'index' => $i,
                 'page_no' => $i + 1,
+                'kind' => QuizPage::KIND_PDF,
                 'resource_book_pdf_id' => $pdf->id,
-                'pdf_page' => (int) $p['page'],
+                'pdf_page' => $pageNo,
                 'resource_book_item_id' => $item?->id,
                 'label' => mb_substr($label, 0, 255),
                 'ref_pdf_id' => $refPdf?->id,
@@ -630,36 +744,68 @@ class QuizController extends Controller
         return $out;
     }
 
-    private function createPages(Quiz $quiz, array $pages): void
+    /** 英単語テストのページには問題用紙画像（renders[index]）が必要 */
+    private function requireRenders(Request $request, array $pages): void
     {
         foreach ($pages as $p) {
-            $quiz->pages()->create($p);
+            if ($p['kind'] === QuizPage::KIND_VOCAB) {
+                abort_unless($request->hasFile('renders.'.$p['index']), 422, '英単語テストの問題用紙画像がありません（ページ '.$p['page_no'].'）。');
+            }
         }
     }
 
-    /** 選択ページのみを抽出した出題 PDF を生成する */
+    private function createPages(Quiz $quiz, array $pages, Request $request): void
+    {
+        $disk = Storage::disk('local');
+        foreach ($pages as $p) {
+            $index = $p['index'];
+            unset($p['index']);
+            $page = $quiz->pages()->create($p);
+            if ($page->isVocab()) {
+                $rel = $quiz->dir().'/vocab/p'.$page->page_no.'.jpg';
+                $disk->put($rel, ImageTools::normalizeJpeg((string) file_get_contents($request->file('renders.'.$index)->getRealPath()), 2500, 90));
+                $payload = ['render_path' => $rel];
+                if ($request->hasFile('answerRenders.'.$index)) {
+                    $arel = $quiz->dir().'/vocab/p'.$page->page_no.'-answer.jpg';
+                    $disk->put($arel, ImageTools::normalizeJpeg((string) file_get_contents($request->file('answerRenders.'.$index)->getRealPath()), 2500, 90));
+                    $payload['answer_render_path'] = $arel;
+                }
+                $page->update($payload);
+            }
+        }
+    }
+
+    /** 出題 PDF を生成する（教材ページは抽出、英単語テストは画像を A4 に配置） */
     private function generatePdf(Quiz $quiz): void
     {
+        $disk = Storage::disk('local');
         $sources = [];
         foreach ($quiz->pages()->with('pdf')->get() as $p) {
-            abort_if($p->pdf === null, 422, 'PDF が見つかりません。');
-            $sources[] = ['path' => $p->pdf->absolutePath(), 'page' => $p->pdf_page];
+            if ($p->isVocab()) {
+                abort_if($p->render_path === null, 422, '英単語テストの問題用紙がありません。');
+                $sources[] = ['image' => $disk->path($p->render_path)];
+            } else {
+                abort_if($p->pdf === null, 422, 'PDF が見つかりません。');
+                $sources[] = ['path' => $p->pdf->absolutePath(), 'page' => $p->pdf_page];
+            }
         }
         $rel = $quiz->dir().'/quiz.pdf';
-        PdfTools::extractPages($sources, Storage::disk('local')->path($rel));
+        PdfTools::extractPages($sources, $disk->path($rel));
         $quiz->update(['file_path' => $rel]);
     }
 
-    /** 小テストごとの採点合計（SUM(score), COUNT(score)） */
+    /** 小テストごとの採点合計（SUM(score), COUNT(score), 満点合計） */
     private function scoreSums(array $quizIds)
     {
         if ($quizIds === []) {
             return collect();
         }
 
-        return QuizPage::whereIn('quiz_id', $quizIds)
-            ->selectRaw('quiz_id, SUM(score) as s, COUNT(score) as n')
-            ->groupBy('quiz_id')
+        return QuizPage::query()
+            ->join('quizzes', 'quizzes.id', '=', 'quiz_pages.quiz_id')
+            ->whereIn('quiz_pages.quiz_id', $quizIds)
+            ->selectRaw('quiz_pages.quiz_id, SUM(quiz_pages.score) as s, COUNT(quiz_pages.score) as n, SUM(COALESCE(quiz_pages.max_score, quizzes.max_score_per_page)) as max_total')
+            ->groupBy('quiz_pages.quiz_id')
             ->get()
             ->keyBy('quiz_id');
     }
@@ -668,7 +814,7 @@ class QuizController extends Controller
     {
         $pageCount = (int) ($q->pages_count ?? 0);
         $answered = (int) ($q->answered_count ?? 0);
-        $max = $pageCount * $q->max_score_per_page;
+        $max = $score !== null ? (int) $score->max_total : $pageCount * $q->max_score_per_page;
         $sum = $score !== null && (int) $score->n > 0 ? (int) $score->s : null;
         $graded = $q->status === Quiz::STATUS_GRADED;
 
@@ -694,13 +840,14 @@ class QuizController extends Controller
         ];
     }
 
-    private function pagePayload(QuizPage $p): array
+    private function pagePayload(QuizPage $p, Quiz $quiz, bool $withAnswers): array
     {
         $item = $p->item;
 
         return [
             'id' => $p->id,
             'pageNo' => $p->page_no,
+            'kind' => $p->kind,
             'label' => $p->label,
             'pdfId' => $p->resource_book_pdf_id,
             'pdfTitle' => $p->pdf?->title,
@@ -713,6 +860,9 @@ class QuizController extends Controller
             'refPdfId' => $p->ref_pdf_id,
             'refPdfTitle' => $p->refPdf?->title,
             'refPage' => $p->ref_page,
+            'vocabSpec' => $p->vocab_spec,
+            'vocabWords' => $withAnswers ? $p->vocab_words : null,
+            'hasRender' => $p->render_path !== null,
             'hasAnswer' => $p->answer_path !== null,
             'answerUploadedAt' => $p->answer_uploaded_at?->toDateTimeString(),
             'answerVersion' => $p->answer_uploaded_at?->timestamp,
@@ -721,6 +871,7 @@ class QuizController extends Controller
             'annotatedVersion' => $p->updated_at?->timestamp,
             'mark' => $p->mark,
             'score' => $p->score,
+            'maxScore' => $p->maxScore($quiz),
             'comment' => $p->comment,
         ];
     }

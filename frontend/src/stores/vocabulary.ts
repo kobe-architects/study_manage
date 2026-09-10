@@ -10,8 +10,11 @@ import type {
   VocabularyStats,
 } from '@/types'
 
+const RESOURCE_KEY = 'sm_vocab_resource' // 選択中の単語帳（端末に記憶）
+
 interface State {
   resource: StudyResource | null
+  resources: StudyResource[]
   items: Vocabulary[]
   loading: boolean
   stats: VocabularyStats | null
@@ -25,6 +28,7 @@ interface State {
 export const useVocabularyStore = defineStore('vocabulary', {
   state: (): State => ({
     resource: null,
+    resources: [],
     items: [],
     loading: false,
     stats: null,
@@ -50,10 +54,28 @@ export const useVocabularyStore = defineStore('vocabulary', {
   },
 
   actions: {
+    /** 単語帳一覧を取得し、記憶している単語帳（なければ先頭）を選択する */
     async fetchResources(): Promise<StudyResource | null> {
       const { data } = await client.get('/study-resources')
-      this.resource = data.data[0] ?? null
+      this.resources = data.data
+      const saved = Number(localStorage.getItem(RESOURCE_KEY) ?? 0)
+      const keep = this.resource?.id ?? saved
+      this.resource = this.resources.find((r: StudyResource) => r.id === keep) ?? this.resources[0] ?? null
       return this.resource
+    },
+
+    /** 単語帳を切り替える（単語・統計・クイズ状態をリセットして再取得） */
+    async selectResource(id: number) {
+      const r = this.resources.find((x) => x.id === id)
+      if (!r) return
+      this.resource = r
+      localStorage.setItem(RESOURCE_KEY, String(id))
+      this.items = []
+      this.stats = null
+      this.quizQuestions = []
+      this.quizIndex = 0
+      this.quizResults = []
+      await Promise.all([this.fetchByResource(id), this.fetchStats(id).catch(() => {})])
     },
 
     async fetchByResource(resourceId: number) {

@@ -6,6 +6,7 @@ import { useVocabularyStore } from '@/stores/vocabulary'
 import { useUiStore } from '@/stores/ui'
 import type { PrintTestFormat, PrintTestType, Vocabulary } from '@/types'
 import TestSheetPrint from '@/components/TestSheetPrint.vue'
+import VocabResourceSwitch from '@/components/VocabResourceSwitch.vue'
 
 const router = useRouter()
 const vocab = useVocabularyStore()
@@ -82,7 +83,10 @@ function openPrint() {
   <div style="max-width: 760px; margin: 0 auto">
     <div class="card" style="padding: 22px; margin-bottom: 16px">
       <div class="row-between" style="margin-bottom: 4px">
-        <div style="font-size: 16px; font-weight: 700">間違えた単語の復習</div>
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+          <div style="font-size: 16px; font-weight: 700">間違えた単語の復習</div>
+          <VocabResourceSwitch @change="words = []; loaded = false" />
+        </div>
         <button class="link-btn" @click="router.push({ name: 'quiz' })">クイズへ</button>
       </div>
       <div style="font-size: 12px; color: var(--faint); margin-bottom: 16px">指定期間に誤答した単語を抽出して復習します。</div>

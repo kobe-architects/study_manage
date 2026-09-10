@@ -77,10 +77,11 @@ async function download(kind: 'result' | 'quiz') {
                 <div style="min-width: 0">
                   <div style="font-size: 13px; font-weight: 700">{{ p.pageNo }}. {{ p.label }}</div>
                   <div style="font-size: 11px; color: var(--faint)">
-                    {{ p.chapter }}<span v-if="p.difficulty" style="color: #d98a1a; margin-left: 6px">{{ p.difficulty }}</span>
+                    <template v-if="p.kind === 'vocab'">英単語テスト・{{ p.vocabSpec?.resourceName }}</template>
+                    <template v-else>{{ p.chapter }}<span v-if="p.difficulty" style="color: #d98a1a; margin-left: 6px">{{ p.difficulty }}</span></template>
                   </div>
                 </div>
-                <span class="pt"><b>{{ p.score ?? '–' }}</b> / {{ quiz.maxScorePerPage }}</span>
+                <span class="pt"><b>{{ p.score ?? '–' }}</b> / {{ p.maxScore }}</span>
               </div>
               <div v-if="p.comment" class="comment">{{ p.comment }}</div>
             </div>

@@ -110,6 +110,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/quizzes/{quiz}/result-pdf', [QuizController::class, 'resultPdf']);
         Route::get('/quizzes/{quiz}/pages/{page}/answer-image', [QuizController::class, 'answerImage']);
         Route::get('/quizzes/{quiz}/pages/{page}/annotated-image', [QuizController::class, 'annotatedImage']);
+        Route::get('/quizzes/{quiz}/pages/{page}/render-image', [QuizController::class, 'renderImage']);
         Route::post('/quizzes/{quiz}/pages/{page}/answer', [QuizController::class, 'uploadAnswer']);
         Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit']);
 
@@ -188,9 +189,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/quizzes/{quiz}', [QuizController::class, 'destroy']);
         Route::get('/quizzes/{quiz}/download', [QuizController::class, 'download']);
         Route::get('/quizzes/{quiz}/result-pdf', [QuizController::class, 'resultPdf']);
+        Route::get('/quizzes/{quiz}/answers-pdf', [QuizController::class, 'answersPdf']);
         Route::get('/quizzes/{quiz}/pages/{page}/answer-image', [QuizController::class, 'answerImage']);
         Route::get('/quizzes/{quiz}/pages/{page}/annotated-image', [QuizController::class, 'annotatedImage']);
+        Route::get('/quizzes/{quiz}/pages/{page}/render-image', [QuizController::class, 'renderImage']);
         Route::post('/quizzes/{quiz}/pages/{page}/annotations', [QuizController::class, 'saveAnnotations']); // multipart のため POST
+
+        // 英単語テスト出題用: 担当生徒の単語帳（読み取りのみ）
+        Route::get('/study-resources', [StudyResourceController::class, 'index']);
+        Route::get('/study-resources/{studyResource}/vocabularies', [VocabularyController::class, 'indexByResource']);
         Route::put('/quizzes/{quiz}/pages/{page}/grade', [QuizController::class, 'grade']);
         Route::post('/quizzes/{quiz}/finish', [QuizController::class, 'finish']);
         Route::post('/quizzes/{quiz}/reopen', [QuizController::class, 'reopen']);

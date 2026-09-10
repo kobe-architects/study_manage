@@ -61,6 +61,9 @@ const selectedKeys = computed(() => new Set(props.modelValue.map((s) => s.key)))
 function keyOf(pdfId: number, page: number): string {
   return `${pdfId}:${page}`
 }
+function isVocab(s: SelectedPage): boolean {
+  return s.kind === 'vocab'
+}
 function pageOfRow(r: QuizRow): number | null {
   const p = r.pages[String(activePdfId.value)]
   return p ?? null
@@ -94,6 +97,7 @@ function toggle(pdf: BookPdf, page: number, row: QuizRow | null) {
   }
   const item: SelectedPage = {
     key,
+    kind: 'pdf',
     pdfId: pdf.id,
     page,
     itemId: row?.id ?? null,
@@ -172,7 +176,7 @@ watch(activePdfId, () => (pageBlock.value = 0))
 
 const previewLabel = computed(() => {
   if (!preview.value) return ''
-  const sel = props.modelValue.find((s) => s.key === keyOf(preview.value!.pdfId, preview.value!.page))
+  const sel = props.modelValue.find((s) => !isVocab(s) && s.key === keyOf(preview.value!.pdfId, preview.value!.page))
   return sel ? sel.label : `${pdfTitleOf(preview.value.pdfId)} p.${preview.value.page}`
 })
 function showPreview(pdfId: number, page: number | null) {
@@ -291,11 +295,14 @@ function showPreview(pdfId: number, page: number | null) {
           <button v-if="modelValue.length" class="link" @click="emit('update:modelValue', [])">すべて解除</button>
         </div>
         <div v-if="!modelValue.length" class="empty">左の一覧やページをクリックして追加します</div>
-        <div v-for="(s, i) in modelValue" :key="s.key" class="cart-row" :class="{ ref: refTarget === s.key }" @mouseenter="showPreview(s.pdfId, s.page)">
+        <div v-for="(s, i) in modelValue" :key="s.key" class="cart-row" :class="{ ref: refTarget === s.key, vocab: isVocab(s) }" @mouseenter="!isVocab(s) && showPreview(s.pdfId ?? 0, s.page ?? null)">
           <span class="num">{{ i + 1 }}</span>
           <div style="flex: 1; min-width: 0">
             <div class="cart-label">{{ s.label }}</div>
-            <div class="cart-sub">
+            <div v-if="isVocab(s)" class="cart-sub">
+              英単語テスト・{{ s.vocab?.resourceName }}・{{ s.vocab?.words.length }}問（{{ s.vocab?.testFormat === 'choice' ? '4択' : '記述' }}）
+            </div>
+            <div v-else class="cart-sub">
               {{ s.pdfTitle }} p.{{ s.page }}
               <template v-if="s.refPage">
                 ・解答: {{ pdfTitleOf(s.refPdfId) }} p.{{ s.refPage }}
@@ -732,5 +739,8 @@ function showPreview(pdfId: number, page: number | null) {
   font-size: 11px;
   cursor: pointer;
   padding: 0 4px;
+}
+.cart-row.vocab .num {
+  background: #2e7d5b;
 }
 </style>

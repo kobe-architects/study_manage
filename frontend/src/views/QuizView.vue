@@ -14,6 +14,7 @@ import type {
   VocabularyLabel,
 } from '@/types'
 import FlashcardPlayer from '@/components/FlashcardPlayer.vue'
+import VocabResourceSwitch from '@/components/VocabResourceSwitch.vue'
 import TestSheetPrint from '@/components/TestSheetPrint.vue'
 import AuthImage from '@/components/AuthImage.vue'
 
@@ -84,6 +85,30 @@ function openPrint() {
 
 const resourceId = computed(() => vocab.resource?.id ?? 0)
 const sections = computed(() => vocab.resource?.sections ?? [])
+/** セクション名「Part 1 / Week 1（1〜40）」の「/」より前でグループ化（Part ごと一括選択用） */
+const secGroups = computed(() => {
+  const m = new Map<string, number[]>()
+  for (const s of sections.value) {
+    if (!s.name.includes(' / ')) continue
+    const key = s.name.split(' / ')[0]!
+    if (!m.has(key)) m.set(key, [])
+    m.get(key)!.push(s.id)
+  }
+  return Array.from(m.entries()).map(([name, ids]) => ({ name, ids }))
+})
+function toggleSecGroup(ids: number[]) {
+  const all = ids.every((id) => secSel.value[id])
+  const next = { ...secSel.value }
+  ids.forEach((id) => (next[id] = !all))
+  secSel.value = next
+}
+/** 単語帳を切り替えたら全セクション選択に戻す */
+function onResourceChange() {
+  const sel: Record<number, boolean> = {}
+  sections.value.forEach((s) => (sel[s.id] = true))
+  secSel.value = sel
+  wSec.value = 'all'
+}
 
 onMounted(async () => {
   if (!vocab.resource) await vocab.fetchResources()
@@ -479,7 +504,7 @@ function toggleSec(id: number) {
               <button class="link-btn" @click="router.push({ name: 'review' })">復習</button>
             </div>
           </div>
-          <div style="font-size: 12px; color: var(--faint); margin-bottom: 16px">{{ vocab.resource?.name }}</div>
+          <div style="margin-bottom: 16px"><VocabResourceSwitch @change="onResourceChange" /></div>
 
           <div class="lab">出題セクション</div>
           <button class="sec-open" @click="secModalOpen = true">
@@ -797,6 +822,9 @@ function toggleSec(id: number) {
             <button class="link-btn" @click="allSec">全選択</button>
             <button class="link-btn" style="color: #9aa1ab" @click="clearSec">解除</button>
           </span>
+        </div>
+        <div v-if="secGroups.length" class="sec-groups">
+          <button v-for="g in secGroups" :key="g.name" class="grp" :class="{ on: g.ids.every((id) => secSel[id]) }" @click="toggleSecGroup(g.ids)">{{ g.name }}<span class="grp-n">{{ g.ids.length }}</span></button>
         </div>
         <div class="sec-chips">
           <button
@@ -1241,5 +1269,34 @@ function toggleSec(id: number) {
   .vq-grid {
     grid-template-columns: minmax(0, 1fr) !important;
   }
+}
+.sec-groups {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.grp {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+  background: #f6f7f9;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mut);
+  cursor: pointer;
+}
+.grp.on {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
+}
+.grp-n {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.7;
 }
 </style>

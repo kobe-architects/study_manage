@@ -319,11 +319,13 @@ export interface StudyResourceSection {
   id: number
   name: string
   sortOrder: number
+  wordCount?: number
 }
 
 export interface StudyResource {
   id: number
   name: string
+  wordCount?: number
   sections: StudyResourceSection[]
 }
 
@@ -467,10 +469,11 @@ export interface AnnotationDoc {
 export interface QuizPageDetail {
   id: number
   pageNo: number
+  kind: QuizPageKind
   label: string | null
   pdfId: number | null
   pdfTitle: string | null
-  pdfPage: number
+  pdfPage: number | null
   itemId: number | null
   chapter: string | null
   seqNo: string | null
@@ -479,6 +482,11 @@ export interface QuizPageDetail {
   refPdfId: number | null
   refPdfTitle: string | null
   refPage: number | null
+  /** 英単語テストの設定（kind=vocab） */
+  vocabSpec: { resourceId: number; resourceName: string; sectionNames: string[]; testType: PrintTestType; testFormat: PrintTestFormat; count: number } | null
+  /** 出題語と解答（講師、または添削済みの場合のみ） */
+  vocabWords: VocabTestWord[] | null
+  hasRender: boolean
   hasAnswer: boolean
   answerUploadedAt: string | null
   answerVersion: number | null
@@ -487,6 +495,8 @@ export interface QuizPageDetail {
   annotatedVersion: number | null
   mark: QuizMark | null
   score: number | null
+  /** ページ満点（英単語テストは出題数、教材ページは小テストの既定値） */
+  maxScore: number
   comment: string | null
 }
 
@@ -494,14 +504,37 @@ export interface QuizDetail extends QuizSummary {
   pages: QuizPageDetail[]
 }
 
-/** 出題時のページ指定 */
+/** 英単語テストの1問（問題文・解答・4択の選択肢） */
+export interface VocabTestWord {
+  id: number
+  question: string
+  answer: string
+  choices?: string[]
+  extra?: string | null
+}
+
+/** 英単語テストページの出題設定 */
+export interface VocabPageSpec {
+  resourceId: number
+  resourceName: string
+  sectionNames: string[]
+  testType: PrintTestType
+  testFormat: PrintTestFormat
+  words: VocabTestWord[]
+}
+
+export type QuizPageKind = 'pdf' | 'vocab'
+
+/** 出題時のページ指定（教材 PDF のページ、または英単語テスト） */
 export interface QuizPageSpec {
-  pdfId: number
-  page: number
+  kind?: QuizPageKind
+  pdfId?: number | null
+  page?: number | null
   itemId?: number | null
   label?: string | null
   refPdfId?: number | null
   refPage?: number | null
+  vocab?: VocabPageSpec | null
 }
 
 export interface QuizStatGroup {

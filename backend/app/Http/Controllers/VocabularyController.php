@@ -19,7 +19,7 @@ class VocabularyController extends Controller
     public function indexByResource(Request $request, StudyResource $studyResource): JsonResponse
     {
         $this->authorizeResource($request, $studyResource);
-        $userId = $request->user()->id;
+        $userId = $this->targetUserId($request); // tutor は担当生徒の学習統計で参照
 
         $vocab = Vocabulary::query()
             ->whereHas('section', fn ($q) => $q->where('study_resource_id', $studyResource->id))
@@ -431,7 +431,7 @@ class VocabularyController extends Controller
 
     private function authorizeResource(Request $request, StudyResource $resource): void
     {
-        abort_unless($resource->user_id === $request->user()->id, 403);
+        abort_unless($resource->user_id === $this->targetUserId($request), 403);
     }
 
     private function authorizeSection(Request $request, StudyResourceSection $section): void

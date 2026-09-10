@@ -285,3 +285,17 @@ php artisan config:cache && php artisan route:cache
   `--map=seq` は「一覧データの番号 + オフセット = PDF ページ」の対応、`--map=none` は手動選択。
 - 教材 ID は `php artisan tinker --execute='print_r(\App\Models\ResourceBook::pluck("title","id")->all());'` で確認できる。
 
+## 13. 英単語帳「LEAP basic」・英単語小テスト（2026-09-10 追加）の運用メモ
+
+- マイグレーション `2026_09_11_000001_add_vocab_test_to_quiz_pages` で quiz_pages に英単語テスト用の列を追加し、
+  既存の単語帳名「大学入試 必修英単語」を「鉄壁」に改名する（`php artisan migrate --force` で自動適用）。
+- LEAP basic の単語データは Git 管理の `backend/database/data/leap_basic.json`。サーバーで登録・更新する場合:
+  ```
+  cd ~/www/study_manage/backend
+  php artisan vocab:import-leap            # 最初の owner ユーザーに登録。--user=ID で指定可
+  ```
+  同名（LEAP basic）の単語帳があれば丸ごと入れ替える（その単語帳の学習履歴は消える）。
+- 英単語テストの問題用紙・解答用紙はブラウザ側で JPEG 化して送るため、講師側の「出題する」は
+  ページ数分の画像（1 枚 200〜400KB）を multipart で POST する。`post_max_size=8M` に収まるよう 1 小テストの
+  英単語テストは数ページ程度に留める。保存先は `storage/app/private/quizzes/{ID}/vocab/`。
+

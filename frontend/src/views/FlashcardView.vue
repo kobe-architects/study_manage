@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import VocabResourceSwitch from '@/components/VocabResourceSwitch.vue'
 import { useVocabularyStore } from '@/stores/vocabulary'
 import { useUiStore } from '@/stores/ui'
 import type { VocabularyLabel } from '@/types'
@@ -40,6 +41,23 @@ function toggleLabel(v: VocabularyLabel) {
 
 const sections = computed(() => vocab.resource?.sections ?? [])
 const resourceId = computed(() => vocab.resource?.id ?? 0)
+/** セクション名「Part 1 / Week 1」の「/」より前でグループ化（Part ごと一括選択） */
+const secGroups = computed(() => {
+  const m = new Map<string, number[]>()
+  for (const s of sections.value) {
+    if (!s.name.includes(' / ')) continue
+    const key = s.name.split(' / ')[0]!
+    if (!m.has(key)) m.set(key, [])
+    m.get(key)!.push(s.id)
+  }
+  return Array.from(m.entries()).map(([name, ids]) => ({ name, ids }))
+})
+function toggleSecGroup(ids: number[]) {
+  const all = ids.every((id) => secSel.value[id])
+  const next = { ...secSel.value }
+  ids.forEach((id) => (next[id] = !all))
+  secSel.value = next
+}
 
 onMounted(async () => {
   if (!vocab.resource) await vocab.fetchResources()
@@ -86,7 +104,10 @@ function clearSec() {
     <div v-if="!started" style="max-width: 520px; margin: 0 auto">
       <div class="card" style="padding: 22px">
         <div class="row-between" style="margin-bottom: 16px">
-          <div style="font-size: 16px; font-weight: 700">フラッシュカード</div>
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+            <div style="font-size: 16px; font-weight: 700">フラッシュカード</div>
+            <VocabResourceSwitch @change="allSec()" />
+          </div>
           <button class="link-btn" @click="router.push({ name: 'quiz' })">クイズへ</button>
         </div>
 
@@ -96,6 +117,9 @@ function clearSec() {
             <button class="link-btn" @click="allSec">全選択</button>
             <button class="link-btn" style="color: #9aa1ab" @click="clearSec">全解除</button>
           </span>
+        </div>
+        <div v-if="secGroups.length" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px">
+          <button v-for="g in secGroups" :key="g.name" class="grp" :class="{ on: g.ids.every((id) => secSel[id]) }" @click="toggleSecGroup(g.ids)">{{ g.name }}<span style="font-size: 10px; opacity: 0.7; margin-left: 4px">{{ g.ids.length }}</span></button>
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 16px">
           <button
@@ -252,5 +276,20 @@ function clearSec() {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+}
+.grp {
+  padding: 6px 12px;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+  background: #f6f7f9;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mut);
+  cursor: pointer;
+}
+.grp.on {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
 }
 </style>

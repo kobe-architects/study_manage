@@ -19,15 +19,20 @@ class PdfTools
     }
 
     /**
-     * 複数 PDF の指定ページを1つの PDF に抽出する（小テストの出題 PDF）。
+     * 複数 PDF の指定ページ、または画像（英単語テストの問題用紙など）を1つの PDF にまとめる（小テストの出題 PDF）。
      *
-     * @param  array<int, array{path: string, page: int}>  $pages
+     * @param  array<int, array{path?: string, page?: int, image?: string}>  $pages
      */
     public static function extractPages(array $pages, string $outAbsPath): void
     {
         $pdf = new Fpdi();
         $counts = [];
         foreach ($pages as $p) {
+            if (! empty($p['image'])) {
+                self::addImagePage($pdf, $p['image']);
+
+                continue;
+            }
             // 同じファイルは FPDI 内部でパーサが再利用される
             $counts[$p['path']] = $pdf->setSourceFile($p['path']);
             $page = max(1, min($counts[$p['path']], (int) $p['page']));
@@ -38,6 +43,24 @@ class PdfTools
         }
         self::ensureDir($outAbsPath);
         $pdf->Output('F', $outAbsPath);
+    }
+
+    /** 画像を A4 いっぱい（余白 6mm）に配置したページを追加する */
+    private static function addImagePage(FPDF $pdf, string $imagePath): void
+    {
+        $info = @getimagesize($imagePath);
+        if (! $info) {
+            return;
+        }
+        [$w, $h] = $info;
+        $pdf->AddPage($w > $h ? 'L' : 'P', 'A4');
+        $pw = $pdf->GetPageWidth();
+        $ph = $pdf->GetPageHeight();
+        $margin = 6;
+        $scale = min(($pw - 2 * $margin) / $w, ($ph - 2 * $margin) / $h);
+        $dw = $w * $scale;
+        $dh = $h * $scale;
+        $pdf->Image($imagePath, ($pw - $dw) / 2, ($ph - $dh) / 2, $dw, $dh);
     }
 
     /**
