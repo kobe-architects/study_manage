@@ -36,6 +36,8 @@ const WIDTHS: { key: 'thin' | 'mid' | 'thick'; label: string; f: number }[] = [
 const tool = ref<Tool>('pen')
 const color = ref(COLORS[0]!)
 const widthKey = ref<'thin' | 'mid' | 'thick'>('mid')
+/** 縦型ツールバーの詳細設定（色・太さ・取り消し・ズーム等）の展開状態。既定は閉じる */
+const expanded = ref(false)
 const penOnly = ref(false)
 const zoom = ref(1)
 const fitScale = ref(1)
@@ -115,7 +117,10 @@ let ro: ResizeObserver | null = null
 function fit() {
   if (!container.value || !W.value) return
   const cw = container.value.clientWidth - 2
-  fitScale.value = Math.min(1, cw / W.value) || 1
+  // 画像全体が画面に収まるサイズを既定にする（幅・高さの両方でフィット）
+  const top = container.value.getBoundingClientRect().top
+  const availH = Math.max(280, window.innerHeight - Math.max(0, top) - 24)
+  fitScale.value = Math.min(1, cw / W.value, availH / H.value) || 1
   zoom.value = 1
   nextTick(draw)
 }
@@ -616,36 +621,45 @@ onBeforeUnmount(() => {
   <div class="editor">
     <Teleport :to="toolbarTarget" :disabled="!toolbarTarget">
       <div v-if="!readonly" class="toolbar" :class="{ vertical: !!toolbarTarget }">
+        <!-- ツールアイコン（縦型ではアイコンのみ・常時表示） -->
         <div class="group tools">
           <button v-for="t in TOOLS" :key="t.key" class="tb" :class="{ on: tool === t.key }" :title="t.label" @click="tool = t.key; selectedId = null; draw()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="t.icon" /></svg>
-            <span>{{ t.label }}</span>
+            <span class="tb-label">{{ t.label }}</span>
           </button>
         </div>
-        <div class="group">
-          <button v-for="c in COLORS" :key="c" class="sw" :class="{ on: color === c }" :style="{ background: c }" :title="c" @click="color = c"></button>
-        </div>
-        <div class="group">
-          <button v-for="w in WIDTHS" :key="w.key" class="tb sm" :class="{ on: widthKey === w.key }" @click="widthKey = w.key">{{ w.label }}</button>
-        </div>
-        <div class="group">
-          <button class="tb sm" :disabled="!history.length" title="元に戻す (Ctrl+Z)" @click="undo">↶</button>
-          <button class="tb sm" :disabled="!redoStack.length" title="やり直す (Ctrl+Y)" @click="redo">↷</button>
-          <button class="tb sm" :disabled="!selectedId" title="選択を削除" @click="deleteSelected">削除</button>
-          <button class="tb sm" :disabled="!items.length" title="すべて消す" @click="clearAll">全消去</button>
-        </div>
-        <div class="group">
-          <button class="tb sm" @click="zoomBy(1 / 1.25)">−</button>
-          <span class="zoom">{{ Math.round(zoom * 100) }}%</span>
-          <button class="tb sm" @click="zoomBy(1.25)">＋</button>
-          <button class="tb sm" @click="fit">全体</button>
-        </div>
-        <label class="chk" title="オンにすると指はスクロール・ペン（Apple Pencil）やマウスだけで描きます">
-          <input v-model="penOnly" type="checkbox" /> 指はスクロール
-        </label>
-        <div class="save-state" :class="{ dirty: dirty || saving }" title="変更は自動で保存されます">
-          {{ saving ? '保存中…' : dirty ? '自動保存待ち…' : '保存済み' }}
-        </div>
+        <!-- 詳細設定の展開／閉じる（縦型のみ・既定は閉じる） -->
+        <button v-if="toolbarTarget" class="expander" :title="saving ? '保存中…' : dirty ? '自動保存待ち…' : '保存済み'" @click="expanded = !expanded">
+          <span class="dot" :class="{ ok: !dirty && !saving }"></span>
+          詳細設定
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: expanded ? 'rotate(180deg)' : '', marginLeft: 'auto' }"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+        <template v-if="!toolbarTarget || expanded">
+          <div class="group">
+            <button v-for="c in COLORS" :key="c" class="sw" :class="{ on: color === c }" :style="{ background: c }" :title="c" @click="color = c"></button>
+          </div>
+          <div class="group">
+            <button v-for="w in WIDTHS" :key="w.key" class="tb sm" :class="{ on: widthKey === w.key }" @click="widthKey = w.key">{{ w.label }}</button>
+          </div>
+          <div class="group">
+            <button class="tb sm" :disabled="!history.length" title="元に戻す (Ctrl+Z)" @click="undo">↶</button>
+            <button class="tb sm" :disabled="!redoStack.length" title="やり直す (Ctrl+Y)" @click="redo">↷</button>
+            <button class="tb sm" :disabled="!selectedId" title="選択を削除" @click="deleteSelected">削除</button>
+            <button class="tb sm" :disabled="!items.length" title="すべて消す" @click="clearAll">全消去</button>
+          </div>
+          <div class="group">
+            <button class="tb sm" @click="zoomBy(1 / 1.25)">−</button>
+            <span class="zoom">{{ Math.round(zoom * 100) }}%</span>
+            <button class="tb sm" @click="zoomBy(1.25)">＋</button>
+            <button class="tb sm" @click="fit">全体</button>
+          </div>
+          <label class="chk" title="オンにすると指はスクロール・ペン（Apple Pencil）やマウスだけで描きます">
+            <input v-model="penOnly" type="checkbox" /> 指はスクロール
+          </label>
+          <div class="save-state" :class="{ dirty: dirty || saving }" title="変更は自動で保存されます">
+            {{ saving ? '保存中…' : dirty ? '自動保存待ち…' : '保存済み' }}
+          </div>
+        </template>
       </div>
     </Teleport>
 
@@ -815,8 +829,9 @@ onBeforeUnmount(() => {
 }
 .toolbar.vertical .group.tools {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 2px;
+  border-bottom: none;
 }
 .toolbar.vertical .tb {
   flex-direction: row;
@@ -825,6 +840,42 @@ onBeforeUnmount(() => {
   min-width: 0;
   padding: 6px 8px;
   font-size: 11.5px;
+}
+/* 縦型はアイコンのみ表示 */
+.toolbar.vertical .tools .tb {
+  justify-content: center;
+  padding: 8px 0;
+}
+.toolbar.vertical .tools .tb-label {
+  display: none;
+}
+.expander {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 8px;
+  margin-top: 4px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  background: #f8f9fb;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--mut);
+  cursor: pointer;
+}
+.expander:hover {
+  background: #f1f2f4;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d98a1a;
+  flex-shrink: 0;
+}
+.dot.ok {
+  background: #2f9e5b;
 }
 .toolbar.vertical .chk {
   padding: 8px 0 2px;

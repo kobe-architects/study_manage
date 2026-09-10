@@ -1,19 +1,17 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import HelpTip from '@/components/HelpTip.vue'
 import PdfPagePicker, { type SelectedPage } from '@/components/PdfPagePicker.vue'
-import QuizCard from '@/components/QuizCard.vue'
-import QuizStats from '@/components/QuizStats.vue'
 import VocabTestDialog from '@/components/VocabTestDialog.vue'
 import { renderVocabSheet, TEST_FORMAT_LABEL, TEST_TYPE_LABEL } from '@/lib/vocabTest'
 import { groupQuizzes, groupStatus, quizApi } from '@/api/quiz'
 import { iso } from '@/lib/design'
 import { useUiStore } from '@/stores/ui'
-import type { BookPdf, QuizBook, QuizPageSpec, QuizRow, QuizStats as QuizStatsT, QuizSummary } from '@/types'
+import type { BookPdf, QuizBook, QuizPageSpec, QuizRow, QuizSummary } from '@/types'
 
 /**
- * 講師用: 小テストの出題・一覧・分析。
+ * 講師用: 小テストの出題・一覧（リスト表示）・分析（実施済み結果の累積表示）。
  * 出題は「1 設定 → 2 教材選択 → 3 ページ選択」の流れで、1回の出題（箱）に
  * 複数の教材・英単語テストを組み合わせられる。教材ごとに別パート（別の問題 PDF・
  * 別提出・別採点）として出題され、一覧では同じ箱としてまとめて表示される。
@@ -24,7 +22,6 @@ const ui = useUiStore()
 const tab = ref<'list' | 'stats'>('list')
 const quizzes = ref<QuizSummary[]>([])
 const loading = ref(true)
-const stats = ref<QuizStatsT | null>(null)
 
 async function load() {
   try {
@@ -35,17 +32,7 @@ async function load() {
     loading.value = false
   }
 }
-async function loadStats() {
-  try {
-    stats.value = await quizApi.stats()
-  } catch {
-    ui.notify('分析データの取得に失敗しました')
-  }
-}
 onMounted(load)
-watch(tab, (t) => {
-  if (t === 'stats') loadStats()
-})
 
 const boxes = computed(() => groupQuizzes(quizzes.value))
 const groups = computed(() => [
@@ -53,6 +40,31 @@ const groups = computed(() => [
   { key: 'assigned', label: '出題中（未提出）', list: boxes.value.filter((b) => groupStatus(b, 'tutor') === 'assigned') },
   { key: 'graded', label: '採点・添削済み', list: boxes.value.filter((b) => groupStatus(b, 'tutor') === 'graded') },
 ])
+
+function partChip(q: QuizSummary): { label: string; cls: string } {
+  if (q.status === 'graded') return { label: '採点・添削済み', cls: 'graded' }
+  if (q.status === 'submitted') return { label: '採点・添削待ち', cls: 'submitted' }
+  if (q.overdue) return { label: '期限切れ', cls: 'overdue' }
+  return { label: '未提出', cls: 'assigned' }
+}
+function partLabel(q: QuizSummary): string {
+  return q.bookTitle ?? '英単語テスト'
+}
+function fmt(d: string | null): string {
+  if (!d) return ''
+  const [y, m, dd] = d.split(/[- :]/)
+  return `${y}/${Number(m)}/${Number(dd)}`
+}
+
+// ---------- 分析: 採点・添削済みの結果を累積表示 ----------
+const gradedList = computed(() =>
+  quizzes.value
+    .filter((q) => q.status === 'graded' && q.score !== null)
+    .sort((a, b) => (b.gradedAt ?? '').localeCompare(a.gradedAt ?? '') || b.id - a.id),
+)
+const gradedSum = computed(() => gradedList.value.reduce((s, q) => s + (q.score ?? 0), 0))
+const gradedMax = computed(() => gradedList.value.reduce((s, q) => s + q.maxScore, 0))
+const gradedAvg = computed(() => (gradedMax.value > 0 ? Math.round((gradedSum.value / gradedMax.value) * 100) : null))
 
 async function openPdf(q: QuizSummary) {
   try {
@@ -373,17 +385,71 @@ function setDueIn(days: number) {
         <template v-for="g in groups" :key="g.key">
           <div v-if="g.list.length" class="group">
             <div class="group-title">{{ g.label }}<span class="cnt">{{ g.list.length }}</span></div>
-            <div class="cards">
-              <QuizCard v-for="b in g.list" :key="b[0]!.id" :parts="b" role="tutor" @pdf="openPdf($event)" @grade="grade($event)" @edit="openWizard($event)" @remove="remove($event)" />
+            <div class="qlist">
+              <div v-for="b in g.list" :key="b[0]!.id" class="qbox">
+                <div class="qbox-head">
+                  <b class="qb-title">{{ b[0]!.title }}</b>
+                  <span class="qb-meta">
+                    <template v-if="b.length > 1">{{ b.length }}教材・</template>{{ b.reduce((s, q) => s + q.pageCount, 0) }}ページ
+                    <template v-if="b[0]!.dueOn">・期限 {{ fmt(b[0]!.dueOn) }}</template>
+                    <template v-if="b[0]!.note">・{{ b[0]!.note }}</template>
+                  </span>
+                </div>
+                <div v-for="q in b" :key="q.id" class="qrow">
+                  <span class="qr-name">{{ partLabel(q) }}</span>
+                  <span class="qr-pages">{{ q.pageCount }}ページ</span>
+                  <span class="qr-chip" :class="partChip(q).cls">{{ partChip(q).label }}</span>
+                  <span class="qr-score">
+                    <template v-if="q.status === 'graded' && q.score !== null"><b>{{ q.score }}</b> / {{ q.maxScore }}点（{{ q.rate }}%）</template>
+                    <template v-else-if="q.status === 'assigned' && q.answeredCount">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</template>
+                  </span>
+                  <span class="qr-actions">
+                    <button v-if="q.status === 'submitted'" class="btn primary" @click="grade(q)">採点・添削する</button>
+                    <button v-else-if="q.status === 'graded'" class="btn primary" @click="grade(q)">採点・添削結果</button>
+                    <button v-else class="btn" @click="openWizard(q)">編集</button>
+                    <button class="btn" title="問題 PDF を別タブでプレビュー" @click="openPdf(q)">問題PDF</button>
+                    <button class="btn danger" @click="remove(q)">削除</button>
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </template>
       </template>
     </template>
 
+    <!-- 分析: 実施済み小テストの結果を累積表示 -->
     <template v-else>
-      <QuizStats v-if="stats" :stats="stats" />
-      <div v-else class="hint">読み込み中…</div>
+      <div v-if="loading" class="hint">読み込み中…</div>
+      <div v-else-if="!gradedList.length" class="hint">
+        採点・添削済みの小テストがまだありません。採点・添削が完了すると、ここに結果が積み上がっていきます。
+      </div>
+      <template v-else>
+        <div class="st-sum">
+          実施 <b>{{ gradedList.length }}</b> 回・合計 <b>{{ gradedSum }}</b> / {{ gradedMax }}点・平均得点率 <b>{{ gradedAvg }}%</b>
+        </div>
+        <div class="st-table-wrap">
+          <table class="st-table">
+            <thead>
+              <tr><th>採点・添削日</th><th>タイトル</th><th>教材</th><th class="r">ページ</th><th class="r">得点</th><th class="r">得点率</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="q in gradedList" :key="q.id">
+                <td class="nowrap">{{ q.gradedAt ? fmt(q.gradedAt) : '–' }}</td>
+                <td class="ttl-cell">{{ q.title }}</td>
+                <td>{{ partLabel(q) }}</td>
+                <td class="r">{{ q.pageCount }}</td>
+                <td class="r nowrap"><b>{{ q.score }}</b> / {{ q.maxScore }}</td>
+                <td class="r rate-cell">
+                  <span class="rate-bar"><span :style="{ width: (q.rate ?? 0) + '%' }"></span></span>
+                  <span class="nowrap">{{ q.rate }}%</span>
+                </td>
+                <td class="r"><button class="btn" style="padding: 5px 10px" @click="grade(q)">結果</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </template>
 
     <!-- 出題ウィザード -->
@@ -601,10 +667,194 @@ function setDueIn(days: number) {
   padding: 1px 7px;
   border-radius: 999px;
 }
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+/* ---------- 一覧（リスト表示） ---------- */
+.qlist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.qbox {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.qbox-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: #f8f9fb;
+  border-bottom: 1px solid var(--line);
+}
+.qb-title {
+  font-size: 13px;
+}
+.qb-meta {
+  font-size: 11px;
+  color: var(--faint);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qrow {
+  display: flex;
+  align-items: center;
   gap: 12px;
+  padding: 8px 14px;
+  flex-wrap: wrap;
+}
+.qrow + .qrow {
+  border-top: 1px solid #f1f2f4;
+}
+.qr-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  flex: 1;
+  min-width: 140px;
+}
+.qr-pages {
+  font-size: 11.5px;
+  color: var(--faint);
+  width: 64px;
+  flex-shrink: 0;
+}
+.qr-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.qr-chip.assigned {
+  background: #f1f2f4;
+  color: var(--mut);
+}
+.qr-chip.overdue {
+  background: #fdf0f1;
+  color: #c0444f;
+}
+.qr-chip.submitted {
+  background: #e8eefb;
+  color: #2e4a8f;
+}
+.qr-chip.graded {
+  background: #e6f5ec;
+  color: #2f7a4f;
+}
+.qr-score {
+  font-size: 11.5px;
+  color: var(--mut);
+  width: 150px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.qr-score b {
+  font-size: 14px;
+  color: var(--ink);
+}
+.qr-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.btn {
+  padding: 6px 11px;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--mut);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn.primary {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
+}
+.btn.danger {
+  color: #c0444f;
+  border-color: #f0b8be;
+}
+/* ---------- 分析（累積結果） ---------- */
+.st-sum {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 12.5px;
+  color: var(--mut);
+  margin-bottom: 12px;
+}
+.st-sum b {
+  font-size: 16px;
+  color: var(--ink);
+}
+.st-table-wrap {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+.st-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.st-table th {
+  text-align: left;
+  font-size: 11px;
+  color: var(--faint);
+  font-weight: 600;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  background: #f8f9fb;
+  white-space: nowrap;
+}
+.st-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f2f4;
+  vertical-align: middle;
+}
+.st-table tr:last-child td {
+  border-bottom: none;
+}
+.st-table .r {
+  text-align: right;
+}
+.st-table .nowrap {
+  white-space: nowrap;
+}
+.st-table .ttl-cell {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rate-cell {
+  min-width: 140px;
+}
+.rate-bar {
+  display: inline-block;
+  vertical-align: middle;
+  width: 80px;
+  height: 7px;
+  border-radius: 99px;
+  background: #e8ebf5;
+  overflow: hidden;
+  margin-right: 8px;
+}
+.rate-bar span {
+  display: block;
+  height: 100%;
+  background: #3b50cc;
+  border-radius: 99px;
 }
 .overlay {
   position: fixed;
