@@ -36,7 +36,9 @@ class LineWebhookController extends Controller
     private function handleEvent(array $event): void
     {
         $type = $event['type'] ?? '';
-        $lineUserId = $event['source']['userId'] ?? null;
+        $source = (array) ($event['source'] ?? []);
+        // グループ・複数人トークで連携された場合はそのトーク宛てに通知する（push の to は groupId / roomId も可）
+        $lineUserId = $source['groupId'] ?? $source['roomId'] ?? $source['userId'] ?? null;
         $replyToken = $event['replyToken'] ?? null;
         if (! $lineUserId) {
             return;
@@ -44,6 +46,13 @@ class LineWebhookController extends Controller
 
         if ($type === 'follow' && $replyToken) {
             LineNotify::reply($replyToken, "友だち追加ありがとうございます。\n受験ナビの設定画面に表示される「連携コード」をこのトークに送信すると、通知の受け取りを開始できます。");
+
+            return;
+        }
+
+        // グループ・複数人トークに招待されたとき
+        if (($type === 'join' && $replyToken)) {
+            LineNotify::reply($replyToken, "招待ありがとうございます。\n受験ナビの画面に表示される「連携コード」をこのトークに送信すると、このグループに通知をお届けします。");
 
             return;
         }
@@ -75,8 +84,8 @@ class LineWebhookController extends Controller
             return;
         }
 
-        // 未連携のユーザーからの不明なメッセージには使い方を案内
-        if ($replyToken && ! User::where('line_user_id', $lineUserId)->exists()) {
+        // 未連携のユーザーからの不明なメッセージには使い方を案内（1対1トークのみ。グループの雑談には反応しない）
+        if ($replyToken && ($source['type'] ?? '') === 'user' && ! User::where('line_user_id', $lineUserId)->exists()) {
             LineNotify::reply($replyToken, '連携するには、受験ナビの設定画面に表示される「連携コード」を送信してください。');
         }
     }
