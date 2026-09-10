@@ -280,6 +280,8 @@ export interface TutorAccount {
   lineLinked: boolean
   /** 講師アカウントの LINE 連携コード（講師画面には表示しない） */
   lineLinkCode: string
+  /** 時給（円/時）。請求書の締め時にスナップショットされる */
+  hourlyRate: number
 }
 
 /** 課題（家庭教師が個別学習データを選択して期限を設定） */

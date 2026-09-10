@@ -50,8 +50,13 @@ class TutorAccountController extends Controller
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:100'],
             'password' => ['sometimes', 'string', 'min:8'],
+            'hourlyRate' => ['sometimes', 'integer', 'min:0', 'max:100000'],
         ]);
 
+        if (array_key_exists('hourlyRate', $data)) {
+            $data['hourly_rate'] = $data['hourlyRate'];
+            unset($data['hourlyRate']);
+        }
         if (array_key_exists('password', $data)) {
             $data['plain_password'] = $data['password'];
         }
@@ -95,6 +100,7 @@ class TutorAccountController extends Controller
             'createdOn' => $t->created_at->toDateString(),
             'lineLinked' => $t->line_user_id !== null,
             'lineLinkCode' => $t->line_link_code,
+            'hourlyRate' => (int) ($t->hourly_rate ?? 0),
         ];
     }
 }

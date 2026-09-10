@@ -26,7 +26,7 @@ class TutorInvoiceController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $q = TutorInvoice::with(['tutor:id,name', 'user:id,name', 'entries'])
+        $q = TutorInvoice::with(['tutor:id,name,hourly_rate', 'user:id,name', 'entries'])
             ->where('user_id', $this->targetUserId($request))
             ->orderByDesc('year')
             ->orderByDesc('month')
@@ -41,7 +41,7 @@ class TutorInvoiceController extends Controller
     public function show(Request $request, TutorInvoice $invoice): JsonResponse
     {
         $this->authorizeInvoice($request, $invoice);
-        $invoice->load(['tutor:id,name', 'user:id,name', 'entries']);
+        $invoice->load(['tutor:id,name,hourly_rate', 'user:id,name', 'entries']);
 
         return response()->json(['data' => $this->payload($invoice, true)]);
     }
@@ -76,8 +76,8 @@ class TutorInvoiceController extends Controller
             [
                 'user_id' => $userId,
                 'status' => TutorInvoice::STATUS_OPEN,
-                'hourly_rate' => (int) (TutorInvoice::where('tutor_id', $tutorId)
-                    ->orderByDesc('year')->orderByDesc('month')->value('hourly_rate') ?? 0),
+                // 時給は講師アカウント（システム設定）の値。締め時にスナップショットされる
+                'hourly_rate' => (int) (\App\Models\User::where('id', $tutorId)->value('hourly_rate') ?? 0),
             ],
         );
         abort_unless($invoice->user_id === $userId, 403);
@@ -89,7 +89,7 @@ class TutorInvoiceController extends Controller
             'end_min' => $data['endMin'],
             'note' => $data['note'] ?? null,
         ]);
-        $invoice->load(['tutor:id,name', 'user:id,name', 'entries']);
+        $invoice->load(['tutor:id,name,hourly_rate', 'user:id,name', 'entries']);
 
         return response()->json(['data' => $this->payload($invoice, true)], 201);
     }
@@ -124,7 +124,7 @@ class TutorInvoiceController extends Controller
         if ($payload !== []) {
             $invoice->update($payload);
         }
-        $invoice->load(['tutor:id,name', 'user:id,name', 'entries']);
+        $invoice->load(['tutor:id,name,hourly_rate', 'user:id,name', 'entries']);
 
         return response()->json(['data' => $this->payload($invoice, true)]);
     }
@@ -136,7 +136,9 @@ class TutorInvoiceController extends Controller
     {
         $this->authorizeInvoice($request, $invoice);
         abort_if($invoice->entries()->count() === 0, 422, '稼働時間が登録されていません。');
-        $this->transition($invoice, TutorInvoice::STATUS_OPEN, TutorInvoice::STATUS_CLOSED, ['closed_at' => now()]);
+        // 締め時点の講師の時給（システム設定）をスナップショットする
+        $rate = (int) (\App\Models\User::where('id', $invoice->tutor_id)->value('hourly_rate') ?? 0);
+        $this->transition($invoice, TutorInvoice::STATUS_OPEN, TutorInvoice::STATUS_CLOSED, ['closed_at' => now(), 'hourly_rate' => $rate]);
 
         return $this->show($request, $invoice->fresh());
     }
@@ -248,6 +250,10 @@ class TutorInvoiceController extends Controller
     private function payload(TutorInvoice $i, bool $withEntries = false): array
     {
         $minutes = (int) $i->entries->sum(fn (TutorWorkEntry $e) => $e->end_min - $e->start_min);
+        // 締め前は講師アカウント（システム設定）の現在の時給、締め後はスナップショットを使う
+        $rate = $i->status === TutorInvoice::STATUS_OPEN
+            ? (int) ($i->tutor?->hourly_rate ?? $i->hourly_rate)
+            : $i->hourly_rate;
         $out = [
             'id' => $i->id,
             'year' => $i->year,
@@ -255,12 +261,12 @@ class TutorInvoiceController extends Controller
             'tutorId' => $i->tutor_id,
             'tutorName' => $i->tutor?->name,
             'studentName' => $i->user?->name,
-            'hourlyRate' => $i->hourly_rate,
+            'hourlyRate' => $rate,
             'status' => $i->status,
             'note' => $i->note,
             'entryCount' => $i->entries->count(),
             'totalMinutes' => $minutes,
-            'amount' => (int) round($minutes * $i->hourly_rate / 60),
+            'amount' => (int) round($minutes * $rate / 60),
             'closedAt' => $i->closed_at?->toDateTimeString(),
             'issuedAt' => $i->issued_at?->toDateTimeString(),
             'confirmedAt' => $i->confirmed_at?->toDateTimeString(),

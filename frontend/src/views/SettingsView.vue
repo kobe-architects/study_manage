@@ -60,6 +60,19 @@ function togglePw(id: number) {
   else next.add(id)
   shownPw.value = next
 }
+/** 講師の時給を保存（講師請求管理で使用。締め時にスナップショットされる） */
+async function saveTutorRate(t: TutorAccount, ev: Event) {
+  const v = Math.max(0, Math.round(Number((ev.target as HTMLInputElement).value) || 0))
+  try {
+    const { data } = await client.put(`/tutors/${t.id}`, { hourlyRate: v })
+    const idx = tutors.value.findIndex((x) => x.id === t.id)
+    if (idx >= 0) tutors.value[idx] = data.data
+    ui.notify(`${t.name} の時給を ${v.toLocaleString()} 円に設定しました`)
+  } catch {
+    ui.notify('時給の保存に失敗しました')
+  }
+}
+
 // ---- LINE 通知連携 ----
 async function copyTutorLineCode(t: TutorAccount) {
   try {
@@ -267,6 +280,11 @@ async function removeTutor(t: TutorAccount) {
               </template>
             </div>
           </div>
+          <label class="rate-box">
+            <span>時給</span>
+            <input :value="t.hourlyRate" type="number" min="0" step="100" @change="saveTutorRate(t, $event)" />
+            <span>円</span>
+          </label>
           <button class="mini-btn" @click="pwEdit.id = pwEdit.id === t.id ? null : t.id; pwEdit.password = ''">PW再設定</button>
           <button class="mini-btn danger" @click="removeTutor(t)">削除</button>
         </div>
@@ -510,6 +528,23 @@ async function removeTutor(t: TutorAccount) {
   font-weight: 600;
   color: var(--mut);
   cursor: pointer;
+}
+.rate-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--mut);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.rate-box input {
+  width: 76px;
+  padding: 6px 8px;
+  border: 1px solid #e3e6ea;
+  border-radius: 7px;
+  font-size: 12.5px;
+  text-align: right;
 }
 .line-badge {
   font-size: 11px;

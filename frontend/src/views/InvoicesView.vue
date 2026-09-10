@@ -130,19 +130,6 @@ async function removeEntry(id: number) {
   }
 }
 
-// ---- 時給 ----
-const rateEdit = ref<number | null>(null)
-watch(cur, (c) => (rateEdit.value = c?.hourlyRate ?? null))
-async function saveRate() {
-  if (!cur.value || rateEdit.value === null || rateEdit.value === cur.value.hourlyRate) return
-  try {
-    applyDetail(await invoiceApi.update(cur.value.id, { hourlyRate: Math.max(0, Math.round(Number(rateEdit.value) || 0)) }))
-    ui.notify('時給を更新しました')
-  } catch (e: unknown) {
-    ui.notify(errMsg(e, '更新に失敗しました'))
-  }
-}
-
 // ---- ステータス操作 ----
 async function doAction(act: 'close' | 'reopen' | 'issue' | 'pay', confirmText?: string) {
   if (!cur.value) return
@@ -243,12 +230,11 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
 
         <div v-if="cur" class="totals">
           <span>合計 <b>{{ hoursLabel(cur.totalMinutes) }}</b> 時間</span>
-          <span class="rate">
-            時給
-            <input v-model.number="rateEdit" type="number" min="0" step="100" :disabled="!(cur.status === 'open' || cur.status === 'closed')" @change="saveRate" />
-            円
-          </span>
+          <span class="rate" title="時給はシステム設定の「家庭教師アカウント」で講師別に設定します">時給 {{ yen(cur.hourlyRate) }}</span>
           <span class="amount">合計金額 <b>{{ yen(cur.amount) }}</b></span>
+        </div>
+        <div v-if="cur && editable && !cur.hourlyRate" class="hint-line">
+          時給が未設定です。システム設定の「家庭教師アカウント」で講師別の時給を登録してください。
         </div>
       </div>
 
