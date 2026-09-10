@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import PdfThumb from '@/components/PdfThumb.vue'
 import { MARK_COLOR, MARK_LABEL } from '@/api/quiz'
 import type { BookPdf, QuizPageSpec, QuizRow } from '@/types'
@@ -14,6 +14,8 @@ export interface SelectedPage extends QuizPageSpec {
   key: string
   label: string
   pdfTitle: string
+  /** 分割出題時のテスト番号（1 始まり・未設定はテスト1） */
+  testNo?: number
 }
 
 const props = defineProps<{ pdfs: BookPdf[]; rows: QuizRow[]; modelValue: SelectedPage[] }>()
@@ -157,6 +159,7 @@ function pdfTitleOf(id: number | null | undefined): string {
 const pageJump = ref<number | null>(null)
 const pageBlock = ref(0)
 const BLOCK = 60
+const gridEl = ref<HTMLElement | null>(null)
 const pageCount = computed(() => activePdf.value?.pageCount ?? 0)
 const blockCount = computed(() => Math.max(1, Math.ceil(pageCount.value / BLOCK)))
 const blockPages = computed(() => {
@@ -166,13 +169,21 @@ const blockPages = computed(() => {
   for (let p = start; p <= end; p++) list.push(p)
   return list
 })
-function jump() {
+async function jump() {
   const p = Number(pageJump.value)
   if (!p || p < 1 || p > pageCount.value) return
   pageBlock.value = Math.floor((p - 1) / BLOCK)
   preview.value = { pdfId: activePdfId.value, page: p }
+  // ブロック切替の描画後に、該当ページのサムネイルまで自動スクロール
+  await nextTick()
+  const grid = gridEl.value
+  const cell = grid?.querySelector<HTMLElement>(`[data-page="${p}"]`)
+  if (grid && cell) grid.scrollTo({ top: cell.offsetTop - grid.clientHeight / 2 + cell.clientHeight / 2, behavior: 'smooth' })
 }
 watch(activePdfId, () => (pageBlock.value = 0))
+
+// プレビューの拡大表示
+const zoom = ref(false)
 
 const previewLabel = computed(() => {
   if (!preview.value) return ''
@@ -235,7 +246,6 @@ function showPreview(pdfId: number, page: number | null) {
                 <span v-if="r.important" class="imp">重要</span>
               </span>
               <span class="diff">{{ r.difficulty }}</span>
-              <span class="st" :class="{ done: r.recordCount > 0 }">{{ r.recordCount > 0 ? `学習済 ${r.recordCount}回` : '未学習' }}</span>
               <span v-if="r.quizCount" class="hist" :style="{ color: r.lastMark ? MARK_COLOR[r.lastMark] : 'var(--faint)' }">
                 出題{{ r.quizCount }}回<template v-if="r.lastMark"> {{ MARK_LABEL[r.lastMark] }}</template>
               </span>
@@ -259,12 +269,13 @@ function showPreview(pdfId: number, page: number | null) {
             <button class="mini" @click="jump">移動</button>
           </div>
         </div>
-        <div class="grid">
+        <div ref="gridEl" class="grid">
           <div
             v-for="pg in blockPages"
             :key="pg"
             class="cell"
             :class="{ on: selectedKeys.has(keyOf(activePdfId, pg)), hi: preview?.pdfId === activePdfId && preview?.page === pg }"
+            :data-page="pg"
             @click="togglePage(pg)"
             @mouseenter="showPreview(activePdfId, pg)"
           >
@@ -282,9 +293,12 @@ function showPreview(pdfId: number, page: number | null) {
     <div class="right">
       <!-- プレビュー -->
       <div class="prev card">
-        <div class="prev-cap">{{ preview ? previewLabel : 'ページにカーソルを合わせるとプレビューします' }}</div>
-        <div class="prev-body">
-          <PdfThumb v-if="preview" :key="preview.pdfId + ':' + preview.page" :pdf-id="preview.pdfId" :page="preview.page" :width="420" eager />
+        <div class="prev-cap">
+          <span>{{ preview ? previewLabel : 'ページにカーソルを合わせるとプレビューします' }}</span>
+          <button v-if="preview" class="link" style="flex-shrink: 0" @click="zoom = true">拡大</button>
+        </div>
+        <div class="prev-body" :class="{ clickable: preview }" title="クリックで拡大表示" @click="preview && (zoom = true)">
+          <PdfThumb v-if="preview" :key="preview.pdfId + ':' + preview.page" :pdf-id="preview.pdfId" :page="preview.page" :width="640" eager />
         </div>
       </div>
 
@@ -317,15 +331,26 @@ function showPreview(pdfId: number, page: number | null) {
         </div>
       </div>
     </div>
+
+    <!-- プレビューの拡大表示 -->
+    <div v-if="zoom && preview" class="zoom-overlay" @click="zoom = false">
+      <div class="zoom-cap">{{ previewLabel }}（クリックで閉じる）</div>
+      <PdfThumb :key="'zoom:' + preview.pdfId + ':' + preview.page" class="zoom-thumb" :pdf-id="preview.pdfId" :page="preview.page" :width="1200" eager />
+    </div>
   </div>
 </template>
 
 <style scoped>
 .picker {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) 430px;
   gap: 14px;
   min-height: 0;
+}
+@media (max-width: 1100px) {
+  .picker {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
 }
 @media (max-width: 900px) {
   .picker {
@@ -535,15 +560,6 @@ function showPreview(pdfId: number, page: number | null) {
   font-size: 11px;
   letter-spacing: 1px;
 }
-.st {
-  width: 72px;
-  flex-shrink: 0;
-  font-size: 10.5px;
-  color: var(--faint);
-}
-.st.done {
-  color: #2f7a4f;
-}
 .hist {
   width: 64px;
   flex-shrink: 0;
@@ -594,6 +610,7 @@ function showPreview(pdfId: number, page: number | null) {
   cursor: pointer;
 }
 .grid {
+  position: relative; /* jump() の自動スクロールで offsetTop の基準にする */
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 10px;
@@ -653,6 +670,13 @@ function showPreview(pdfId: number, page: number | null) {
   font-size: 11.5px;
   color: var(--mut);
   margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.prev-cap span {
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -660,11 +684,35 @@ function showPreview(pdfId: number, page: number | null) {
 .prev-body {
   display: flex;
   justify-content: center;
-  min-height: 120px;
+  min-height: 160px;
+}
+.prev-body.clickable {
+  cursor: zoom-in;
 }
 .prev-body :deep(.thumb) {
   width: 100% !important;
-  max-width: 420px;
+  max-width: 620px;
+}
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 18, 24, 0.78);
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  cursor: zoom-out;
+}
+.zoom-cap {
+  color: #e6e9ee;
+  font-size: 12.5px;
+}
+.zoom-overlay :deep(.zoom-thumb) {
+  width: min(94vw, calc(86vh * 0.71)) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 .cart {
   padding: 12px;

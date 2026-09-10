@@ -4,7 +4,7 @@ import { useUiStore } from '@/stores/ui'
 import type { QuizDetail, QuizSummary } from '@/types'
 
 /**
- * 生徒側の小テスト操作（問題 PDF ダウンロード / 撮影して提出 / 結果閲覧）を
+ * 生徒側の小テスト操作（問題 PDF プレビュー / 撮影して提出 / 結果閲覧）を
  * トップページと小テスト一覧で共用するための状態とハンドラ。
  */
 export function useQuizActions(reload: () => Promise<void> | void) {
@@ -15,12 +15,12 @@ export function useQuizActions(reload: () => Promise<void> | void) {
     busy: false,
   })
 
-  async function download(q: QuizSummary) {
+  async function openPdf(q: QuizSummary) {
     state.busy = true
     try {
-      await quizApi.downloadQuizPdf(q.id, q.title)
+      await quizApi.previewQuizPdf(q.id)
     } catch {
-      ui.notify('ダウンロードに失敗しました')
+      ui.notify('PDF の表示に失敗しました')
     } finally {
       state.busy = false
     }
@@ -43,5 +43,5 @@ export function useQuizActions(reload: () => Promise<void> | void) {
     await reload()
   }
 
-  return { state, download, openCapture, openResult, onSubmitted }
+  return { state, openPdf, openCapture, openResult, onSubmitted }
 }

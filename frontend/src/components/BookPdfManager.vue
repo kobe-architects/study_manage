@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import HelpTip from '@/components/HelpTip.vue'
 import { quizApi } from '@/api/quiz'
 import { useUiStore } from '@/stores/ui'
 import type { BookPdf, PdfPageMap } from '@/types'
@@ -180,17 +181,17 @@ function mapLabel(p: BookPdf): string {
         </label>
         <div class="edit-grid" style="margin-top: 10px">
           <label class="fld"><span>表示名</span><input v-model="form.title" placeholder="例: 例題のみ" /></label>
-          <label class="fld"><span>ページ対応</span>
+          <label class="fld"><span style="display: inline-flex; align-items: center; gap: 5px">ページ対応
+            <HelpTip
+              align="right"
+              text="「番号 = ページ」は、一覧データの番号（例題 No. など）＋オフセット が PDF のページ番号と一致する場合に選びます。&#10;一致しない PDF は「手動でページ選択」にすると、出題時にサムネイルからページを選べます。"
+            /></span>
             <select v-model="form.pageMap">
               <option value="seq">番号 = ページ（オフセット付き）</option>
               <option value="none">手動でページ選択</option>
             </select>
           </label>
           <label v-if="form.pageMap === 'seq'" class="fld"><span>オフセット</span><input v-model.number="form.pageOffset" type="number" /></label>
-        </div>
-        <div class="hint">
-          「番号 = ページ」は、一覧データの番号（例題 No. など）＋オフセット が PDF のページ番号と一致する場合に選びます。
-          一致しない PDF は「手動でページ選択」にすると、出題時にサムネイルからページを選べます。
         </div>
         <div v-if="form.uploading" class="prog"><span :style="{ width: Math.round(form.progress * 100) + '%' }"></span></div>
         <div style="display: flex; justify-content: flex-end; margin-top: 10px">

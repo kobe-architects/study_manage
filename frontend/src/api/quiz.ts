@@ -18,6 +18,24 @@ export async function fetchBlobUrl(url: string): Promise<string> {
   return URL.createObjectURL(res.data)
 }
 
+/**
+ * 認証付き PDF を別タブでプレビュー表示する（保存ダイアログを出さずブラウザのビューアで開く）。
+ * ポップアップブロック回避のため、クリック直後（同期）に空タブを開いてから取得する。
+ */
+export async function previewPdf(url: string): Promise<void> {
+  const w = window.open('', '_blank')
+  try {
+    const res = await client.get(url, { responseType: 'blob' })
+    const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+    if (w) w.location.replace(blobUrl)
+    else window.open(blobUrl, '_blank')
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+  } catch (e) {
+    w?.close()
+    throw e
+  }
+}
+
 /** 認証付き URL のファイルをダウンロード（保存ダイアログ） */
 export async function downloadFile(url: string, filename: string): Promise<void> {
   const res = await client.get(url, { responseType: 'blob' })
@@ -165,8 +183,9 @@ export const quizApi = {
     return data.data
   },
 
-  downloadQuizPdf(id: number, title: string): Promise<void> {
-    return downloadFile(`${p()}/quizzes/${id}/download`, `${title}.pdf`)
+  /** 問題 PDF を別タブでプレビュー表示する */
+  previewQuizPdf(id: number): Promise<void> {
+    return previewPdf(`${p()}/quizzes/${id}/download`)
   },
 
   downloadResultPdf(id: number, title: string): Promise<void> {

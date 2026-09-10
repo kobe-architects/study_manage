@@ -672,7 +672,11 @@ class QuizController extends Controller
         $items = $itemIds === []
             ? collect()
             : ResourceBookItem::whereIn('id', $itemIds)->whereHas('book', fn ($q) => $q->where('user_id', $userId))->get()->keyBy('id');
-        $resources = StudyResource::where('user_id', $userId)->get()->keyBy('id');
+        // 出題は講師のみのため、生徒専用の単語帳（鉄壁）は選択不可
+        $resources = StudyResource::where('user_id', $userId)
+            ->whereNotIn('name', StudyResourceController::TUTOR_HIDDEN_NAMES)
+            ->get()
+            ->keyBy('id');
 
         $out = [];
         foreach (array_values($pages) as $i => $p) {

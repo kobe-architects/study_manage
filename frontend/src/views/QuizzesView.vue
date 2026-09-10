@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import CameraCapture from '@/components/CameraCapture.vue'
+import HelpTip from '@/components/HelpTip.vue'
 import QuizCard from '@/components/QuizCard.vue'
 import QuizResultModal from '@/components/QuizResultModal.vue'
 import QuizStats from '@/components/QuizStats.vue'
@@ -37,7 +38,7 @@ watch(tab, (t) => {
   if (t === 'stats') loadStats()
 })
 
-const { state, download, openCapture, openResult, onSubmitted } = useQuizActions(async () => {
+const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(async () => {
   await load()
   if (tab.value === 'stats') await loadStats()
 })
@@ -52,7 +53,12 @@ const groups = computed(() => [
 <template>
   <div>
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px">
-      <div style="font-size: 17px; font-weight: 700">小テスト</div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div style="font-size: 17px; font-weight: 700">小テスト</div>
+        <HelpTip
+          text="先生が出題した小テストに回答して提出します。&#10;流れ: 問題PDFを開いて印刷 → 用紙に回答 → 「撮影して提出」でページごとに撮影 → 先生が添削・採点 → 結果と分析を確認"
+        />
+      </div>
       <div class="seg">
         <button :class="{ on: tab === 'list' }" @click="tab = 'list'">一覧</button>
         <button :class="{ on: tab === 'stats' }" @click="tab = 'stats'">分析</button>
@@ -62,20 +68,17 @@ const groups = computed(() => [
     <template v-if="tab === 'list'">
       <div v-if="loading" class="hint">読み込み中…</div>
       <div v-else-if="!quizzes.length" class="hint">
-        小テストはまだありません。先生が出題すると、ここに問題 PDF のダウンロードと回答の提出ボタンが表示されます。
+        小テストはまだありません。先生が出題すると、ここに問題 PDF のプレビューと回答の提出ボタンが表示されます。
       </div>
       <template v-else>
         <template v-for="g in groups" :key="g.key">
           <div v-if="g.list.length" class="group">
             <div class="group-title">{{ g.label }}<span class="cnt">{{ g.list.length }}</span></div>
             <div class="cards">
-              <QuizCard v-for="q in g.list" :key="q.id" :quiz="q" role="owner" @download="download(q)" @capture="openCapture(q)" @result="openResult(q)" />
+              <QuizCard v-for="q in g.list" :key="q.id" :quiz="q" role="owner" @pdf="openPdf(q)" @capture="openCapture(q)" @result="openResult(q)" />
             </div>
           </div>
         </template>
-        <div class="hint">
-          流れ: 問題 PDF をダウンロードして印刷 → 用紙に回答 → 「撮影して提出」でページごとに撮影 → 先生が添削・採点 → 結果と分析を確認
-        </div>
       </template>
     </template>
 

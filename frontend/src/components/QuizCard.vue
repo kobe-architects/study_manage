@@ -5,7 +5,7 @@ import type { QuizSummary } from '@/types'
 
 /** 小テストカード（生徒・講師共用。role によって操作ボタンが変わる） */
 const props = defineProps<{ quiz: QuizSummary; role: 'owner' | 'tutor'; compact?: boolean }>()
-const emit = defineEmits<{ download: []; capture: []; result: []; grade: []; edit: []; remove: [] }>()
+const emit = defineEmits<{ pdf: []; capture: []; result: []; grade: []; edit: []; remove: [] }>()
 
 const status = computed(() => props.quiz.status)
 const chip = computed(() => {
@@ -54,8 +54,8 @@ function fmt(d: string | null): string {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-2h6l2 2h3v12H4z" /><circle cx="12" cy="13" r="3.5" /></svg>
           {{ status === 'submitted' ? '撮り直して再提出' : '撮影して提出' }}
         </button>
-        <button class="btn" @click="emit('download')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11" /><path d="M7 10l5 5 5-5" /><path d="M4 19h16" /></svg>
+        <button class="btn" title="問題 PDF を別タブでプレビュー" @click="emit('pdf')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6" /><path d="M20 4L11 13" /><path d="M20 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h5" /></svg>
           問題PDF
         </button>
       </template>
@@ -63,7 +63,7 @@ function fmt(d: string | null): string {
         <button v-if="status === 'submitted'" class="btn primary" @click="emit('grade')">添削する</button>
         <button v-else-if="status === 'graded'" class="btn primary" @click="emit('grade')">添削結果を見る</button>
         <button v-else class="btn" @click="emit('edit')">編集</button>
-        <button class="btn" @click="emit('download')">問題PDF</button>
+        <button class="btn" title="問題 PDF を別タブでプレビュー" @click="emit('pdf')">問題PDF</button>
         <button class="btn danger" @click="emit('remove')">削除</button>
       </template>
     </div>

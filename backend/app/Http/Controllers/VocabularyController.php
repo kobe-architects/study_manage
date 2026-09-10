@@ -19,6 +19,8 @@ class VocabularyController extends Controller
     public function indexByResource(Request $request, StudyResource $studyResource): JsonResponse
     {
         $this->authorizeResource($request, $studyResource);
+        // 生徒専用の単語帳（鉄壁）は講師からは参照不可
+        abort_if($request->user()->isTutor() && in_array($studyResource->name, StudyResourceController::TUTOR_HIDDEN_NAMES, true), 403);
         $userId = $this->targetUserId($request); // tutor は担当生徒の学習統計で参照
 
         $vocab = Vocabulary::query()

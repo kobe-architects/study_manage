@@ -21,7 +21,7 @@ async function load() {
 }
 onMounted(load)
 
-const { state, download, openCapture, openResult, onSubmitted } = useQuizActions(load)
+const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(load)
 
 const shown = computed(() => {
   const pending = quizzes.value.filter((q) => q.status !== 'graded')
@@ -46,7 +46,7 @@ const shown = computed(() => {
       :quiz="q"
       role="owner"
       compact
-      @download="download(q)"
+      @pdf="openPdf(q)"
       @capture="openCapture(q)"
       @result="openResult(q)"
     />

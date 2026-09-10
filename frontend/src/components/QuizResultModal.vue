@@ -28,10 +28,11 @@ async function download(kind: 'result' | 'quiz') {
   if (!quiz.value) return
   downloading.value = true
   try {
+    // 問題 PDF は別タブでプレビュー、添削済み PDF は従来どおりダウンロード
     if (kind === 'result') await quizApi.downloadResultPdf(quiz.value.id, quiz.value.title)
-    else await quizApi.downloadQuizPdf(quiz.value.id, quiz.value.title)
+    else await quizApi.previewQuizPdf(quiz.value.id)
   } catch {
-    ui.notify('ダウンロードに失敗しました')
+    ui.notify(kind === 'result' ? 'ダウンロードに失敗しました' : 'PDF の表示に失敗しました')
   } finally {
     downloading.value = false
   }
