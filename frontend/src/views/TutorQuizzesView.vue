@@ -7,6 +7,7 @@ import VocabTestDialog from '@/components/VocabTestDialog.vue'
 import { renderVocabSheet, TEST_FORMAT_LABEL, TEST_TYPE_LABEL } from '@/lib/vocabTest'
 import { groupQuizzes, groupStatus, quizApi } from '@/api/quiz'
 import { iso } from '@/lib/design'
+import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import type { BookPdf, QuizBook, QuizPageSpec, QuizRow, QuizSummary } from '@/types'
 
@@ -18,6 +19,7 @@ import type { BookPdf, QuizBook, QuizPageSpec, QuizRow, QuizSummary } from '@/ty
  */
 const router = useRouter()
 const ui = useUiStore()
+const auth = useAuthStore()
 
 const tab = ref<'list' | 'stats'>('list')
 const quizzes = ref<QuizSummary[]>([])
@@ -32,7 +34,14 @@ async function load() {
     loading.value = false
   }
 }
-onMounted(load)
+onMounted(() => {
+  // 生徒側の設定で小テストメニューが非表示のときは直接アクセスも許可しない
+  if (auth.user?.role === 'tutor' && auth.user.student?.tutorQuizEnabled !== true) {
+    router.replace({ name: 'tutor-home' })
+    return
+  }
+  load()
+})
 
 const boxes = computed(() => groupQuizzes(quizzes.value))
 const groups = computed(() => [

@@ -17,6 +17,7 @@ const local = reactive<UserSettings>({
   weeklyReport: true,
   hideEmpty: false,
   startScreen: 'home',
+  tutorQuizEnabled: false,
 })
 
 watch(
@@ -200,6 +201,10 @@ async function removeTutor(t: TutorAccount) {
         家庭教師アカウント
       </div>
       <div style="display: flex; flex-direction: column; gap: 10px">
+        <div class="opt" style="margin-bottom: 4px">
+          <div><div class="opt-t">講師メニューに小テストを表示</div><div class="opt-s">オフにすると講師画面のメニューから「小テスト」が非表示になります</div></div>
+          <button class="toggle" :class="{ on: local.tutorQuizEnabled }" @click="save({ tutorQuizEnabled: !local.tutorQuizEnabled })"><span></span></button>
+        </div>
         <div v-for="t in tutors" :key="t.id" class="tutor-row">
           <div style="flex: 1; min-width: 0">
             <div style="font-size: 13px; font-weight: 600">{{ t.name }}</div>

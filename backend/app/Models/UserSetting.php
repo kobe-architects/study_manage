@@ -9,7 +9,7 @@ class UserSetting extends Model
 {
     protected $fillable = [
         'user_id', 'name', 'school', 'exam_date', 'default_type',
-        'reminder', 'weekly_report', 'hide_empty', 'start_screen',
+        'reminder', 'weekly_report', 'hide_empty', 'start_screen', 'tutor_quiz_enabled',
     ];
 
     protected $casts = [
@@ -17,6 +17,7 @@ class UserSetting extends Model
         'reminder' => 'boolean',
         'weekly_report' => 'boolean',
         'hide_empty' => 'boolean',
+        'tutor_quiz_enabled' => 'boolean',
     ];
 
     public function user(): BelongsTo

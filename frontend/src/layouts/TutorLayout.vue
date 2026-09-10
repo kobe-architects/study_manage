@@ -44,6 +44,9 @@ const NAV_TUTOR = [
   { key: 'quiz', route: 'tutor-quizzes', label: '小テスト', icon: ICONS.test },
 ]
 
+/** 「小テスト」は生徒側の設定（講師メニューに小テストを表示）がオンのときだけ表示する */
+const navItems = computed(() => NAV_TUTOR.filter((n) => n.key !== 'quiz' || auth.user?.student?.tutorQuizEnabled === true))
+
 const activeKey = computed(() => {
   const map: Record<string, string> = {
     'tutor-home': 'home',
@@ -81,7 +84,7 @@ async function logout() {
       </div>
       <nav class="topnav">
         <button
-          v-for="n in NAV_TUTOR"
+          v-for="n in navItems"
           :key="n.key"
           class="topnav-btn"
           :class="{ active: activeKey === n.key }"

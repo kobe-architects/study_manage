@@ -230,6 +230,8 @@ export interface UserSettings {
   weeklyReport: boolean
   hideEmpty: boolean
   startScreen: 'home' | 'record' | 'goal'
+  /** 講師メニューに「小テスト」を表示するか（既定は非表示） */
+  tutorQuizEnabled: boolean
 }
 
 export type UserRole = 'owner' | 'tutor'
@@ -239,6 +241,8 @@ export interface StudentInfo {
   name: string
   school: string
   examDate: string | null
+  /** 生徒側の設定: 講師メニューに「小テスト」を表示するか */
+  tutorQuizEnabled?: boolean
 }
 
 export interface AuthUser {

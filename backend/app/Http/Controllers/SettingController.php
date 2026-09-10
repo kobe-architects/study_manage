@@ -20,13 +20,14 @@ class SettingController extends Controller
             'weeklyReport' => ['sometimes', 'boolean'],
             'hideEmpty' => ['sometimes', 'boolean'],
             'startScreen' => ['sometimes', 'in:home,record,goal'],
+            'tutorQuizEnabled' => ['sometimes', 'boolean'],
         ]);
 
         $map = [
             'name' => 'name', 'school' => 'school', 'examDate' => 'exam_date',
             'defaultType' => 'default_type', 'reminder' => 'reminder',
             'weeklyReport' => 'weekly_report', 'hideEmpty' => 'hide_empty',
-            'startScreen' => 'start_screen',
+            'startScreen' => 'start_screen', 'tutorQuizEnabled' => 'tutor_quiz_enabled',
         ];
         $payload = [];
         foreach ($map as $in => $col) {
@@ -51,6 +52,7 @@ class SettingController extends Controller
             'weeklyReport' => $settings->weekly_report,
             'hideEmpty' => $settings->hide_empty,
             'startScreen' => $settings->start_screen,
+            'tutorQuizEnabled' => (bool) $settings->tutor_quiz_enabled,
         ]]);
     }
 }

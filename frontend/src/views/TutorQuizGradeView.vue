@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AnnotationEditor from '@/components/AnnotationEditor.vue'
 import AuthImage from '@/components/AuthImage.vue'
 import { MARK_COLOR, MARK_LABEL, fetchBlobUrl, quizApi, scoreForMark } from '@/api/quiz'
+import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import type { AnnotationDoc, QuizDetail, QuizMark, QuizPageDetail } from '@/types'
 
@@ -56,6 +57,12 @@ function syncForm() {
 }
 
 onMounted(async () => {
+  // 生徒側の設定で小テストメニューが非表示のときは直接アクセスも許可しない
+  const auth = useAuthStore()
+  if (auth.user?.role === 'tutor' && auth.user.student?.tutorQuizEnabled !== true) {
+    router.replace({ name: 'tutor-home' })
+    return
+  }
   try {
     await load(false)
     await loadAnswer()
