@@ -115,9 +115,11 @@ function scheduleSave(delay = 1000) {
 
 // ---------- 表示 ----------
 let ro: ResizeObserver | null = null
+let lastCw = 0
 function fit() {
   if (!container.value || !W.value) return
-  const cw = container.value.clientWidth - 2
+  lastCw = container.value.clientWidth
+  const cw = lastCw - 2
   // 画像全体が画面に収まるサイズを既定にする（幅・高さの両方でフィット）
   const top = container.value.getBoundingClientRect().top
   const availH = Math.max(280, window.innerHeight - Math.max(0, top) - 24)
@@ -584,7 +586,7 @@ function markSaved() {
   if (JSON.stringify(items.value) === lastSavedSnapshot) setDirty(false)
   else scheduleSave()
 }
-defineExpose({ save, markSaved, isDirty: () => dirty.value })
+defineExpose({ save, markSaved, isDirty: () => dirty.value, zoomBy, fit, zoom })
 
 // ---------- キーボード ----------
 function onKey(e: KeyboardEvent) {
@@ -607,7 +609,12 @@ function onKey(e: KeyboardEvent) {
 onMounted(() => {
   loadImage()
   loadItems()
-  ro = new ResizeObserver(() => fit())
+  // ズームで内容が伸縮すると高さ（やスクロールバー分の幅）が変わり ResizeObserver が発火するが、
+  // そこで再フィットするとズームがリセットされてしまうため、幅が大きく変わったときだけ再フィットする
+  ro = new ResizeObserver(() => {
+    const cw = container.value?.clientWidth ?? 0
+    if (Math.abs(cw - lastCw) > 24) fit()
+  })
   if (container.value) ro.observe(container.value)
   window.addEventListener('keydown', onKey)
 })

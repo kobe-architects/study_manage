@@ -227,6 +227,17 @@ async function downloadResult() {
         <span v-if="page.kind === 'vocab'" class="vtag">英単語テスト・満点 {{ page.maxScore }}点</span>
         <span v-if="page.chapter">{{ page.chapter }}</span>
         <span v-if="page.difficulty" style="color: #d98a1a">{{ page.difficulty }}</span>
+        <span class="bar-ctrl">
+          <template v-if="answerUrl">
+            <button class="mini" title="縮小" @click="editor?.zoomBy(1 / 1.25)">−</button>
+            <button class="mini" title="拡大" @click="editor?.zoomBy(1.25)">＋</button>
+            <button class="mini" title="画像全体を表示" @click="editor?.fit()">全体</button>
+            <span class="ctrl-sep"></span>
+          </template>
+          <button class="mini" :disabled="pageIdx === 0" @click="gotoPage(pageIdx - 1)">‹ 前へ</button>
+          <span class="pcount">{{ pageIdx + 1 }} / {{ quiz.pages.length }}</span>
+          <button class="mini" :disabled="pageIdx >= quiz.pages.length - 1" @click="gotoPage(pageIdx + 1)">次へ ›</button>
+        </span>
       </div>
       <template v-if="page">
         <AnnotationEditor
@@ -484,6 +495,39 @@ async function downloadResult() {
 .label-bar b {
   color: var(--ink);
   font-size: 13px;
+}
+.bar-ctrl {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.mini {
+  padding: 5px 10px;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--mut);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mini:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.ctrl-sep {
+  width: 1px;
+  height: 16px;
+  background: #e3e6ea;
+  margin: 0 3px;
+}
+.pcount {
+  font-size: 11px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .empty {
   padding: 40px;
