@@ -5,7 +5,7 @@ import HelpTip from '@/components/HelpTip.vue'
 import QuizCard from '@/components/QuizCard.vue'
 import QuizResultModal from '@/components/QuizResultModal.vue'
 import QuizStats from '@/components/QuizStats.vue'
-import { quizApi } from '@/api/quiz'
+import { groupQuizzes, groupStatus, quizApi } from '@/api/quiz'
 import { useQuizActions } from '@/lib/quizActions'
 import { useUiStore } from '@/stores/ui'
 import type { QuizStats as QuizStatsT, QuizSummary } from '@/types'
@@ -43,10 +43,11 @@ const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(
   if (tab.value === 'stats') await loadStats()
 })
 
+const boxes = computed(() => groupQuizzes(quizzes.value))
 const groups = computed(() => [
-  { key: 'assigned', label: '未提出', list: quizzes.value.filter((q) => q.status === 'assigned') },
-  { key: 'submitted', label: '提出済み（添削待ち）', list: quizzes.value.filter((q) => q.status === 'submitted') },
-  { key: 'graded', label: '添削済み', list: quizzes.value.filter((q) => q.status === 'graded') },
+  { key: 'assigned', label: '未提出', list: boxes.value.filter((b) => groupStatus(b, 'owner') === 'assigned') },
+  { key: 'submitted', label: '提出済み（採点・添削待ち）', list: boxes.value.filter((b) => groupStatus(b, 'owner') === 'submitted') },
+  { key: 'graded', label: '採点・添削済み', list: boxes.value.filter((b) => groupStatus(b, 'owner') === 'graded') },
 ])
 </script>
 
@@ -56,7 +57,7 @@ const groups = computed(() => [
       <div style="display: flex; align-items: center; gap: 8px">
         <div style="font-size: 17px; font-weight: 700">小テスト</div>
         <HelpTip
-          text="先生が出題した小テストに回答して提出します。&#10;流れ: 問題PDFを開いて印刷 → 用紙に回答 → 「撮影して提出」でページごとに撮影 → 先生が添削・採点 → 結果と分析を確認"
+          text="先生が出題した小テストに回答して提出します。複数の教材から出題されている場合、問題PDFや提出は教材ごとに行います。&#10;流れ: 問題PDFを開いて印刷 → 用紙に回答 → 「撮影して提出」でページごとに撮影 → 先生が採点・添削 → 結果と分析を確認"
         />
       </div>
       <div class="seg">
@@ -75,7 +76,7 @@ const groups = computed(() => [
           <div v-if="g.list.length" class="group">
             <div class="group-title">{{ g.label }}<span class="cnt">{{ g.list.length }}</span></div>
             <div class="cards">
-              <QuizCard v-for="q in g.list" :key="q.id" :quiz="q" role="owner" @pdf="openPdf(q)" @capture="openCapture(q)" @result="openResult(q)" />
+              <QuizCard v-for="b in g.list" :key="b[0]!.id" :parts="b" role="owner" @pdf="openPdf($event)" @capture="openCapture($event)" @result="openResult($event)" />
             </div>
           </div>
         </template>

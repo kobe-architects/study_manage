@@ -3,15 +3,15 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AnnotationEditor from '@/components/AnnotationEditor.vue'
 import AuthImage from '@/components/AuthImage.vue'
-import PdfThumb from '@/components/PdfThumb.vue'
 import { MARK_COLOR, MARK_LABEL, fetchBlobUrl, quizApi, scoreForMark } from '@/api/quiz'
 import { useUiStore } from '@/stores/ui'
 import type { AnnotationDoc, QuizDetail, QuizMark, QuizPageDetail } from '@/types'
 
 /**
- * 講師用: 添削・採点画面。
- * 左: 回答写真の添削エディタ（PC: マウス、iPad: Apple Pencil / 指）
- * 右: 問題ページ（出題元 PDF）・解答参照ページ、○△×採点・点数・コメント
+ * 講師用: 採点・添削画面。
+ * 左レール: 添削ツール（固定）＋ページリスト / 中央: 回答写真の添削エディタ /
+ * 右レール: ステータス・完了ボタン（固定）＋採点＋英単語テストの解答一覧。
+ * 添削はペン等で変更すると自動保存される。
  */
 const route = useRoute()
 const router = useRouter()
@@ -25,9 +25,8 @@ const editor = ref<InstanceType<typeof AnnotationEditor> | null>(null)
 const saving = ref(false)
 const dirty = ref(false)
 const answerUrl = ref<string | null>(null)
-const refMode = ref<'question' | 'answer'>('question')
 /** 英単語テストの解答一覧（採点用） */
-const vocabAnswers = computed(() => page.value?.kind === 'vocab' ? page.value.vocabWords ?? [] : [])
+const vocabAnswers = computed(() => (page.value?.kind === 'vocab' ? page.value.vocabWords ?? [] : []))
 
 const form = reactive<{ mark: QuizMark | null; score: number | null; comment: string; saving: boolean }>({ mark: null, score: null, comment: '', saving: false })
 
@@ -71,39 +70,49 @@ onBeforeUnmount(() => {
 })
 
 watch(pageIdx, async () => {
-  refMode.value = 'question'
   await loadAnswer()
   syncForm()
 })
 
+/** 未保存の添削があれば保存を完了させる（自動保存の flush） */
+let saveTask: Promise<void> | null = null
+async function flushAnnotations() {
+  if (!dirty.value || !editor.value) return
+  await editor.value.save()
+  if (saveTask) await saveTask
+}
+
 async function gotoPage(i: number) {
   if (i === pageIdx.value || !quiz.value || i < 0 || i >= quiz.value.pages.length) return
-  if (dirty.value && !confirm('未保存の添削があります。保存せずにページを移動しますか？')) return
+  await flushAnnotations()
   dirty.value = false
   pageIdx.value = i
 }
 
-// ---- 添削の保存 ----
+// ---- 添削の保存（エディタから自動保存で呼ばれる） ----
 async function onSave(doc: AnnotationDoc, blob: Blob) {
   if (!quiz.value || !page.value) return
-  saving.value = true
-  try {
-    await quizApi.saveAnnotations(quiz.value.id, page.value.id, doc, blob)
-    const fresh = await quizApi.show(quiz.value.id)
-    // 現在ページの注釈だけ差し替える（エディタの再読込を避ける）
-    const updated = fresh.pages[pageIdx.value]
-    if (updated && quiz.value.pages[pageIdx.value]) {
-      quiz.value.pages[pageIdx.value]!.hasAnnotated = updated.hasAnnotated
-      quiz.value.pages[pageIdx.value]!.annotatedVersion = updated.annotatedVersion
+  const task = (async () => {
+    saving.value = true
+    try {
+      await quizApi.saveAnnotations(quiz.value!.id, page.value!.id, doc, blob)
+      const fresh = await quizApi.show(quiz.value!.id)
+      // 現在ページの注釈だけ差し替える（エディタの再読込を避ける）
+      const updated = fresh.pages[pageIdx.value]
+      if (updated && quiz.value!.pages[pageIdx.value]) {
+        quiz.value!.pages[pageIdx.value]!.hasAnnotated = updated.hasAnnotated
+        quiz.value!.pages[pageIdx.value]!.annotatedVersion = updated.annotatedVersion
+      }
+      editor.value?.markSaved()
+      dirty.value = editor.value?.isDirty() ?? false
+    } catch {
+      ui.notify('添削の保存に失敗しました')
+    } finally {
+      saving.value = false
     }
-    editor.value?.markSaved()
-    dirty.value = false
-    ui.notify('添削を保存しました')
-  } catch {
-    ui.notify('添削の保存に失敗しました')
-  } finally {
-    saving.value = false
-  }
+  })()
+  saveTask = task
+  await task
 }
 
 // ---- 採点 ----
@@ -147,18 +156,15 @@ const total = computed(() => quiz.value?.pages.reduce((s, p) => s + (p.score ?? 
 
 async function finish() {
   if (!quiz.value) return
-  if (dirty.value) {
-    ui.notify('先に添削を保存してください')
-    return
-  }
+  await flushAnnotations()
   if (gradedCount.value < quiz.value.pages.length) {
     ui.notify(`未採点のページがあります（${gradedCount.value}/${quiz.value.pages.length}）`)
     return
   }
-  if (!confirm(`添削を完了しますか？（合計 ${total.value} / ${quiz.value.maxScore}点）\n完了すると生徒に結果が表示されます。`)) return
+  if (!confirm(`採点・添削を完了しますか？（合計 ${total.value} / ${quiz.value.maxScore}点）\n完了すると生徒に結果が表示されます。`)) return
   try {
     await quizApi.finish(quiz.value.id)
-    ui.notify('添削を完了しました')
+    ui.notify('採点・添削を完了しました')
     await load()
   } catch (e: unknown) {
     const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -166,11 +172,11 @@ async function finish() {
   }
 }
 async function reopen() {
-  if (!quiz.value || !confirm('添削をやり直しますか？（生徒側では「提出済み」に戻ります）')) return
+  if (!quiz.value || !confirm('採点・添削をやり直しますか？（生徒側では「提出済み」に戻ります）')) return
   try {
     await quizApi.reopen(quiz.value.id)
     await load()
-    ui.notify('添削待ちに戻しました')
+    ui.notify('採点・添削待ちに戻しました')
   } catch {
     ui.notify('処理に失敗しました')
   }
@@ -187,41 +193,40 @@ async function downloadResult() {
 
 <template>
   <div v-if="quiz" class="grade">
-    <div class="head">
-      <button class="back" @click="router.push({ name: 'tutor-quizzes' })">‹ 小テスト一覧</button>
-      <div style="min-width: 0; flex: 1">
-        <div style="font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ quiz.title }}</div>
-        <div style="font-size: 11.5px; color: var(--mut)">
-          {{ quiz.bookTitle }}・{{ quiz.pageCount }}ページ・満点 {{ quiz.maxScorePerPage }}点/問
-          <template v-if="quiz.submittedAt">・提出 {{ quiz.submittedAt.slice(0, 16).replace(/-/g, '/') }}</template>
-        </div>
+    <!-- 左レール: 添削ツール（エディタからテレポート）＋ページリスト -->
+    <aside class="rail rail-l">
+      <div v-if="page && page.hasAnswer" class="card tools-card">
+        <div class="rail-title">添削ツール</div>
+        <div id="grade-tools"></div>
       </div>
-      <span class="chip" :class="quiz.status">{{ quiz.status === 'graded' ? '添削済み' : quiz.status === 'submitted' ? '添削待ち' : '未提出' }}</span>
-      <div class="total">採点 {{ gradedCount }}/{{ quiz.pageCount }}・<b>{{ total }}</b> / {{ quiz.maxScore }}点</div>
-      <button v-if="hasVocab" class="btn" @click="downloadAnswers">英単語 解答PDF</button>
-      <button v-if="quiz.status === 'graded'" class="btn" @click="downloadResult">添削済みPDF</button>
-      <button v-if="quiz.status === 'graded'" class="btn" @click="reopen">やり直す</button>
-      <button v-else class="btn primary" :disabled="quiz.status === 'assigned'" @click="finish">添削を完了</button>
-    </div>
+      <div class="card">
+        <div class="rail-title">ページ</div>
+        <button v-for="(p, i) in quiz.pages" :key="p.id" class="prow" :class="{ on: i === pageIdx }" @click="gotoPage(i)">
+          <span class="pn">{{ p.pageNo }}</span>
+          <span class="pl">{{ p.label }}</span>
+          <span v-if="p.mark" class="pm" :style="{ color: i === pageIdx ? '#fff' : MARK_COLOR[p.mark] }">{{ MARK_LABEL[p.mark] }}</span>
+          <span v-else-if="!p.hasAnswer" class="pm ng">未</span>
+        </button>
+      </div>
+    </aside>
 
-    <div class="tabs">
-      <button v-for="(p, i) in quiz.pages" :key="p.id" class="ptab" :class="{ on: i === pageIdx }" @click="gotoPage(i)">
-        <span class="pn">{{ p.pageNo }}</span>
-        <span class="pl">{{ p.label }}</span>
-        <span v-if="p.mark" class="pm" :style="{ color: MARK_COLOR[p.mark] }">{{ MARK_LABEL[p.mark] }}</span>
-        <span v-else-if="!p.hasAnswer" class="pm" style="color: #c0444f">未</span>
-      </button>
-    </div>
-
-    <div v-if="page" class="body">
-      <div class="main">
-        <div class="label-bar">
-          <b>{{ page.pageNo }}. {{ page.label }}</b>
-          <span v-if="page.kind === 'vocab'" class="vtag">英単語テスト・満点 {{ page.maxScore }}点</span>
-          <span v-if="page.chapter">{{ page.chapter }}</span>
-          <span v-if="page.difficulty" style="color: #d98a1a">{{ page.difficulty }}</span>
-          <span v-if="page.answerUploadedAt" style="margin-left: auto">撮影 {{ page.answerUploadedAt.slice(0, 16).replace(/-/g, '/') }}</span>
-        </div>
+    <!-- 中央: 添削対象の画像 -->
+    <div class="main">
+      <div class="head-line">
+        <button class="back" @click="router.push({ name: 'tutor-quizzes' })">‹ 小テスト一覧</button>
+        <b class="ttl">{{ quiz.title }}</b>
+        <span class="meta">
+          {{ quiz.bookTitle ?? '英単語テスト' }}・{{ quiz.pageCount }}ページ・満点 {{ quiz.maxScorePerPage }}点/問
+          <template v-if="quiz.submittedAt">・提出 {{ quiz.submittedAt.slice(0, 16).replace(/-/g, '/') }}</template>
+        </span>
+      </div>
+      <div v-if="page" class="label-bar">
+        <b>{{ page.pageNo }}. {{ page.label }}</b>
+        <span v-if="page.kind === 'vocab'" class="vtag">英単語テスト・満点 {{ page.maxScore }}点</span>
+        <span v-if="page.chapter">{{ page.chapter }}</span>
+        <span v-if="page.difficulty" style="color: #d98a1a">{{ page.difficulty }}</span>
+      </div>
+      <template v-if="page">
         <AnnotationEditor
           v-if="answerUrl"
           ref="editor"
@@ -229,69 +234,69 @@ async function downloadResult() {
           :image-url="answerUrl"
           :model-value="page.annotations"
           :saving="saving"
+          toolbar-target="#grade-tools"
           @save="onSave"
           @dirty="dirty = $event"
         />
         <div v-else-if="page.hasAnswer" class="empty">回答画像を読み込み中…</div>
         <div v-else class="empty">このページの回答はまだ提出されていません。</div>
+      </template>
+    </div>
+
+    <!-- 右レール: ステータス・完了（固定）＋採点＋英単語の解答 -->
+    <aside class="rail rail-r">
+      <div class="card status-card">
+        <div class="status-line">
+          <span class="chip" :class="quiz.status">{{ quiz.status === 'graded' ? '採点・添削済み' : quiz.status === 'submitted' ? '採点・添削待ち' : '未提出' }}</span>
+          <span class="total">採点 {{ gradedCount }}/{{ quiz.pageCount }}・<b>{{ total }}</b> / {{ quiz.maxScore }}点</span>
+        </div>
+        <div class="status-btns">
+          <button v-if="quiz.status !== 'graded'" class="btn primary" :disabled="quiz.status === 'assigned'" @click="finish">採点・添削を完了</button>
+          <button v-if="quiz.status === 'graded'" class="btn" @click="reopen">やり直す</button>
+          <button v-if="quiz.status === 'graded'" class="btn" @click="downloadResult">採点・添削済みPDF</button>
+          <button v-if="hasVocab" class="btn" @click="downloadAnswers">英単語 解答PDF</button>
+        </div>
       </div>
 
-      <aside class="side">
-        <div v-if="page.kind === 'vocab'" class="card ref">
-          <div class="ref-head">
-            <div style="font-size: 12.5px; font-weight: 700">解答一覧（{{ vocabAnswers.length }}問）</div>
-            <button class="btn" style="padding: 5px 10px; font-size: 11.5px" @click="sheetOpen = true">問題用紙を見る</button>
-          </div>
-          <div class="ref-body">
-            <table class="ans">
-              <tbody>
-                <tr v-for="(w, i) in vocabAnswers" :key="w.id">
-                  <td class="n">{{ i + 1 }}</td>
-                  <td class="q">{{ w.question }}</td>
-                  <td class="a">{{ w.answer }}<span v-if="w.choices?.length" class="ch">（{{ 'ABCD'[w.choices.indexOf(w.answer)] ?? '?' }}）</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+      <div v-if="page" class="card grading">
+        <div style="font-size: 12.5px; font-weight: 700; margin-bottom: 8px">採点</div>
+        <div class="marks">
+          <button v-for="m in (['o', 'tri', 'x'] as const)" :key="m" class="mark" :class="{ on: form.mark === m }" :style="{ '--c': MARK_COLOR[m] }" :disabled="!page.hasAnswer" @click="setMark(m)">
+            <span class="mk">{{ MARK_LABEL[m] }}</span>
+            <span class="ms">{{ scoreForMark(m, max) }}点</span>
+          </button>
         </div>
-        <div v-else class="card ref">
-          <div class="ref-head">
-            <div class="seg">
-              <button :class="{ on: refMode === 'question' }" @click="refMode = 'question'">問題ページ</button>
-              <button v-if="page.refPage" :class="{ on: refMode === 'answer' }" @click="refMode = 'answer'">解答ページ</button>
-            </div>
-            <span style="font-size: 10.5px; color: var(--faint)">
-              {{ refMode === 'answer' ? `${page.refPdfTitle} p.${page.refPage}` : `${page.pdfTitle} p.${page.pdfPage}` }}
-            </span>
-          </div>
-          <div class="ref-body">
-            <PdfThumb v-if="refMode === 'answer' && page.refPdfId && page.refPage" :key="'r' + page.id" :pdf-id="page.refPdfId" :page="page.refPage" :width="520" eager />
-            <PdfThumb v-else-if="page.pdfId" :key="'q' + page.id" :pdf-id="page.pdfId" :page="page.pdfPage ?? 1" :width="520" eager />
-          </div>
+        <div class="score-line">
+          <span>点数</span>
+          <input v-model.number="form.score" type="number" min="0" :max="max" :disabled="!page.hasAnswer" @change="saveGrade" />
+          <span>/ {{ max }}点</span>
+          <span v-if="form.saving" style="font-size: 11px; color: var(--faint)">保存中…</span>
         </div>
+        <textarea v-model="form.comment" rows="3" placeholder="コメント（生徒に表示されます）" :disabled="!page.hasAnswer" @blur="saveGrade"></textarea>
+        <div class="nav">
+          <button class="btn" :disabled="pageIdx === 0" @click="gotoPage(pageIdx - 1)">‹ 前へ</button>
+          <button class="btn" :disabled="pageIdx >= quiz.pages.length - 1" @click="gotoPage(pageIdx + 1)">次へ ›</button>
+        </div>
+      </div>
 
-        <div class="card grading">
-          <div style="font-size: 12.5px; font-weight: 700; margin-bottom: 8px">採点</div>
-          <div class="marks">
-            <button v-for="m in (['o', 'tri', 'x'] as const)" :key="m" class="mark" :class="{ on: form.mark === m }" :style="{ '--c': MARK_COLOR[m] }" :disabled="!page.hasAnswer" @click="setMark(m)">
-              <span class="mk">{{ MARK_LABEL[m] }}</span>
-              <span class="ms">{{ scoreForMark(m, max) }}点</span>
-            </button>
-          </div>
-          <div class="score-line">
-            <span>点数</span>
-            <input v-model.number="form.score" type="number" min="0" :max="max" :disabled="!page.hasAnswer" @change="saveGrade" />
-            <span>/ {{ max }}点</span>
-            <span v-if="form.saving" style="font-size: 11px; color: var(--faint)">保存中…</span>
-          </div>
-          <textarea v-model="form.comment" rows="3" placeholder="コメント（生徒に表示されます）" :disabled="!page.hasAnswer" @blur="saveGrade"></textarea>
-          <div class="nav">
-            <button class="btn" :disabled="pageIdx === 0" @click="gotoPage(pageIdx - 1)">‹ 前のページ</button>
-            <button class="btn" :disabled="pageIdx >= quiz.pages.length - 1" @click="gotoPage(pageIdx + 1)">次のページ ›</button>
-          </div>
+      <div v-if="page && page.kind === 'vocab'" class="card ref">
+        <div class="ref-head">
+          <div style="font-size: 12.5px; font-weight: 700">解答一覧（{{ vocabAnswers.length }}問）</div>
+          <button class="btn" style="padding: 5px 10px; font-size: 11.5px" @click="sheetOpen = true">問題用紙</button>
         </div>
-      </aside>
-    </div>
+        <div class="ref-body">
+          <table class="ans">
+            <tbody>
+              <tr v-for="(w, i) in vocabAnswers" :key="w.id">
+                <td class="n">{{ i + 1 }}</td>
+                <td class="q">{{ w.question }}</td>
+                <td class="a">{{ w.answer }}<span v-if="w.choices?.length" class="ch">（{{ 'ABCD'[w.choices.indexOf(w.answer)] ?? '?' }}）</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </aside>
   </div>
   <div v-else class="empty">読み込み中…</div>
   <div v-if="sheetOpen && quiz && page" class="sheet-overlay" @click="sheetOpen = false">
@@ -303,99 +308,68 @@ async function downloadResult() {
 </template>
 
 <style scoped>
+/* コンテンツ幅（max-width: 1100px）の外側の余白まで使う3カラム。左右レールは上部に固定（sticky） */
 .grade {
+  width: calc(100vw - 44px);
+  margin-left: calc(50% - 50vw + 22px);
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 290px;
+  gap: 14px;
+  align-items: start;
+}
+.rail {
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  scrollbar-width: thin;
 }
-.head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+@media (max-width: 1100px) {
+  .grade {
+    width: auto;
+    margin-left: 0;
+    grid-template-columns: 1fr;
+  }
+  .rail {
+    position: static;
+    max-height: none;
+  }
 }
-.back {
-  border: none;
-  background: none;
-  color: #3b50cc;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-  white-space: nowrap;
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
 }
-.chip {
-  font-size: 10.5px;
+.rail-title {
+  font-size: 11.5px;
   font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: #f1f2f4;
   color: var(--mut);
+  margin-bottom: 6px;
 }
-.chip.submitted {
-  background: #e8eefb;
-  color: #2e4a8f;
-}
-.chip.graded {
-  background: #e6f5ec;
-  color: #2f7a4f;
-}
-.total {
-  font-size: 12px;
-  color: var(--mut);
-  white-space: nowrap;
-}
-.total b {
-  font-size: 16px;
-  color: var(--ink);
-}
-.btn {
-  padding: 8px 14px;
-  border: 1px solid #e3e6ea;
-  border-radius: 9px;
-  background: #fff;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--mut);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.btn.primary {
-  background: #1c2024;
-  border-color: #1c2024;
-  color: #fff;
-}
-.btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-.tabs {
+/* ページリスト */
+.prow {
   display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding-bottom: 2px;
-}
-.tabs::-webkit-scrollbar {
-  display: none;
-}
-.ptab {
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border: 1px solid #e3e6ea;
-  border-radius: 999px;
-  background: #fff;
+  gap: 7px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
   font-size: 12px;
   color: var(--mut);
   cursor: pointer;
-  white-space: nowrap;
-  max-width: 260px;
+  text-align: left;
 }
-.ptab.on {
+.prow:hover {
+  background: #f3f4f7;
+}
+.prow.on {
   background: #1c2024;
-  border-color: #1c2024;
   color: #fff;
 }
 .pn {
@@ -408,31 +382,60 @@ async function downloadResult() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
-.ptab.on .pn {
+.prow.on .pn {
   background: rgba(255, 255, 255, 0.2);
 }
 .pl {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .pm {
   font-weight: 800;
   font-size: 13px;
+  flex-shrink: 0;
 }
-.body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 12px;
-  align-items: start;
+.pm.ng {
+  color: #c0444f;
 }
-@media (max-width: 1000px) {
-  .body {
-    grid-template-columns: 1fr;
-  }
+.prow.on .pm.ng {
+  color: #ffb3ba;
 }
+/* 中央 */
 .main {
   min-width: 0;
+}
+.head-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.back {
+  border: none;
+  background: none;
+  color: #3b50cc;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+.ttl {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 46%;
+}
+.meta {
+  font-size: 11.5px;
+  color: var(--mut);
 }
 .label-bar {
   display: flex;
@@ -456,52 +459,63 @@ async function downloadResult() {
   border: 1px dashed #d8dce1;
   border-radius: 12px;
 }
-.side {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  position: sticky;
-  top: 0;
-}
-.card {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 12px;
-}
-.ref-head {
+/* 右レール */
+.status-line {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
   margin-bottom: 8px;
 }
-.seg {
-  display: inline-flex;
-  border: 1px solid #e3e6ea;
-  border-radius: 8px;
-  overflow: hidden;
+.chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #f1f2f4;
+  color: var(--mut);
 }
-.seg button {
-  padding: 5px 10px;
-  border: none;
-  background: #fff;
+.chip.submitted {
+  background: #e8eefb;
+  color: #2e4a8f;
+}
+.chip.graded {
+  background: #e6f5ec;
+  color: #2f7a4f;
+}
+.total {
   font-size: 11.5px;
+  color: var(--mut);
+  white-space: nowrap;
+}
+.total b {
+  font-size: 15px;
+  color: var(--ink);
+}
+.status-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.btn {
+  padding: 8px 12px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  background: #fff;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--mut);
   cursor: pointer;
+  white-space: nowrap;
 }
-.seg button.on {
-  background: #f1f2f4;
-  color: var(--ink);
+.btn.primary {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
 }
-.ref-body {
-  max-height: 46vh;
-  overflow-y: auto;
-}
-.ref-body :deep(.thumb) {
-  width: 100% !important;
-  aspect-ratio: auto;
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .marks {
   display: grid;
@@ -577,6 +591,17 @@ textarea {
   background: #e6f5ec;
   padding: 2px 8px;
   border-radius: 999px;
+}
+.ref-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ref-body {
+  max-height: 46vh;
+  overflow-y: auto;
 }
 .ans {
   width: 100%;

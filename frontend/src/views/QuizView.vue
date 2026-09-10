@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { shuffle, speak } from '@/lib/design'
 import { playResultSound } from '@/lib/sound'
@@ -102,11 +102,38 @@ function toggleSecGroup(ids: number[]) {
   ids.forEach((id) => (next[id] = !all))
   secSel.value = next
 }
-/** 単語帳を切り替えたら全セクション選択に戻す */
-function onResourceChange() {
+// ---- 出題セクションの保持（単語帳ごとに最後の選択を localStorage に記憶。デフォルトは全解除） ----
+const SEC_KEY = (rid: number) => `sm_quiz_secsel_${rid}`
+function loadSecSel() {
+  let saved: number[] = []
+  try {
+    const raw = localStorage.getItem(SEC_KEY(resourceId.value))
+    if (raw) saved = JSON.parse(raw)
+  } catch {
+    saved = []
+  }
+  const savedSet = new Set(Array.isArray(saved) ? saved : [])
   const sel: Record<number, boolean> = {}
-  sections.value.forEach((s) => (sel[s.id] = true))
+  sections.value.forEach((s) => (sel[s.id] = savedSet.has(s.id)))
   secSel.value = sel
+}
+watch(
+  secSel,
+  () => {
+    if (!resourceId.value) return
+    try {
+      const ids = sections.value.filter((s) => secSel.value[s.id]).map((s) => s.id)
+      localStorage.setItem(SEC_KEY(resourceId.value), JSON.stringify(ids))
+    } catch {
+      // 保存できない環境では単に記憶しない
+    }
+  },
+  { deep: true },
+)
+
+/** 単語帳を切り替えたら、その単語帳で最後に選択していたセクションを復元する */
+function onResourceChange() {
+  loadSecSel()
   wSec.value = 'all'
 }
 
@@ -115,10 +142,8 @@ onMounted(async () => {
   if (resourceId.value) {
     await Promise.all([vocab.fetchByResource(resourceId.value), vocab.fetchStats(resourceId.value)])
   }
-  // default all sections selected
-  const sel: Record<number, boolean> = {}
-  sections.value.forEach((s) => (sel[s.id] = true))
-  secSel.value = sel
+  // 前回選択していたセクションを復元（初回は全解除）
+  loadSecSel()
   // resumed quiz (e.g. from review)
   if (vocab.quizQuestions.length && !vocab.isQuizComplete) {
     quizType.value = vocab.quizType

@@ -60,9 +60,9 @@ function rateColor(rate: number | null): string {
 <template>
   <div class="stats">
     <div v-if="!hasData" class="empty">
-      添削済みの小テストがまだありません。添削が完了すると、得点率の推移や単元別の正答率がここに表示されます。
+      採点・添削済みの小テストがまだありません。採点・添削が完了すると、得点率の推移や単元別の正答率がここに表示されます。
       <div v-if="s.quizCount" style="margin-top: 6px; font-size: 11.5px">
-        出題 {{ s.quizCount }}件（未提出 {{ s.assignedCount }}・添削待ち {{ s.submittedCount }}）
+        出題 {{ s.quizCount }}件（未提出 {{ s.assignedCount }}・採点・添削待ち {{ s.submittedCount }}）
       </div>
     </div>
 
@@ -75,7 +75,7 @@ function rateColor(rate: number | null): string {
           <div class="t-sub">{{ s.score }} / {{ s.max }}点</div>
         </div>
         <div class="tile">
-          <div class="t-label">添削済み</div>
+          <div class="t-label">採点・添削済み</div>
           <div class="t-val"><b>{{ s.gradedCount }}</b><span>回</span></div>
           <div class="t-sub">{{ s.pageCount }}問を採点</div>
         </div>
@@ -89,7 +89,7 @@ function rateColor(rate: number | null): string {
         <div class="tile">
           <div class="t-label">進行中</div>
           <div class="t-val"><b>{{ s.assignedCount + s.submittedCount }}</b><span>件</span></div>
-          <div class="t-sub">未提出 {{ s.assignedCount }}・添削待ち {{ s.submittedCount }}</div>
+          <div class="t-sub">未提出 {{ s.assignedCount }}・採点・添削待ち {{ s.submittedCount }}</div>
         </div>
       </div>
 
@@ -118,7 +118,7 @@ function rateColor(rate: number | null): string {
           </div>
         </div>
         <table class="tbl">
-          <thead><tr><th>小テスト</th><th>添削日</th><th class="r">得点</th><th class="r">得点率</th></tr></thead>
+          <thead><tr><th>小テスト</th><th>採点・添削日</th><th class="r">得点</th><th class="r">得点率</th></tr></thead>
           <tbody>
             <tr v-for="t in [...timeline].reverse()" :key="t.id">
               <td>{{ t.title }}</td>

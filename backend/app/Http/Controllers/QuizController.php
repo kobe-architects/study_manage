@@ -166,6 +166,7 @@ class QuizController extends Controller
             $quiz = Quiz::create([
                 'user_id' => $userId,
                 'created_by' => $request->user()->id,
+                'group_key' => $data['groupKey'] ?? null,
                 'resource_book_id' => $book?->id,
                 'title' => $this->titleOf($data['title'] ?? null, $book),
                 'note' => $data['note'] ?? null,
@@ -228,11 +229,22 @@ class QuizController extends Controller
 
     // ====================== ファイル ======================
 
-    /** 出題 PDF（教材ページ + 英単語テスト） */
+    /** 出題 PDF（教材ページ + 英単語テスト）。講師は ?answers=1 で英単語テストの解答用紙を末尾に付けて取得できる */
     public function download(Request $request, Quiz $quiz): BinaryFileResponse
     {
         $this->authorizeQuiz($request, $quiz);
         abort_if($quiz->file_path === null, 404);
+
+        if ($request->boolean('answers') && $request->user()->isTutor()) {
+            $withAnswers = $this->buildPdfWithAnswers($quiz);
+            if ($withAnswers !== null) {
+                return response()->file($withAnswers, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => HeaderUtils::makeDisposition('attachment', $this->safeName($quiz->title).'_解答つき.pdf', 'quiz-'.$quiz->id.'-answers.pdf'),
+                ]);
+            }
+        }
+
         $abs = Storage::disk('local')->path($quiz->file_path);
         abort_unless(is_file($abs), 404);
 
@@ -240,6 +252,40 @@ class QuizController extends Controller
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => HeaderUtils::makeDisposition('attachment', $this->safeName($quiz->title).'.pdf', 'quiz-'.$quiz->id.'.pdf'),
         ]);
+    }
+
+    /**
+     * 英単語テストの解答用紙を末尾に付けた出題 PDF を生成して絶対パスを返す（講師用）。
+     * 英単語テストのページが無い場合は null（通常の出題 PDF を返す）。
+     */
+    private function buildPdfWithAnswers(Quiz $quiz): ?string
+    {
+        $disk = Storage::disk('local');
+        $sources = [];
+        $answers = [];
+        foreach ($quiz->pages()->with('pdf')->get() as $p) {
+            if ($p->isVocab()) {
+                if ($p->render_path === null) {
+                    return null;
+                }
+                $sources[] = ['image' => $disk->path($p->render_path)];
+                if ($p->answer_render_path && $disk->exists($p->answer_render_path)) {
+                    $answers[] = ['image' => $disk->path($p->answer_render_path)];
+                }
+            } else {
+                if ($p->pdf === null) {
+                    return null;
+                }
+                $sources[] = ['path' => $p->pdf->absolutePath(), 'page' => $p->pdf_page];
+            }
+        }
+        if ($answers === []) {
+            return null;
+        }
+        $rel = $quiz->dir().'/quiz_with_answers.pdf';
+        PdfTools::extractPages([...$sources, ...$answers], $disk->path($rel));
+
+        return $disk->path($rel);
     }
 
     /** 英単語テストの解答 PDF（講師用） */
@@ -329,7 +375,7 @@ class QuizController extends Controller
     public function uploadAnswer(Request $request, Quiz $quiz, QuizPage $page): JsonResponse
     {
         $this->authorizePage($request, $quiz, $page);
-        abort_if($quiz->status === Quiz::STATUS_GRADED, 422, '添削済みの小テストには提出できません。');
+        abort_if($quiz->status === Quiz::STATUS_GRADED, 422, '採点・添削済みの小テストには提出できません。');
         $request->validate(['image' => ['required', 'file', 'max:25600']]);
 
         try {
@@ -361,7 +407,7 @@ class QuizController extends Controller
     public function submit(Request $request, Quiz $quiz): JsonResponse
     {
         $this->authorizeQuiz($request, $quiz);
-        abort_if($quiz->status === Quiz::STATUS_GRADED, 422, '添削済みの小テストは再提出できません。');
+        abort_if($quiz->status === Quiz::STATUS_GRADED, 422, '採点・添削済みの小テストは再提出できません。');
         $missing = $quiz->pages()->whereNull('answer_path')->count();
         abort_if($missing > 0, 422, "未撮影のページが {$missing} ページあります。");
 
@@ -443,7 +489,7 @@ class QuizController extends Controller
     public function reopen(Request $request, Quiz $quiz): JsonResponse
     {
         $this->authorizeQuiz($request, $quiz);
-        abort_unless($quiz->status === Quiz::STATUS_GRADED, 422, '添削済みの小テストではありません。');
+        abort_unless($quiz->status === Quiz::STATUS_GRADED, 422, '採点・添削済みの小テストではありません。');
         $quiz->update(['status' => Quiz::STATUS_SUBMITTED, 'graded_at' => null]);
 
         return response()->json(['data' => ['id' => $quiz->id, 'status' => $quiz->status]]);
@@ -630,6 +676,7 @@ class QuizController extends Controller
             'dueOn' => ['nullable', 'date'],
             'maxScore' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'bookId' => ['nullable', 'integer'],
+            'groupKey' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9_-]+$/'],
             'pages' => [$req, 'array', 'min:1', 'max:50'],
             'pages.*.kind' => ['nullable', 'in:pdf,vocab'],
             'pages.*.pdfId' => ['nullable', 'integer'],
@@ -825,6 +872,7 @@ class QuizController extends Controller
         return [
             'id' => $q->id,
             'title' => $q->title,
+            'groupKey' => $q->group_key,
             'note' => $q->note,
             'dueOn' => $q->due_on?->toDateString(),
             'createdOn' => $q->created_at->toDateString(),

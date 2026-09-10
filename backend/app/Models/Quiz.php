@@ -20,7 +20,7 @@ class Quiz extends Model
     public const STATUS_GRADED = 'graded';
 
     protected $fillable = [
-        'user_id', 'created_by', 'resource_book_id', 'title', 'note', 'due_on',
+        'user_id', 'created_by', 'group_key', 'resource_book_id', 'title', 'note', 'due_on',
         'max_score_per_page', 'file_path', 'status', 'submitted_at', 'graded_at',
     ];
 

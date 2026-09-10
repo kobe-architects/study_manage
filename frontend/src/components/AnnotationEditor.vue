@@ -3,13 +3,15 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { AnnotationDoc, AnnotationItem, AnnotationShape } from '@/types'
 
 /**
- * 回答写真の添削エディタ（PC / iPad 共用）。
+ * 回答写真の採点・添削エディタ（PC / iPad 共用）。
  * - フリーハンド（Apple Pencil の筆圧なし・パームリジェクション付き）、図形（○ × △ ✓ 直線 矩形）、テキスト、消しゴム、選択移動
- * - 注釈は画像ピクセル座標のベクターとして保持し、保存時に合成 JPEG も生成する
+ * - テキストは入力後も「選択」でドラッグ移動・右下ハンドルでサイズ変更できる（入力確定時に自動で選択状態になる）
+ * - 注釈は画像ピクセル座標のベクターとして保持し、変更が止まると自動保存（合成 JPEG も生成）
+ * - toolbarTarget を指定するとツールバーをその要素へテレポートして縦型表示にする
  */
 type Tool = 'select' | 'pen' | 'eraser' | AnnotationShape | 'text'
 
-const props = defineProps<{ imageUrl: string; modelValue: AnnotationDoc | null; saving?: boolean; readonly?: boolean }>()
+const props = defineProps<{ imageUrl: string; modelValue: AnnotationDoc | null; saving?: boolean; readonly?: boolean; toolbarTarget?: string }>()
 const emit = defineEmits<{ save: [doc: AnnotationDoc, blob: Blob]; dirty: [boolean] }>()
 
 const TOOLS: { key: Tool; label: string; icon: string }[] = [
@@ -89,6 +91,23 @@ function setDirty(v: boolean) {
     dirty.value = v
     emit('dirty', v)
   }
+  if (v && !props.readonly) scheduleSave()
+}
+
+// ---------- 自動保存（変更が止まったら保存） ----------
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+function scheduleSave(delay = 1000) {
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    saveTimer = null
+    if (!dirty.value || props.saving) return
+    // 描画中・テキスト入力中は完了を待つ
+    if (activePointer !== null || textEdit.value) {
+      scheduleSave(800)
+      return
+    }
+    save()
+  }, delay)
 }
 
 // ---------- 表示 ----------
@@ -132,9 +151,24 @@ function draw() {
       ctx.strokeStyle = '#3b50cc'
       ctx.lineWidth = 1.5 / scale.value
       ctx.strokeRect(b.x - pad, b.y - pad, b.w + pad * 2, b.h + pad * 2)
+      // テキストは右下ハンドルでサイズ変更できる
+      if (it.type === 'text') {
+        const h = resizeHandle(it)
+        ctx.setLineDash([])
+        ctx.fillStyle = '#3b50cc'
+        ctx.fillRect(h.x, h.y, h.s, h.s)
+      }
       ctx.restore()
     }
   }
+}
+
+/** 選択中テキストのサイズ変更ハンドル（枠の右下角、画像座標） */
+function resizeHandle(it: AnnotationItem): { x: number; y: number; s: number } {
+  const b = bbox(it)
+  const pad = 8 / scale.value
+  const s = 12 / scale.value
+  return { x: b.x + b.w + pad - s / 2, y: b.y + b.h + pad - s / 2, s }
 }
 
 function drawItem(ctx: CanvasRenderingContext2D, it: AnnotationItem) {
@@ -308,6 +342,8 @@ let temp: AnnotationItem | null = null
 let activePointer: number | null = null
 let start: { x: number; y: number } | null = null
 let dragItem: { id: string; ox: number; oy: number } | null = null
+/** テキストのサイズ変更ドラッグ中の状態 */
+let resizeItem: { id: string; startSize: number; sx: number; sy: number; snapped: boolean } | null = null
 let moved = false
 const uid = () => Math.random().toString(36).slice(2, 10)
 
@@ -339,6 +375,16 @@ function onDown(e: PointerEvent) {
       eraseAt(p.x, p.y)
       break
     case 'select': {
+      // 選択中テキストのサイズ変更ハンドルを優先判定
+      const sel = selectedId.value ? items.value.find((x) => x.id === selectedId.value) : null
+      if (sel && sel.type === 'text') {
+        const h = resizeHandle(sel)
+        const grip = Math.max(h.s, 16 / scale.value)
+        if (Math.abs(p.x - (h.x + h.s / 2)) <= grip && Math.abs(p.y - (h.y + h.s / 2)) <= grip) {
+          resizeItem = { id: sel.id, startSize: sel.size, sx: p.x, sy: p.y, snapped: false }
+          break
+        }
+      }
       const it = [...items.value].reverse().find((x) => hit(x, p.x, p.y, tol))
       selectedId.value = it?.id ?? null
       if (it) dragItem = { id: it.id, ox: p.x, oy: p.y }
@@ -370,6 +416,17 @@ function onMove(e: PointerEvent) {
     draw()
   } else if (tool.value === 'eraser') {
     eraseAt(last.x, last.y)
+  } else if (resizeItem) {
+    const it = items.value.find((x) => x.id === resizeItem!.id)
+    if (it && it.type === 'text') {
+      if (!resizeItem.snapped) {
+        snapshot()
+        resizeItem.snapped = true
+      }
+      const d = (last.x - resizeItem.sx + (last.y - resizeItem.sy)) / 2
+      it.size = Math.max(Math.round(W.value / 90), Math.min(Math.round(W.value / 4), Math.round(resizeItem.startSize + d)))
+      draw()
+    }
   } else if (dragItem) {
     const dx = last.x - dragItem.ox
     const dy = last.y - dragItem.oy
@@ -404,6 +461,10 @@ function onUp(e: PointerEvent) {
     commit()
   } else if (tool.value === 'text' && !moved) {
     openText(p.x, p.y)
+  } else if (tool.value === 'select' && resizeItem) {
+    if (resizeItem.snapped) setDirty(true)
+    resizeItem = null
+    draw()
   } else if (tool.value === 'select' && dragItem) {
     if (moved) setDirty(true)
     dragItem = null
@@ -417,6 +478,7 @@ function onCancel(e: PointerEvent) {
   activePointer = null
   temp = null
   dragItem = null
+  resizeItem = null
   draw()
 }
 
@@ -477,7 +539,11 @@ function commitText() {
   }
   if (!text) return
   snapshot()
-  items.value.push({ id: uid(), type: 'text', color: color.value, size: textSize.value, x: t.x, y: t.y, text })
+  const id = uid()
+  items.value.push({ id, type: 'text', color: color.value, size: textSize.value, x: t.x, y: t.y, text })
+  // 入力直後にドラッグ移動・サイズ変更できるよう、選択状態にしてツールを「選択」に切り替える
+  selectedId.value = id
+  tool.value = 'select'
   commit()
 }
 function onDblClick(e: MouseEvent) {
@@ -493,6 +559,7 @@ function onDblClick(e: MouseEvent) {
 }
 
 // ---------- 保存 ----------
+let lastSavedSnapshot = ''
 async function save() {
   if (!img.value) return
   const c = document.createElement('canvas')
@@ -503,10 +570,13 @@ async function save() {
   for (const it of items.value) drawItem(ctx, it)
   const blob = await new Promise<Blob>((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error('export'))), 'image/jpeg', 0.86))
   const doc: AnnotationDoc = { version: 1, width: W.value, height: H.value, items: JSON.parse(JSON.stringify(items.value)) }
+  lastSavedSnapshot = JSON.stringify(items.value)
   emit('save', doc, blob)
 }
+/** 保存完了通知。保存後にさらに変更されていた場合は dirty のままにして再保存を予約する */
 function markSaved() {
-  setDirty(false)
+  if (JSON.stringify(items.value) === lastSavedSnapshot) setDirty(false)
+  else scheduleSave()
 }
 defineExpose({ save, markSaved, isDirty: () => dirty.value })
 
@@ -538,43 +608,46 @@ onMounted(() => {
 onBeforeUnmount(() => {
   ro?.disconnect()
   window.removeEventListener('keydown', onKey)
+  if (saveTimer) clearTimeout(saveTimer)
 })
 </script>
 
 <template>
   <div class="editor">
-    <div v-if="!readonly" class="toolbar">
-      <div class="group">
-        <button v-for="t in TOOLS" :key="t.key" class="tb" :class="{ on: tool === t.key }" :title="t.label" @click="tool = t.key; selectedId = null; draw()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="t.icon" /></svg>
-          <span>{{ t.label }}</span>
-        </button>
+    <Teleport :to="toolbarTarget" :disabled="!toolbarTarget">
+      <div v-if="!readonly" class="toolbar" :class="{ vertical: !!toolbarTarget }">
+        <div class="group tools">
+          <button v-for="t in TOOLS" :key="t.key" class="tb" :class="{ on: tool === t.key }" :title="t.label" @click="tool = t.key; selectedId = null; draw()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="t.icon" /></svg>
+            <span>{{ t.label }}</span>
+          </button>
+        </div>
+        <div class="group">
+          <button v-for="c in COLORS" :key="c" class="sw" :class="{ on: color === c }" :style="{ background: c }" :title="c" @click="color = c"></button>
+        </div>
+        <div class="group">
+          <button v-for="w in WIDTHS" :key="w.key" class="tb sm" :class="{ on: widthKey === w.key }" @click="widthKey = w.key">{{ w.label }}</button>
+        </div>
+        <div class="group">
+          <button class="tb sm" :disabled="!history.length" title="元に戻す (Ctrl+Z)" @click="undo">↶</button>
+          <button class="tb sm" :disabled="!redoStack.length" title="やり直す (Ctrl+Y)" @click="redo">↷</button>
+          <button class="tb sm" :disabled="!selectedId" title="選択を削除" @click="deleteSelected">削除</button>
+          <button class="tb sm" :disabled="!items.length" title="すべて消す" @click="clearAll">全消去</button>
+        </div>
+        <div class="group">
+          <button class="tb sm" @click="zoomBy(1 / 1.25)">−</button>
+          <span class="zoom">{{ Math.round(zoom * 100) }}%</span>
+          <button class="tb sm" @click="zoomBy(1.25)">＋</button>
+          <button class="tb sm" @click="fit">全体</button>
+        </div>
+        <label class="chk" title="オンにすると指はスクロール・ペン（Apple Pencil）やマウスだけで描きます">
+          <input v-model="penOnly" type="checkbox" /> 指はスクロール
+        </label>
+        <div class="save-state" :class="{ dirty: dirty || saving }" title="変更は自動で保存されます">
+          {{ saving ? '保存中…' : dirty ? '自動保存待ち…' : '保存済み' }}
+        </div>
       </div>
-      <div class="group">
-        <button v-for="c in COLORS" :key="c" class="sw" :class="{ on: color === c }" :style="{ background: c }" :title="c" @click="color = c"></button>
-      </div>
-      <div class="group">
-        <button v-for="w in WIDTHS" :key="w.key" class="tb sm" :class="{ on: widthKey === w.key }" @click="widthKey = w.key">{{ w.label }}</button>
-      </div>
-      <div class="group">
-        <button class="tb sm" :disabled="!history.length" title="元に戻す (Ctrl+Z)" @click="undo">↶</button>
-        <button class="tb sm" :disabled="!redoStack.length" title="やり直す (Ctrl+Y)" @click="redo">↷</button>
-        <button class="tb sm" :disabled="!selectedId" title="選択を削除" @click="deleteSelected">削除</button>
-        <button class="tb sm" :disabled="!items.length" title="すべて消す" @click="clearAll">全消去</button>
-      </div>
-      <div class="group">
-        <button class="tb sm" @click="zoomBy(1 / 1.25)">−</button>
-        <span class="zoom">{{ Math.round(zoom * 100) }}%</span>
-        <button class="tb sm" @click="zoomBy(1.25)">＋</button>
-        <button class="tb sm" @click="fit">全体</button>
-      </div>
-      <label class="chk" title="オンにすると指はスクロール・ペン（Apple Pencil）やマウスだけで描きます">
-        <input v-model="penOnly" type="checkbox" /> 指はスクロール
-      </label>
-      <button class="save" :class="{ dirty }" :disabled="saving || !loaded" @click="save">
-        {{ saving ? '保存中…' : dirty ? '添削を保存' : '保存済み' }}
-      </button>
-    </div>
+    </Teleport>
 
     <div ref="container" class="stage" :class="{ [tool]: true }">
       <div v-if="!loaded" class="loading">画像を読み込み中…</div>
@@ -699,23 +772,19 @@ onBeforeUnmount(() => {
   gap: 4px;
   white-space: nowrap;
 }
-.save {
+.save-state {
   margin-left: auto;
-  padding: 8px 14px;
-  border: none;
+  padding: 7px 12px;
   border-radius: 9px;
-  background: #e8ebf0;
-  color: var(--mut);
-  font-size: 12.5px;
+  background: #eef5ef;
+  color: #2f7a4f;
+  font-size: 11.5px;
   font-weight: 700;
-  cursor: pointer;
+  white-space: nowrap;
 }
-.save.dirty {
-  background: #1c2024;
-  color: #fff;
-}
-.save:disabled {
-  opacity: 0.5;
+.save-state.dirty {
+  background: #fff6e0;
+  color: #8a5a00;
 }
 .stage {
   position: relative;
@@ -723,9 +792,46 @@ onBeforeUnmount(() => {
   background: #e9ebef;
   border: 1px solid var(--line);
   border-radius: 12px;
-  max-height: calc(100vh - 210px);
+  max-height: calc(100vh - 150px);
   min-height: 320px;
   -webkit-overflow-scrolling: touch;
+}
+/* 縦型ツールバー（左レールにテレポートしたとき） */
+.toolbar.vertical {
+  position: static;
+  flex-direction: column;
+  align-items: stretch;
+  border: none;
+  background: transparent;
+  padding: 0;
+  gap: 0;
+}
+.toolbar.vertical .group {
+  border-right: none;
+  border-bottom: 1px solid #eceef0;
+  padding: 7px 0;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.toolbar.vertical .group.tools {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+}
+.toolbar.vertical .tb {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 11.5px;
+}
+.toolbar.vertical .chk {
+  padding: 8px 0 2px;
+}
+.toolbar.vertical .save-state {
+  margin: 8px 0 0;
+  text-align: center;
 }
 .stage.pen .overlay,
 .stage.circle .overlay,

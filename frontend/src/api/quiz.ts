@@ -183,9 +183,9 @@ export const quizApi = {
     return data.data
   },
 
-  /** 問題 PDF を別タブでプレビュー表示する */
-  previewQuizPdf(id: number): Promise<void> {
-    return previewPdf(`${p()}/quizzes/${id}/download`)
+  /** 問題 PDF を別タブでプレビュー表示する。withAnswers は講師のみ有効（英単語テストの解答用紙を末尾に付ける） */
+  previewQuizPdf(id: number, withAnswers = false): Promise<void> {
+    return previewPdf(`${p()}/quizzes/${id}/download${withAnswers ? '?answers=1' : ''}`)
   },
 
   downloadResultPdf(id: number, title: string): Promise<void> {
@@ -235,8 +235,39 @@ export const quizApi = {
 /** 表示用ヘルパー */
 export const QUIZ_STATUS_LABEL: Record<string, string> = {
   assigned: '未提出',
-  submitted: '提出済み（添削待ち）',
-  graded: '添削済み',
+  submitted: '提出済み（採点・添削待ち）',
+  graded: '採点・添削済み',
+}
+
+/**
+ * 小テスト一覧を「箱」（1回の出題）ごとにまとめる。
+ * groupKey が同じ行（教材ごとのパート）を1グループにし、グループ内は作成順（id 昇順）。
+ */
+export function groupQuizzes(list: QuizSummary[]): QuizSummary[][] {
+  const map = new Map<string, QuizSummary[]>()
+  const order: string[] = []
+  for (const q of list) {
+    const k = q.groupKey ?? `solo-${q.id}`
+    if (!map.has(k)) {
+      map.set(k, [])
+      order.push(k)
+    }
+    map.get(k)!.push(q)
+  }
+  return order.map((k) => map.get(k)!.sort((a, b) => a.id - b.id))
+}
+
+/** 箱の代表ステータス（一覧のグループ分け用）。owner: 未提出優先 / tutor: 採点・添削待ち優先 */
+export function groupStatus(parts: QuizSummary[], role: 'owner' | 'tutor'): 'assigned' | 'submitted' | 'graded' {
+  const has = (s: string) => parts.some((q) => q.status === s)
+  if (role === 'tutor') {
+    if (has('submitted')) return 'submitted'
+    if (has('assigned')) return 'assigned'
+    return 'graded'
+  }
+  if (has('assigned')) return 'assigned'
+  if (has('submitted')) return 'submitted'
+  return 'graded'
 }
 
 export const MARK_LABEL: Record<QuizMark, string> = { o: '○', tri: '△', x: '×' }

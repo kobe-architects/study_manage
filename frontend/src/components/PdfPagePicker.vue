@@ -14,11 +14,12 @@ export interface SelectedPage extends QuizPageSpec {
   key: string
   label: string
   pdfTitle: string
-  /** 分割出題時のテスト番号（1 始まり・未設定はテスト1） */
-  testNo?: number
+  /** 出題元の教材（英単語テストは null）。教材ごとに別パート（別提出）として出題される */
+  bookId?: number | null
+  bookTitle?: string
 }
 
-const props = defineProps<{ pdfs: BookPdf[]; rows: QuizRow[]; modelValue: SelectedPage[] }>()
+const props = defineProps<{ pdfs: BookPdf[]; rows: QuizRow[]; modelValue: SelectedPage[]; bookId?: number | null; bookTitle?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [SelectedPage[]] }>()
 
 const activePdfId = ref<number>(props.pdfs[0]?.id ?? 0)
@@ -105,6 +106,8 @@ function toggle(pdf: BookPdf, page: number, row: QuizRow | null) {
     itemId: row?.id ?? null,
     label: row ? rowLabel(row) : `${pdf.title} p.${page}`,
     pdfTitle: pdf.title,
+    bookId: props.bookId ?? null,
+    bookTitle: props.bookTitle ?? '',
   }
   emit('update:modelValue', [...props.modelValue, item])
   preview.value = { pdfId: pdf.id, page }

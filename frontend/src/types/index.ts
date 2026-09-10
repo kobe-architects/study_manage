@@ -435,6 +435,8 @@ export interface QuizRow {
 export interface QuizSummary {
   id: number
   title: string
+  /** 同じ「箱」（1回の出題）としてまとめて表示するキー。教材ごとに行が分かれる */
+  groupKey: string | null
   note: string | null
   dueOn: string | null
   createdOn: string

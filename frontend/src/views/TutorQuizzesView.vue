@@ -1,20 +1,22 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import BookPdfManager from '@/components/BookPdfManager.vue'
 import HelpTip from '@/components/HelpTip.vue'
 import PdfPagePicker, { type SelectedPage } from '@/components/PdfPagePicker.vue'
 import QuizCard from '@/components/QuizCard.vue'
 import QuizStats from '@/components/QuizStats.vue'
 import VocabTestDialog from '@/components/VocabTestDialog.vue'
 import { renderVocabSheet, TEST_FORMAT_LABEL, TEST_TYPE_LABEL } from '@/lib/vocabTest'
-import { quizApi } from '@/api/quiz'
+import { groupQuizzes, groupStatus, quizApi } from '@/api/quiz'
 import { iso } from '@/lib/design'
 import { useUiStore } from '@/stores/ui'
 import type { BookPdf, QuizBook, QuizPageSpec, QuizRow, QuizStats as QuizStatsT, QuizSummary } from '@/types'
 
 /**
- * 講師用: 小テストの出題（教材 → ページ選択 → 設定）、一覧、分析。
+ * 講師用: 小テストの出題・一覧・分析。
+ * 出題は「1 設定 → 2 教材選択 → 3 ページ選択」の流れで、1回の出題（箱）に
+ * 複数の教材・英単語テストを組み合わせられる。教材ごとに別パート（別の問題 PDF・
+ * 別提出・別採点）として出題され、一覧では同じ箱としてまとめて表示される。
  */
 const router = useRouter()
 const ui = useUiStore()
@@ -45,21 +47,24 @@ watch(tab, (t) => {
   if (t === 'stats') loadStats()
 })
 
+const boxes = computed(() => groupQuizzes(quizzes.value))
 const groups = computed(() => [
-  { key: 'submitted', label: '添削待ち', list: quizzes.value.filter((q) => q.status === 'submitted') },
-  { key: 'assigned', label: '出題中（未提出）', list: quizzes.value.filter((q) => q.status === 'assigned') },
-  { key: 'graded', label: '添削済み', list: quizzes.value.filter((q) => q.status === 'graded') },
+  { key: 'submitted', label: '採点・添削待ち', list: boxes.value.filter((b) => groupStatus(b, 'tutor') === 'submitted') },
+  { key: 'assigned', label: '出題中（未提出）', list: boxes.value.filter((b) => groupStatus(b, 'tutor') === 'assigned') },
+  { key: 'graded', label: '採点・添削済み', list: boxes.value.filter((b) => groupStatus(b, 'tutor') === 'graded') },
 ])
 
 async function openPdf(q: QuizSummary) {
   try {
-    await quizApi.previewQuizPdf(q.id)
+    // 講師には英単語テストの解答用紙を末尾に付けてプレビューする
+    await quizApi.previewQuizPdf(q.id, true)
   } catch {
     ui.notify('PDF の表示に失敗しました')
   }
 }
 async function remove(q: QuizSummary) {
-  if (!confirm(`小テスト「${q.title}」を削除しますか？\n提出された回答・添削も削除されます。`)) return
+  const part = q.bookTitle ?? '英単語テスト'
+  if (!confirm(`小テスト「${q.title}」（${part}）を削除しますか？\n提出された回答・採点・添削も削除されます。`)) return
   try {
     await quizApi.remove(q.id)
     ui.notify('削除しました')
@@ -106,46 +111,42 @@ const wiz = reactive<{
   loading: false,
   saving: false,
 })
-const pdfMgr = reactive({ open: false, bookId: 0, bookTitle: '' })
 const vocabOpen = ref(false)
 
-// ---------- Step1: 教材の絞り込み（科目別・種別別） ----------
+// ---------- Step2: 教材の絞り込み（科目別・種別別ラジオ） ----------
 const bookFilter = reactive({ subject: '', type: '' })
 const bookSubjects = computed(() => Array.from(new Set(wiz.books.map((b) => b.subjectName ?? '').filter(Boolean))))
 const bookTypes = computed(() => Array.from(new Set(wiz.books.map((b) => b.type))))
+/** PDF 紐づけ済みの教材のみ表示（紐づけは教材データ画面で行う） */
 const filteredBooks = computed(() =>
   wiz.books.filter(
-    (b) => (!bookFilter.subject || (b.subjectName ?? '') === bookFilter.subject) && (!bookFilter.type || b.type === bookFilter.type),
+    (b) =>
+      b.pdfCount > 0 &&
+      (!bookFilter.subject || (b.subjectName ?? '') === bookFilter.subject) &&
+      (!bookFilter.type || b.type === bookFilter.type),
   ),
 )
 
-// ---------- 複数テスト分割（新規出題時のみ）----------
-// 各ページの testNo（1 始まり）ごとに別々の小テストとして出題する。提出・添削もテスト単位。
-const testCount = computed(() => Math.max(1, ...wiz.pages.map((p) => p.testNo ?? 1)))
-const testGroups = computed(() => {
-  const m = new Map<number, SelectedPage[]>()
+// ---------- パート（教材ごとの提出単位） ----------
+interface Part {
+  key: string
+  bookId: number | null
+  label: string
+  pages: SelectedPage[]
+}
+const parts = computed<Part[]>(() => {
+  const list: Part[] = []
   for (const p of wiz.pages) {
-    const t = wiz.id === null ? (p.testNo ?? 1) : 1
-    if (!m.has(t)) m.set(t, [])
-    m.get(t)!.push(p)
+    const key = p.kind === 'vocab' ? 'vocab' : `b${p.bookId ?? 0}`
+    let part = list.find((x) => x.key === key)
+    if (!part) {
+      part = { key, bookId: p.kind === 'vocab' ? null : (p.bookId ?? null), label: p.kind === 'vocab' ? '英単語テスト' : p.bookTitle || '教材', pages: [] }
+      list.push(part)
+    }
+    part.pages.push(p)
   }
-  return Array.from(m.entries())
-    .sort((a, b) => a[0] - b[0])
-    .map(([, list]) => list)
+  return list
 })
-
-function setTestNo(key: string, no: number) {
-  const pages = wiz.pages.map((p) => (p.key === key ? { ...p, testNo: no } : p))
-  // 欠番を詰める（テスト1,3 → テスト1,2）
-  const nums = Array.from(new Set(pages.map((p) => p.testNo ?? 1))).sort((a, b) => a - b)
-  const remap = new Map(nums.map((n, i) => [n, i + 1]))
-  wiz.pages = pages.map((p) => ({ ...p, testNo: remap.get(p.testNo ?? 1)! }))
-}
-
-/** ①②… の丸数字（21 以上はフォールバック） */
-function circled(n: number): string {
-  return n >= 1 && n <= 20 ? String.fromCharCode(0x245f + n) : `(${n})`
-}
 
 async function loadBooks() {
   wiz.books = await quizApi.books()
@@ -156,6 +157,9 @@ async function openWizard(edit?: QuizSummary) {
   wiz.step = 1
   wiz.id = null
   wiz.bookId = null
+  wiz.bookTitle = ''
+  wiz.pdfs = []
+  wiz.rows = []
   wiz.pages = []
   wiz.title = ''
   wiz.note = ''
@@ -174,47 +178,42 @@ async function openWizard(edit?: QuizSummary) {
       wiz.dueOn = detail.dueOn ?? ''
       wiz.maxScore = detail.maxScorePerPage
       const book = wiz.books.find((b) => b.id === detail.bookId)
-      if (!book) {
-        wiz.bookId = null
-        wiz.bookTitle = '英単語テスト'
-        wiz.pdfs = []
-        wiz.rows = []
-      }
-      if (book) {
-        await chooseBook(book, false)
-        wiz.pages = detail.pages
-          .filter((p) => (p.kind === 'vocab' ? !!p.vocabSpec && !!p.vocabWords : p.pdfId !== null))
-          .map(
-            (p): SelectedPage =>
-              p.kind === 'vocab'
-                ? {
-                    key: `vocab:${p.id}`,
-                    kind: 'vocab',
-                    label: p.label ?? '英単語テスト',
-                    pdfTitle: '',
-                    vocab: {
-                      resourceId: p.vocabSpec!.resourceId,
-                      resourceName: p.vocabSpec!.resourceName,
-                      sectionNames: p.vocabSpec!.sectionNames,
-                      testType: p.vocabSpec!.testType,
-                      testFormat: p.vocabSpec!.testFormat,
-                      words: p.vocabWords!,
-                    },
-                  }
-                : {
-                    key: `${p.pdfId}:${p.pdfPage}`,
-                    kind: 'pdf',
-                    pdfId: p.pdfId!,
-                    page: p.pdfPage!,
-                    itemId: p.itemId,
-                    label: p.label ?? `p.${p.pdfPage}`,
-                    pdfTitle: p.pdfTitle ?? '',
-                    refPdfId: p.refPdfId,
-                    refPage: p.refPage,
+      if (book) await chooseBook(book, false)
+      wiz.pages = detail.pages
+        .filter((p) => (p.kind === 'vocab' ? !!p.vocabSpec && !!p.vocabWords : p.pdfId !== null))
+        .map(
+          (p): SelectedPage =>
+            p.kind === 'vocab'
+              ? {
+                  key: `vocab:${p.id}`,
+                  kind: 'vocab',
+                  label: p.label ?? '英単語テスト',
+                  pdfTitle: '',
+                  bookId: null,
+                  bookTitle: '',
+                  vocab: {
+                    resourceId: p.vocabSpec!.resourceId,
+                    resourceName: p.vocabSpec!.resourceName,
+                    sectionNames: p.vocabSpec!.sectionNames,
+                    testType: p.vocabSpec!.testType,
+                    testFormat: p.vocabSpec!.testFormat,
+                    words: p.vocabWords!,
                   },
-          )
-        wiz.step = 2
-      }
+                }
+              : {
+                  key: `${p.pdfId}:${p.pdfPage}`,
+                  kind: 'pdf',
+                  pdfId: p.pdfId!,
+                  page: p.pdfPage!,
+                  itemId: p.itemId,
+                  label: p.label ?? `p.${p.pdfPage}`,
+                  pdfTitle: p.pdfTitle ?? '',
+                  bookId: detail.bookId,
+                  bookTitle: detail.bookTitle ?? '',
+                  refPdfId: p.refPdfId,
+                  refPage: p.refPage,
+                },
+        )
     }
   } catch {
     ui.notify('出題データの取得に失敗しました')
@@ -223,22 +222,27 @@ async function openWizard(edit?: QuizSummary) {
   }
 }
 
-/** 教材を使わず英単語テストだけを出題する */
-function chooseNoBook() {
-  wiz.bookId = null
-  wiz.bookTitle = '英単語テスト'
-  wiz.pdfs = []
-  wiz.rows = []
-  wiz.pages = wiz.pages.filter((p) => p.kind === 'vocab')
-  wiz.step = 2
-  vocabOpen.value = true
+async function chooseBook(b: QuizBook, advance = true) {
+  wiz.loading = true
+  try {
+    const [pdfs, rows] = await Promise.all([quizApi.listPdfs(b.id), quizApi.rows(b.id)])
+    wiz.bookId = b.id
+    wiz.bookTitle = b.title
+    wiz.pdfs = pdfs
+    wiz.rows = rows
+    if (advance) wiz.step = 3
+  } catch {
+    ui.notify('教材データの取得に失敗しました')
+  } finally {
+    wiz.loading = false
+  }
 }
 
 function addVocabPages(pages: QuizPageSpec[]) {
   const stamp = Date.now().toString(36)
   wiz.pages = [
     ...wiz.pages,
-    ...pages.map((p, i): SelectedPage => ({ ...p, key: `vocab:${stamp}-${i}`, label: p.label ?? '英単語テスト', pdfTitle: '' })),
+    ...pages.map((p, i): SelectedPage => ({ ...p, key: `vocab:${stamp}-${i}`, label: p.label ?? '英単語テスト', pdfTitle: '', bookId: null, bookTitle: '' })),
   ]
   vocabOpen.value = false
   ui.notify(`英単語テストを ${pages.length} ページ追加しました`)
@@ -248,113 +252,89 @@ function removePage(key: string) {
   wiz.pages = wiz.pages.filter((p) => p.key !== key)
 }
 
-async function chooseBook(b: QuizBook, advance = true) {
-  if (!b.pdfCount) {
-    ui.notify('この教材には PDF が紐づいていません。「PDF」ボタンから紐づけてください')
-    return
-  }
-  wiz.loading = true
-  try {
-    const [pdfs, rows] = await Promise.all([quizApi.listPdfs(b.id), quizApi.rows(b.id)])
-    wiz.bookId = b.id
-    wiz.bookTitle = b.title
-    wiz.pdfs = pdfs
-    wiz.rows = rows
-    if (wiz.bookId !== b.id) wiz.pages = []
-    if (advance) wiz.step = 2
-  } catch {
-    ui.notify('教材データの取得に失敗しました')
-  } finally {
-    wiz.loading = false
-  }
-}
-
-function openPdfManager(b: QuizBook) {
-  pdfMgr.bookId = b.id
-  pdfMgr.bookTitle = b.title
-  pdfMgr.open = true
-}
-async function onPdfChanged() {
-  await loadBooks()
-  if (wiz.bookId === pdfMgr.bookId) {
-    wiz.pdfs = await quizApi.listPdfs(wiz.bookId)
-    wiz.rows = await quizApi.rows(wiz.bookId)
-  }
-}
-
-function toStep3() {
-  if (!wiz.pages.length) {
-    ui.notify('出題するページを1つ以上選択してください')
-    return
-  }
-  if (!wiz.dueOn && wiz.id === null) wiz.dueOn = ''
-  wiz.step = 3
-}
-
 const defaultTitle = computed(() => {
   const d = new Date()
-  return `${wiz.bookId ? wiz.bookTitle + ' ' : ''}小テスト ${d.getMonth() + 1}月${d.getDate()}日`
+  return `小テスト ${d.getMonth() + 1}月${d.getDate()}日`
 })
 
 async function save() {
   if (!wiz.pages.length) return
   wiz.saving = true
-  const groups = testGroups.value
   const baseTitle = wiz.title.trim() || defaultTitle.value
   let created = 0
   try {
-    // テストごとに別々の小テストとして出題する（提出・添削も別々になる）
-    for (let g = 0; g < groups.length; g++) {
-      const pages = groups[g]!
-      const title = groups.length > 1 ? `${baseTitle}${circled(g + 1)}` : wiz.title.trim() || null
+    if (wiz.id !== null) {
+      // 編集: 1つの小テスト（パート）として保存
       const payload = {
-        title,
+        title: wiz.title.trim() || null,
         note: wiz.note.trim() || null,
         dueOn: wiz.dueOn || null,
         maxScore: Math.max(1, Number(wiz.maxScore) || 10),
-        bookId: wiz.bookId,
-        pages: pages.map(
-          (p): QuizPageSpec =>
-            p.kind === 'vocab'
-              ? { kind: 'vocab', label: p.label, vocab: p.vocab }
-              : { kind: 'pdf', pdfId: p.pdfId, page: p.page, itemId: p.itemId ?? null, label: p.label, refPdfId: p.refPdfId ?? null, refPage: p.refPage ?? null },
-        ),
+        pages: wiz.pages.map(toPageSpec),
       }
-      // 英単語テストの問題用紙／解答用紙を画像として描画（サーバーで PDF に組み込む）
-      const renders: Record<number, { question: Blob; answer: Blob }> = {}
-      const printTitle = groups.length > 1 ? `${baseTitle}${circled(g + 1)}` : baseTitle
-      for (let i = 0; i < pages.length; i++) {
-        const p = pages[i]!
-        if (p.kind !== 'vocab' || !p.vocab) continue
-        const v = p.vocab
-        const names = v.sectionNames.slice(0, 3).join('、') + (v.sectionNames.length > 3 ? ' 他' : '')
-        const spec = {
-          title: `${v.resourceName} 英単語テスト`,
-          sub: `${TEST_TYPE_LABEL[v.testType]}・${TEST_FORMAT_LABEL[v.testFormat]}（${v.words.length}問）${names ? '　' + names : ''}`,
-          type: v.testType,
-          format: v.testFormat,
-          words: v.words,
-          pageLabel: `${printTitle}　${i + 1} / ${pages.length}`,
+      await quizApi.update(wiz.id, payload, await buildRenders(wiz.pages, baseTitle))
+      ui.notify('小テストを更新しました')
+    } else {
+      // 新規: 教材ごとに別パート（別の小テスト行）として出題し、同じ groupKey でまとめる
+      const groupKey = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+      const list = parts.value
+      for (const part of list) {
+        const printTitle = list.length > 1 ? `${baseTitle}（${part.label}）` : baseTitle
+        const payload = {
+          title: baseTitle,
+          note: wiz.note.trim() || null,
+          dueOn: wiz.dueOn || null,
+          maxScore: Math.max(1, Number(wiz.maxScore) || 10),
+          bookId: part.bookId,
+          groupKey,
+          pages: part.pages.map(toPageSpec),
         }
-        renders[i] = { question: await renderVocabSheet(spec, false), answer: await renderVocabSheet(spec, true) }
+        await quizApi.create(payload, await buildRenders(part.pages, printTitle))
+        created++
       }
-      if (wiz.id === null) await quizApi.create(payload, renders)
-      else await quizApi.update(wiz.id, payload, renders)
-      created++
+      ui.notify(
+        list.length > 1
+          ? `小テストを出題しました（${list.length}パート・計 ${wiz.pages.length}ページ）`
+          : `小テストを出題しました（${wiz.pages.length}ページ）`,
+      )
     }
-    if (wiz.id !== null) ui.notify('小テストを更新しました')
-    else if (groups.length > 1) ui.notify(`小テストを ${groups.length} 件出題しました（計 ${wiz.pages.length}ページ）`)
-    else ui.notify(`小テストを出題しました（${wiz.pages.length}ページ）`)
     wiz.open = false
     await load()
   } catch (e: unknown) {
     const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
-    const partial = wiz.id === null && created > 0 ? `（テスト${created}件までは出題済みです）` : ''
+    const partial = wiz.id === null && created > 0 ? `（${created}パートまでは出題済みです）` : ''
     ui.notify((msg || '保存に失敗しました') + partial)
     if (created > 0) await load()
   } finally {
     wiz.saving = false
   }
+}
+
+function toPageSpec(p: SelectedPage): QuizPageSpec {
+  return p.kind === 'vocab'
+    ? { kind: 'vocab', label: p.label, vocab: p.vocab }
+    : { kind: 'pdf', pdfId: p.pdfId, page: p.page, itemId: p.itemId ?? null, label: p.label, refPdfId: p.refPdfId ?? null, refPage: p.refPage ?? null }
+}
+
+/** 英単語テストの問題用紙／解答用紙を画像として描画（サーバーで PDF に組み込む） */
+async function buildRenders(pages: SelectedPage[], printTitle: string): Promise<Record<number, { question: Blob; answer: Blob }>> {
+  const renders: Record<number, { question: Blob; answer: Blob }> = {}
+  for (let i = 0; i < pages.length; i++) {
+    const p = pages[i]!
+    if (p.kind !== 'vocab' || !p.vocab) continue
+    const v = p.vocab
+    const names = v.sectionNames.slice(0, 3).join('、') + (v.sectionNames.length > 3 ? ' 他' : '')
+    const spec = {
+      title: `${v.resourceName} 英単語テスト`,
+      sub: `${TEST_TYPE_LABEL[v.testType]}・${TEST_FORMAT_LABEL[v.testFormat]}（${v.words.length}問）${names ? '　' + names : ''}`,
+      type: v.testType,
+      format: v.testFormat,
+      words: v.words,
+      pageLabel: `${printTitle}　${i + 1} / ${pages.length}`,
+    }
+    renders[i] = { question: await renderVocabSheet(spec, false), answer: await renderVocabSheet(spec, true) }
+  }
+  return renders
 }
 
 function setDueIn(days: number) {
@@ -371,7 +351,7 @@ function setDueIn(days: number) {
         <div style="display: flex; align-items: center; gap: 8px">
           <div style="font-size: 17px; font-weight: 700">小テスト</div>
           <HelpTip
-            text="出題した小テストは生徒のトップページに表示され、生徒は問題PDFを印刷して回答し、スマホで撮影して提出します。&#10;提出されると「添削待ち」に表示され、「添削する」から画面上で添削・採点できます。"
+            text="出題した小テストは生徒のトップページに表示され、生徒は問題PDFを印刷して回答し、スマホで撮影して提出します。&#10;提出されると「採点・添削待ち」に表示され、「採点・添削する」から画面上で採点・添削できます。&#10;1回の出題に複数の教材・英単語テストを組み合わせた場合、問題PDF・提出・採点は教材ごとに行われます。"
           />
         </div>
         <div class="seg">
@@ -387,14 +367,14 @@ function setDueIn(days: number) {
     <template v-if="tab === 'list'">
       <div v-if="loading" class="hint">読み込み中…</div>
       <div v-else-if="!quizzes.length" class="hint" style="text-align: center">
-        小テストはまだありません。「小テストを出題」から、PDF を紐づけた個別学習データのページを選んで出題してください。
+        小テストはまだありません。「小テストを出題」から、PDF を紐づけた教材や英単語テストを選んで出題してください。
       </div>
       <template v-else>
         <template v-for="g in groups" :key="g.key">
           <div v-if="g.list.length" class="group">
             <div class="group-title">{{ g.label }}<span class="cnt">{{ g.list.length }}</span></div>
             <div class="cards">
-              <QuizCard v-for="q in g.list" :key="q.id" :quiz="q" role="tutor" @pdf="openPdf(q)" @grade="grade(q)" @edit="openWizard(q)" @remove="remove(q)" />
+              <QuizCard v-for="b in g.list" :key="b[0]!.id" :parts="b" role="tutor" @pdf="openPdf($event)" @grade="grade($event)" @edit="openWizard($event)" @remove="remove($event)" />
             </div>
           </div>
         </template>
@@ -413,9 +393,9 @@ function setDueIn(days: number) {
           <div style="display: flex; align-items: center; gap: 14px; min-width: 0">
             <div style="font-size: 15px; font-weight: 700; white-space: nowrap">{{ wiz.id === null ? '小テストを出題' : '小テストを編集' }}</div>
             <div class="steps">
-              <span :class="{ on: wiz.step === 1, done: wiz.step > 1 }">1 教材</span>
-              <span :class="{ on: wiz.step === 2, done: wiz.step > 2 }">2 ページ選択</span>
-              <span :class="{ on: wiz.step === 3 }">3 設定・出題</span>
+              <span :class="{ on: wiz.step === 1, done: wiz.step > 1 }">1 設定</span>
+              <span :class="{ on: wiz.step === 2, done: wiz.step > 2 }">2 教材選択</span>
+              <span :class="{ on: wiz.step === 3 }">3 ページ選択</span>
             </div>
           </div>
           <button class="x" @click="wiz.open = false">×</button>
@@ -424,71 +404,15 @@ function setDueIn(days: number) {
         <div class="wiz-body">
           <div v-if="wiz.loading" class="hint">読み込み中…</div>
 
-          <!-- Step 1 -->
+          <!-- Step 1: 設定 -->
           <template v-else-if="wiz.step === 1">
-            <div class="filter-row">
-              <span style="font-size: 12.5px; font-weight: 700">出題する教材を選択</span>
-              <HelpTip
-                text="PDF を紐づけた教材から出題できます。PDF が未紐づけの教材は「PDF」ボタンから紐づけてください（例題 No. とページが一致する PDF は、一覧から例題を選ぶだけで出題できます）。"
-              />
-              <select v-model="bookFilter.subject" class="filter-sel">
-                <option value="">すべての科目</option>
-                <option v-for="s in bookSubjects" :key="s" :value="s">{{ s }}</option>
-              </select>
-              <select v-model="bookFilter.type" class="filter-sel">
-                <option value="">すべての種別</option>
-                <option v-for="t in bookTypes" :key="t" :value="t">{{ t }}</option>
-              </select>
-            </div>
-            <div class="books">
-              <div class="book ok vocab-only" @click="chooseNoBook">
-                <div class="book-top"><span class="type" style="background: #e6f5ec; color: #2f7a4f">英単語</span></div>
-                <div class="book-title">英単語テストのみを出題</div>
-                <div class="book-foot"><span class="pdf-ok">LEAP basic などの単語帳から出題</span></div>
-              </div>
-              <div v-for="b in filteredBooks" :key="b.id" class="book" :class="{ ok: b.pdfCount > 0, cur: b.id === wiz.bookId }" @click="chooseBook(b)">
-                <div class="book-top">
-                  <span class="type">{{ b.type }}</span>
-                  <span :style="{ width: '8px', height: '8px', borderRadius: '50%', background: b.colorVivid }"></span>
-                  <span style="font-size: 11px; color: var(--faint)">{{ b.subjectName ?? '科目未設定' }}</span>
-                </div>
-                <div class="book-title">{{ b.title }}</div>
-                <div class="book-foot">
-                  <span :class="b.pdfCount ? 'pdf-ok' : 'pdf-ng'">{{ b.pdfCount ? `PDF ${b.pdfCount}件・出題可能` : 'PDF 未紐づけ' }}</span>
-                  <span style="color: var(--faint)">{{ b.rowCount }}行</span>
-                  <button class="mini" @click.stop="openPdfManager(b)">PDF</button>
-                </div>
-              </div>
-            </div>
-            <div v-if="!filteredBooks.length && wiz.books.length" class="hint" style="margin-top: 10px">絞り込み条件に一致する教材がありません。</div>
-          </template>
-
-          <!-- Step 2 -->
-          <template v-else-if="wiz.step === 2">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap">
-              <span style="font-size: 13px; font-weight: 700">{{ wiz.bookTitle }}</span>
-              <button class="mini" @click="wiz.step = 1">教材を変更</button>
-              <button v-if="wiz.bookId" class="mini" @click="openPdfManager({ id: wiz.bookId!, title: wiz.bookTitle } as QuizBook)">PDF を管理</button>
-              <button class="mini vocab-btn" @click="vocabOpen = true">＋ 英単語テストを追加</button>
-            </div>
-            <PdfPagePicker v-if="wiz.pdfs.length" v-model="wiz.pages" :pdfs="wiz.pdfs" :rows="wiz.rows" />
-            <div v-else-if="wiz.bookId" class="hint">この教材に PDF が紐づいていません。</div>
-            <div v-else class="vocab-only-list">
-              <div v-if="!wiz.pages.length" class="hint" style="margin: 0">「英単語テストを追加」から出題する単語帳と範囲を選んでください。</div>
-              <div v-for="(p, i) in wiz.pages" :key="p.key" class="vrow">
-                <span class="num">{{ i + 1 }}</span>
-                <div style="flex: 1; min-width: 0">
-                  <div style="font-size: 12.5px; font-weight: 600">{{ p.label }}</div>
-                  <div style="font-size: 11px; color: var(--faint)">{{ p.vocab?.words.length }}問・{{ p.vocab ? TEST_TYPE_LABEL[p.vocab.testType] : '' }}</div>
-                </div>
-                <button class="mini" @click="removePage(p.key)">削除</button>
-              </div>
-            </div>
-          </template>
-
-          <!-- Step 3 -->
-          <template v-else>
             <div class="form">
+              <div style="display: flex; align-items: center; gap: 6px">
+                <span style="font-size: 13px; font-weight: 700">小テストの設定</span>
+                <HelpTip
+                  text="先にタイトルや期限などを設定し、次のステップで出題する教材・ページを選びます。&#10;複数の教材や英単語テストを組み合わせた場合も1つの小テストとしてまとまり、問題PDFのダウンロードや回答の提出は教材ごとに行えます。"
+                />
+              </div>
               <label class="fld"><span>タイトル（未入力の場合は「{{ defaultTitle }}」）</span><input v-model="wiz.title" :placeholder="defaultTitle" /></label>
               <div class="two">
                 <label class="fld"><span>期限（任意）</span>
@@ -501,50 +425,91 @@ function setDueIn(days: number) {
                 <label class="fld"><span>満点（1問あたり）</span><input v-model.number="wiz.maxScore" type="number" min="1" max="1000" /></label>
               </div>
               <label class="fld"><span>生徒へのメモ（任意）</span><textarea v-model="wiz.note" rows="2" placeholder="例: 途中式も書くこと"></textarea></label>
-              <div>
-                <div class="fld-label" style="display: flex; align-items: center; gap: 6px">
-                  出題ページ（{{ wiz.pages.length }}ページ<template v-if="testGroups.length > 1">・{{ testGroups.length }}つのテストに分割</template>）
-                  <HelpTip
-                    v-if="wiz.id === null"
-                    text="各ページの「テスト」を変えると、1回の出題で複数の小テストに分けて出題できます。分けたテストは別々の問題PDFになり、生徒はそれぞれ個別に提出できます（添削・採点も別々）。タイトルには ①②… が自動で付きます。"
-                  />
+            </div>
+          </template>
+
+          <!-- Step 2: 教材選択 -->
+          <template v-else-if="wiz.step === 2">
+            <div class="filter-row">
+              <span style="font-size: 12.5px; font-weight: 700">出題する教材を選択</span>
+              <HelpTip text="PDF を紐づけ済みの教材から出題できます（PDF の紐づけは教材データ画面で行います）。教材は複数選べ、教材ごとに別の問題PDF・提出になります。「英単語テスト」も追加できます。" />
+            </div>
+            <div class="frow">
+              <span class="flab">科目</span>
+              <label class="radio"><input v-model="bookFilter.subject" type="radio" value="" />すべて</label>
+              <label v-for="s in bookSubjects" :key="s" class="radio"><input v-model="bookFilter.subject" type="radio" :value="s" />{{ s }}</label>
+            </div>
+            <div class="frow" style="margin-bottom: 12px">
+              <span class="flab">種別</span>
+              <label class="radio"><input v-model="bookFilter.type" type="radio" value="" />すべて</label>
+              <label v-for="t in bookTypes" :key="t" class="radio"><input v-model="bookFilter.type" type="radio" :value="t" />{{ t }}</label>
+            </div>
+            <div class="books">
+              <div class="book ok vocab-only" @click="vocabOpen = true">
+                <div class="book-top"><span class="type" style="background: #e6f5ec; color: #2f7a4f">英単語</span></div>
+                <div class="book-title">英単語テストを追加</div>
+                <div class="book-foot"><span class="pdf-ok">LEAP basic などの単語帳から出題</span></div>
+              </div>
+              <div v-for="b in filteredBooks" :key="b.id" class="book ok" :class="{ cur: b.id === wiz.bookId }" @click="chooseBook(b)">
+                <div class="book-top">
+                  <span class="type">{{ b.type }}</span>
+                  <span :style="{ width: '8px', height: '8px', borderRadius: '50%', background: b.colorVivid }"></span>
+                  <span style="font-size: 11px; color: var(--faint)">{{ b.subjectName ?? '科目未設定' }}</span>
                 </div>
-                <div v-for="(g, gi) in testGroups" :key="gi" class="test-block">
-                  <div v-if="testGroups.length > 1" class="test-head">
-                    {{ (wiz.title.trim() || defaultTitle) + circled(gi + 1) }}
-                    <span>{{ g.length }}ページ・合計 {{ g.length * (Number(wiz.maxScore) || 10) }}点</span>
-                  </div>
-                  <div class="page-list">
-                    <div v-for="(p, pi) in g" :key="p.key" class="prow">
-                      <span class="pnum">{{ pi + 1 }}</span>
-                      <div style="flex: 1; min-width: 0">
-                        <b>{{ p.label }}</b>
-                        <span v-if="p.kind === 'vocab'">英単語テスト・{{ p.vocab?.words.length }}問</span>
-                        <span v-else>{{ p.pdfTitle }} p.{{ p.page }}<template v-if="p.refPage">・解答 p.{{ p.refPage }}</template></span>
-                      </div>
-                      <select v-if="wiz.id === null" class="test-sel" :value="p.testNo ?? 1" @change="setTestNo(p.key, Number(($event.target as HTMLSelectElement).value))">
-                        <option v-for="t in testCount" :key="t" :value="t">テスト{{ t }}</option>
-                        <option :value="testCount + 1">＋ 新しいテストに分ける</option>
-                      </select>
-                    </div>
-                  </div>
+                <div class="book-title">{{ b.title }}</div>
+                <div class="book-foot">
+                  <span class="pdf-ok">PDF {{ b.pdfCount }}件・出題可能</span>
+                  <span style="color: var(--faint)">{{ b.rowCount }}行</span>
                 </div>
               </div>
             </div>
+            <div v-if="!filteredBooks.length" class="hint" style="margin-top: 10px">絞り込み条件に一致する教材がありません（PDF 紐づけ済みの教材のみ表示されます）。</div>
+
+            <!-- 選択中の出題内容（パートごと） -->
+            <div v-if="wiz.pages.length" style="margin-top: 16px; max-width: 680px">
+              <div class="fld-label">選択中の出題内容（{{ wiz.pages.length }}ページ<template v-if="parts.length > 1">・{{ parts.length }}パート</template>）</div>
+              <div v-for="pt in parts" :key="pt.key" class="part-box">
+                <div class="part-head">{{ pt.label }}<span>{{ pt.pages.length }}ページ</span></div>
+                <div v-for="(p, i) in pt.pages" :key="p.key" class="vrow">
+                  <span class="num" :class="{ vocab: p.kind === 'vocab' }">{{ i + 1 }}</span>
+                  <div style="flex: 1; min-width: 0">
+                    <div style="font-size: 12.5px; font-weight: 600">{{ p.label }}</div>
+                    <div style="font-size: 11px; color: var(--faint)">
+                      <template v-if="p.kind === 'vocab'">{{ p.vocab?.words.length }}問・{{ p.vocab ? TEST_TYPE_LABEL[p.vocab.testType] : '' }}</template>
+                      <template v-else>{{ p.pdfTitle }} p.{{ p.page }}</template>
+                    </div>
+                  </div>
+                  <button class="mini" @click="removePage(p.key)">削除</button>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- Step 3: ページ選択 -->
+          <template v-else>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap">
+              <span style="font-size: 13px; font-weight: 700">{{ wiz.bookTitle }}</span>
+              <button class="mini" @click="wiz.step = 2">別の教材を追加・変更</button>
+            </div>
+            <PdfPagePicker v-if="wiz.pdfs.length" v-model="wiz.pages" :pdfs="wiz.pdfs" :rows="wiz.rows" :book-id="wiz.bookId" :book-title="wiz.bookTitle" />
+            <div v-else class="hint">教材が選択されていません。「別の教材を追加・変更」から教材を選んでください。</div>
           </template>
         </div>
 
         <div class="wiz-foot">
           <button v-if="wiz.step > 1" class="btn-ghost" @click="wiz.step = (wiz.step - 1) as 1 | 2">戻る</button>
           <span style="flex: 1"></span>
-          <span v-if="wiz.step === 2" style="font-size: 12px; color: var(--mut)">{{ wiz.pages.length }} ページ選択中</span>
-          <button v-if="wiz.step === 2" class="btn-dark" :disabled="!wiz.pages.length" @click="toStep3">次へ</button>
-          <button v-if="wiz.step === 3" class="btn-dark" :disabled="wiz.saving" @click="save">{{ wiz.saving ? '保存中…' : wiz.id === null ? '出題する' : '保存する' }}</button>
+          <span v-if="wiz.step > 1" style="font-size: 12px; color: var(--mut)">
+            {{ wiz.pages.length }} ページ選択中<template v-if="parts.length > 1">（{{ parts.length }}パート）</template>
+          </span>
+          <button v-if="wiz.step === 1" class="btn-dark" @click="wiz.step = 2">次へ</button>
+          <button v-else class="btn-dark" :disabled="!wiz.pages.length || wiz.saving" @click="save">
+            {{ wiz.saving ? '保存中…' : wiz.id === null ? '出題する' : '保存する' }}
+          </button>
         </div>
       </div>
     </div>
 
-    <BookPdfManager v-if="pdfMgr.open" :book-id="pdfMgr.bookId" :book-title="pdfMgr.bookTitle" @close="pdfMgr.open = false" @changed="onPdfChanged" />
     <VocabTestDialog v-if="vocabOpen" @close="vocabOpen = false" @add="addVocabPages" />
   </div>
 </template>
@@ -638,7 +603,7 @@ function setDueIn(days: number) {
 }
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
   gap: 12px;
 }
 .overlay {
@@ -713,6 +678,39 @@ function setDueIn(days: number) {
   background: #fff;
   border-top: 1px solid var(--line);
 }
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  flex-wrap: wrap;
+}
+.frow {
+  display: flex;
+  align-items: center;
+  gap: 4px 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.flab {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--mut);
+  width: 34px;
+}
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--mut);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.radio input {
+  accent-color: #1c2024;
+  cursor: pointer;
+}
 .books {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -724,10 +722,6 @@ function setDueIn(days: number) {
   border-radius: 12px;
   padding: 12px 14px;
   cursor: pointer;
-  opacity: 0.6;
-}
-.book.ok {
-  opacity: 1;
 }
 .book.ok:hover {
   border-color: #3b50cc;
@@ -761,15 +755,9 @@ function setDueIn(days: number) {
   gap: 8px;
   font-size: 11px;
 }
-.book-foot .mini {
-  margin-left: auto;
-}
 .pdf-ok {
   color: #2f7a4f;
   font-weight: 600;
-}
-.pdf-ng {
-  color: var(--faint);
 }
 .form {
   display: flex;
@@ -806,112 +794,50 @@ function setDueIn(days: number) {
   font-family: inherit;
   resize: vertical;
 }
-.page-list {
-  margin: 0;
-  font-size: 12.5px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.prow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.prow > div > span {
-  color: var(--faint);
-  font-size: 11px;
-  margin-left: 8px;
-}
-.pnum {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #f1f2f4;
-  color: var(--mut);
-  font-size: 11px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.filter-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 12px;
-  flex-wrap: wrap;
-}
-.filter-sel {
-  padding: 7px 10px;
-  border: 1px solid #e3e6ea;
-  border-radius: 8px;
-  font-size: 12.5px;
-  background: #fff;
-  color: var(--ink);
-}
-.filter-row .filter-sel:first-of-type {
-  margin-left: auto;
-}
-.test-block {
-  margin-bottom: 10px;
-}
-.test-head {
-  font-size: 12px;
-  font-weight: 700;
-  margin: 8px 0 5px;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-.test-head span {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--faint);
-}
-.test-sel {
-  padding: 4px 6px;
-  border: 1px solid #e3e6ea;
-  border-radius: 7px;
-  font-size: 11px;
-  background: #fff;
-  color: var(--mut);
-  flex-shrink: 0;
-}
-.vocab-btn {
-  color: #2f7a4f;
-  border-color: #bfe3cf;
-  background: #f1faf5;
-}
 .book.vocab-only {
   border-style: dashed;
 }
-.vocab-only-list {
+.part-box {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.part-head {
+  font-size: 12.5px;
+  font-weight: 700;
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
   gap: 8px;
-  max-width: 640px;
+  margin-bottom: 6px;
+}
+.part-head span {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--faint);
 }
 .vrow {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-top: 1px solid #f1f2f4;
+  padding: 7px 0;
 }
 .vrow .num {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #2e7d5b;
+  background: #1c2024;
   color: #fff;
   font-size: 11px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+.vrow .num.vocab {
+  background: #2e7d5b;
 }
 </style>

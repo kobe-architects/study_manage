@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import CameraCapture from '@/components/CameraCapture.vue'
 import QuizCard from '@/components/QuizCard.vue'
 import QuizResultModal from '@/components/QuizResultModal.vue'
-import { quizApi } from '@/api/quiz'
+import { groupQuizzes, groupStatus, quizApi } from '@/api/quiz'
 import { useQuizActions } from '@/lib/quizActions'
 import type { QuizSummary } from '@/types'
 
@@ -24,11 +24,12 @@ onMounted(load)
 const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(load)
 
 const shown = computed(() => {
-  const pending = quizzes.value.filter((q) => q.status !== 'graded')
+  const boxes = groupQuizzes(quizzes.value)
+  const pending = boxes.filter((b) => groupStatus(b, 'owner') !== 'graded')
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 14)
-  const recent = quizzes.value
-    .filter((q) => q.status === 'graded' && q.gradedAt && new Date(q.gradedAt.replace(' ', 'T')) >= cutoff)
+  const recent = boxes
+    .filter((b) => groupStatus(b, 'owner') === 'graded' && b.some((q) => q.gradedAt && new Date(q.gradedAt.replace(' ', 'T')) >= cutoff))
     .slice(0, 3)
   return [...pending, ...recent]
 })
@@ -41,14 +42,14 @@ const shown = computed(() => {
       <button class="more" @click="router.push({ name: 'quizzes' })">すべて見る・分析 ›</button>
     </div>
     <QuizCard
-      v-for="q in shown"
-      :key="q.id"
-      :quiz="q"
+      v-for="b in shown"
+      :key="b[0]!.id"
+      :parts="b"
       role="owner"
       compact
-      @pdf="openPdf(q)"
-      @capture="openCapture(q)"
-      @result="openResult(q)"
+      @pdf="openPdf($event)"
+      @capture="openCapture($event)"
+      @result="openResult($event)"
     />
     <CameraCapture v-if="state.capture" :quiz="state.capture" @close="state.capture = null" @submitted="onSubmitted" />
     <QuizResultModal v-if="state.resultId !== null" :quiz-id="state.resultId" @close="state.resultId = null" />

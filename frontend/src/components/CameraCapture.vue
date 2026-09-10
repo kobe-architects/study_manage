@@ -307,7 +307,7 @@ onBeforeUnmount(() => {
         <button class="btn ghost" @click="goto(0)">最初から撮り直す</button>
         <button class="btn primary" :disabled="!hasAll" @click="submit">提出する</button>
       </div>
-      <div class="note">提出後、先生が添削します。添削が始まる前なら撮り直して再提出できます。</div>
+      <div class="note">提出後、先生が採点・添削します。採点・添削が始まる前なら撮り直して再提出できます。</div>
     </div>
 
     <!-- 送信中 -->

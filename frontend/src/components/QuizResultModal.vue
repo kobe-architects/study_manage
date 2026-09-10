@@ -44,9 +44,9 @@ async function download(kind: 'result' | 'quiz') {
     <div class="modal" @click.stop>
       <div class="head">
         <div style="min-width: 0">
-          <div style="font-size: 15px; font-weight: 700">{{ quiz?.title ?? '添削結果' }}</div>
+          <div style="font-size: 15px; font-weight: 700">{{ quiz?.title ?? '採点・添削結果' }}</div>
           <div v-if="quiz" style="font-size: 11.5px; color: var(--mut); margin-top: 2px">
-            {{ quiz.bookTitle }}・{{ quiz.pageCount }}ページ<template v-if="quiz.gradedAt">・添削 {{ quiz.gradedAt.slice(0, 10).replace(/-/g, '/') }}</template>
+            {{ quiz.bookTitle }}・{{ quiz.pageCount }}ページ<template v-if="quiz.gradedAt">・採点・添削 {{ quiz.gradedAt.slice(0, 10).replace(/-/g, '/') }}</template>
           </div>
         </div>
         <button class="x" @click="emit('close')">×</button>
@@ -91,7 +91,7 @@ async function download(kind: 'result' | 'quiz') {
 
         <div class="foot">
           <button class="btn" :disabled="downloading" @click="download('quiz')">問題PDF</button>
-          <button class="btn primary" :disabled="downloading" @click="download('result')">添削済みPDFをダウンロード</button>
+          <button class="btn primary" :disabled="downloading" @click="download('result')">採点・添削済みPDFをダウンロード</button>
         </div>
       </template>
     </div>
