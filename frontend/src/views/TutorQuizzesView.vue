@@ -685,15 +685,16 @@ function setDueIn(days: number) {
   gap: 10px;
   flex-wrap: wrap;
   padding: 10px 14px;
-  background: #f8f9fb;
+  background: #333a44;
   border-bottom: 1px solid var(--line);
 }
 .qb-title {
   font-size: 13px;
+  color: #fff;
 }
 .qb-meta {
   font-size: 11px;
-  color: var(--faint);
+  color: #b6bdc7;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -761,6 +762,21 @@ function setDueIn(days: number) {
   gap: 6px;
   margin-left: auto;
   flex-wrap: wrap;
+}
+/* タブレット: 列幅の固定をやめて折り返しやすくする */
+@media (max-width: 900px) {
+  .qr-name {
+    min-width: 110px;
+  }
+  .qr-pages,
+  .qr-score {
+    width: auto;
+  }
+  .qr-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
 }
 .btn {
   padding: 6px 11px;

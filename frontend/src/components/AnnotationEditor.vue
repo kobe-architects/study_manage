@@ -38,7 +38,8 @@ const color = ref(COLORS[0]!)
 const widthKey = ref<'thin' | 'mid' | 'thick'>('mid')
 /** 縦型ツールバーの詳細設定（色・太さ・取り消し・ズーム等）の展開状態。既定は閉じる */
 const expanded = ref(false)
-const penOnly = ref(false)
+/** 指はスクロール（ペン・マウスのみで描く）。スマホ・タブレットでは既定でオン */
+const penOnly = ref(typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches)
 const zoom = ref(1)
 const fitScale = ref(1)
 const scale = computed(() => fitScale.value * zoom.value)
@@ -663,7 +664,7 @@ onBeforeUnmount(() => {
       </div>
     </Teleport>
 
-    <div ref="container" class="stage" :class="{ [tool]: true }">
+    <div ref="container" class="stage" :class="{ [tool]: true }" @contextmenu.prevent>
       <div v-if="!loaded" class="loading">画像を読み込み中…</div>
       <div v-else class="inner" :style="{ width: Math.round(W * scale) + 'px', height: Math.round(H * scale) + 'px' }">
         <img :src="imageUrl" class="base" alt="" draggable="false" />
@@ -676,6 +677,7 @@ onBeforeUnmount(() => {
           @pointerup="onUp"
           @pointercancel="onCancel"
           @dblclick="onDblClick"
+          @contextmenu.prevent
         ></canvas>
         <div v-if="textEdit" class="text-edit" :style="{ left: textEdit.x * scale + 'px', top: textEdit.y * scale + 'px' }">
           <textarea
@@ -809,6 +811,10 @@ onBeforeUnmount(() => {
   max-height: calc(100vh - 150px);
   min-height: 320px;
   -webkit-overflow-scrolling: touch;
+  /* 長押しでのコピー・調べるメニュー（iOS の callout）を出さない */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 /* 縦型ツールバー（左レールにテレポートしたとき） */
 .toolbar.vertical {
@@ -877,6 +883,36 @@ onBeforeUnmount(() => {
 .dot.ok {
   background: #2f9e5b;
 }
+/* タブレット・スマホ: レールが全幅になるため、縦型ツールバーを横並びに戻す */
+@media (max-width: 1100px) {
+  .toolbar.vertical {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .toolbar.vertical .group {
+    border-bottom: none;
+    border-right: 1px solid #eceef0;
+    padding: 0 8px 0 0;
+  }
+  .toolbar.vertical .group.tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+  .toolbar.vertical .tools .tb {
+    padding: 8px 9px;
+  }
+  .toolbar.vertical .expander {
+    width: auto;
+    margin-top: 0;
+    gap: 5px;
+  }
+  .toolbar.vertical .save-state {
+    margin: 0 0 0 auto;
+  }
+}
 .toolbar.vertical .chk {
   padding: 8px 0 2px;
 }
@@ -917,6 +953,7 @@ onBeforeUnmount(() => {
   display: block;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
   pointer-events: none;
 }
 .overlay {
@@ -925,6 +962,7 @@ onBeforeUnmount(() => {
   top: 0;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 .text-edit {
   position: absolute;

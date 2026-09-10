@@ -201,12 +201,14 @@ async function downloadResult() {
       </div>
       <div class="card">
         <div class="rail-title">ページ</div>
-        <button v-for="(p, i) in quiz.pages" :key="p.id" class="prow" :class="{ on: i === pageIdx }" @click="gotoPage(i)">
-          <span class="pn">{{ p.pageNo }}</span>
-          <span class="pl">{{ p.label }}</span>
-          <span v-if="p.mark" class="pm" :style="{ color: i === pageIdx ? '#fff' : MARK_COLOR[p.mark] }">{{ MARK_LABEL[p.mark] }}</span>
-          <span v-else-if="!p.hasAnswer" class="pm ng">未</span>
-        </button>
+        <div class="plist-body">
+          <button v-for="(p, i) in quiz.pages" :key="p.id" class="prow" :class="{ on: i === pageIdx }" @click="gotoPage(i)">
+            <span class="pn">{{ p.pageNo }}</span>
+            <span class="pl">{{ p.label }}</span>
+            <span v-if="p.mark" class="pm" :style="{ color: i === pageIdx ? '#fff' : MARK_COLOR[p.mark] }">{{ MARK_LABEL[p.mark] }}</span>
+            <span v-else-if="!p.hasAnswer" class="pm ng">未</span>
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -327,6 +329,7 @@ async function downloadResult() {
   gap: 10px;
   scrollbar-width: thin;
 }
+/* タブレット・スマホ: 1カラムに。ツール＋ページリストは上部に固定し、ページは横スクロールのチップ列にする */
 @media (max-width: 1100px) {
   .grade {
     width: auto;
@@ -334,8 +337,40 @@ async function downloadResult() {
     grid-template-columns: 1fr;
   }
   .rail {
-    position: static;
     max-height: none;
+    overflow: visible;
+  }
+  .rail-r {
+    position: static;
+  }
+  .rail-l {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: #f6f7f9;
+    padding-bottom: 4px;
+    gap: 8px;
+  }
+  .plist-body {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .plist-body::-webkit-scrollbar {
+    display: none;
+  }
+  .plist-body .prow {
+    width: auto;
+    flex-shrink: 0;
+    border: 1px solid #e3e6ea;
+    border-radius: 999px;
+    padding: 6px 12px;
+  }
+  .plist-body .pl {
+    max-width: 150px;
+    flex: none;
   }
 }
 .card {
