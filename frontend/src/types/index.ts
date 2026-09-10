@@ -254,6 +254,14 @@ export interface AuthUser {
   name: string
   email: string
   role: UserRole
+  /** LINE 通知の連携状態（このアカウントが LINE と紐づいているか） */
+  lineLinked: boolean
+  /** LINE 連携コード（公式アカウントのトークに送ると紐づく） */
+  lineLinkCode: string
+  /** 友だち追加リンク（サーバー側で設定されている場合のみ） */
+  lineAddFriendUrl: string | null
+  /** サーバー側の LINE 設定（チャネルトークン）が構成済みか */
+  lineConfigured: boolean
   settings: UserSettings | null // tutor は null
   student: StudentInfo | null // owner は null
 }

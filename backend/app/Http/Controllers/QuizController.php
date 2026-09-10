@@ -179,6 +179,16 @@ class QuizController extends Controller
         });
         $this->generatePdf($quiz);
 
+        // 生徒へ LINE 通知（複数教材をまとめて出題した場合は最初のパートのみ）
+        $gk = $data['groupKey'] ?? null;
+        if ($gk === null || ! Quiz::where('group_key', $gk)->where('id', '<', $quiz->id)->exists()) {
+            \App\Support\LineNotify::push(
+                $quiz->user,
+                "【受験ナビ】小テストが出題されました。\n「{$quiz->title}」"
+                .($quiz->due_on ? '（期限 '.$quiz->due_on->toDateString().'）' : '')."\n".config('app.url'),
+            );
+        }
+
         return response()->json(['data' => ['id' => $quiz->id]], 201);
     }
 
@@ -413,6 +423,14 @@ class QuizController extends Controller
 
         $quiz->update(['status' => Quiz::STATUS_SUBMITTED, 'submitted_at' => now()]);
 
+        // 出題した講師へ LINE 通知（連携時のみ）
+        $studentName = $quiz->user->settings?->name ?: $quiz->user->name;
+        $part = $quiz->book?->title ?? '英単語テスト';
+        \App\Support\LineNotify::push(
+            $quiz->creator,
+            "【受験ナビ】{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を提出しました。\n採点・添削をお願いします。\n".config('app.url'),
+        );
+
         return response()->json(['data' => ['id' => $quiz->id, 'status' => $quiz->status]]);
     }
 
@@ -481,6 +499,14 @@ class QuizController extends Controller
         abort_if($missing > 0, 422, "未採点のページが {$missing} ページあります。");
 
         $quiz->update(['status' => Quiz::STATUS_GRADED, 'graded_at' => now()]);
+
+        // 生徒へ LINE 通知（連携時のみ）
+        $s = $this->scoreSums([$quiz->id])->get($quiz->id);
+        $scoreText = $s !== null ? "（{$s->s} / {$s->max_total}点）" : '';
+        \App\Support\LineNotify::push(
+            $quiz->user,
+            "【受験ナビ】小テスト「{$quiz->title}」の採点・添削が完了しました{$scoreText}。\n結果を確認しましょう。\n".config('app.url'),
+        );
 
         return response()->json(['data' => ['id' => $quiz->id, 'status' => $quiz->status]]);
     }

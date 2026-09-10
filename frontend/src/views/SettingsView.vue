@@ -60,6 +60,26 @@ function togglePw(id: number) {
   else next.add(id)
   shownPw.value = next
 }
+// ---- LINE 通知連携 ----
+async function copyLineCode() {
+  const code = auth.user?.lineLinkCode
+  if (!code) return
+  try {
+    await navigator.clipboard.writeText(code)
+    ui.notify('連携コードをコピーしました')
+  } catch {
+    ui.notify('コピーに失敗しました')
+  }
+}
+async function refreshLine() {
+  try {
+    await auth.fetchMe()
+    ui.notify(auth.user?.lineLinked ? 'LINE 連携済みです' : 'まだ連携されていません。コードをトークに送信してください')
+  } catch {
+    ui.notify('状態の取得に失敗しました')
+  }
+}
+
 async function copyPw(t: TutorAccount) {
   if (!t.password) return
   try {
@@ -278,6 +298,34 @@ async function removeTutor(t: TutorAccount) {
       </div>
     </div>
 
+    <!-- LINE 通知 -->
+    <div class="card sec">
+      <div class="sec-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.8"><path d="M21 11.5a8.5 7.5 0 0 1-8.5 7.5c-.9 0-1.8-.1-2.6-.3L5 20.5l1-3.2A7.3 7.3 0 0 1 4 11.5 8.5 7.5 0 0 1 12.5 4 8.5 7.5 0 0 1 21 11.5z" /></svg>
+        LINE通知
+      </div>
+      <div v-if="!auth.user?.lineConfigured" style="font-size: 12px; color: var(--faint); line-height: 1.7">
+        LINE 公式アカウントの設定が未構成のため、現在は利用できません。
+      </div>
+      <template v-else>
+        <div class="opt">
+          <div><div class="opt-t">連携状態</div><div class="opt-s">課題の設定・小テストの出題・採点/添削の完了を LINE でお知らせします</div></div>
+          <span class="line-badge" :class="{ ok: auth.user?.lineLinked }">{{ auth.user?.lineLinked ? '連携済み' : '未連携' }}</span>
+        </div>
+        <div class="line-steps">
+          1.
+          <a v-if="auth.user?.lineAddFriendUrl" :href="auth.user.lineAddFriendUrl" target="_blank" rel="noopener">LINE 公式アカウントを友だち追加</a>
+          <template v-else>LINE 公式アカウントを友だち追加</template>
+          　2. トークに下の連携コードを送信すると連携されます（「解除」と送ると停止）
+        </div>
+        <div class="line-code-row">
+          <code class="line-code">{{ auth.user?.lineLinkCode }}</code>
+          <button class="mini-btn" @click="copyLineCode">コピー</button>
+          <button class="mini-btn" @click="refreshLine">状態を更新</button>
+        </div>
+      </template>
+    </div>
+
     <!-- data -->
     <div class="card sec">
       <div class="sec-title">
@@ -442,6 +490,44 @@ async function removeTutor(t: TutorAccount) {
   font-weight: 600;
   color: var(--mut);
   cursor: pointer;
+}
+.line-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f1f2f4;
+  color: var(--mut);
+  white-space: nowrap;
+}
+.line-badge.ok {
+  background: #e6f5ec;
+  color: #2f7a4f;
+}
+.line-steps {
+  font-size: 12px;
+  color: var(--mut);
+  line-height: 1.8;
+  margin: 8px 0;
+}
+.line-steps a {
+  color: #06c755;
+  font-weight: 700;
+}
+.line-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.line-code {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  background: #f6f7f9;
+  border: 1px dashed #d8dce1;
+  border-radius: 9px;
+  padding: 8px 14px;
 }
 .mini-btn.primary {
   background: #1c2024;

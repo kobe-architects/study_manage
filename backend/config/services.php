@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    // LINE Messaging API（公式アカウント）。未設定の場合、通知は送信されない
+    'line' => [
+        'channel_access_token' => env('LINE_CHANNEL_ACCESS_TOKEN'),
+        'channel_secret' => env('LINE_CHANNEL_SECRET'),
+        // 友だち追加リンク（https://lin.ee/xxxx）。画面の案内に表示する
+        'add_friend_url' => env('LINE_ADD_FRIEND_URL'),
+    ],
+
 ];

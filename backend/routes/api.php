@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Route;
 // ---- 認証 ----
 Route::post('/login', [AuthController::class, 'login']);
 
+// ---- LINE Messaging API Webhook（署名検証あり・公開） ----
+Route::post('/line/webhook', [App\Http\Controllers\LineWebhookController::class, 'handle']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);

@@ -49,6 +49,17 @@ class AuthController extends Controller
 
     private function userPayload(User $user): array
     {
+        // LINE 連携コードを未発行なら発行する（設定画面・講師トップに表示）
+        if (! $user->line_link_code) {
+            $user->forceFill(['line_link_code' => strtoupper(\Illuminate\Support\Str::random(8))])->save();
+        }
+        $line = [
+            'lineLinked' => $user->line_user_id !== null,
+            'lineLinkCode' => $user->line_link_code,
+            'lineAddFriendUrl' => config('services.line.add_friend_url'),
+            'lineConfigured' => (bool) config('services.line.channel_access_token'),
+        ];
+
         // 家庭教師: 自分の設定は持たず、担当生徒の情報を返す
         if ($user->isTutor()) {
             $student = $user->student;
@@ -59,6 +70,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => 'tutor',
+                ...$line,
                 'settings' => null,
                 'student' => $student === null ? null : [
                     'name' => $studentSettings?->name ?: $student->name,
@@ -78,6 +90,7 @@ class AuthController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'role' => 'owner',
+            ...$line,
             'settings' => $this->settingsPayload($settings),
             'student' => null,
         ];

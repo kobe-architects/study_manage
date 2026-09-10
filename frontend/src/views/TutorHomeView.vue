@@ -221,6 +221,22 @@ function recordColorHex(c: string | null): string {
       </div>
     </div>
 
+    <!-- LINE 通知連携（生徒の提出をトークで受け取る） -->
+    <div v-if="auth.user?.lineConfigured" class="card line-card">
+      <div style="flex: 1; min-width: 200px">
+        <div style="font-size: 12.5px; font-weight: 700">
+          LINE通知
+          <span class="line-badge" :class="{ ok: auth.user?.lineLinked }">{{ auth.user?.lineLinked ? '連携済み' : '未連携' }}</span>
+        </div>
+        <div style="font-size: 11.5px; color: var(--faint); margin-top: 3px">
+          連携すると、生徒が小テストを提出したときに LINE でお知らせします。
+          <a v-if="auth.user?.lineAddFriendUrl" :href="auth.user.lineAddFriendUrl" target="_blank" rel="noopener" style="color: #06c755; font-weight: 700">公式アカウントを友だち追加</a>
+          して、トークに連携コードを送信してください。
+        </div>
+      </div>
+      <code v-if="!auth.user?.lineLinked" class="line-code">{{ auth.user?.lineLinkCode }}</code>
+    </div>
+
     <EventModal
       v-if="eventModal"
       :date="eventModal.date"
@@ -248,6 +264,37 @@ function recordColorHex(c: string | null): string {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.line-card {
+  margin-top: 14px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.line-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #f1f2f4;
+  color: var(--mut);
+  margin-left: 6px;
+}
+.line-badge.ok {
+  background: #e6f5ec;
+  color: #2f7a4f;
+}
+.line-code {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  background: #f6f7f9;
+  border: 1px dashed #d8dce1;
+  border-radius: 9px;
+  padding: 7px 12px;
+  flex-shrink: 0;
 }
 .link-btn {
   border: none;
