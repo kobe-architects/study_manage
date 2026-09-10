@@ -105,9 +105,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/resource-book-pdfs/{pdf}/file', [ResourceBookPdfController::class, 'file']);
         Route::get('/resource-book-pdfs/{pdf}/pages/{page}', [ResourceBookPdfController::class, 'page'])->whereNumber('page');
 
-        // ===== 講師請求管理（生徒: 閲覧・仮発行・支払済み更新・PDF） =====
+        // ===== 講師請求管理（生徒: 稼働時間の登録・締め・仮発行・支払済み更新・PDF） =====
         Route::get('/invoices', [App\Http\Controllers\TutorInvoiceController::class, 'index']);
         Route::get('/invoices/{invoice}', [App\Http\Controllers\TutorInvoiceController::class, 'show']);
+        Route::post('/invoice-entries', [App\Http\Controllers\TutorInvoiceController::class, 'storeEntry']);
+        Route::delete('/invoice-entries/{entry}', [App\Http\Controllers\TutorInvoiceController::class, 'destroyEntry']);
+        Route::put('/invoices/{invoice}', [App\Http\Controllers\TutorInvoiceController::class, 'update']);
+        Route::post('/invoices/{invoice}/close', [App\Http\Controllers\TutorInvoiceController::class, 'close']);
+        Route::post('/invoices/{invoice}/reopen', [App\Http\Controllers\TutorInvoiceController::class, 'reopen']);
         Route::post('/invoices/{invoice}/issue', [App\Http\Controllers\TutorInvoiceController::class, 'issue']);
         Route::post('/invoices/{invoice}/pay', [App\Http\Controllers\TutorInvoiceController::class, 'pay']);
         Route::post('/invoices/{invoice}/pdf', [App\Http\Controllers\TutorInvoiceController::class, 'pdf']);

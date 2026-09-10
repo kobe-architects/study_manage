@@ -17,8 +17,8 @@ export const invoiceApi = {
     return data.data
   },
 
-  /** 稼働時間の登録（講師）。該当月の請求書がなければ自動作成される */
-  async addEntry(payload: { workOn: string; startMin: number; endMin: number; note?: string | null }): Promise<InvoiceDetail> {
+  /** 稼働時間の登録（生徒。tutorId で対象講師を指定）。該当月の請求書がなければ自動作成される */
+  async addEntry(payload: { tutorId?: number; workOn: string; startMin: number; endMin: number; note?: string | null }): Promise<InvoiceDetail> {
     const { data } = await client.post(`${p()}/invoice-entries`, payload)
     return data.data
   },

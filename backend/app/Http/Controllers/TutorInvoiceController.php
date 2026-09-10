@@ -46,19 +46,29 @@ class TutorInvoiceController extends Controller
         return response()->json(['data' => $this->payload($invoice, true)]);
     }
 
-    // ====================== 稼働時間（講師） ======================
+    // ====================== 稼働時間（生徒が登録。講師本人からの登録も許可） ======================
 
     /** 稼働時間を登録する。該当月の請求書がなければ作成する（時給は直近の請求書から引き継ぎ） */
     public function storeEntry(Request $request): JsonResponse
     {
         $data = $request->validate([
+            'tutorId' => ['nullable', 'integer'],
             'workOn' => ['required', 'date'],
             'startMin' => ['required', 'integer', 'min:0', 'max:1410', 'multiple_of:30'],
             'endMin' => ['required', 'integer', 'min:30', 'max:1440', 'multiple_of:30', 'gt:startMin'],
             'note' => ['nullable', 'string', 'max:255'],
         ]);
         $userId = $this->targetUserId($request);
-        $tutorId = $request->user()->id;
+        if ($request->user()->isTutor()) {
+            $tutorId = $request->user()->id;
+        } else {
+            $tutorId = (int) ($data['tutorId'] ?? 0);
+            abort_unless(
+                \App\Models\User::where('id', $tutorId)->where('role', 'tutor')->where('student_id', $userId)->exists(),
+                422,
+                '講師を選択してください。',
+            );
+        }
         $on = \Carbon\Carbon::parse($data['workOn']);
 
         $invoice = TutorInvoice::firstOrCreate(
@@ -95,7 +105,7 @@ class TutorInvoiceController extends Controller
         return response()->json(['message' => 'deleted']);
     }
 
-    /** 時給・メモの更新（講師。仮発行前まで） */
+    /** 時給・メモの更新（生徒・講師とも可。仮発行前まで） */
     public function update(Request $request, TutorInvoice $invoice): JsonResponse
     {
         $this->authorizeInvoice($request, $invoice);

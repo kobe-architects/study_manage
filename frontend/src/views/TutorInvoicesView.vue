@@ -8,8 +8,8 @@ import type { InvoiceDetail, InvoiceSummary } from '@/types'
 
 /**
  * 講師用: 請求書管理。
- * 月ごとに稼働時間（日付・開始〜終了 30分刻み）を登録し、締め → 生徒の仮発行 →
- * 請求内容確認（正式発行）→ 生徒の支払い → 支払確認 の流れで請求書を発行する。
+ * 稼働時間・締め・仮発行は生徒側で行われる。講師は内容を確認して
+ * 「請求内容確認済み（正式発行）」「支払確認済み」への更新と PDF 発行を行う。
  */
 const ui = useUiStore()
 
@@ -57,94 +57,20 @@ onMounted(async () => {
 })
 watch(ym, loadCurrent)
 
-/** リスト側のサマリーも詳細で更新する */
 function applyDetail(d: InvoiceDetail) {
   cur.value = d
   const i = list.value.findIndex((x) => x.id === d.id)
   if (i >= 0) list.value[i] = d
-  else list.value = [d, ...list.value]
 }
 
-// ---- 稼働時間の登録 ----
-const defaultDate = () => {
-  const t = new Date()
-  if (t.getFullYear() === ym.y && t.getMonth() + 1 === ym.m) return isoDate(t)
-  return `${ym.y}-${String(ym.m).padStart(2, '0')}-01`
-}
-function isoDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-const form = reactive({ workOn: defaultDate(), startMin: 18 * 60, endMin: 19 * 60 + 30, note: '' })
-watch(ym, () => (form.workOn = defaultDate()))
-
-const startOpts = Array.from({ length: 48 }, (_, i) => i * 30)
-const endOpts = computed(() => Array.from({ length: 48 }, (_, i) => (i + 1) * 30).filter((v) => v > form.startMin))
-watch(
-  () => form.startMin,
-  (s) => {
-    if (form.endMin <= s) form.endMin = Math.min(1440, s + 90)
-  },
-)
-
-const editable = computed(() => !cur.value || cur.value.status === 'open')
-
-async function addEntry() {
-  if (!form.workOn) return
-  const [fy, fm] = form.workOn.split('-').map(Number)
-  if (fy !== ym.y || fm !== ym.m) {
-    ui.notify(`${ymLabel.value}の日付を指定してください`)
-    return
-  }
-  busy.value = true
-  try {
-    applyDetail(await invoiceApi.addEntry({ workOn: form.workOn, startMin: form.startMin, endMin: form.endMin, note: form.note.trim() || null }))
-    form.note = ''
-    ui.notify('稼働時間を登録しました')
-  } catch (e: unknown) {
-    ui.notify(errMsg(e, '登録に失敗しました'))
-  } finally {
-    busy.value = false
-  }
-}
-
-async function removeEntry(id: number) {
-  if (!cur.value) return
-  try {
-    await invoiceApi.removeEntry(id)
-    applyDetail(await invoiceApi.show(cur.value.id))
-  } catch (e: unknown) {
-    ui.notify(errMsg(e, '削除に失敗しました'))
-  }
-}
-
-// ---- 時給 ----
-const rateEdit = ref<number | null>(null)
-watch(cur, (c) => (rateEdit.value = c?.hourlyRate ?? null))
-async function saveRate() {
-  if (!cur.value || rateEdit.value === null || rateEdit.value === cur.value.hourlyRate) return
-  try {
-    applyDetail(await invoiceApi.update(cur.value.id, { hourlyRate: Math.max(0, Math.round(Number(rateEdit.value) || 0)) }))
-    ui.notify('時給を更新しました')
-  } catch (e: unknown) {
-    ui.notify(errMsg(e, '更新に失敗しました'))
-  }
-}
-
-// ---- ステータス操作 ----
-async function doAction(act: 'close' | 'reopen' | 'confirm' | 'confirm-payment', confirmText?: string) {
-  if (!cur.value) return
-  if (confirmText && !confirm(confirmText)) return
+async function doAction(act: 'confirm' | 'confirm-payment', confirmText: string) {
+  if (!cur.value || !confirm(confirmText)) return
   busy.value = true
   try {
     applyDetail(await invoiceApi.action(cur.value.id, act))
-    ui.notify(
-      act === 'close' ? '締めました。生徒側で請求書を仮発行できるようになりました'
-      : act === 'reopen' ? '締めを解除しました'
-      : act === 'confirm' ? '請求内容を確認済みにしました（正式発行）'
-      : '支払いを確認済みにしました',
-    )
+    ui.notify(act === 'confirm' ? '請求内容を確認済みにしました（正式発行）' : '支払いを確認済みにしました')
   } catch (e: unknown) {
-    ui.notify(errMsg(e, '処理に失敗しました'))
+    ui.notify((e as { response?: { data?: { message?: string } } })?.response?.data?.message || '処理に失敗しました')
   } finally {
     busy.value = false
   }
@@ -162,10 +88,6 @@ async function openPdf() {
   }
 }
 
-function errMsg(e: unknown, fallback: string): string {
-  return (e as { response?: { data?: { message?: string } } })?.response?.data?.message || fallback
-}
-
 const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
 </script>
 
@@ -174,7 +96,7 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap">
       <div style="font-size: 17px; font-weight: 700">請求書管理</div>
       <HelpTip
-        text="月ごとに稼働時間（日付と開始〜終了・30分刻み）を登録し、月末に「締め」を行うと生徒側で請求書を仮発行できるようになります。&#10;流れ: 締め → 生徒が仮発行 → 講師が請求内容確認済み（正式発行）→ 生徒が支払済み → 講師が支払確認済み。各更新時に LINE 通知が届きます。"
+        text="稼働時間の登録・締め・仮発行は生徒側で行われます。&#10;仮発行されたら内容を確認し、問題なければ「請求内容確認済み（正式発行）」に更新してください。生徒の支払い後は「支払確認済み」に更新します。各更新時に LINE 通知が届きます。"
       />
       <div class="month-nav">
         <button class="mini" @click="moveMonth(-1)">‹ 前月</button>
@@ -186,22 +108,9 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
     </div>
 
     <div class="grid">
-      <!-- 稼働時間 -->
+      <!-- 稼働時間（閲覧のみ） -->
       <div class="card">
-        <div class="sec-t">稼働時間（{{ ymLabel }}）</div>
-
-        <div v-if="editable" class="entry-form">
-          <label class="fld"><span>日付</span><input v-model="form.workOn" type="date" /></label>
-          <label class="fld"><span>開始</span>
-            <select v-model.number="form.startMin"><option v-for="t in startOpts" :key="t" :value="t">{{ minToTime(t) }}</option></select>
-          </label>
-          <label class="fld"><span>終了</span>
-            <select v-model.number="form.endMin"><option v-for="t in endOpts" :key="t" :value="t">{{ minToTime(t) }}</option></select>
-          </label>
-          <label class="fld" style="flex: 1; min-width: 120px"><span>備考（任意）</span><input v-model="form.note" maxlength="50" /></label>
-          <button class="btn primary" :disabled="busy" @click="addEntry">登録</button>
-        </div>
-        <div v-else class="hint-line">締め済みのため稼働時間は編集できません（編集する場合は締め解除してください）。</div>
+        <div class="sec-t">稼働時間（{{ ymLabel }}）<span style="font-weight: 400; color: var(--faint); font-size: 11.5px">　※登録・編集は生徒側で行われます</span></div>
 
         <div v-if="cur?.entries?.length" class="entries">
           <div v-for="e in cur.entries" :key="e.id" class="erow">
@@ -209,18 +118,13 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
             <span class="e-time">{{ minToTime(e.startMin) }} 〜 {{ minToTime(e.endMin) }}</span>
             <span class="e-hours">{{ hoursLabel(e.minutes) }}h</span>
             <span class="e-note">{{ e.note }}</span>
-            <button v-if="editable" class="mini danger" @click="removeEntry(e.id)">削除</button>
           </div>
         </div>
-        <div v-else class="hint-line" style="margin-top: 10px">この月の稼働時間はまだ登録されていません。</div>
+        <div v-else class="hint-line">この月の稼働時間はまだ登録されていません。</div>
 
         <div v-if="cur" class="totals">
           <span>合計 <b>{{ hoursLabel(cur.totalMinutes) }}</b> 時間</span>
-          <span class="rate">
-            時給
-            <input v-model.number="rateEdit" type="number" min="0" step="100" :disabled="!(cur.status === 'open' || cur.status === 'closed')" @change="saveRate" />
-            円
-          </span>
+          <span>時給 {{ yen(cur.hourlyRate) }}</span>
           <span class="amount">合計金額 <b>{{ yen(cur.amount) }}</b></span>
         </div>
       </div>
@@ -230,25 +134,24 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
         <div class="card">
           <div class="sec-t">請求書の発行フロー</div>
           <ol class="flow">
-            <li :class="{ done: cur && cur.status !== 'open' }">締め（講師）</li>
+            <li :class="{ done: cur && cur.status !== 'open' }">締め（生徒）</li>
             <li :class="{ done: cur && ['issued', 'confirmed', 'paid', 'done'].includes(cur.status) }">仮発行（生徒）</li>
-            <li :class="{ done: cur && ['confirmed', 'paid', 'done'].includes(cur.status) }">請求内容確認済み＝正式発行（講師）</li>
+            <li :class="{ done: cur && ['confirmed', 'paid', 'done'].includes(cur.status) }">請求内容確認＝正式発行（あなた）</li>
             <li :class="{ done: cur && ['paid', 'done'].includes(cur.status) }">支払済み（生徒）</li>
-            <li :class="{ done: cur && cur.status === 'done' }">支払確認済み（講師）</li>
+            <li :class="{ done: cur && cur.status === 'done' }">支払確認済み（あなた）</li>
           </ol>
 
           <div class="actions">
-            <button v-if="cur && cur.status === 'open'" class="btn primary" :disabled="busy || !cur.entryCount" @click="doAction('close', `${ymLabel}分を締めますか？\n締めると生徒側で請求書を仮発行できるようになります。`)">締め（入力を確定）</button>
-            <button v-if="cur && cur.status === 'closed'" class="btn" :disabled="busy" @click="doAction('reopen')">締め解除</button>
-            <button v-if="cur && cur.status === 'issued'" class="btn primary" :disabled="busy" @click="doAction('confirm', '請求内容を確認済みにして正式発行しますか？')">請求内容確認済みにする（正式発行）</button>
+            <button v-if="cur && cur.status === 'issued'" class="btn primary" :disabled="busy" @click="doAction('confirm', `${ymLabel}分（${yen(cur.amount)}）の請求内容を確認済みにして正式発行しますか？`)">請求内容確認済みにする（正式発行）</button>
             <button v-if="cur && cur.status === 'paid'" class="btn primary" :disabled="busy" @click="doAction('confirm-payment', '支払いを確認済みにしますか？')">支払確認済みにする</button>
             <button v-if="cur && cur.status !== 'open'" class="btn" :disabled="busy" @click="openPdf">請求書PDF</button>
           </div>
-          <div v-if="cur && cur.status === 'closed'" class="hint-line">生徒側の「講師請求管理」からの仮発行を待っています。</div>
+          <div v-if="cur && cur.status === 'open'" class="hint-line">生徒側で稼働時間を入力中です。</div>
+          <div v-if="cur && cur.status === 'closed'" class="hint-line">生徒側の仮発行を待っています。</div>
           <div v-if="cur && cur.status === 'confirmed'" class="hint-line">生徒の支払いを待っています。</div>
         </div>
 
-        <!-- 過去の請求書 -->
+        <!-- 請求書一覧 -->
         <div class="card">
           <div class="sec-t">請求書一覧</div>
           <div v-if="!list.length" class="hint-line">まだ請求書はありません。</div>
@@ -298,28 +201,6 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
   font-weight: 700;
   margin-bottom: 10px;
 }
-.entry-form {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-.fld span {
-  display: block;
-  font-size: 11px;
-  color: var(--mut);
-  margin-bottom: 4px;
-}
-.fld input,
-.fld select {
-  padding: 8px 10px;
-  border: 1px solid #e3e6ea;
-  border-radius: 8px;
-  font-size: 13px;
-  background: #fff;
-  width: 100%;
-}
 .btn {
   padding: 9px 14px;
   border: 1px solid #e3e6ea;
@@ -350,10 +231,6 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
   color: var(--mut);
   cursor: pointer;
   white-space: nowrap;
-}
-.mini.danger {
-  color: #c0444f;
-  border-color: #f0b8be;
 }
 .entries {
   border: 1px solid var(--line);
@@ -405,14 +282,6 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
 }
 .totals b {
   font-size: 17px;
-}
-.rate input {
-  width: 90px;
-  padding: 6px 8px;
-  border: 1px solid #e3e6ea;
-  border-radius: 7px;
-  font-size: 13px;
-  text-align: right;
 }
 .amount {
   margin-left: auto;
