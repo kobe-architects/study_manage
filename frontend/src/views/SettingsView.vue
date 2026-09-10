@@ -252,7 +252,7 @@ async function removeTutor(t: TutorAccount) {
           <button class="toggle" :class="{ on: local.tutorSubjectsEnabled }" @click="save({ tutorSubjectsEnabled: !local.tutorSubjectsEnabled })"><span></span></button>
         </div>
         <div v-for="t in tutors" :key="t.id" class="tutor-row">
-          <div style="flex: 1; min-width: 0">
+          <div style="flex: 1 1 230px; min-width: 0">
             <div style="font-size: 13px; font-weight: 600">{{ t.name }}</div>
             <div style="font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">ID: {{ t.email }}</div>
             <div class="pw-line">
@@ -267,7 +267,7 @@ async function removeTutor(t: TutorAccount) {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
                 </button>
               </template>
-              <span v-else style="color: var(--faint)">未保存（「PW再設定」で保存すると表示されます）</span>
+              <span v-else style="color: var(--faint); white-space: nowrap">未保存（PW再設定で保存）</span>
             </div>
             <div v-if="auth.user?.lineConfigured" class="pw-line">
               <span style="color: var(--faint)">LINE:</span>
@@ -280,13 +280,15 @@ async function removeTutor(t: TutorAccount) {
               </template>
             </div>
           </div>
-          <label class="rate-box">
-            <span>時給</span>
-            <input :value="t.hourlyRate" type="number" min="0" step="100" @change="saveTutorRate(t, $event)" />
-            <span>円</span>
-          </label>
-          <button class="mini-btn" @click="pwEdit.id = pwEdit.id === t.id ? null : t.id; pwEdit.password = ''">PW再設定</button>
-          <button class="mini-btn danger" @click="removeTutor(t)">削除</button>
+          <div class="tutor-actions">
+            <label class="rate-box">
+              <span>時給</span>
+              <input :value="t.hourlyRate" type="number" min="0" step="100" @change="saveTutorRate(t, $event)" />
+              <span>円</span>
+            </label>
+            <button class="mini-btn" @click="pwEdit.id = pwEdit.id === t.id ? null : t.id; pwEdit.password = ''">PW再設定</button>
+            <button class="mini-btn danger" @click="removeTutor(t)">削除</button>
+          </div>
         </div>
         <div v-if="pwEdit.id !== null" class="tutor-form">
           <label class="fld"><span>新しいパスワード（8文字以上）</span>
@@ -471,10 +473,18 @@ async function removeTutor(t: TutorAccount) {
 .tutor-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 8px 12px;
   padding: 9px 11px;
   border: 1px solid #eceef0;
   border-radius: 10px;
+  flex-wrap: wrap;
+}
+.tutor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
 }
 .pw-line {
   display: flex;
