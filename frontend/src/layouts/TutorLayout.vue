@@ -42,6 +42,7 @@ const NAV_TUTOR = [
   { key: 'subjects', route: 'tutor-subjects', label: '科目別学習状況', icon: ICONS.data },
   { key: 'assignment', route: 'tutor-assignments', label: '課題設定', icon: ICONS.record },
   { key: 'quiz', route: 'tutor-quizzes', label: '小テスト', icon: ICONS.test },
+  { key: 'invoice', route: 'tutor-invoices', label: '請求書管理', icon: ICONS.invoice },
 ]
 
 /** 「小テスト」「科目別学習状況」は生徒側の設定でオンのときだけ表示する */
@@ -60,6 +61,7 @@ const activeKey = computed(() => {
     'tutor-assignments': 'assignment',
     'tutor-quizzes': 'quiz',
     'tutor-quiz-grade': 'quiz',
+    'tutor-invoices': 'invoice',
   }
   return map[route.name as string] ?? 'home'
 })

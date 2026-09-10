@@ -79,6 +79,7 @@ export const ICONS: Record<string, string[]> = {
   quiz: ['M4 5.5h13a1.5 1.5 0 0 1 1.5 1.5v12.5H5.5A1.5 1.5 0 0 1 4 18z', 'M18.5 7v12.5', 'M8 9.5h7', 'M8 13h5'],
   resource: ['M4 5h7v15H4z', 'M13 5h7v15h-7z', 'M7 9h1.5', 'M16 9h1.5', 'M7 13h1.5', 'M16 13h1.5'],
   test: ['M6 3.5h9l4 4v13H6z', 'M15 3.5v4h4', 'M9 11h6', 'M9 14.5h6', 'M9 18h3'],
+  invoice: ['M6 3.5h12V20.5l-2.4-1.6-1.8 1.6-1.8-1.6-1.8 1.6-1.8-1.6L6 20.5z', 'M9.5 8l2.5 3.2L14.5 8', 'M12 11.2v4.3', 'M10 12.8h4', 'M10 14.8h4'],
 }
 
 export interface NavDef {
@@ -96,6 +97,7 @@ export const NAV: NavDef[] = [
   { key: 'test', route: 'quizzes', label: '小テスト', short: '小テスト' },
   { key: 'goal', route: 'goals', label: '目標設定', short: '目標' },
   { key: 'data', route: 'data', label: '学習項目データ', short: '項目' },
+  { key: 'invoice', route: 'invoices', label: '講師請求管理', short: '請求' },
   { key: 'settings', route: 'settings', label: 'システム設定', short: '設定' },
 ]
 

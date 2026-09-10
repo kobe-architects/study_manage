@@ -19,6 +19,7 @@ const router = createRouter({
         { path: 'review', name: 'review', component: () => import('@/views/ReviewView.vue') },
         { path: 'flashcard', name: 'flashcard', component: () => import('@/views/FlashcardView.vue') },
         { path: 'quizzes', name: 'quizzes', component: () => import('@/views/QuizzesView.vue') },
+        { path: 'invoices', name: 'invoices', component: () => import('@/views/InvoicesView.vue') },
       ],
     },
     // 家庭教師用（tutor ロール）
@@ -50,6 +51,12 @@ const router = createRouter({
           path: 'quizzes/:id',
           name: 'tutor-quiz-grade',
           component: () => import('@/views/TutorQuizGradeView.vue'),
+          meta: { tutor: true },
+        },
+        {
+          path: 'invoices',
+          name: 'tutor-invoices',
+          component: () => import('@/views/TutorInvoicesView.vue'),
           meta: { tutor: true },
         },
       ],

@@ -105,6 +105,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/resource-book-pdfs/{pdf}/file', [ResourceBookPdfController::class, 'file']);
         Route::get('/resource-book-pdfs/{pdf}/pages/{page}', [ResourceBookPdfController::class, 'page'])->whereNumber('page');
 
+        // ===== 講師請求管理（生徒: 閲覧・仮発行・支払済み更新・PDF） =====
+        Route::get('/invoices', [App\Http\Controllers\TutorInvoiceController::class, 'index']);
+        Route::get('/invoices/{invoice}', [App\Http\Controllers\TutorInvoiceController::class, 'show']);
+        Route::post('/invoices/{invoice}/issue', [App\Http\Controllers\TutorInvoiceController::class, 'issue']);
+        Route::post('/invoices/{invoice}/pay', [App\Http\Controllers\TutorInvoiceController::class, 'pay']);
+        Route::post('/invoices/{invoice}/pdf', [App\Http\Controllers\TutorInvoiceController::class, 'pdf']);
+
         // ===== 小テスト（生徒: ダウンロード・写真提出・結果閲覧・分析） =====
         Route::get('/quizzes', [QuizController::class, 'index']);
         Route::get('/quizzes/stats', [QuizController::class, 'stats']);
@@ -180,6 +187,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/resource-book-pdfs/{pdf}', [ResourceBookPdfController::class, 'destroy']);
         Route::get('/resource-book-pdfs/{pdf}/file', [ResourceBookPdfController::class, 'file']);
         Route::get('/resource-book-pdfs/{pdf}/pages/{page}', [ResourceBookPdfController::class, 'page'])->whereNumber('page');
+
+        // 請求書管理（講師: 稼働時間の登録・締め・請求内容確認・支払確認・PDF）
+        Route::get('/invoices', [App\Http\Controllers\TutorInvoiceController::class, 'index']);
+        Route::get('/invoices/{invoice}', [App\Http\Controllers\TutorInvoiceController::class, 'show']);
+        Route::post('/invoice-entries', [App\Http\Controllers\TutorInvoiceController::class, 'storeEntry']);
+        Route::delete('/invoice-entries/{entry}', [App\Http\Controllers\TutorInvoiceController::class, 'destroyEntry']);
+        Route::put('/invoices/{invoice}', [App\Http\Controllers\TutorInvoiceController::class, 'update']);
+        Route::post('/invoices/{invoice}/close', [App\Http\Controllers\TutorInvoiceController::class, 'close']);
+        Route::post('/invoices/{invoice}/reopen', [App\Http\Controllers\TutorInvoiceController::class, 'reopen']);
+        Route::post('/invoices/{invoice}/confirm', [App\Http\Controllers\TutorInvoiceController::class, 'confirm']);
+        Route::post('/invoices/{invoice}/confirm-payment', [App\Http\Controllers\TutorInvoiceController::class, 'confirmPayment']);
+        Route::post('/invoices/{invoice}/pdf', [App\Http\Controllers\TutorInvoiceController::class, 'pdf']);
 
         // 小テスト（出題・添削・採点・分析）
         Route::get('/quiz-books', [QuizController::class, 'books']);

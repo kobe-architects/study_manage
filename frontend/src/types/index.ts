@@ -405,6 +405,44 @@ export interface QuizAnswerRecord {
   input?: string
 }
 
+// ===== 講師請求管理 =====
+
+/** 請求書のステータス。open→closed→issued→confirmed→paid→done */
+export type InvoiceStatus = 'open' | 'closed' | 'issued' | 'confirmed' | 'paid' | 'done'
+
+export interface InvoiceEntry {
+  id: number
+  workOn: string
+  startMin: number
+  endMin: number
+  minutes: number
+  note: string | null
+}
+
+export interface InvoiceSummary {
+  id: number
+  year: number
+  month: number
+  tutorId: number
+  tutorName: string | null
+  studentName: string | null
+  hourlyRate: number
+  status: InvoiceStatus
+  note: string | null
+  entryCount: number
+  totalMinutes: number
+  amount: number
+  closedAt: string | null
+  issuedAt: string | null
+  confirmedAt: string | null
+  paidAt: string | null
+  doneAt: string | null
+}
+
+export interface InvoiceDetail extends InvoiceSummary {
+  entries: InvoiceEntry[]
+}
+
 // ===== 小テスト =====
 
 /** 教材に紐づく PDF。pageMap=seq: 行の番号 + pageOffset = PDF ページ / none: 手動選択 */
