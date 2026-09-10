@@ -44,8 +44,14 @@ const NAV_TUTOR = [
   { key: 'quiz', route: 'tutor-quizzes', label: '小テスト', icon: ICONS.test },
 ]
 
-/** 「小テスト」は生徒側の設定（講師メニューに小テストを表示）がオンのときだけ表示する */
-const navItems = computed(() => NAV_TUTOR.filter((n) => n.key !== 'quiz' || auth.user?.student?.tutorQuizEnabled === true))
+/** 「小テスト」「科目別学習状況」は生徒側の設定でオンのときだけ表示する */
+const navItems = computed(() =>
+  NAV_TUTOR.filter((n) => {
+    if (n.key === 'quiz') return auth.user?.student?.tutorQuizEnabled === true
+    if (n.key === 'subjects') return auth.user?.student?.tutorSubjectsEnabled !== false
+    return true
+  }),
+)
 
 const activeKey = computed(() => {
   const map: Record<string, string> = {

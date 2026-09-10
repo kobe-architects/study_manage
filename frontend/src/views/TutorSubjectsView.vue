@@ -3,16 +3,25 @@ import { computed, onMounted, ref } from 'vue'
 import SubjectProgressPanels from '@/components/SubjectProgressPanels.vue'
 import { parseDate, TYPE_BADGE } from '@/lib/design'
 import { openListPrint, type PrintCell, type PrintColumn } from '@/lib/printList'
+import { useAuthStore } from '@/stores/auth'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
 import type { RecordListItem } from '@/types'
+import { useRouter } from 'vue-router'
 
 const study = useStudyStore()
 const ui = useUiStore()
+const auth = useAuthStore()
+const router = useRouter()
 
 const loading = ref(!study.items.length)
 
 onMounted(async () => {
+  // 生徒側の設定で科目別学習状況が非表示のときは直接アクセスも許可しない
+  if (auth.user?.role === 'tutor' && auth.user.student?.tutorSubjectsEnabled === false) {
+    router.replace({ name: 'tutor-home' })
+    return
+  }
   try {
     await study.fetchItems()
   } catch {

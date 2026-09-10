@@ -232,6 +232,8 @@ export interface UserSettings {
   startScreen: 'home' | 'record' | 'goal'
   /** 講師メニューに「小テスト」を表示するか（既定は非表示） */
   tutorQuizEnabled: boolean
+  /** 講師メニューに「科目別学習状況」を表示するか（既定は表示） */
+  tutorSubjectsEnabled: boolean
 }
 
 export type UserRole = 'owner' | 'tutor'
@@ -243,6 +245,8 @@ export interface StudentInfo {
   examDate: string | null
   /** 生徒側の設定: 講師メニューに「小テスト」を表示するか */
   tutorQuizEnabled?: boolean
+  /** 生徒側の設定: 講師メニューに「科目別学習状況」を表示するか */
+  tutorSubjectsEnabled?: boolean
 }
 
 export interface AuthUser {

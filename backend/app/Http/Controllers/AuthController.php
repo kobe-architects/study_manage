@@ -64,8 +64,9 @@ class AuthController extends Controller
                     'name' => $studentSettings?->name ?: $student->name,
                     'school' => $studentSettings?->school ?? '',
                     'examDate' => $studentSettings?->exam_date?->toDateString(),
-                    // 生徒側の設定: 講師メニューに小テストを表示するか（既定は非表示）
+                    // 生徒側の設定: 講師メニューに小テスト／科目別学習状況を表示するか
                     'tutorQuizEnabled' => (bool) ($studentSettings?->tutor_quiz_enabled ?? false),
+                    'tutorSubjectsEnabled' => (bool) ($studentSettings?->tutor_subjects_enabled ?? true),
                 ],
             ];
         }
@@ -94,6 +95,7 @@ class AuthController extends Controller
             'hideEmpty' => $s->hide_empty,
             'startScreen' => $s->start_screen,
             'tutorQuizEnabled' => (bool) $s->tutor_quiz_enabled,
+            'tutorSubjectsEnabled' => (bool) $s->tutor_subjects_enabled,
         ];
     }
 }
