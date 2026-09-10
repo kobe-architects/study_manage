@@ -61,6 +61,14 @@ function togglePw(id: number) {
   shownPw.value = next
 }
 // ---- LINE 通知連携 ----
+async function copyTutorLineCode(t: TutorAccount) {
+  try {
+    await navigator.clipboard.writeText(t.lineLinkCode)
+    ui.notify(`${t.name} の連携コードをコピーしました`)
+  } catch {
+    ui.notify('コピーに失敗しました')
+  }
+}
 async function copyLineCode() {
   const code = auth.user?.lineLinkCode
   if (!code) return
@@ -248,6 +256,16 @@ async function removeTutor(t: TutorAccount) {
               </template>
               <span v-else style="color: var(--faint)">未保存（「PW再設定」で保存すると表示されます）</span>
             </div>
+            <div v-if="auth.user?.lineConfigured" class="pw-line">
+              <span style="color: var(--faint)">LINE:</span>
+              <span v-if="t.lineLinked" class="line-badge ok" style="font-size: 10.5px">連携済み</span>
+              <template v-else>
+                <span>連携コード <b style="letter-spacing: 1px">{{ t.lineLinkCode }}</b></span>
+                <button class="pw-icon" title="連携コードをコピー" @click="copyTutorLineCode(t)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
+                </button>
+              </template>
+            </div>
           </div>
           <button class="mini-btn" @click="pwEdit.id = pwEdit.id === t.id ? null : t.id; pwEdit.password = ''">PW再設定</button>
           <button class="mini-btn danger" @click="removeTutor(t)">削除</button>
@@ -316,7 +334,9 @@ async function removeTutor(t: TutorAccount) {
           1.
           <a v-if="auth.user?.lineAddFriendUrl" :href="auth.user.lineAddFriendUrl" target="_blank" rel="noopener">LINE 公式アカウントを友だち追加</a>
           <template v-else>LINE 公式アカウントを友だち追加</template>
-          　2. トークに下の連携コードを送信すると連携されます（「解除」と送ると停止）
+          　2. トークに下の連携コードを送信すると連携されます（「解除」と送ると停止）<br />
+          グループLINEに公式アカウントを招待してそのトークにコードを送ると、グループ宛てに通知されます。
+          講師アカウントの連携コードは上の「家庭教師アカウント」欄にあり、同じグループで両方のコードを送ると全種類の通知が1つのグループに届きます。
         </div>
         <div class="line-code-row">
           <code class="line-code">{{ auth.user?.lineLinkCode }}</code>

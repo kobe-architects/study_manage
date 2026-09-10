@@ -276,6 +276,10 @@ export interface TutorAccount {
   /** 表示用パスワード（機能追加前に作成したアカウントは null。PW再設定で保存される） */
   password: string | null
   createdOn: string
+  /** この講師アカウントが LINE 通知と連携済みか */
+  lineLinked: boolean
+  /** 講師アカウントの LINE 連携コード（講師画面には表示しない） */
+  lineLinkCode: string
 }
 
 /** 課題（家庭教師が個別学習データを選択して期限を設定） */

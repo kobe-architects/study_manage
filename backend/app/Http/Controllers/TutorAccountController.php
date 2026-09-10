@@ -81,6 +81,11 @@ class TutorAccountController extends Controller
 
     private function payload(User $t): array
     {
+        // LINE 連携コードは生徒側の設定画面に表示する（講師画面には出さない）
+        if (! $t->line_link_code) {
+            $t->forceFill(['line_link_code' => strtoupper(\Illuminate\Support\Str::random(8))])->save();
+        }
+
         return [
             'id' => $t->id,
             'name' => $t->name,
@@ -88,6 +93,8 @@ class TutorAccountController extends Controller
             // 表示用パスワード（この機能追加前に作成したアカウントは null。PW再設定で保存される）
             'password' => $t->plain_password,
             'createdOn' => $t->created_at->toDateString(),
+            'lineLinked' => $t->line_user_id !== null,
+            'lineLinkCode' => $t->line_link_code,
         ];
     }
 }
