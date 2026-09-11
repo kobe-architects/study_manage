@@ -159,6 +159,8 @@ const filteredBooks = computed(() =>
       (!bookFilter.type || b.type === bookFilter.type),
   ),
 )
+/** 英単語テストカードは科目が「すべて」or「英語」かつ種別が「すべて」のときだけ表示 */
+const showVocabCard = computed(() => (bookFilter.subject === '' || bookFilter.subject === '英語') && bookFilter.type === '')
 
 // ---------- パート（教材ごとの提出単位） ----------
 interface Part {
@@ -535,7 +537,7 @@ function setDueIn(days: number) {
               <label v-for="t in bookTypes" :key="t" class="radio"><input v-model="bookFilter.type" type="radio" :value="t" />{{ t }}</label>
             </div>
             <div class="books">
-              <div class="book ok vocab-only" @click="vocabOpen = true">
+              <div v-if="showVocabCard" class="book ok vocab-only" @click="vocabOpen = true">
                 <div class="book-top"><span class="type" style="background: #e6f5ec; color: #2f7a4f">英単語</span></div>
                 <div class="book-title">英単語テストを追加</div>
                 <div class="book-foot"><span class="pdf-ok">LEAP basic などの単語帳から出題</span></div>
@@ -553,7 +555,7 @@ function setDueIn(days: number) {
                 </div>
               </div>
             </div>
-            <div v-if="!filteredBooks.length" class="hint" style="margin-top: 10px">絞り込み条件に一致する教材がありません（PDF 紐づけ済みの教材のみ表示されます）。</div>
+            <div v-if="!filteredBooks.length && !showVocabCard" class="hint" style="margin-top: 10px">絞り込み条件に一致する教材がありません（PDF 紐づけ済みの教材のみ表示されます）。</div>
 
             <!-- 選択中の出題内容（パートごと） -->
             <div v-if="wiz.pages.length" style="margin-top: 16px; max-width: 680px">
