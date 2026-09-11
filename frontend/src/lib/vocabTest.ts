@@ -97,7 +97,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
 }
 
 /**
- * A4（1654×2339px ≒ 200dpi）の問題用紙／解答用紙を描画して JPEG Blob を返す。
+ * A4横（2339×1654px ≒ 200dpi）の問題用紙／解答用紙を描画して JPEG Blob を返す。
  */
 export async function renderVocabSheet(spec: SheetSpec, answerKey: boolean): Promise<Blob> {
   try {
@@ -105,8 +105,8 @@ export async function renderVocabSheet(spec: SheetSpec, answerKey: boolean): Pro
   } catch {
     // フォント待ちに失敗しても描画は続行
   }
-  const W = 1654
-  const H = 2339
+  const W = 2339
+  const H = 1654
   const canvas = document.createElement('canvas')
   canvas.width = W
   canvas.height = H
@@ -143,8 +143,9 @@ export async function renderVocabSheet(spec: SheetSpec, answerKey: boolean): Pro
   ctx.fillRect(M, M + 110, W - 2 * M, 3)
 
   // ---- 本文 ----
-  let y = M + 150
-  const cols = !answerKey && !isChoice && !isFill ? 2 : answerKey && !isFill ? 2 : 1
+  const y = M + 150
+  // 横長レイアウト: フリー回答は3列、4択と例文穴埋めは2列（解答用紙は穴埋め以外3列）
+  const cols = isFill ? 2 : answerKey ? 3 : isChoice ? 2 : 3
   const colW = (W - 2 * M - (cols - 1) * 60) / cols
   const rows = Math.ceil(words.length / cols)
   const availH = H - y - M
