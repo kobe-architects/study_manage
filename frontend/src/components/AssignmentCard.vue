@@ -43,6 +43,21 @@ async function toggleExpand() {
   }
 }
 
+/** 教材ごとにグループ化（教材名は見出しに一度だけ表示） */
+const bookGroups = computed(() => {
+  const map = new Map<string, GoalItemDetail[]>()
+  for (const it of items.value) {
+    const k = it.bookTitle ?? 'その他'
+    if (!map.has(k)) map.set(k, [])
+    map.get(k)!.push(it)
+  }
+  return [...map.entries()].map(([name, rows]) => ({ name, rows }))
+})
+/** 行の親項目名（章）。章がなければ小分類名、それもなければタイトル */
+function parentLabel(it: GoalItemDetail): string {
+  return it.chapter ?? it.sub ?? it.title ?? '（無題）'
+}
+
 // ---- 課題からの学習記録（生徒のみ）。行をクリック → 学習日・色・復習期限を指定して記録 ----
 const recModal = reactive<{
   open: boolean
@@ -152,20 +167,23 @@ async function setAchieved(value: boolean) {
       <div v-if="expanded" style="margin-top: 6px">
         <div v-if="loading" style="font-size: 12px; color: var(--faint); padding: 6px 2px">読み込み中…</div>
         <div v-else style="max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px">
-          <component
-            :is="readonly ? 'button' : 'div'"
-            v-for="it in items"
-            :key="it.id"
-            class="gi-row"
-            :class="{ clickable: readonly }"
-            @click="openRecord(it)"
-          >
-            <span v-if="it.type" class="gi-badge" :style="{ background: TYPE_BADGE[it.type].bg, color: TYPE_BADGE[it.type].fg }">{{ it.type }}</span>
-            <span v-else class="gi-badge" style="background: #f1f2f4; color: #aeb4bd">—</span>
-            <span class="gi-mark" :style="{ color: it.studied ? '#2e9d62' : '#cbd1d8' }">{{ it.studied ? '✓' : '○' }}</span>
-            <span class="gi-title" :style="{ color: it.studied ? '#9aa1ab' : '#1c2024', textDecoration: it.studied ? 'line-through' : 'none' }"><span v-if="it.seqNo" style="color: #aeb4bd">{{ it.seqNo }}.</span> {{ it.title ?? it.sub ?? '（無題）' }}</span>
-            <span class="gi-src">{{ it.bookTitle }}</span>
-          </component>
+          <template v-for="g in bookGroups" :key="g.name">
+            <div class="gi-book">{{ g.name }}</div>
+            <component
+              :is="readonly ? 'button' : 'div'"
+              v-for="it in g.rows"
+              :key="it.id"
+              class="gi-row"
+              :class="{ clickable: readonly }"
+              @click="openRecord(it)"
+            >
+              <span v-if="it.type" class="gi-badge" :style="{ background: TYPE_BADGE[it.type].bg, color: TYPE_BADGE[it.type].fg }">{{ it.type }}</span>
+              <span v-else class="gi-badge" style="background: #f1f2f4; color: #aeb4bd">—</span>
+              <span class="gi-mark" :style="{ color: it.studied ? '#2e9d62' : '#cbd1d8' }">{{ it.studied ? '✓' : '○' }}</span>
+              <span class="gi-title" :style="{ color: it.studied ? '#9aa1ab' : '#1c2024', textDecoration: it.studied ? 'line-through' : 'none' }">{{ parentLabel(it) }}</span>
+              <span class="gi-src"><template v-if="it.seqNo">{{ it.seqNo }}. </template>{{ it.title ?? it.sub ?? '' }}</span>
+            </component>
+          </template>
           <div v-if="!items.length" style="font-size: 12px; color: var(--faint); padding: 6px 2px">対象データがありません</div>
         </div>
       </div>
@@ -288,6 +306,13 @@ async function setAchieved(value: boolean) {
   font-size: 12px;
   font-weight: 600;
   color: #3b50cc;
+}
+.gi-book {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mut);
+  padding: 6px 2px 1px;
+  text-align: left;
 }
 .gi-row {
   display: flex;

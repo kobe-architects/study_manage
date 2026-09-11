@@ -90,22 +90,25 @@ class QuizController extends Controller
             ->get(['quiz_pages.resource_book_item_id as item_id', 'quiz_pages.mark', 'quiz_pages.score'])
             ->groupBy('item_id');
 
-        $data = $rows->map(function (ResourceBookItem $r) use ($pdfs, $records, $history) {
+        $pagesFor = function (?string $seq) use ($pdfs): object {
             $pages = [];
             foreach ($pdfs as $p) {
-                $pg = $p->pageForSeq($r->seq_no);
+                $pg = $p->pageForSeq($seq);
                 if ($pg !== null) {
                     $pages[(string) $p->id] = $pg;
                 }
             }
+
+            return (object) $pages;
+        };
+
+        $data = [];
+        foreach ($rows as $r) {
             $rec = $records->get($r->id);
             $hist = $history->get($r->id);
-
-            return [
+            $base = [
                 'id' => $r->id,
                 'chapter' => $r->chapter,
-                'seqNo' => $r->seq_no,
-                'title' => $r->title,
                 'difficulty' => $r->difficulty,
                 'checkFlag' => $r->check_flag,
                 'important' => (bool) $r->important,
@@ -113,9 +116,30 @@ class QuizController extends Controller
                 'lastDate' => $rec?->last_on,
                 'quizCount' => $hist ? $hist->count() : 0,
                 'lastMark' => $hist ? $hist->last()->mark : null,
-                'pages' => (object) $pages,
             ];
-        });
+
+            // 章行に出題用ページ（STEP① など）が定義されていれば展開する
+            // meta.quiz_pages = [[冊子ページ, ラベル], ...]（学習記録は章単位・出題はページ単位の両立用）
+            $specs = $r->meta['quiz_pages'] ?? null;
+            if (is_array($specs) && $specs !== []) {
+                foreach (array_values($specs) as $i => $spec) {
+                    $seq = (string) ($spec[0] ?? '');
+                    $data[] = $base + [
+                        'key' => $r->id.'-'.$i,
+                        'seqNo' => $seq,
+                        'title' => (string) ($spec[1] ?? ''),
+                        'pages' => $pagesFor($seq),
+                    ];
+                }
+            } else {
+                $data[] = $base + [
+                    'key' => (string) $r->id,
+                    'seqNo' => $r->seq_no,
+                    'title' => $r->title,
+                    'pages' => $pagesFor($r->seq_no),
+                ];
+            }
+        }
 
         return response()->json(['data' => $data]);
     }

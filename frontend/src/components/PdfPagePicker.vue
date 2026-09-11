@@ -234,7 +234,7 @@ function showPreview(pdfId: number, page: number | null) {
             <div class="chap">{{ g.chapter || '（章なし）' }}</div>
             <div
               v-for="r in g.rows"
-              :key="r.id"
+              :key="r.key"
               class="row"
               :class="{ on: pageOfRow(r) !== null && selectedKeys.has(keyOf(activePdfId, pageOfRow(r)!)), off: pageOfRow(r) === null }"
               @click="toggleRow(r)"

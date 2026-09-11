@@ -477,9 +477,11 @@ export interface QuizBook {
 export type QuizMark = 'o' | 'tri' | 'x'
 export type QuizStatus = 'assigned' | 'submitted' | 'graded'
 
-/** 出題ページ選択用の教材行 */
+/** 出題ページ選択用の教材行（章行の quiz_pages 展開により同じ id が複数行になりうる） */
 export interface QuizRow {
   id: number
+  /** 一覧表示用の一意キー */
+  key: string
   chapter: string | null
   seqNo: string | null
   title: string | null
