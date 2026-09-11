@@ -76,8 +76,8 @@ function buildHtml(): string {
   const words = targetWords()
   const isChoice = props.testFormat === 'choice'
   const isFill = props.testType === 'fill_spelling'
-  // 穴埋め・4択は1列、フリー（意味/スペル）は2列
-  const qCols = isFill || isChoice ? 1 : 2
+  // 横長（A4ランドスケープ）: いずれの形式も2列（1行2問）
+  const qCols = 2
   const listClass = isChoice ? 'choice' : isFill ? 'fill' : 'free'
 
   const qItems = words
@@ -121,8 +121,9 @@ function buildHtml(): string {
 <html lang="ja"><head><meta charset="utf-8"><title>${title}</title>
 <style>
   * { box-sizing: border-box; }
+  @page { size: A4 landscape; margin: 12mm; }
   body { font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; color: #1c2024; margin: 0; padding: 24px; background: #eceef1; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
-  .sheet { width: 100%; max-width: 820px; background: #fff; padding: 32px 40px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12); }
+  .sheet { width: 100%; max-width: 1150px; background: #fff; padding: 32px 44px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12); }
   .toolbar { position: fixed; top: 14px; right: 16px; }
   .toolbar button { padding: 8px 18px; border: none; border-radius: 8px; background: #3b50cc; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); }
   .page { page-break-after: always; }
@@ -138,7 +139,7 @@ function buildHtml(): string {
   .q { font-weight: 600; font-size: 14px; word-break: break-word; }
 
   /* フリー（意味/スペル）：番号 / 単語 / 解答欄 を固定幅グリッドで統一 */
-  .qlist.free li { display: grid; grid-template-columns: 26px 150px 1fr; gap: 8px; align-items: end; }
+  .qlist.free li { display: grid; grid-template-columns: 26px 200px 1fr; gap: 8px; align-items: end; }
   .qlist.free .n { text-align: right; align-self: center; }
   .qlist.free .blank { display: flex; align-items: flex-end; gap: 5px; color: #6b7280; font-size: 12px; }
   .qlist.free .blank .ul { flex: 1; border-bottom: 1px solid #b9bfc7; height: 15px; }
@@ -184,7 +185,7 @@ function buildHtml(): string {
 
     <section class="page">
       <div class="head"><h1>解答</h1><div class="meta">${esc(props.resourceName)}</div></div>
-      <ol class="alist" style="column-count:2">${aItems}</ol>
+      <ol class="alist" style="column-count:3">${aItems}</ol>
     </section>
   </div>
 
