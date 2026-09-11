@@ -351,9 +351,10 @@ function toPageSpec(p: SelectedPage): QuizPageSpec {
     : { kind: 'pdf', pdfId: p.pdfId, page: p.page, itemId: p.itemId ?? null, label: p.label, refPdfId: p.refPdfId ?? null, refPage: p.refPage ?? null }
 }
 
-/** 英単語テストの問題用紙／解答用紙を画像として描画（サーバーで PDF に組み込む） */
+/** 英単語テストの問題用紙／解答用紙を画像として描画（サーバーで PDF に組み込む）。問題番号はページを跨いで連番 */
 async function buildRenders(pages: SelectedPage[], printTitle: string): Promise<Record<number, { question: Blob; answer: Blob }>> {
   const renders: Record<number, { question: Blob; answer: Blob }> = {}
+  let no = 1
   for (let i = 0; i < pages.length; i++) {
     const p = pages[i]!
     if (p.kind !== 'vocab' || !p.vocab) continue
@@ -365,8 +366,10 @@ async function buildRenders(pages: SelectedPage[], printTitle: string): Promise<
       type: v.testType,
       format: v.testFormat,
       words: v.words,
+      startNo: no,
       pageLabel: `${printTitle}　${i + 1} / ${pages.length}`,
     }
+    no += v.words.length
     renders[i] = { question: await renderVocabSheet(spec, false), answer: await renderVocabSheet(spec, true) }
   }
   return renders
