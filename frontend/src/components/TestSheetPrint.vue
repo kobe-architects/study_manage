@@ -76,8 +76,8 @@ function buildHtml(): string {
   const words = targetWords()
   const isChoice = props.testFormat === 'choice'
   const isFill = props.testType === 'fill_spelling'
-  // 横長（A4ランドスケープ）: いずれの形式も2列（1行2問）
-  const qCols = 2
+  // 縦（A4ポートレート）: いずれの形式も1行1問（回答欄を広く）
+  const qCols = 1
   const listClass = isChoice ? 'choice' : isFill ? 'fill' : 'free'
 
   const qItems = words
@@ -121,9 +121,9 @@ function buildHtml(): string {
 <html lang="ja"><head><meta charset="utf-8"><title>${title}</title>
 <style>
   * { box-sizing: border-box; }
-  @page { size: A4 landscape; margin: 12mm; }
+  @page { size: A4 portrait; margin: 12mm; }
   body { font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; color: #1c2024; margin: 0; padding: 24px; background: #eceef1; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
-  .sheet { width: 100%; max-width: 1150px; background: #fff; padding: 32px 44px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12); }
+  .sheet { width: 100%; max-width: 820px; background: #fff; padding: 32px 40px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12); }
   .toolbar { position: fixed; top: 14px; right: 16px; }
   .toolbar button { padding: 8px 18px; border: none; border-radius: 8px; background: #3b50cc; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); }
   .page { page-break-after: always; }
@@ -185,7 +185,7 @@ function buildHtml(): string {
 
     <section class="page">
       <div class="head"><h1>解答</h1><div class="meta">${esc(props.resourceName)}</div></div>
-      <ol class="alist" style="column-count:3">${aItems}</ol>
+      <ol class="alist" style="column-count:2">${aItems}</ol>
     </section>
   </div>
 

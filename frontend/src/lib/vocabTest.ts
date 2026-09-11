@@ -97,7 +97,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
 }
 
 /**
- * A4横（2339×1654px ≒ 200dpi）の問題用紙／解答用紙を描画して JPEG Blob を返す。
+ * A4縦（1654×2339px ≒ 200dpi）の問題用紙／解答用紙を描画して JPEG Blob を返す。
  */
 export async function renderVocabSheet(spec: SheetSpec, answerKey: boolean): Promise<Blob> {
   try {
@@ -105,8 +105,8 @@ export async function renderVocabSheet(spec: SheetSpec, answerKey: boolean): Pro
   } catch {
     // フォント待ちに失敗しても描画は続行
   }
-  const W = 2339
-  const H = 1654
+  const W = 1654
+  const H = 2339
   const canvas = document.createElement('canvas')
   canvas.width = W
   canvas.height = H
@@ -144,8 +144,8 @@ export async function renderVocabSheet(spec: SheetSpec, answerKey: boolean): Pro
 
   // ---- 本文 ----
   const y = M + 150
-  // 横長レイアウト: 問題用紙は1行2問（2列）、解答用紙は穴埋め以外3列
-  const cols = answerKey && !isFill ? 3 : 2
+  // 縦レイアウト: 問題用紙は1行1問（回答欄を広く）、解答用紙は穴埋め以外2列
+  const cols = answerKey && !isFill ? 2 : 1
   const colW = (W - 2 * M - (cols - 1) * 60) / cols
   const rows = Math.ceil(words.length / cols)
   const availH = H - y - M
@@ -215,11 +215,11 @@ export async function renderVocabSheet(spec: SheetSpec, answerKey: boolean): Pro
       return
     }
 
-    // フリー: 単語（または意味） ＋ 解答欄（回答欄を広めに取る）
+    // フリー: 単語（または意味） ＋ 解答欄（1行1問・回答欄を広く取る）
     ctx.font = `700 ${baseFont}px ${FONT}`
-    const qLines = wrap(ctx, w.question, tw * 0.42)
+    const qLines = wrap(ctx, w.question, tw * 0.32)
     ctx.fillText(qLines[0] ?? '', tx, yy + 6)
-    const bx = tx + tw * 0.42 + 16
+    const bx = tx + tw * 0.32 + 16
     ctx.strokeStyle = '#9aa1ab'
     ctx.lineWidth = 2
     ctx.beginPath()
