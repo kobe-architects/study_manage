@@ -555,6 +555,9 @@ class QuizController extends Controller
             }
             $perQuiz[$p->quiz_id]['s'] = ($perQuiz[$p->quiz_id]['s'] ?? 0) + $p->score;
             $perQuiz[$p->quiz_id]['m'] = ($perQuiz[$p->quiz_id]['m'] ?? 0) + $m;
+            if ($p->mark) {
+                $perQuiz[$p->quiz_id][$p->mark] = ($perQuiz[$p->quiz_id][$p->mark] ?? 0) + 1;
+            }
         }
 
         $timeline = $graded->map(function (Quiz $q) use ($perQuiz) {
@@ -568,6 +571,11 @@ class QuizController extends Controller
                 'score' => $s,
                 'max' => $m,
                 'rate' => $m > 0 ? (int) round($s / $m * 100) : null,
+                'marks' => [
+                    'o' => (int) ($perQuiz[$q->id]['o'] ?? 0),
+                    'tri' => (int) ($perQuiz[$q->id]['tri'] ?? 0),
+                    'x' => (int) ($perQuiz[$q->id]['x'] ?? 0),
+                ],
             ];
         })->values();
 
@@ -881,7 +889,10 @@ class QuizController extends Controller
         return QuizPage::query()
             ->join('quizzes', 'quizzes.id', '=', 'quiz_pages.quiz_id')
             ->whereIn('quiz_pages.quiz_id', $quizIds)
-            ->selectRaw('quiz_pages.quiz_id, SUM(quiz_pages.score) as s, COUNT(quiz_pages.score) as n, SUM(COALESCE(quiz_pages.max_score, quizzes.max_score_per_page)) as max_total')
+            ->selectRaw('quiz_pages.quiz_id, SUM(quiz_pages.score) as s, COUNT(quiz_pages.score) as n, SUM(COALESCE(quiz_pages.max_score, quizzes.max_score_per_page)) as max_total,'
+                ." SUM(CASE WHEN quiz_pages.mark = 'o' THEN 1 ELSE 0 END) as o_c,"
+                ." SUM(CASE WHEN quiz_pages.mark = 'tri' THEN 1 ELSE 0 END) as tri_c,"
+                ." SUM(CASE WHEN quiz_pages.mark = 'x' THEN 1 ELSE 0 END) as x_c")
             ->groupBy('quiz_pages.quiz_id')
             ->get()
             ->keyBy('quiz_id');
@@ -909,6 +920,12 @@ class QuizController extends Controller
             'maxScore' => $max,
             'score' => $graded ? $sum : null,
             'rate' => $graded && $max > 0 && $sum !== null ? (int) round($sum / $max * 100) : null,
+            // ○△× の内訳（採点・添削済みのとき表示に使う）
+            'marks' => [
+                'o' => (int) ($score->o_c ?? 0),
+                'tri' => (int) ($score->tri_c ?? 0),
+                'x' => (int) ($score->x_c ?? 0),
+            ],
             'submittedAt' => $q->submitted_at?->toDateTimeString(),
             'gradedAt' => $q->graded_at?->toDateTimeString(),
             'bookId' => $q->resource_book_id,

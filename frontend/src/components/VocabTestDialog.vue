@@ -189,7 +189,7 @@ function add() {
         <label class="chk"><input v-model="form.unstudiedFirst" type="checkbox" /> 未学習・習熟度の低い語を優先する</label>
 
         <div class="summary">
-          <b>{{ effectiveCount }}問</b> を <b>{{ pageCount }}枚</b> の用紙に出題（各ページの満点 = 出題数）。
+          <b>{{ effectiveCount }}問</b> を <b>{{ pageCount }}枚</b> の用紙に出題。
           <span v-if="form.type === 'fill_spelling'" style="color: var(--faint)">例文のある単語のみ対象</span>
         </div>
       </template>

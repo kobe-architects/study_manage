@@ -55,14 +55,12 @@ async function download(kind: 'result' | 'quiz') {
       <div v-if="loading" style="padding: 20px; text-align: center; font-size: 12.5px; color: var(--faint)">読み込み中…</div>
       <template v-else-if="quiz">
         <div class="total">
-          <div class="big"><b>{{ quiz.score ?? '–' }}</b><span> / {{ quiz.maxScore }}点</span></div>
-          <div class="bar"><span :style="{ width: (quiz.rate ?? 0) + '%' }"></span></div>
-          <div class="rate">{{ quiz.rate !== null ? quiz.rate + '%' : '' }}</div>
-          <div class="marks">
+          <div class="marks big-marks">
             <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" :style="{ color: MARK_COLOR[m] }">
-              {{ MARK_LABEL[m] }} {{ quiz.pages.filter((p) => p.mark === m).length }}
+              <b>{{ MARK_LABEL[m] }}</b>{{ quiz.pages.filter((p) => p.mark === m).length }}
             </span>
           </div>
+          <span style="font-size: 11.5px; color: var(--faint); margin-left: auto">全 {{ quiz.pageCount }}問</span>
         </div>
 
         <div class="pages">
@@ -82,7 +80,6 @@ async function download(kind: 'result' | 'quiz') {
                     <template v-else>{{ p.chapter }}<span v-if="p.difficulty" style="color: #d98a1a; margin-left: 6px">{{ p.difficulty }}</span></template>
                   </div>
                 </div>
-                <span class="pt"><b>{{ p.score ?? '–' }}</b> / {{ p.maxScore }}</span>
               </div>
               <div v-if="p.comment" class="comment">{{ p.comment }}</div>
             </div>
@@ -175,6 +172,14 @@ async function download(kind: 'result' | 'quiz') {
   gap: 10px;
   font-size: 12px;
   font-weight: 700;
+}
+.big-marks {
+  gap: 20px;
+  font-size: 15px;
+}
+.big-marks b {
+  font-size: 22px;
+  margin-right: 4px;
 }
 .pages {
   display: flex;

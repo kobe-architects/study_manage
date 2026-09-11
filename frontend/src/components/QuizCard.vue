@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { QUIZ_STATUS_LABEL, groupStatus } from '@/api/quiz'
+import { MARK_COLOR, MARK_LABEL, QUIZ_STATUS_LABEL, groupStatus } from '@/api/quiz'
 import type { QuizSummary } from '@/types'
 
 /**
@@ -40,8 +40,15 @@ function partLabel(q: QuizSummary): string {
   return q.bookTitle ?? '英単語テスト'
 }
 
-const totalScore = computed(() => props.parts.reduce((s, q) => s + (q.score ?? 0), 0))
-const totalMax = computed(() => props.parts.reduce((s, q) => s + q.maxScore, 0))
+const totalMarks = computed(() => {
+  const t = { o: 0, tri: 0, x: 0 }
+  for (const q of props.parts) {
+    t.o += q.marks?.o ?? 0
+    t.tri += q.marks?.tri ?? 0
+    t.x += q.marks?.x ?? 0
+  }
+  return t
+})
 const allGraded = computed(() => props.parts.every((q) => q.status === 'graded'))
 
 function fmt(d: string | null): string {
@@ -81,9 +88,10 @@ function fmt(d: string | null): string {
           <span v-if="q.status === 'graded' && q.gradedAt">採点・添削 {{ fmt(q.gradedAt) }}</span>
           <span v-if="q.status === 'assigned' && q.answeredCount" style="color: #2f7a4f">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み（未提出）</span>
         </div>
-        <div v-if="q.status === 'graded' && q.score !== null" class="score-row">
-          <div class="bar"><span :style="{ width: (q.rate ?? 0) + '%' }"></span></div>
-          <span class="score"><b>{{ q.score }}</b> / {{ q.maxScore }}点<span class="rate">（{{ q.rate }}%）</span></span>
+        <div v-if="q.status === 'graded'" class="marks-row">
+          <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" class="mk" :style="{ color: MARK_COLOR[m] }">
+            <b>{{ MARK_LABEL[m] }}</b>{{ q.marks?.[m] ?? 0 }}
+          </span>
         </div>
       </div>
       <div class="actions">
@@ -105,7 +113,10 @@ function fmt(d: string | null): string {
       </div>
     </div>
 
-    <div v-if="multi && allGraded" class="total-row">合計 <b>{{ totalScore }}</b> / {{ totalMax }}点</div>
+    <div v-if="multi && allGraded" class="total-row">
+      合計
+      <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" class="mk" :style="{ color: MARK_COLOR[m] }"><b>{{ MARK_LABEL[m] }}</b>{{ totalMarks[m] }}</span>
+    </div>
   </div>
 </template>
 
@@ -202,36 +213,18 @@ function fmt(d: string | null): string {
   color: var(--faint);
   margin-top: 2px;
 }
-.score-row {
+.marks-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   margin-top: 5px;
 }
-.bar {
-  flex: 1;
-  height: 8px;
-  border-radius: 99px;
-  background: #e8ebf5;
-  overflow: hidden;
+.mk {
+  font-size: 13px;
 }
-.bar span {
-  display: block;
-  height: 100%;
-  background: #3b50cc;
-  border-radius: 99px;
-}
-.score {
-  font-size: 12px;
-  color: var(--mut);
-  white-space: nowrap;
-}
-.score b {
-  font-size: 15px;
-  color: var(--ink);
-}
-.rate {
-  color: var(--faint);
+.mk b {
+  font-size: 16px;
+  margin-right: 3px;
 }
 .total-row {
   border-top: 1px solid #f1f2f4;
@@ -239,10 +232,10 @@ function fmt(d: string | null): string {
   font-size: 12px;
   color: var(--mut);
   text-align: right;
-}
-.total-row b {
-  font-size: 15px;
-  color: var(--ink);
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 12px;
 }
 .actions {
   display: flex;

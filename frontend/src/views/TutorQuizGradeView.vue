@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AnnotationEditor from '@/components/AnnotationEditor.vue'
 import AuthImage from '@/components/AuthImage.vue'
-import { MARK_COLOR, MARK_LABEL, fetchBlobUrl, quizApi, scoreForMark } from '@/api/quiz'
+import { MARK_COLOR, MARK_LABEL, fetchBlobUrl, quizApi } from '@/api/quiz'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import type { AnnotationDoc, QuizDetail, QuizMark, QuizPageDetail } from '@/types'
@@ -29,7 +29,7 @@ const answerUrl = ref<string | null>(null)
 /** 英単語テストの解答一覧（採点用） */
 const vocabAnswers = computed(() => (page.value?.kind === 'vocab' ? page.value.vocabWords ?? [] : []))
 
-const form = reactive<{ mark: QuizMark | null; score: number | null; comment: string; saving: boolean }>({ mark: null, score: null, comment: '', saving: false })
+const form = reactive<{ mark: QuizMark | null; comment: string; saving: boolean }>({ mark: null, comment: '', saving: false })
 
 async function load(keepIdx = true) {
   const q = await quizApi.show(quizId)
@@ -52,7 +52,6 @@ async function loadAnswer() {
 function syncForm() {
   const p = page.value
   form.mark = p?.mark ?? null
-  form.score = p?.score ?? null
   form.comment = p?.comment ?? ''
 }
 
@@ -122,8 +121,7 @@ async function onSave(doc: AnnotationDoc, blob: Blob) {
   await task
 }
 
-// ---- 採点 ----
-const max = computed(() => page.value?.maxScore ?? quiz.value?.maxScorePerPage ?? 10)
+// ---- 採点（○△× のみ。点数はサーバー側でマークから自動設定される） ----
 const hasVocab = computed(() => quiz.value?.pages.some((p) => p.kind === 'vocab') ?? false)
 const sheetOpen = ref(false)
 async function downloadAnswers() {
@@ -136,21 +134,17 @@ async function downloadAnswers() {
 }
 function setMark(m: QuizMark) {
   form.mark = form.mark === m ? null : m
-  form.score = form.mark ? scoreForMark(form.mark, max.value) : null
   saveGrade()
 }
 async function saveGrade() {
   if (!quiz.value || !page.value) return
   form.saving = true
   try {
-    let score = form.score === null || form.score === ('' as unknown) ? null : Number(form.score)
-    if (score !== null) score = Math.max(0, Math.min(max.value, Math.round(score)))
-    await quizApi.grade(quiz.value.id, page.value.id, { mark: form.mark, score, comment: form.comment.trim() || null })
+    // 点数はサーバー側でマークから自動設定（○=満点・△=半分・×=0）。表示には使わない
+    await quizApi.grade(quiz.value.id, page.value.id, { mark: form.mark, score: null, comment: form.comment.trim() || null })
     const p = quiz.value.pages[pageIdx.value]!
     p.mark = form.mark
-    p.score = score ?? (form.mark ? scoreForMark(form.mark, max.value) : null)
     p.comment = form.comment.trim() || null
-    form.score = p.score
   } catch {
     ui.notify('採点の保存に失敗しました')
   } finally {
@@ -158,17 +152,23 @@ async function saveGrade() {
   }
 }
 
-const gradedCount = computed(() => quiz.value?.pages.filter((p) => p.score !== null).length ?? 0)
-const total = computed(() => quiz.value?.pages.reduce((s, p) => s + (p.score ?? 0), 0) ?? 0)
+const gradedCount = computed(() => quiz.value?.pages.filter((p) => p.mark !== null).length ?? 0)
+const markCounts = computed(() => {
+  const t = { o: 0, tri: 0, x: 0 }
+  for (const p of quiz.value?.pages ?? []) {
+    if (p.mark) t[p.mark]++
+  }
+  return t
+})
 
 async function finish() {
   if (!quiz.value) return
   await flushAnnotations()
   if (gradedCount.value < quiz.value.pages.length) {
-    ui.notify(`未採点のページがあります（${gradedCount.value}/${quiz.value.pages.length}）`)
+    ui.notify(`未評価のページがあります（${gradedCount.value}/${quiz.value.pages.length}）`)
     return
   }
-  if (!confirm(`採点・添削を完了しますか？（合計 ${total.value} / ${quiz.value.maxScore}点）\n完了すると生徒に結果が表示されます。`)) return
+  if (!confirm(`採点・添削を完了しますか？（○${markCounts.value.o} △${markCounts.value.tri} ×${markCounts.value.x}）\n完了すると生徒に結果が表示されます。`)) return
   try {
     await quizApi.finish(quiz.value.id)
     ui.notify('採点・添削を完了しました')
@@ -225,13 +225,13 @@ async function downloadResult() {
         <button class="back" @click="router.push({ name: 'tutor-quizzes' })">‹ 小テスト一覧</button>
         <b class="ttl">{{ quiz.title }}</b>
         <span class="meta">
-          {{ quiz.bookTitle ?? '英単語テスト' }}・{{ quiz.pageCount }}ページ・満点 {{ quiz.maxScorePerPage }}点/問
+          {{ quiz.bookTitle ?? '英単語テスト' }}・{{ quiz.pageCount }}ページ
           <template v-if="quiz.submittedAt">・提出 {{ quiz.submittedAt.slice(0, 16).replace(/-/g, '/') }}</template>
         </span>
       </div>
       <div v-if="page" class="label-bar">
         <b>{{ page.pageNo }}. {{ page.label }}</b>
-        <span v-if="page.kind === 'vocab'" class="vtag">英単語テスト・満点 {{ page.maxScore }}点</span>
+        <span v-if="page.kind === 'vocab'" class="vtag">英単語テスト・{{ page.maxScore }}問</span>
         <span v-if="page.chapter">{{ page.chapter }}</span>
         <span v-if="page.difficulty" style="color: #d98a1a">{{ page.difficulty }}</span>
         <span class="bar-ctrl">
@@ -268,7 +268,10 @@ async function downloadResult() {
       <div class="card status-card">
         <div class="status-line">
           <span class="chip" :class="quiz.status">{{ quiz.status === 'graded' ? '採点・添削済み' : quiz.status === 'submitted' ? '採点・添削待ち' : '未提出' }}</span>
-          <span class="total">採点 {{ gradedCount }}/{{ quiz.pageCount }}・<b>{{ total }}</b> / {{ quiz.maxScore }}点</span>
+          <span class="total">
+            評価 {{ gradedCount }}/{{ quiz.pageCount }}
+            <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" :style="{ color: MARK_COLOR[m], fontWeight: 700, marginLeft: '6px' }">{{ MARK_LABEL[m] }}{{ markCounts[m] }}</span>
+          </span>
         </div>
         <div class="status-btns">
           <button v-if="quiz.status !== 'graded'" class="btn primary" :disabled="quiz.status === 'assigned'" @click="finish">採点・添削を完了</button>
@@ -279,20 +282,16 @@ async function downloadResult() {
       </div>
 
       <div v-if="page" class="card grading">
-        <div style="font-size: 12.5px; font-weight: 700; margin-bottom: 8px">採点</div>
+        <div style="font-size: 12.5px; font-weight: 700; margin-bottom: 8px">
+          評価（○△×）
+          <span v-if="form.saving" style="font-size: 11px; font-weight: 400; color: var(--faint); margin-left: 6px">保存中…</span>
+        </div>
         <div class="marks">
           <button v-for="m in (['o', 'tri', 'x'] as const)" :key="m" class="mark" :class="{ on: form.mark === m }" :style="{ '--c': MARK_COLOR[m] }" :disabled="!page.hasAnswer" @click="setMark(m)">
             <span class="mk">{{ MARK_LABEL[m] }}</span>
-            <span class="ms">{{ scoreForMark(m, max) }}点</span>
           </button>
         </div>
-        <div class="score-line">
-          <span>点数</span>
-          <input v-model.number="form.score" type="number" min="0" :max="max" :disabled="!page.hasAnswer" @change="saveGrade" />
-          <span>/ {{ max }}点</span>
-          <span v-if="form.saving" style="font-size: 11px; color: var(--faint)">保存中…</span>
-        </div>
-        <textarea v-model="form.comment" rows="3" placeholder="コメント（生徒に表示されます）" :disabled="!page.hasAnswer" @blur="saveGrade"></textarea>
+        <textarea v-model="form.comment" rows="3" style="margin-top: 10px" placeholder="コメント（生徒に表示されます）" :disabled="!page.hasAnswer" @blur="saveGrade"></textarea>
         <div class="nav">
           <button class="btn" :disabled="pageIdx === 0" @click="gotoPage(pageIdx - 1)">‹ 前へ</button>
           <button class="btn" :disabled="pageIdx >= quiz.pages.length - 1" @click="gotoPage(pageIdx + 1)">次へ ›</button>

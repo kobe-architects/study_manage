@@ -507,6 +507,8 @@ export interface QuizSummary {
   maxScore: number
   score: number | null
   rate: number | null
+  /** ○△× の内訳（採点・添削の評価表示に使う） */
+  marks: { o: number; tri: number; x: number }
   submittedAt: string | null
   gradedAt: string | null
   bookId: number | null
@@ -637,7 +639,7 @@ export interface QuizStats {
     avgRate: number | null
     marks: { o: number; tri: number; x: number }
   }
-  timeline: { id: number; title: string; gradedOn: string | null; score: number; max: number; rate: number | null }[]
+  timeline: { id: number; title: string; gradedOn: string | null; score: number; max: number; rate: number | null; marks: { o: number; tri: number; x: number } }[]
   byChapter: QuizStatGroup[]
   byMid: QuizStatGroup[]
   byDifficulty: QuizStatGroup[]
