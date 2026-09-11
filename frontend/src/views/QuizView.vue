@@ -59,19 +59,33 @@ function toggleLabel(v: VocabularyLabel) {
 const printOpen = ref(false)
 const printType = ref<PrintTestType>('meaning')
 const printFormat = ref<PrintTestFormat>('free')
-const printWords = computed(() =>
-  vocab.items.filter(
+/** 小テスト印刷の番号範囲指定（単語帳の通し番号 No.）。指定時はセクション選択より優先 */
+const printRange = reactive<{ from: number | null; to: number | null }>({ from: null, to: null })
+const rangeActive = computed(() => {
+  const f = Number(printRange.from)
+  const t = Number(printRange.to)
+  return Number.isInteger(f) && Number.isInteger(t) && f >= 1 && t >= f
+})
+function clearRange() {
+  printRange.from = null
+  printRange.to = null
+}
+const printWords = computed(() => {
+  // vocab.items はセクション順・並び順で取得されるため、配列位置 = 単語帳の通し番号
+  const base = rangeActive.value
+    ? vocab.items.slice(Number(printRange.from) - 1, Number(printRange.to))
+    : vocab.items.filter((w) => secSel.value[w.sectionId])
+  return base.filter(
     (w) =>
-      secSel.value[w.sectionId] &&
       (!impSel.value.length || impSel.value.includes(w.importance)) &&
       (!labelSel.value.length || labelSel.value.includes(w.label)),
-  ),
-)
-// 小テストの出題：クイズ設定（セクション/重要度/ラベル/出題順/問題数）を反映
+  )
+})
+// 小テストの出題：クイズ設定（セクション/番号範囲/重要度/ラベル/出題順/問題数）を反映
 const printSelection = computed(() => {
   const base = printWords.value.slice()
   const ordered2 = ordered.value
-    ? [...base].sort((a, b) => a.sortOrder - b.sortOrder)
+    ? [...base].sort((a, b) => a.sectionId - b.sectionId || a.sortOrder - b.sortOrder)
     : shuffle(base)
   return wantCount.value > 0 ? ordered2.slice(0, wantCount.value) : ordered2
 })
@@ -135,6 +149,7 @@ watch(
 function onResourceChange() {
   loadSecSel()
   wSec.value = 'all'
+  clearRange()
 }
 
 onMounted(async () => {
@@ -532,10 +547,23 @@ function toggleSec(id: number) {
           <div style="margin-bottom: 16px"><VocabResourceSwitch @change="onResourceChange" /></div>
 
           <div class="lab">出題セクション</div>
-          <button class="sec-open" @click="secModalOpen = true">
+          <button class="sec-open" :style="rangeActive ? 'opacity:.5' : ''" @click="secModalOpen = true">
             <span>{{ selectedSecCount === sections.length ? 'すべて' : selectedSecCount === 0 ? '未選択' : selectedSecCount + ' セクション' }}<span style="color: var(--faint); font-weight: 400">（{{ selectedSecCount }}/{{ sections.length }}）</span></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa1ab" stroke-width="2"><path d="M9 6l6 6-6 6" /></svg>
           </button>
+
+          <div class="lab" style="margin-top: 12px">番号で指定（小テスト印刷用・任意）</div>
+          <div class="range-row">
+            <span style="color: var(--mut)">No.</span>
+            <input v-model.number="printRange.from" type="number" min="1" :max="vocab.items.length" class="rng" placeholder="1" />
+            <span style="color: var(--mut)">〜</span>
+            <input v-model.number="printRange.to" type="number" min="1" :max="vocab.items.length" class="rng" placeholder="20" />
+            <button v-if="printRange.from !== null || printRange.to !== null" class="link-btn" style="color: #9aa1ab" @click="clearRange">クリア</button>
+          </div>
+          <div v-if="rangeActive" class="range-note">
+            No.{{ printRange.from }}〜{{ printRange.to }} の {{ printWords.length }}語が小テストの対象になります（セクション選択より優先）。
+            出題順「ランダム」でシャッフルされます。
+          </div>
 
           <div style="margin-bottom: 14px">
             <div class="lab">重要度</div>
@@ -1229,6 +1257,32 @@ function toggleSec(id: number) {
   font-family: inherit;
   outline: none;
   resize: vertical;
+}
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  margin-bottom: 6px;
+}
+.rng {
+  width: 78px;
+  padding: 8px 10px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  font-size: 13px;
+  text-align: right;
+  background: #fff;
+}
+.range-note {
+  font-size: 11.5px;
+  color: #2f7a4f;
+  background: #f1faf5;
+  border: 1px solid #cfe8da;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  line-height: 1.6;
 }
 .sec-open {
   width: 100%;
