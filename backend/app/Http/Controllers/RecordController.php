@@ -159,6 +159,7 @@ class RecordController extends Controller
                 'mid' => $item?->mid?->name,
                 'sub' => $item?->name,
                 'bookTitle' => $row?->book?->title,
+                'chapter' => $row?->chapter,
                 'seqNo' => $row?->seq_no,
                 'rowTitle' => $row?->title,
                 'color' => $r->color,

@@ -73,18 +73,33 @@ onMounted(() => {
   study.fetchEvents().catch(() => {})
 })
 
-/** 学習記録を科目別にグルーピング（最新の記録がある科目を先頭に、科目内は日付降順） */
+/**
+ * 学習記録を科目別 → 教材別にグルーピング。
+ * 教材名はグループの見出しに一度だけ表示し、各行には親項目名（章）を表示する。
+ */
 const subjectGroups = computed(() => {
-  const map = new Map<string, { name: string; colorSoft: string; colorVivid: string; rows: RecordListItem[] }>()
+  const map = new Map<string, { name: string; colorSoft: string; colorVivid: string; count: number; firstDate: string; books: Map<string, { name: string; rows: RecordListItem[] }> }>()
   for (const r of records.value) {
     const key = r.subjectName ?? '（科目未設定）'
     if (!map.has(key)) {
-      map.set(key, { name: key, colorSoft: r.colorSoft, colorVivid: r.colorVivid, rows: [] })
+      map.set(key, { name: key, colorSoft: r.colorSoft, colorVivid: r.colorVivid, count: 0, firstDate: r.date, books: new Map() })
     }
-    map.get(key)!.rows.push(r)
+    const g = map.get(key)!
+    g.count++
+    const bookKey = r.bookTitle ?? (r.major ? `${r.major}›${r.mid}` : 'その他')
+    if (!g.books.has(bookKey)) g.books.set(bookKey, { name: bookKey, rows: [] })
+    g.books.get(bookKey)!.rows.push(r)
   }
-  return [...map.values()].sort((a, b) => (a.rows[0].date < b.rows[0].date ? 1 : -1))
+  return [...map.values()]
+    .map((g) => ({ ...g, books: [...g.books.values()] }))
+    .sort((a, b) => (a.firstDate < b.firstDate ? 1 : -1))
 })
+
+/** 行の親項目名（章）。章がない行は 大分類›中分類、それもなければ行タイトルで代替 */
+function parentLabel(r: RecordListItem): string {
+  const parent = r.chapter ?? (r.major ? `${r.major}›${r.mid}` : '')
+  return parent || (r.rowTitle ?? r.sub ?? '（無題）')
+}
 
 // ---- 課題サマリ（未記録のみ・期限昇順で3件） ----
 const pendingAssignments = computed(() =>
@@ -199,17 +214,17 @@ function recordColorHex(c: string | null): string {
                 <span class="subj-dot" :style="{ background: ui.colorOf(g.colorSoft, g.colorVivid) }"></span>
                 <span class="subj-name">{{ g.name }}</span>
                 <span style="flex: 1"></span>
-                <span style="font-size: 11.5px; color: var(--faint)">{{ g.rows.length }}件</span>
+                <span style="font-size: 11.5px; color: var(--faint)">{{ g.count }}件</span>
               </div>
-              <div style="display: flex; flex-direction: column">
-                <div v-for="r in g.rows" :key="r.id" class="rec-row">
+              <div v-for="b in g.books" :key="b.name" class="book-block">
+                <div class="book-name">{{ b.name }}</div>
+                <div v-for="r in b.rows" :key="r.id" class="rec-row">
                   <span style="font-size: 11.5px; color: var(--mut); width: 36px; flex-shrink: 0">{{ fmtMd(r.date) }}</span>
                   <span class="rec-badge" :style="{ background: TYPE_BADGE[r.type]?.bg ?? '#f1f2f4', color: TYPE_BADGE[r.type]?.fg ?? '#6b7280' }">{{ r.type }}</span>
-                  <span class="rec-title" :style="{ color: recordColorHex(r.color) }">
-                    <span v-if="r.seqNo" style="color: #aeb4bd">{{ r.seqNo }}.</span>
-                    {{ r.rowTitle ?? r.sub ?? '（無題）' }}
+                  <span class="rec-title" :style="{ color: recordColorHex(r.color) }">{{ parentLabel(r) }}</span>
+                  <span class="rec-src">
+                    <template v-if="r.seqNo">{{ r.seqNo }}. </template>{{ r.rowTitle ?? r.sub ?? '' }}
                   </span>
-                  <span class="rec-src">{{ r.bookTitle ?? (r.major ? `${r.major}›${r.mid}` : '') }}</span>
                 </div>
               </div>
             </div>
@@ -324,6 +339,15 @@ function recordColorHex(c: string | null): string {
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+}
+.book-block {
+  margin-bottom: 6px;
+}
+.book-name {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--mut);
+  padding: 5px 0 2px;
 }
 .subj-dot {
   width: 9px;

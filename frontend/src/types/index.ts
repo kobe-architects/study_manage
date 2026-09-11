@@ -150,6 +150,8 @@ export interface RecordListItem {
   mid: string | null
   sub: string | null
   bookTitle: string | null
+  /** 教材行の章（親項目名） */
+  chapter: string | null
   seqNo: string | null
   rowTitle: string | null
   color: RecordColor | null
