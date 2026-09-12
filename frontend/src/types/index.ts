@@ -538,6 +538,10 @@ export interface QuizPageDetail {
   id: number
   pageNo: number
   kind: QuizPageKind
+  /** 採点・添削時に表示する解答ページ（出題時の指定、または同教材の「解答つき」PDF の同ページ） */
+  ansPdfId: number | null
+  ansPage: number | null
+  ansPdfTitle: string | null
   label: string | null
   pdfId: number | null
   pdfTitle: string | null

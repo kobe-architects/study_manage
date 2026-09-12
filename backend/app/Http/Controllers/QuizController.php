@@ -963,7 +963,28 @@ class QuizController extends Controller
     {
         $item = $p->item;
 
+        // 採点・添削時に表示する解答ページ。出題時の指定（ref）があればそれを、
+        // なければ同じ教材の「解答」を含むタイトルの PDF の同ページを自動で使う（解答つき版とページが揃っている前提）
+        $ansPdfId = $p->ref_pdf_id;
+        $ansPage = $p->ref_page;
+        $ansPdfTitle = $p->refPdf?->title;
+        if ($ansPdfId === null && $p->pdf !== null && $p->pdf_page !== null) {
+            $sibling = ResourceBookPdf::where('resource_book_id', $p->pdf->resource_book_id)
+                ->where('id', '!=', $p->resource_book_pdf_id)
+                ->where('title', 'like', '%解答%')
+                ->orderBy('id')
+                ->first();
+            if ($sibling !== null && $p->pdf_page <= $sibling->page_count) {
+                $ansPdfId = $sibling->id;
+                $ansPage = $p->pdf_page;
+                $ansPdfTitle = $sibling->title;
+            }
+        }
+
         return [
+            'ansPdfId' => $ansPdfId,
+            'ansPage' => $ansPage,
+            'ansPdfTitle' => $ansPdfTitle,
             'id' => $p->id,
             'pageNo' => $p->page_no,
             'kind' => $p->kind,

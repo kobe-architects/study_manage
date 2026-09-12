@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AnnotationEditor from '@/components/AnnotationEditor.vue'
 import AuthImage from '@/components/AuthImage.vue'
+import PdfThumb from '@/components/PdfThumb.vue'
 import { MARK_COLOR, MARK_LABEL, fetchBlobUrl, quizApi } from '@/api/quiz'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
@@ -124,6 +125,9 @@ async function onSave(doc: AnnotationDoc, blob: Blob) {
 // ---- 採点（○△× のみ。点数はサーバー側でマークから自動設定される） ----
 const hasVocab = computed(() => quiz.value?.pages.some((p) => p.kind === 'vocab') ?? false)
 const sheetOpen = ref(false)
+/** 解答ページ（解答つき PDF）の拡大表示 */
+const ansOpen = ref(false)
+watch(pageIdx, () => (ansOpen.value = false))
 async function downloadAnswers() {
   if (!quiz.value) return
   try {
@@ -298,6 +302,17 @@ async function downloadResult() {
         </div>
       </div>
 
+      <!-- 解答ページ（解答つき PDF がある場合に自動表示） -->
+      <div v-if="page && page.kind === 'pdf' && page.ansPdfId && page.ansPage" class="card ref">
+        <div class="ref-head">
+          <div style="font-size: 12.5px; font-weight: 700">解答（{{ page.ansPdfTitle }} p.{{ page.ansPage }}）</div>
+          <button class="btn" style="padding: 5px 10px; font-size: 11.5px" @click="ansOpen = true">拡大</button>
+        </div>
+        <div class="ref-body ans-click" title="クリックで拡大表示" @click="ansOpen = true">
+          <PdfThumb :key="'ans' + page.id" :pdf-id="page.ansPdfId" :page="page.ansPage" :width="560" eager />
+        </div>
+      </div>
+
       <div v-if="page && page.kind === 'vocab'" class="card ref">
         <div class="ref-head">
           <div style="font-size: 12.5px; font-weight: 700">解答一覧（{{ vocabAnswers.length }}問）</div>
@@ -322,6 +337,13 @@ async function downloadResult() {
     <div class="sheet-modal" @click.stop>
       <button class="sheet-x" @click="sheetOpen = false">×</button>
       <AuthImage :src="quizApi.renderImageUrl(quiz.id, page.id)" />
+    </div>
+  </div>
+  <!-- 解答ページの拡大表示 -->
+  <div v-if="ansOpen && page && page.ansPdfId && page.ansPage" class="sheet-overlay" @click="ansOpen = false">
+    <div class="sheet-modal" @click.stop>
+      <button class="sheet-x" @click="ansOpen = false">×</button>
+      <div class="ans-zoom"><PdfThumb :key="'ansz' + page.id" :pdf-id="page.ansPdfId" :page="page.ansPage" :width="1400" eager /></div>
     </div>
   </div>
 </template>
@@ -687,6 +709,18 @@ textarea {
 .ref-body {
   max-height: 46vh;
   overflow-y: auto;
+}
+.ref-body :deep(.thumb) {
+  width: 100% !important;
+  aspect-ratio: auto;
+}
+.ans-click {
+  cursor: zoom-in;
+}
+.ans-zoom :deep(.thumb) {
+  width: 100% !important;
+  aspect-ratio: auto;
+  border: none;
 }
 .ans {
   width: 100%;
