@@ -263,7 +263,8 @@ async function chooseBook(b: QuizBook, advance = true) {
     const [pdfs, rows] = await Promise.all([quizApi.listPdfs(b.id), quizApi.rows(b.id)])
     wiz.bookId = b.id
     wiz.bookTitle = b.title
-    wiz.pdfs = pdfs
+    // 「解答」を含むタイトルの PDF は採点・添削用のため出題対象から除外する
+    wiz.pdfs = pdfs.filter((p) => !p.title.includes('解答'))
     wiz.rows = rows
     if (advance) wiz.step = 3
   } catch {
