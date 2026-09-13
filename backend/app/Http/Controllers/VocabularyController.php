@@ -124,13 +124,13 @@ class VocabularyController extends Controller
     /** エクスポート/テンプレートの見出し（日本語・12列） */
     private array $excelHeader = [
         'セクション', '単語', '意味', '意味の補足', '品詞', '重要度',
-        'ラベル', '習熟度', 'メモ', '例文', '和訳', '例文説明',
+        'ラベル', '習熟度', 'メモ', '例文', '和訳', '例文説明', '参考',
     ];
 
     public function template(): StreamedResponse
     {
         $rows = [
-            ['Unit 1', 'example', '例', '「名詞」としての意味の補足', '名詞', '★', '普', '低', '覚え方メモ', 'This is an example.', 'これは例文です。', '補足説明'],
+            ['Unit 1', 'example', '例', '「名詞」としての意味の補足', '名詞', '★', '普', '低', '覚え方メモ', 'This is an example.', 'これは例文です。', '補足説明', '語源・関連語などの参考情報'],
         ];
 
         return $this->streamXlsx('vocabulary_template.xlsx', $rows);
@@ -159,6 +159,7 @@ class VocabularyController extends Controller
                 $v->example_sentence,
                 $v->example_translation,
                 $v->example_explanation,
+                $v->reference_note,
             ])->all();
 
         return $this->streamXlsx('vocabulary_export.xlsx', $rows);
@@ -242,6 +243,7 @@ class VocabularyController extends Controller
                     'example_sentence' => $get($cols, 'example_sentence') ?: null,
                     'example_translation' => $get($cols, 'example_translation') ?: null,
                     'example_explanation' => $get($cols, 'example_explanation') ?: null,
+                    'reference_note' => $get($cols, 'reference_note') ?: null,
                     'sort_order' => $nextSort[$section->id],
                 ]);
                 $imported++;
@@ -300,6 +302,7 @@ class VocabularyController extends Controller
         'example_sentence' => ['example_sentence', '例文'],
         'example_translation' => ['example_translation', '和訳', '例文和訳'],
         'example_explanation' => ['example_explanation', '例文説明', '説明'],
+        'reference_note' => ['reference_note', '参考'],
     ];
 
     /**
@@ -335,6 +338,7 @@ class VocabularyController extends Controller
             'section' => 0, 'word' => 1, 'meaning' => 2, 'meaning_supplement' => 3,
             'part_of_speech' => 4, 'importance' => 5, 'label' => 6, 'proficiency' => 7,
             'memo' => 8, 'example_sentence' => 9, 'example_translation' => 10, 'example_explanation' => 11,
+            'reference_note' => 12,
         ];
     }
 
@@ -409,9 +413,25 @@ class VocabularyController extends Controller
             'exampleSentence' => ['nullable', 'string'],
             'exampleTranslation' => ['nullable', 'string'],
             'exampleExplanation' => ['nullable', 'string'],
+            'examples' => ['nullable', 'array', 'max:10'],
+            'examples.*.label' => ['nullable', 'string', 'max:10'],
+            'examples.*.sentence' => ['required', 'string', 'max:1000'],
+            'examples.*.translation' => ['nullable', 'string', 'max:1000'],
+            'referenceNote' => ['nullable', 'string'],
             'sortOrder' => ['nullable', 'integer'],
         ];
         $data = $request->validate($rules);
+        if (array_key_exists('examples', $data)) {
+            // 例文（複数）: 空行を除き、先頭の例文を従来の example_sentence / example_translation にも反映する
+            $examples = array_values(array_filter(array_map(fn ($e) => [
+                'label' => isset($e['label']) && trim((string) $e['label']) !== '' ? trim((string) $e['label']) : null,
+                'sentence' => trim((string) ($e['sentence'] ?? '')),
+                'translation' => isset($e['translation']) && trim((string) $e['translation']) !== '' ? trim((string) $e['translation']) : null,
+            ], $data['examples'] ?? []), fn ($e) => $e['sentence'] !== ''));
+            $data['examples'] = $examples ?: null;
+            $data['exampleSentence'] = $examples[0]['sentence'] ?? null;
+            $data['exampleTranslation'] = $examples[0]['translation'] ?? null;
+        }
 
         $map = [
             'word' => 'word', 'meaning' => 'meaning', 'meaningSupplement' => 'meaning_supplement',
@@ -419,6 +439,7 @@ class VocabularyController extends Controller
             'importance' => 'importance', 'label' => 'label', 'proficiency' => 'proficiency',
             'memo' => 'memo', 'exampleSentence' => 'example_sentence',
             'exampleTranslation' => 'example_translation', 'exampleExplanation' => 'example_explanation',
+            'examples' => 'examples', 'referenceNote' => 'reference_note',
             'sortOrder' => 'sort_order',
         ];
         $out = [];

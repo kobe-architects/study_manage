@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { examplesOf } from '@/lib/vocabExamples'
 import { useRouter } from 'vue-router'
 import VocabResourceSwitch from '@/components/VocabResourceSwitch.vue'
 import client from '@/api/client'
@@ -53,7 +54,7 @@ const filtered = computed(() => {
     if (fImportance.value !== 'all' && w.importance !== fImportance.value) return false
     if (fProf.value !== 'all' && w.proficiency !== fProf.value) return false
     if (term) {
-      const hay = `${w.word} ${w.meaning} ${w.meaningSupplement ?? ''} ${w.exampleSentence ?? ''} ${w.exampleTranslation ?? ''}`.toLowerCase()
+      const hay = `${w.word} ${w.meaning} ${w.meaningSupplement ?? ''} ${examplesOf(w).map((e) => `${e.sentence} ${e.translation ?? ''}`).join(' ')} ${w.referenceNote ?? ''}`.toLowerCase()
       if (!hay.includes(term)) return false
     }
     return true
@@ -97,11 +98,15 @@ const form = reactive({
   exampleSentence: '',
   exampleTranslation: '',
   exampleExplanation: '',
+  examples: [] as ExampleRow[],
+  referenceNote: '',
 })
 const imageUrl = ref<string | null>(null)
 const pendingFile = ref<File | null>(null) // 新規単語用：保存時にアップロードする画像
 const fileInput = ref<HTMLInputElement | null>(null)
 const importInput = ref<HTMLInputElement | null>(null)
+
+type ExampleRow = { label: string; sentence: string; translation: string }
 
 const DRAFT_KEY = 'vocab_new_draft'
 
@@ -119,6 +124,8 @@ function blankForm() {
     exampleSentence: '',
     exampleTranslation: '',
     exampleExplanation: '',
+    examples: [] as ExampleRow[],
+    referenceNote: '',
   }
 }
 
@@ -165,6 +172,8 @@ function openEdit(w: Vocabulary) {
     exampleSentence: w.exampleSentence ?? '',
     exampleTranslation: w.exampleTranslation ?? '',
     exampleExplanation: w.exampleExplanation ?? '',
+    examples: examplesOf(w).map((e) => ({ label: e.label ?? '', sentence: e.sentence, translation: e.translation ?? '' })),
+    referenceNote: w.referenceNote ?? '',
   })
   imageUrl.value = w.imageUrl
   pendingFile.value = null
@@ -176,7 +185,12 @@ async function save() {
     ui.notify('語と意味は必須です')
     return
   }
+  const examples = form.examples
+    .filter((e) => e.sentence.trim())
+    .map((e) => ({ label: e.label.trim() || null, sentence: e.sentence.trim(), translation: e.translation.trim() || null }))
   const payload = {
+    examples: examples.length ? examples : null,
+    referenceNote: form.referenceNote || null,
     word: form.word,
     meaning: form.meaning,
     meaningSupplement: form.meaningSupplement || null,
@@ -185,8 +199,8 @@ async function save() {
     label: form.label,
     proficiency: form.proficiency,
     memo: form.memo || null,
-    exampleSentence: form.exampleSentence || null,
-    exampleTranslation: form.exampleTranslation || null,
+    exampleSentence: examples[0]?.sentence ?? null,
+    exampleTranslation: examples[0]?.translation ?? null,
     exampleExplanation: form.exampleExplanation || null,
   }
   try {
@@ -366,10 +380,12 @@ async function deleteAll() {
               <tr v-if="expanded[w.id]" class="v-detail">
                 <td class="c-detail-pad"></td>
                 <td class="c-detail" colspan="10" style="background: #f8f9fb; color: #4b5563; font-size: 12.5px">
-                  <div v-if="w.exampleSentence"><strong>例文:</strong> {{ w.exampleSentence }}</div>
-                  <div v-if="w.exampleTranslation" style="color: #9aa1ab">{{ w.exampleTranslation }}</div>
+                  <div v-for="(e, ei) in examplesOf(w)" :key="ei">
+                    <strong>例文{{ e.label || '' }}:</strong> {{ e.sentence }}<span v-if="e.translation" style="color: #9aa1ab"> — {{ e.translation }}</span>
+                  </div>
+                  <div v-if="w.referenceNote" style="white-space: pre-wrap"><strong>参考:</strong> {{ w.referenceNote }}</div>
                   <div v-if="w.memo"><strong>メモ:</strong> {{ w.memo }}</div>
-                  <div v-if="!w.exampleSentence && !w.memo" style="color: #9aa1ab">追加情報はありません</div>
+                  <div v-if="!examplesOf(w).length && !w.memo && !w.referenceNote" style="color: #9aa1ab">追加情報はありません</div>
                 </td>
               </tr>
             </template>
@@ -411,10 +427,19 @@ async function deleteAll() {
           <label class="fld"><span>重要度</span><select v-model.number="form.importance"><option :value="0">無印</option><option :value="1">★</option><option :value="2">★★</option></select></label>
           <label class="fld"><span>ラベル</span><select v-model="form.label"><option value="easy">易</option><option value="normal">普</option><option value="hard">難</option></select></label>
           <label class="fld"><span>習熟度</span><select v-model="form.proficiency"><option value="high">高</option><option value="medium">中</option><option value="low">低</option></select></label>
-          <label class="fld" style="grid-column: span 2"><span>例文</span><input v-model="form.exampleSentence" /></label>
-          <label class="fld" style="grid-column: span 2"><span>例文和訳</span><input v-model="form.exampleTranslation" /></label>
+          <div class="fld" style="grid-column: span 2">
+            <span>例文（複数可。①②は意味の番号）</span>
+            <div v-for="(e, i) in form.examples" :key="i" class="ex-row">
+              <input v-model="e.label" placeholder="①" class="ex-lab" />
+              <input v-model="e.sentence" placeholder="例文" />
+              <input v-model="e.translation" placeholder="和訳" />
+              <button class="bare" type="button" title="この例文を削除" style="color: #cf5563; font-size: 16px" @click="form.examples.splice(i, 1)">×</button>
+            </div>
+            <button class="btn-out" type="button" style="align-self: flex-start" @click="form.examples.push({ label: '', sentence: '', translation: '' })">＋ 例文を追加</button>
+          </div>
           <label class="fld" style="grid-column: span 2"><span>例文説明</span><input v-model="form.exampleExplanation" /></label>
-          <label class="fld" style="grid-column: span 2"><span>メモ</span><textarea v-model="form.memo" rows="2"></textarea></label>
+          <label class="fld" style="grid-column: span 2"><span>参考（語源・関連語など教材由来の情報）</span><textarea v-model="form.referenceNote" rows="2"></textarea></label>
+          <label class="fld" style="grid-column: span 2"><span>メモ（自分の覚え方のコツなど）</span><textarea v-model="form.memo" rows="2"></textarea></label>
           <div class="fld" style="grid-column: span 2">
             <span>画像</span>
             <div style="display: flex; align-items: center; gap: 12px">
@@ -691,5 +716,19 @@ async function deleteAll() {
     display: block;
     padding: 12px 14px;
   }
+}
+.ex-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.ex-row input {
+  flex: 1;
+  min-width: 0;
+}
+.ex-row .ex-lab {
+  flex: 0 0 48px;
+  text-align: center;
 }
 </style>

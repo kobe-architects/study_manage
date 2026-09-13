@@ -15,10 +15,11 @@ class Vocabulary extends Model
     protected $fillable = [
         'study_resource_section_id', 'word', 'meaning', 'meaning_supplement', 'part_of_speech',
         'importance', 'label', 'proficiency', 'memo', 'image_path',
-        'example_sentence', 'example_translation', 'example_explanation', 'sort_order',
+        'example_sentence', 'example_translation', 'example_explanation', 'examples', 'reference_note', 'sort_order',
     ];
 
     protected $casts = [
+        'examples' => 'array',
         'importance' => 'integer',
         'sort_order' => 'integer',
     ];

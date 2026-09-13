@@ -30,6 +30,8 @@ class VocabularyResource extends JsonResource
             'exampleSentence' => $this->example_sentence,
             'exampleTranslation' => $this->example_translation,
             'exampleExplanation' => $this->example_explanation,
+            'examples' => $this->examples ?: null,
+            'referenceNote' => $this->reference_note,
             'imageUrl' => $this->image_path
                 ? url('/api/vocabularies/'.$this->id.'/image')
                 : null,

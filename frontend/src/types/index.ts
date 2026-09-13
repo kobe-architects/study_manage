@@ -318,6 +318,12 @@ export interface LearningStat {
   repetitionCount: number
 }
 
+export interface VocabExample {
+  label: string | null
+  sentence: string
+  translation: string | null
+}
+
 export interface Vocabulary {
   id: number
   sectionId: number
@@ -332,6 +338,10 @@ export interface Vocabulary {
   exampleSentence: string | null
   exampleTranslation: string | null
   exampleExplanation: string | null
+  /** 例文（複数可）。label は意味の番号（①②…）に対応。未設定なら exampleSentence を単独の例文として扱う */
+  examples: VocabExample[] | null
+  /** 参考（教材由来の語源・関連語・注意など。memo は利用者のメモ専用） */
+  referenceNote: string | null
   imageUrl: string | null
   sortOrder: number
   learningStat: LearningStat | null

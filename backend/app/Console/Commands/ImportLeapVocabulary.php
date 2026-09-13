@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\DB;
  *
  * JSON 形式: { "resourceName": "LEAP basic", "sections": [ { "name": "Part 1 / Week 1（1〜40）",
  *   "words": [ { "no": 1, "word": "a", "meaning": "...", "pos": "冠詞", "memo": "...", "example": "...",
- *               "translation": "...", "cefr": "A1", "star": false } ] } ] }
+ *               "translation": "...", "cefr": "A1", "star": false,
+ *               "examples": [ { "label": "①", "sentence": "...", "translation": "..." } ], "reference": "語源など" } ] } ] }
  */
 class ImportLeapVocabulary extends Command
 {
@@ -72,8 +73,24 @@ class ImportLeapVocabulary extends Command
                 $rows = [];
                 $now = now();
                 foreach ($sec['words'] as $wi => $w) {
-                    $memo = trim((string) ($w['memo'] ?? ''));
+                    // 教材由来の語源・関連語などは reference_note（memo は利用者のメモ専用なので空にする）
+                    $ref = trim((string) ($w['reference'] ?? $w['memo'] ?? ''));
                     $noPrefix = isset($w['no']) ? 'No.'.$w['no'] : '';
+                    $examples = [];
+                    foreach ((array) ($w['examples'] ?? []) as $e) {
+                        $sentence = trim((string) ($e['sentence'] ?? ''));
+                        if ($sentence === '') {
+                            continue;
+                        }
+                        $examples[] = [
+                            'label' => ($e['label'] ?? '') !== '' ? $e['label'] : null,
+                            'sentence' => $sentence,
+                            'translation' => ($e['translation'] ?? '') !== '' ? $e['translation'] : null,
+                        ];
+                    }
+                    if (! $examples && ($w['example'] ?? '') !== '') {
+                        $examples[] = ['label' => null, 'sentence' => $w['example'], 'translation' => ($w['translation'] ?? '') !== '' ? $w['translation'] : null];
+                    }
                     $rows[] = [
                         'study_resource_section_id' => $section->id,
                         'word' => mb_substr(trim((string) $w['word']), 0, 255),
@@ -82,10 +99,12 @@ class ImportLeapVocabulary extends Command
                         'importance' => isset($w['importance']) ? max(0, min(2, (int) $w['importance'])) : (! empty($w['star']) ? 1 : 0),
                         'label' => $labelOf($w['cefr'] ?? null),
                         'proficiency' => 'low',
-                        'memo' => trim($noPrefix.($memo !== '' ? ' '.$memo : '')) ?: null,
-                        'example_sentence' => ($w['example'] ?? '') !== '' ? $w['example'] : null,
-                        'example_translation' => ($w['translation'] ?? '') !== '' ? $w['translation'] : null,
+                        'memo' => null,
+                        'reference_note' => trim($noPrefix.($ref !== '' ? ' '.$ref : '')) ?: null,
+                        'example_sentence' => $examples[0]['sentence'] ?? null,
+                        'example_translation' => $examples[0]['translation'] ?? null,
                         'example_explanation' => null,
+                        'examples' => $examples ? json_encode($examples, JSON_UNESCAPED_UNICODE) : null,
                         'sort_order' => $wi + 1,
                         'created_at' => $now,
                         'updated_at' => $now,

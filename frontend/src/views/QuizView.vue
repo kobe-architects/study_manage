@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { examplesOf, splitByWord } from '@/lib/vocabExamples'
 import { useRouter } from 'vue-router'
 import { shuffle, speak } from '@/lib/design'
 import { playResultSound } from '@/lib/sound'
@@ -421,24 +422,10 @@ function retryIncorrect() {
 }
 
 // derived display for current question
-const ex = computed(() => {
-  const w = displayed.value?.vocab
-  if (!w || !w.exampleSentence) return { before: '', word: '', after: '' }
-  try {
-    const re = new RegExp('\\b' + w.word + '[a-z]*', 'i')
-    const m = w.exampleSentence.match(re)
-    if (m && m.index !== undefined) {
-      return {
-        before: w.exampleSentence.slice(0, m.index),
-        word: m[0],
-        after: w.exampleSentence.slice(m.index + m[0].length),
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return { before: w.exampleSentence, word: '', after: '' }
-})
+const examples = computed(() => examplesOf(displayed.value?.vocab))
+function exParts(sentence: string) {
+  return splitByWord(sentence, displayed.value?.vocab.word ?? '')
+}
 
 // セクションID→名称
 const sectionNameMap = computed(() => {
@@ -458,7 +445,7 @@ const wordIndex = computed(() => {
 // 例文中に登場する単語のうち、英単語一覧に登録されているもの（現在の出題語は除く）
 const exampleMatches = computed(() => {
   const w = displayed.value?.vocab
-  if (!w || !w.exampleSentence) return []
+  if (!w || !examples.value.length) return []
   const idx = wordIndex.value
   const seen = new Set<number>()
   const results: {
@@ -468,7 +455,7 @@ const exampleMatches = computed(() => {
     meaning: string
     supplement: string | null
   }[] = []
-  const tokens = w.exampleSentence.toLowerCase().match(/[a-z']+/g) ?? []
+  const tokens = examples.value.map((e) => e.sentence).join(' ').toLowerCase().match(/[a-z']+/g) ?? []
   for (const t of tokens) {
     const hit = idx[t]
     if (hit && hit.id !== w.id && !seen.has(hit.id)) {
@@ -555,9 +542,9 @@ function toggleSec(id: number) {
           <div class="lab" style="margin-top: 12px">番号で指定（小テスト印刷用・任意）</div>
           <div class="range-row">
             <span style="color: var(--mut)">No.</span>
-            <input v-model.number="printRange.from" type="number" min="1" :max="vocab.items.length" class="rng" placeholder="1" />
+            <input v-model.number="printRange.from" type="number" min="1" :max="vocab.items.length" class="rng" />
             <span style="color: var(--mut)">〜</span>
-            <input v-model.number="printRange.to" type="number" min="1" :max="vocab.items.length" class="rng" placeholder="20" />
+            <input v-model.number="printRange.to" type="number" min="1" :max="vocab.items.length" class="rng" />
             <button v-if="printRange.from !== null || printRange.to !== null" class="link-btn" style="color: #9aa1ab" @click="clearRange">クリア</button>
           </div>
           <div v-if="rangeActive" class="range-note">
@@ -751,21 +738,25 @@ function toggleSec(id: number) {
               <span style="font-size: 14px; color: #4b5563">{{ displayed.vocab.meaning }}</span>
               <span v-if="displayed.vocab.meaningSupplement" style="font-size: 12.5px; color: #9aa1ab">{{ displayed.vocab.meaningSupplement }}</span>
             </div>
-            <div v-if="displayed.vocab.exampleSentence" style="background: #f8f9fb; border-radius: 12px; padding: 13px 15px; margin-bottom: 14px">
-              <div class="ex-tap" style="font-size: 13.5px; line-height: 1.6" title="タップで例文を読み上げ" @click="speak(displayed.vocab.exampleSentence!)">
-                {{ ex.before }}<span style="font-weight: 700; color: #3b50cc">{{ ex.word }}</span>{{ ex.after }}
-                <button class="bare" style="color: #9aa1ab; vertical-align: middle; margin-left: 4px" @click.stop="speak(displayed.vocab.exampleSentence!)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>
-                </button>
+            <div v-if="examples.length || displayed.vocab.referenceNote" style="background: #f8f9fb; border-radius: 12px; padding: 13px 15px; margin-bottom: 14px">
+              <!-- 例文（複数可）。①②は意味の番号に対応 -->
+              <div v-for="(e, ei) in examples" :key="ei" :style="{ marginTop: ei ? '8px' : '0' }">
+                <div class="ex-tap" style="font-size: 13.5px; line-height: 1.6" title="タップで例文を読み上げ" @click="speak(e.sentence)">
+                  <span v-if="e.label" class="ex-label">{{ e.label }}</span>{{ exParts(e.sentence).before }}<span style="font-weight: 700; color: #3b50cc">{{ exParts(e.sentence).word }}</span>{{ exParts(e.sentence).after }}
+                  <button class="bare" style="color: #9aa1ab; vertical-align: middle; margin-left: 4px" @click.stop="speak(e.sentence)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>
+                  </button>
+                </div>
+                <div v-if="e.translation && showTrans" style="font-size: 12px; color: var(--faint); margin-top: 3px"><span v-if="e.label" class="ex-label" style="color: var(--faint)">{{ e.label }}</span>{{ e.translation }}</div>
               </div>
-              <div v-if="displayed.vocab.exampleTranslation">
-                <button v-if="!showTrans" class="mini-link" @click="showTrans = true">和訳を表示</button>
-                <div v-else style="font-size: 12px; color: var(--faint); margin-top: 5px">{{ displayed.vocab.exampleTranslation }}</div>
+              <div v-if="!showTrans && examples.some((e) => e.translation)" style="margin-top: 4px">
+                <button class="mini-link" @click="showTrans = true">和訳を表示</button>
               </div>
               <div v-if="displayed.vocab.exampleExplanation" style="margin-top: 6px">
                 <button v-if="!showExpl" class="mini-link" @click="showExpl = true">例文の説明を表示</button>
                 <div v-else style="font-size: 12px; color: #4b5563; margin-top: 4px; line-height: 1.55; white-space: pre-wrap">{{ displayed.vocab.exampleExplanation }}</div>
               </div>
+              <div v-if="displayed.vocab.referenceNote" style="margin-top: 8px; font-size: 12px; color: #4b5563; line-height: 1.55; white-space: pre-wrap"><span class="ref-tag">参考</span>{{ displayed.vocab.referenceNote }}</div>
               <!-- 例文中に登場する登録済み単語（セクション・意味・意味の補足） -->
               <div v-if="exampleMatches.length" style="margin-top: 10px; border-top: 1px dashed #e3e6ea; padding-top: 10px">
                 <div style="font-size: 11px; color: var(--faint); margin-bottom: 6px">例文中の登録単語</div>
@@ -1215,6 +1206,23 @@ function toggleSec(id: number) {
   font-weight: 600;
   cursor: pointer;
   padding: 4px 0 0;
+}
+.ex-label {
+  display: inline-block;
+  font-weight: 700;
+  color: #3b50cc;
+  margin-right: 4px;
+}
+.ref-tag {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #5b6b8c;
+  background: #eef1f6;
+  padding: 1px 7px;
+  border-radius: 99px;
+  margin-right: 6px;
+  vertical-align: middle;
 }
 .memo-chip {
   display: inline-flex;

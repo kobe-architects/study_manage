@@ -287,6 +287,10 @@ php artisan config:cache && php artisan route:cache
 
 ## 13. 英単語帳「LEAP basic」・英単語小テスト（2026-09-10 追加）の運用メモ
 
+- 2026-09-14: マイグレーション `2026_09_14_000001_add_examples_and_reference_to_vocabularies` で vocabularies に
+  `examples`（JSON: 複数例文）と `reference_note`（参考）を追加し、LEAP basic の memo（"No.N ..."）を reference_note へ移す。
+  例文データを更新した場合は `php artisan vocab:import-leap` を再実行する（leap_basic.json は Git 管理）。
+
 - マイグレーション `2026_09_11_000001_add_vocab_test_to_quiz_pages` で quiz_pages に英単語テスト用の列を追加し、
   既存の単語帳名「大学入試 必修英単語」を「鉄壁」に改名する（`php artisan migrate --force` で自動適用）。
 - LEAP basic の単語データは Git 管理の `backend/database/data/leap_basic.json`。サーバーで登録・更新する場合:
