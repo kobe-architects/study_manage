@@ -13,9 +13,14 @@
      "translation": "（ある）犬を飼っている",
      "examples": [
       {
-       "label": "",
+       "label": "①",
        "sentence": "have a dog",
        "translation": "（ある）犬を飼っている"
+      },
+      {
+       "label": "②",
+       "sentence": "three times a week",
+       "translation": "一週間に（つき）3回"
       }
      ],
      "reference": "",
@@ -38,7 +43,7 @@
       {
        "label": "②",
        "sentence": "play the piano",
-       "translation": ""
+       "translation": "ビアノ(という楽器) を弾く"
       }
      ],
      "reference": "the station「（君も知っているその）駅」 / a station「（不特定のある）駅」",
@@ -97,12 +102,12 @@
       {
        "label": "②",
        "sentence": "She lives by herself.",
-       "translation": ""
+       "translation": "彼女は一人で暮らしている．"
       },
       {
        "label": "③",
        "sentence": "He himself did it.",
-       "translation": ""
+       "translation": "彼自身がそれをやった．"
       }
      ],
      "reference": "(all) by oneself「一人で」 / think for oneself「自分で考える」",
@@ -233,7 +238,7 @@
       {
        "label": "②",
        "sentence": "I saw her standing there.",
-       "translation": ""
+       "translation": "彼女がそこに立っているのを見た．"
       }
      ],
      "reference": "see O do[doing,done]「Oが～する[している，される]のを見る」",
@@ -256,7 +261,7 @@
       {
        "label": "②",
        "sentence": "Watch my bag.",
-       "translation": ""
+       "translation": "私のかばんを見ておいて"
       }
      ],
      "reference": "watch ～ on TV「テレビで～を見る」 / Watch your step.「足元に注意してください。」",
@@ -297,12 +302,12 @@
       {
        "label": "②",
        "sentence": "I heard him singing.",
-       "translation": "上手だという話を聞いている)．"
+       "translation": "彼が歌っているのを聞いた．"
       },
       {
        "label": "③",
        "sentence": "I hear that he is a great golfer.",
-       "translation": ""
+       "translation": "彼はゴルフがとても上手らしいね上手だという話を聞いている)．"
       }
      ],
      "reference": "hear about ～「～について聞く」",
@@ -533,7 +538,7 @@
       {
        "label": "②",
        "sentence": "meet him at the airport",
-       "translation": ""
+       "translation": "（その）空港で彼を出迎える"
       }
      ],
      "reference": "",
@@ -556,7 +561,7 @@
       {
        "label": "②",
        "sentence": "'introduce Buddhism to the West",
-       "translation": ""
+       "translation": "西洋に仏教を導人する"
       }
      ],
      "reference": "introduce A to B「①AをBに紹介する ②AをBに導入する」 / May I introduce myself?「自己紹介してもいいですか。」",
@@ -687,7 +692,7 @@
       {
        "label": "②",
        "sentence": "This room feels cool.",
-       "translation": ""
+       "translation": "この部屋は涼しい(と感じられる)．"
       }
      ],
      "reference": "I am feeling well[bad] today.「今日は調子が良い[悪い]。」 / feel the same way「同感です」",
@@ -782,7 +787,7 @@
       {
        "label": "②",
        "sentence": "stüdy math",
-       "translation": "きの別れのフレーズ．"
+       "translation": "数学を学ふ"
       }
      ],
      "reference": "study for an exam「試験勉強をする」 / study English「英語を勉強する」",
@@ -810,12 +815,12 @@
       {
        "label": "②",
        "sentence": "I found that he was out.",
-       "translation": ""
+       "translation": "彼は外出中だと分かった．"
       },
       {
        "label": "③",
        "sentence": "I find it hard to work with her.",
-       "translation": ""
+       "translation": "彼女とは仕事がやりにくい(と思う)．"
       }
      ],
      "reference": "find it easy[hard] to do「～するのが簡単[難しい]と思う」",
@@ -861,7 +866,7 @@
       {
        "label": "②",
        "sentence": "remember to Walk my dog (h) I forgot her birthday.",
-       "translation": "それに関することは忘れよう．"
+       "translation": "の(私の) 大を散歩させることを覚えている彼女の誕生日を忘れていた"
       }
      ],
      "reference": "remember doing「（過去に）～したことを覚えている」",
@@ -902,12 +907,12 @@
       {
        "label": "②",
        "sentence": "care for kids",
-       "translation": ""
+       "translation": "子どもたちの世話をする"
       },
       {
        "label": "③",
        "sentence": "day care for babies",
-       "translation": ""
+       "translation": "赤ちゃんの保育"
       }
      ],
      "reference": "care for ～「～の世話をする，（否定文・疑問文）～が好きである」 / Take care.「お元気で，じゃあね」",
@@ -966,7 +971,7 @@
       {
        "label": "②",
        "sentence": "happy memories of my childhood",
-       "translation": ""
+       "translation": "わ(私の) 子どもの頃の楽しい思い出"
       }
      ],
      "reference": "S bring back memories of ～「Sで～のことを思い出す」",
@@ -1061,7 +1066,7 @@
       {
        "label": "②",
        "sentence": "show him to my room",
-       "translation": ""
+       "translation": "自室まで彼を案内する"
       }
      ],
      "reference": "this graph shows ～「このグラフは～を示している」 / show（人）to（場所）「（人）を（場所）に案内する」",
@@ -1084,7 +1089,7 @@
       {
        "label": "②",
        "sentence": "I didn't mean to bother you.",
-       "translation": ""
+       "translation": "邪魔をするつもりじゃなかったのです．"
       }
      ],
      "reference": "mean A by B「BはAの意味である」 / I mean it.「本気だよ。」",
@@ -1302,7 +1307,7 @@
       {
        "label": "②",
        "sentence": "This is my first visit to Turkey. ltå:rkil",
-       "translation": ""
+       "translation": "トルコへの訪周は今回が初めてです．"
       }
      ],
      "reference": "This is my first visit to ～.「～への訪問は今回が初めてだ。」",
@@ -1325,7 +1330,7 @@
       {
        "label": "②",
        "sentence": "I was moved by the film.",
-       "translation": ""
+       "translation": "う私はその映画に感動した．"
       }
      ],
      "reference": "be moved to tears「感動して泣く」 / move to Tokyo「東京に引っ越しする」",
@@ -1348,7 +1353,7 @@
       {
        "label": "②",
        "sentence": "return the book to the library",
-       "translation": ""
+       "translation": "（その）図書館に(その) 本を返却する"
       }
      ],
      "reference": "return to ～「～へ戻る」 / return home「家に戻る」 / return A to B「AをBに返却する」",
@@ -1394,7 +1399,7 @@
       {
        "label": "②",
        "sentence": "eoter my password",
-       "translation": ""
+       "translation": "パスワードを入力する"
       }
      ],
      "reference": "enter college「大学に入学する」",
@@ -1697,7 +1702,7 @@
       {
        "label": "②",
        "sentence": "a national park",
-       "translation": ""
+       "translation": "国立公園"
       }
      ],
      "reference": "park a car[bicycle]「車[自転車]を駐車[駐輪]する」",
@@ -2192,7 +2197,7 @@
       {
        "label": "②",
        "sentence": "J ho meeting continued for three hours.",
-       "translation": ""
+       "translation": "（その）会議は 3 時間続いた．"
       }
      ],
      "reference": "continue to do[continue doing]「～し続ける」 / To be continued.「（次回に・次のページに）つづく。」",
@@ -2269,7 +2274,7 @@
       {
        "label": "②",
        "sentence": "get home at seven",
-       "translation": ""
+       "translation": "/ 時に家に帰る"
       }
      ],
      "reference": "go home「家に帰る」 / get home「帰宅する」 / I'm home.「ただいま。」",
@@ -2292,7 +2297,7 @@
       {
        "label": "②",
        "sentence": "sit on the floor",
-       "translation": ""
+       "translation": "（その）床に座る"
       }
      ],
      "reference": "on the ～ floor「～階で」 / on the second floor「2階で，〈英〉3階で」",
@@ -2315,7 +2320,7 @@
       {
        "label": "②",
        "sentence": "-Ovo a happy life",
-       "translation": ""
+       "translation": "福な人生 [ 生活 ] を送る"
       }
      ],
      "reference": "live long「長生きする」 / live by oneself「一人暮らしをする」",
@@ -2474,7 +2479,7 @@
       {
        "label": "②",
        "sentence": "clean shirt",
-       "translation": ""
+       "translation": "きれいなシャッ"
       }
      ],
      "reference": "clean ～ up「～をすっかりきれいにする」 / clean up the streets「街をすっかりきれいにする」",
@@ -2677,7 +2682,7 @@
       {
        "label": "②",
        "sentence": "Our house is close to the beach.",
-       "translation": ""
+       "translation": "ムたちの家は(その) 浜辺に近い．"
       }
      ],
      "reference": "close ～ down「（店，工場など）を閉鎖する」",
@@ -2718,7 +2723,7 @@
       {
        "label": "②",
        "sentence": "over the pages",
-       "translation": "Part 1の(その) べージをめくる"
+       "translation": "（その）べージをめくる"
       }
      ],
      "reference": "PTO (Please turn over.)「裏面に続く」",
@@ -2957,7 +2962,7 @@
       {
        "label": "②",
        "sentence": "tmnburger steaks are my favorite. tmnburger steaks are my favorite.",
-       "translation": "Part 1ハンバーグは私のお気に入りだ."
+       "translation": "、ンバーグは私のお気に入りだ．"
       }
      ],
      "reference": "favorite は最上級の意味を含むので，most を伴わない",
@@ -3116,7 +3121,7 @@
       {
        "label": "②",
        "sentence": "am sorry for your loss.",
-       "translation": ""
+       "translation": "悔み申し上げますお気の毒に思います)．"
       }
      ],
      "reference": "I am sorry,but S V.「すみませんが～。」 / be sorry about ～「～について残念に思う」 / be sorry for（人）「（人）のことを気の毒に思う」",
@@ -3157,7 +3162,7 @@
       {
        "label": "②",
        "sentence": "Jive a cry for help",
-       "translation": ""
+       "translation": "けを求めて悲鳴を上げる"
       }
      ],
      "reference": "cry over[about] ～「～に対して泣く」 / cry out「大声で叫ぶ」",
@@ -3180,7 +3185,7 @@
       {
        "label": "②",
        "sentence": "-ife is full of worries.",
-       "translation": ""
+       "translation": "生は心配事が多い．"
       }
      ],
      "reference": "worry about ～「～について心配する」 / worry (that) S V「～ということで心配する」",
@@ -3244,12 +3249,12 @@
       {
        "label": "②",
        "sentence": "is short.",
-       "translation": ""
+       "translation": "生は短い．"
       },
       {
        "label": "③",
        "sentence": "origin of life",
-       "translation": ""
+       "translation": "命の起源"
       }
      ],
      "reference": "lead[live] a ～ life「～な生活を送る」",
@@ -3272,7 +3277,7 @@
       {
        "label": "②",
        "sentence": "ironm of becoming a chef",
-       "translation": ""
+       "translation": "ェフになることを夢見る"
       }
      ],
      "reference": "have a ～ dream「～な夢を見る」 / dream of doing「～することを夢見る」",
@@ -3331,7 +3336,7 @@
       {
        "label": "②",
        "sentence": "•he cherry tree has died.",
-       "translation": ""
+       "translation": "桜の木は枯れた"
       }
      ],
      "reference": "die of ～「（がんのような病気など直接的原因で）死ぬ」 / die from ～「（過労など間接的原因で）死ぬ」",
@@ -3557,7 +3562,7 @@
       {
        "label": "②",
        "sentence": "thank you for all your help.",
-       "translation": ""
+       "translation": "々助けてくれてありがとう．"
       }
      ],
      "reference": "help（人）with ～「（人）の～を手伝う」 / help（人）(to) do「（人）が～するのを手伝う」",
@@ -3580,7 +3585,7 @@
       {
        "label": "②",
        "sentence": "'row potatoes",
-       "translation": ""
+       "translation": "ト事として) ジャガイモを栽培する"
       }
      ],
      "reference": "grow up「（人・動物が）成長する，大人になる」",
@@ -3711,12 +3716,12 @@
       {
        "label": "②",
        "sentence": "lonesty does not pay. iE",
-       "translation": ""
+       "translation": "直者がばかをみる(正直は割に合わない)．"
       },
       {
        "label": "③",
        "sentence": "ake a vacation with pay",
-       "translation": ""
+       "translation": "給休暇を取る"
       }
      ],
      "reference": "pay A for B「Bの代金としてAを支払う」 / pay for A「Aの代金を支払う」",
@@ -3793,7 +3798,7 @@
       {
        "label": "②",
        "sentence": "the bag cheap",
-       "translation": ""
+       "translation": "かばんを安く買う"
       }
      ],
      "reference": "buy A cheap「Aを安く買う」 / price「価格」などが「安い」は low を用いる",
@@ -3996,7 +4001,7 @@
       {
        "label": "②",
        "sentence": "dave you read today's paper?",
-       "translation": ""
+       "translation": "日の新聞を読みましたか．"
       }
      ],
      "reference": "a paper on ～「～に関するレポート，研究論文」",
@@ -4150,7 +4155,7 @@
       {
        "label": "②",
        "sentence": "the country",
-       "translation": ""
+       "translation": "黔に住む"
       }
      ],
      "reference": "in that country「その国で」 / the country「田舎」",
@@ -4191,7 +4196,7 @@
       {
        "label": "②",
        "sentence": "00 him on the street",
-       "translation": ""
+       "translation": "彼を見かける"
       }
      ],
      "reference": "on the street(s)「街で（←歩道の上にいる）」",
@@ -4304,7 +4309,7 @@
       {
        "label": "②",
        "sentence": "YRC right at the next crossing.",
-       "translation": ""
+       "translation": "交差点で右に曲がってください．"
       }
      ],
      "reference": "turn（数字）「（ある年齢）になる」 / turn around「振り返る」 / turn back「引き返す」",
@@ -4543,7 +4548,7 @@
       {
        "label": "②",
        "sentence": "Ot the Berlin Wall",
-       "translation": ""
+       "translation": "ンの壁の崩壊"
       }
      ],
      "reference": "fall from ～「～から（垂直に）落ちる」 / fall off ～「～から（離れて）落ちる」 / fall down the stairs「階段から落ちる」",
@@ -4787,7 +4792,7 @@
       {
        "label": "②",
        "sentence": "person",
-       "translation": ""
+       "translation": "な人"
       }
      ],
      "reference": "keep quiet「静かにしている」",
@@ -5044,7 +5049,7 @@
       {
        "label": "②",
        "sentence": "became even more difficult.",
-       "translation": ""
+       "translation": "はさらに難しくなった．"
       }
      ],
      "reference": "even though S V「～だけれど」 / even so「たとえそうでも」",
@@ -5085,7 +5090,7 @@
       {
        "label": "②",
        "sentence": "the other side of the street",
-       "translation": ""
+       "translation": "（わ）通りの反対側(ほかの側) に"
       }
      ],
      "reference": "the other「もう一方」 / the others「それ以外の物[人]」",
@@ -5468,7 +5473,7 @@
       {
        "label": "②",
        "sentence": "souple of days ago",
-       "translation": ""
+       "translation": "{ 日前"
       }
      ],
      "reference": "a couple of shoes「（ペアとは限らない）靴2つ」 / a pair of shoes「（ペアの）靴1足」",
@@ -5550,7 +5555,7 @@
       {
        "label": "②",
        "sentence": "i you have to do is to wait here.",
-       "translation": ""
+       "translation": "で待つだけでよい(やるべき全てことはここで待っことだ)．"
       }
      ],
      "reference": "all the ～「その全ての～」 / All you have to do is (to) do.「～するだけでよい（←やるべき全ては～することだ）。」",
@@ -5627,7 +5632,7 @@
       {
        "label": "②",
        "sentence": "13 plastic waste",
-       "translation": ""
+       "translation": "スチックゴミ(廃彙物)"
       }
      ],
      "reference": "waste（時間）doing[副詞句]「（時間）を～に浪費する」 / waste（お金）on ～「（お金）を～に浪費する」",
@@ -5686,7 +5691,7 @@
       {
        "label": "②",
        "sentence": "soup.",
-       "translation": ""
+       "translation": "スープを試しに飲んでみて．"
       }
      ],
      "reference": "try to do「～しようと努める」 / try ～ on「～を試着する」",
@@ -5709,7 +5714,7 @@
       {
        "label": "②",
        "sentence": "a plan for the weekend",
-       "translation": ""
+       "translation": "計画を立てる"
       }
      ],
      "reference": "plan to do[plan on doing]「～することを計画する」 / make a plan for ～「～の計画を立てる」",
@@ -5840,7 +5845,7 @@
       {
        "label": "②",
        "sentence": "late",
-       "translation": ""
+       "translation": "て到着する"
       }
      ],
      "reference": "a bus which[that] is late「遅れているバス」 / a late bus「遅い時間に運行しているバス」",
@@ -5863,12 +5868,12 @@
       {
        "label": "②",
        "sentence": "•ive early",
-       "translation": ""
+       "translation": "到着する"
       },
       {
        "label": "③",
        "sentence": "the early morning",
-       "translation": ""
+       "translation": "早くに"
       }
      ],
      "reference": "in my early teens「10代前半に」 / in my late teens「10代後半に」",
@@ -6071,7 +6076,7 @@
       {
        "label": "②",
        "sentence": "ail, money is not everything",
-       "translation": "Pa ュ 1局負けた.もそも,お金が全てとは限らない."
+       "translation": "そも，お金が全てとは限らない．"
       }
      ],
      "reference": "",
@@ -6094,7 +6099,7 @@
       {
        "label": "②",
        "sentence": "I first met her, she was ten. I (Ebooks are less expensive.",
-       "translation": ""
+       "translation": "て会ったとき，彼女は 10 歳だった．ず第 1 に，電子書籍のほうが安い．"
       }
      ],
      "reference": "for the first time「初めて」",
@@ -6207,7 +6212,7 @@
       {
        "label": "②",
        "sentence": "pm•ionce something new",
-       "translation": "Part1しいことを経験する"
+       "translation": "ハことを経験する"
       }
      ],
      "reference": "the experience of ～「～という経験」",
@@ -6248,12 +6253,12 @@
       {
        "label": "②",
        "sentence": "b was busy, yet he made time to O)",
-       "translation": ""
+       "translation": "よ忙しかった．しかし，私の話を"
       },
       {
        "label": "③",
        "sentence": "on to me.",
-       "translation": ""
+       "translation": "寺間を作ってくれた．"
       }
      ],
      "reference": "have not（過去分詞）yet[have not yet（過去分詞）]「まだ～していない」 / yet another ～「さらにもう1つの～」",
@@ -6479,7 +6484,7 @@
       {
        "label": "②",
        "sentence": "Stone Age",
-       "translation": ""
+       "translation": "i 代に"
       }
      ],
      "reference": "at the age of ～「～歳のときに」 / come of age「成人になる」 / for ages「長い間」",
@@ -6502,7 +6507,7 @@
       {
        "label": "②",
        "sentence": "poopie present at the party",
-       "translation": ""
+       "translation": "バーティーに出席している人々"
       }
      ],
      "reference": "at present「現在は」",
@@ -6633,7 +6638,7 @@
       {
        "label": "②",
        "sentence": "here until I get back.",
-       "translation": ""
+       "translation": "! るまで(ずっと) ここに"
       }
      ],
      "reference": "It is not until ～ that S V.「～（して）初めてSV。」",
@@ -6697,12 +6702,12 @@
       {
        "label": "②",
        "sentence": "nake sure that S V i",
-       "translation": "熊本に住んでいた．らず戸に鍵を閉めてください．」。"
+       "translation": ""
       },
       {
        "label": "③",
        "sentence": "•Make sure that the door is locked.",
-       "translation": ""
+       "translation": "r 戸に鍵を閉めてください．」。"
       }
      ],
      "reference": "通例，完了時制で用いる",
@@ -7013,7 +7018,7 @@
       {
        "label": "②",
        "sentence": "out of salt now. out of salt now.",
-       "translation": ""
+       "translation": "{ を切らしている．"
       }
      ],
      "reference": "get out of bed「起きる（←ベッドから外へ出る）」",
@@ -7275,7 +7280,7 @@
       {
        "label": "②",
        "sentence": "shopping",
-       "translation": ""
+       "translation": "トインショッビング"
       }
      ],
      "reference": "buy ～ online「インターネットで～を買う」 / online lessons「オンライン授業」",
@@ -7614,7 +7619,7 @@
       {
        "label": "②",
        "sentence": "rvas so shocked that he could 't speak.",
-       "translation": ""
+       "translation": "てもショックを受けて話すこときなかった．"
       }
      ],
      "reference": "so ～ that S cannot V「とても～なのでSはVできない」",
@@ -7637,7 +7642,7 @@
       {
        "label": "②",
        "sentence": "'n in such a hurry that I left my",
-       "translation": ""
+       "translation": "急いでいたので，財布を家に忘"
       }
      ],
      "reference": "such a big car「そのような大きい車」（so を用いると so big a car の語順）",
@@ -7660,7 +7665,7 @@
       {
        "label": "②",
        "sentence": "ore quite wrong.",
-       "translation": ""
+       "translation": "全に間違っている．"
       }
      ],
      "reference": "not...quite ～「まったく～というわけではない」（部分否定）",
@@ -7868,7 +7873,7 @@
       {
        "label": "②",
        "sentence": "9:00 a.m. express (train) Giiij",
-       "translation": "Pa「t 2、に挨拶をする"
+       "translation": "時の急行列車Pa「t 2"
       }
      ],
      "reference": "express oneself「自分を表現する」 / express one's feelings[thanks]「感情[感謝の意]を表す」",
@@ -8359,7 +8364,7 @@
       {
        "label": "②",
        "sentence": "was awarded first prize.",
-       "translation": ""
+       "translation": "は一等賞をもらった(授与された)．"
       }
      ],
      "reference": "award A B[award B to A]「AにBを授与する」",
@@ -8711,7 +8716,7 @@
       {
        "label": "②",
        "sentence": "C have )",
-       "translation": "知らない"
+       "translation": ""
       }
      ],
      "reference": "It is bad manners to do.「～するのはマナー違反だ。」 / have no manners「マナーを知らない」",
@@ -9112,7 +9117,7 @@
       {
        "label": "②",
        "sentence": "e judges of a speech contest",
-       "translation": ""
+       "translation": "汰会の審査員"
       }
      ],
      "reference": "judge A by[from] B「AをBで判断する」 / judging from ～「～から判断すると」",
@@ -9590,7 +9595,7 @@
       {
        "label": "②",
        "sentence": "åtf b follow his advice",
-       "translation": ""
+       "translation": "が私をつけていた．～ の忠告に従う"
       }
      ],
      "reference": "be followed by ～「次に～が続く」 / as follows「以下のとおり」",
@@ -9829,7 +9834,7 @@
       {
        "label": "②",
        "sentence": "give a sigh of relief",
-       "translation": ""
+       "translation": "っとしてため息をつく"
       }
      ],
      "reference": "sigh deeply「深くため息をつく」 / give a deep sigh「深いため息をつく」",
@@ -9852,7 +9857,7 @@
       {
        "label": "②",
        "sentence": "lie to my sister",
-       "translation": ""
+       "translation": "にうそをつく"
       }
      ],
      "reference": "lie down「横たわる」 / lie to ～「～にうそをつく」 / ①lie - lay - lain ②lie - lied - lied",
@@ -10070,7 +10075,7 @@
       {
        "label": "②",
        "sentence": "»cercise every day",
-       "translation": "日運動するどに着く」(、一 - 目的地に到着)言うことを聞く」← - - 動作の対象に到達)うする」(、-- 結果に到達)"
+       "translation": "日運動する"
       }
      ],
      "reference": "get[〈英〉take] exercise「運動をする（ことに時間をとる）」 / do exercises「（特定部位の）運動をする」",
@@ -10093,7 +10098,7 @@
       {
        "label": "②",
        "sentence": "'\"ompetition between children",
-       "translation": ""
+       "translation": "ども同士の競争"
       }
      ],
      "reference": "日本語の「コンテスト」は a beauty contest，a speech contest など以外は competition で表現することが多い",
@@ -10152,12 +10157,12 @@
       {
        "label": "②",
        "sentence": "fail to arrive on time",
-       "translation": "間どおりに到着できないその試験に落ちる"
+       "translation": "間どおりに到着できない"
       },
       {
        "label": "③",
        "sentence": "fail the exam",
-       "translation": ""
+       "translation": "試験に落ちる"
       }
      ],
      "reference": "fail in ～「～に失敗する」",
@@ -10180,12 +10185,12 @@
       {
        "label": "②",
        "sentence": "miss school for two days",
-       "translation": ""
+       "translation": "日間学校を休む"
       },
       {
        "label": "③",
        "sentence": "I miss (t",
-       "translation": ""
+       "translation": "なたに会えなくて寂しいあなたが恋しい)．"
       }
      ],
      "reference": "「学校[仕事]を休む」は miss school[work] と表現するのが普通",
@@ -10208,7 +10213,7 @@
       {
        "label": "②",
        "sentence": "nistake him for his twin brother",
-       "translation": ""
+       "translation": "双子の弟と間違える"
       }
      ],
      "reference": "make a mistake「ミスをする」 / by mistake「間違えて」",
@@ -10285,7 +10290,7 @@
       {
        "label": "②",
        "sentence": "i motorbike under repair",
-       "translation": ""
+       "translation": "理中のパイク"
       }
      ],
      "reference": "under repair「修理中で」 / beyond repair「修理不可能で」",
@@ -10498,7 +10503,7 @@
       {
        "label": "②",
        "sentence": "five people remained in the room.",
-       "translation": ""
+       "translation": "（その）部屋には 5 人が残っていた．"
       }
      ],
      "reference": "remain to be done「まだ～されていない（←これからされる状態だ）」",
@@ -10539,7 +10544,7 @@
       {
        "label": "②",
        "sentence": "survive two wars",
-       "translation": ""
+       "translation": "度の戦争を生き抜く(生き残る)"
       }
      ],
      "reference": "survive in outer space「宇宙空間で生きる」",
@@ -10616,12 +10621,12 @@
       {
        "label": "②",
        "sentence": "rent out my house",
-       "translation": "内ヾートの高い家物を払う"
+       "translation": "ヨ宅を物貸しする"
       },
       {
        "label": "③",
        "sentence": "pay a high rent for an apartment",
-       "translation": ""
+       "translation": "内ヾートの高い家物を払う"
       }
      ],
      "reference": "rent out ～「～を賃貸しする（←外に貸し出す）」",
@@ -10798,7 +10803,7 @@
       {
        "label": "②",
        "sentence": "establish a company",
-       "translation": "皮との友情を築く会社を設立する"
+       "translation": "社を設立する"
       }
      ],
      "reference": "establish a system「システムを確立する」 / establish a relationship「関係を築く，確立する」",
@@ -10839,7 +10844,7 @@
       {
        "label": "②",
        "sentence": "A good idea occurred to me.",
-       "translation": ""
+       "translation": "考えが心に浮かんだ"
       }
      ],
      "reference": "happen「起こる」より堅い語 / break out「（火事，戦争，暴動などが急に）起きる」 / take place「（歓迎会やデモなど計画されていたものが）行われる」",
@@ -10898,7 +10903,7 @@
       {
        "label": "②",
        "sentence": "His car pulled up.",
-       "translation": ""
+       "translation": "皮の車が止まった．"
       }
      ],
      "reference": "pull back one's chair「椅子を引く」 / pull a door open「ドアを引いて開ける」",
@@ -10939,7 +10944,7 @@
       {
        "label": "②",
        "sentence": "hang from a tree branch",
-       "translation": ""
+       "translation": "ドの枝にぶら下がる"
       }
      ],
      "reference": "hang up「（電話を）切る」 / hang out[around]「（人や集団と）たむろする，ぶらつく」",
@@ -10980,7 +10985,7 @@
       {
        "label": "②",
        "sentence": "his attention to me his attention to me",
-       "translation": ""
+       "translation": "安の注意を私に向けさせる"
       }
      ],
      "reference": "draw ～ with a pencil「鉛筆で～を描く」 / draw (one's) attention to A「Aに（～の）注目を集める」",
@@ -11152,7 +11157,7 @@
       {
        "label": "②",
        "sentence": "Don't bother to giftwrap it.",
-       "translation": ""
+       "translation": "うざわざ包装しなくても構いません．"
       }
      ],
      "reference": "Don't bother me!「（私に）構わないでくれ。」 / (I'm) sorry to bother you,but ～.「ご迷惑をかけてすみませんが，～。」",
@@ -11193,7 +11198,7 @@
       {
        "label": "②",
        "sentence": "confuse 3 a.m. with 3 p.m.",
-       "translation": ""
+       "translation": "F 前 3 時を午後 3 時と混同する"
       }
      ],
      "reference": "be confused「困惑する」 / confuse A with B「AをBと混同する」",
@@ -11306,7 +11311,7 @@
       {
        "label": "②",
        "sentence": "am in favor of his opinion.",
-       "translation": ""
+       "translation": "斐の意見に員成だ．"
       }
      ],
      "reference": "do（人）good[harm]「（人）に利益[害]を与える」",
@@ -11614,7 +11619,7 @@
       {
        "label": "②",
        "sentence": "To my shame, I lied to him.",
-       "translation": ""
+       "translation": "第すかしながら，私は彼にうそをついた．"
       }
      ],
      "reference": "It's a shame (that) S V.「～は残念だ。」（口語）",
@@ -11655,7 +11660,7 @@
       {
        "label": "②",
        "sentence": "the voice of the nation",
-       "translation": ""
+       "translation": "引民の声"
       }
      ],
      "reference": "a national「1人の国民」 / a national flag「国旗」",
@@ -11701,7 +11706,7 @@
       {
        "label": "②",
        "sentence": "EU member states",
-       "translation": "彼の精神状態"
+       "translation": "EU 加盟国"
       }
      ],
      "reference": "in a ～ state「～な状態で」 / one's state of mind「～の精神状態」",
@@ -11793,7 +11798,7 @@
       {
        "label": "②",
        "sentence": "ask for legal advice",
-       "translation": ""
+       "translation": "法的助言を求める"
       }
      ],
      "reference": "take legal action (against ～)「（～に対して）法的手段をとる」 / the Japanese legal system「日本の法制度」",
@@ -12518,7 +12523,7 @@
       {
        "label": "②",
        "sentence": "the art Of conversation",
-       "translation": ""
+       "translation": "会話の技"
       }
      ],
      "reference": "a[an art] museum「美術館」 / a[an art] gallery「（絵画の購入ができる）画廊，美術館」 / the art of ～「～の技術」",
@@ -12767,7 +12772,7 @@
       {
        "label": "②",
        "sentence": "The film is really worth seeing.",
-       "translation": ""
+       "translation": "その映画は本当に見る価値があるよ．"
       }
      ],
      "reference": "This is worth doing.「これは～する価値がある。」",
@@ -12972,7 +12977,7 @@
       {
        "label": "②",
        "sentence": "The hospital served as a school.",
-       "translation": ""
+       "translation": "その病院は学校として使われていた．"
       }
      ],
      "reference": "First come,first served.「早い者勝ち（←早く来た者が早く出される）。」 / serve as ～「（本来の目的とは異なるが）～として役立つ，使われる」",
@@ -12995,7 +13000,7 @@
       {
        "label": "②",
        "sentence": "It poured all night.",
-       "translation": "一晩中土砂降りだった"
+       "translation": "一晩中土砂降りだった雨が降りそそいだ)．"
       }
      ],
      "reference": "pour A into B「AをBに注ぐ」 / pour coffee into a cup「コーヒーをカップに注ぐ」",
@@ -13339,7 +13344,7 @@
       {
        "label": "②",
        "sentence": "bottles of uniform size",
-       "translation": ""
+       "translation": "きさが一定のビン"
       }
      ],
      "reference": "wear a uniform「制服を着ている」（an ではなく a）",
@@ -13398,7 +13403,7 @@
       {
        "label": "②",
        "sentence": "an article of furniture",
-       "translation": ""
+       "translation": "衣具 1 点"
       }
      ],
      "reference": "an article on[about] ～「～に関する記事」 / 「～という記事」は an article saying[that says] that S V と表現する",
@@ -13421,7 +13426,7 @@
       {
        "label": "②",
        "sentence": "send him a text message",
-       "translation": ""
+       "translation": "皮にメールを送る"
       }
      ],
      "reference": "日本語で「テキスト」は「教科書」を意味することが多いが，「教科書」は通例 a textbook と表現する",
@@ -13480,7 +13485,7 @@
       {
        "label": "②",
        "sentence": "in the first term",
-       "translation": ""
+       "translation": "学期に"
       }
      ],
      "reference": "in terms of ～「～の観点から（←～の枠の中で）」 / be on good terms with ～「～と良好な関係（←枠）にある」",
@@ -13580,7 +13585,7 @@
       {
        "label": "②",
        "sentence": "oat fish for dinner",
-       "translation": ""
+       "translation": "ノ食に魚を食べる"
       }
      ],
      "reference": "魚のように「群れをなす生物」は単数形と複数形が同形になることが多い / sheep「羊」，carp「鯉」",
@@ -13621,12 +13626,12 @@
       {
        "label": "②",
        "sentence": "chemical plant",
-       "translation": "交庭に桜の木を値える"
+       "translation": "匕学工場"
       },
       {
        "label": "③",
        "sentence": "plant a cherry tree in the schoolyard",
-       "translation": ""
+       "translation": "交庭に桜の木を値える"
       }
      ],
      "reference": "plants and trees「草木」 / a nuclear power plant「原子力発電所」",
@@ -13685,7 +13690,7 @@
       {
        "label": "②",
        "sentence": "this area's rice crop, f911i-Ii, a cow & beef a pig & p",
-       "translation": "この地域の米の収穫(高)る場合があります.pork「豚肉」ですに「食べ物」側の beefくトを契機に,イギリス人(被征服者←戦いランスに住んでいたノルマン人(征服者) の魚肉」も同じです.平和な単語ですね."
+       "translation": "この地域の米の収穫(高)る場合があります.pork「豚肉」ですに「食べ物」側の beef"
       }
      ],
      "reference": "the main crop(s) of ～「～の主要な農産物」",
@@ -13749,7 +13754,7 @@
       {
        "label": "②",
        "sentence": "on the grounds that he is young",
-       "translation": ""
+       "translation": "彼は若いという理由で"
       }
      ],
      "reference": "on the ground(s) of ～[that S V]「～の[～という]理由で」",
@@ -13772,7 +13777,7 @@
       {
        "label": "②",
        "sentence": "wave to my host family",
-       "translation": ""
+       "translation": "ホストファミリーに手を振る"
       }
      ],
      "reference": "sound waves「音波」 / wave to ～「～に手を振る」 / wave（人）goodbye「（人）にさようならと手を振る」",
@@ -14724,7 +14729,7 @@
       {
        "label": "②",
        "sentence": "in a broad sense",
-       "translation": "常識(共通の分別)"
+       "translation": "広い意味では"
       }
      ],
      "reference": "have a sense of humor「ユーモア（のセンス）がある」 / in a sense「ある意味では」 / make sense「意味が通る」",
@@ -14798,7 +14803,7 @@
       {
        "label": "②",
        "sentence": "fill out an entry form",
-       "translation": "Pa「t 3"
+       "translation": "申込用紙に記入するPa「t 3"
       }
      ],
      "reference": "many forms of ～「～の多くの形態」 / fill out[〈英〉in] a form「用紙に記入する」",
@@ -14821,7 +14826,7 @@
       {
        "label": "②",
        "sentence": "house shaped like a pyramid",
-       "translation": ""
+       "translation": "ビラミッドのような形の家ビラミッドのように形作られた家)"
       }
      ],
      "reference": "in shape「体調が良くて」 / out of shape「体調が悪くて」 / shaped like ～「～のような形の（←～のように形作られた）」",
@@ -14880,7 +14885,7 @@
       {
        "label": "②",
        "sentence": "eave the solar system physical It the physical world It, the spiritual worl(",
-       "translation": ""
+       "translation": "& 陽糸から出るなく,触って,見て,感じ取れるものに関•rld「霊界」の反意語で,「この世の形ある"
       }
      ],
      "reference": "an education system「教育制度」 / a transportation system「交通網」",
@@ -14939,7 +14944,7 @@
       {
        "label": "②",
        "sentence": "compose a song",
-       "translation": ""
+       "translation": "欧を作曲する"
       }
      ],
      "reference": "be composed of ～「（物質やグループなどが）～で構成される」",
@@ -14962,7 +14967,7 @@
       {
        "label": "②",
        "sentence": "organize an event",
-       "translation": ""
+       "translation": "イベントを取りまとめる"
       }
      ],
      "reference": "organize one's thoughts「～の考えをまとめる」",
@@ -15057,7 +15062,7 @@
       {
        "label": "②",
        "sentence": "i a window facing (to the) south •j) speak face to face",
-       "translation": "南向きの窓"
+       "translation": "南向きの窓面と向かって話す"
       }
      ],
      "reference": "（人）face ～「（人）が～に直面する」〈能動的〉 / （人）be faced with ～「（人）が～に直面している」〈受動的〉",
@@ -15521,7 +15526,7 @@
       {
        "label": "②",
        "sentence": "put a limit on the number of visitors",
-       "translation": "訪問者の数に制限を設ける"
+       "translation": ""
       }
      ],
      "reference": "put a limit on ～「～に制限を設ける」",
@@ -15544,7 +15549,7 @@
       {
        "label": "②",
        "sentence": "ban the illegal downloading of music",
-       "translation": "音楽の違法ダウンロードを禁止する"
+       "translation": ""
       }
      ],
      "reference": "a ban on ～「～の禁止」（新聞の見出しでよく使われる表現）",
@@ -15567,7 +15572,7 @@
       {
        "label": "②",
        "sentence": "flatly refuse the offer",
-       "translation": "きつばりとその申し出を断る"
+       "translation": ""
       }
      ],
      "reference": "refuse to accept an idea「考えを受け入れることを拒む」 / refuse an offer[an invitation]「申し出[招待]を断る」",
@@ -16186,12 +16191,12 @@
       {
        "label": "②",
        "sentence": "the main character of this novel",
-       "translation": ""
+       "translation": "うこの小説の主人公(主な登場人物)"
       },
       {
        "label": "③",
        "sentence": "Chinese characters Chinese characters",
-       "translation": ""
+       "translation": "漢字"
       }
      ],
      "reference": "He is an odd character.「彼は変わった人だ。」 / Chinese characters「漢字」",
@@ -16491,7 +16496,7 @@
       {
        "label": "②",
        "sentence": "'Tnajor in Western history",
-       "translation": ""
+       "translation": "西洋史を専攻する"
       }
      ],
      "reference": "a major problem「大問題」 / major in ～「～を専攻する」",
@@ -16514,7 +16519,7 @@
       {
        "label": "②",
        "sentence": "a significant increase in sales",
-       "translation": ""
+       "translation": "売り上げのかなりの増加"
       }
      ],
      "reference": "a significant other「大切な人，配偶者」 / a significant increase「かなりの増加」",
@@ -16537,12 +16542,12 @@
       {
        "label": "②",
        "sentence": "What's the matter?",
-       "translation": ""
+       "translation": "どうしたの ?(何が問題なの ? )"
       },
       {
        "label": "③",
        "sentence": "waste matter",
-       "translation": ""
+       "translation": "廃棄物"
       }
      ],
      "reference": "matter to（人）「（人）にとって重要である」 / as a matter of fact「実際には」 / What's the matter?「どうしたの？」",
@@ -16565,7 +16570,7 @@
       {
        "label": "②",
        "sentence": "a bright child",
-       "translation": ""
+       "translation": "う聡明な子ども"
       }
      ],
      "reference": "a bright future「明るい未来」",
@@ -17055,7 +17060,7 @@
       {
        "label": "②",
        "sentence": "I am very familiar with this town.",
-       "translation": ""
+       "translation": "私はこの街をよく知っている．"
       }
      ],
      "reference": "be familiar to ～「～に知られている」 / be familiar with ～「～を知っている」",
@@ -17250,7 +17255,7 @@
       {
        "label": "②",
        "sentence": "original artworks",
-       "translation": ""
+       "translation": "独創的な芸術作品"
       }
      ],
      "reference": "日本語の「オリジナル」は②の意味が多い",
@@ -17291,7 +17296,7 @@
       {
        "label": "②",
        "sentence": "a specific purpose",
-       "translation": ""
+       "translation": "ある明確な目的"
       }
      ],
      "reference": "Be more specific.「もっと具体的に言ってください。」",
@@ -17314,7 +17319,7 @@
       {
        "label": "②",
        "sentence": "Her voice is totally unique.",
-       "translation": ""
+       "translation": "う彼女の声はとても独特だ．"
       }
      ],
      "reference": "totally unique「とても独特な」（very unique は不可） / 日本語の「ユニークな（＝個性的で面白い）」の意味はまれ",
@@ -17360,12 +17365,12 @@
       {
        "label": "②",
        "sentence": "increase my vocabulary",
-       "translation": ""
+       "translation": "う語彙を増やす"
       },
       {
        "label": "③",
        "sentence": "an increase in land prices",
-       "translation": ""
+       "translation": "地価の上昇(増加)"
       }
      ],
      "reference": "be on the increase「増加している」 / 「（～な）人々が増えている」は the number of people who ～ is increasing と「数」を明確にして表現する",
@@ -17503,12 +17508,12 @@
       {
        "label": "②",
        "sentence": "First impressions really count.",
-       "translation": "第一印象は本当に中要だ．。③(君を) 当てにしているよ．"
+       "translation": "第一印象は本当に中要だ．"
       },
       {
        "label": "③",
        "sentence": "I'm counting on you.",
-       "translation": ""
+       "translation": "（君を）当てにしているよ．"
       }
      ],
      "reference": "count calories「カロリー計算する」 / I'm counting on you.「（君を）当てにしているよ。」",
@@ -17700,7 +17705,7 @@
       {
        "label": "③",
        "sentence": "open a bank account",
-       "translation": "銀行口座を開く、う意味でした.ら 80 % になる」に由来し,account fO「事故の原因を数え上げる」という意味に由」という意味からです."
+       "translation": "銀行口座を開く"
       }
      ],
      "reference": "take ～ into account「～を考慮に入れる」 / on account of ～「～が原因で」 / open a bank account「銀行口座を開く」",
@@ -17905,7 +17910,7 @@
       {
        "label": "②",
        "sentence": "adjust my belt",
-       "translation": ""
+       "translation": "ベルトを調整する"
       }
      ],
      "reference": "adjust (oneself) to ～「～に慣れる，順応する」",
@@ -17928,12 +17933,12 @@
       {
        "label": "②",
        "sentence": "apply for a passport",
-       "translation": ""
+       "translation": "ツヾスポートを申請する"
       },
       {
        "label": "③",
        "sentence": "apply the technology to self-driving cars",
-       "translation": ""
+       "translation": "自動運転車にその技術を応用する"
       }
      ],
      "reference": "apply A to B「AをBに適用[応用]する」",
@@ -17956,7 +17961,7 @@
       {
        "label": "②",
        "sentence": "That tie suits you.",
-       "translation": ""
+       "translation": "そのネクタイは君に似合う"
       }
      ],
      "reference": "（物）suit（人）「（物）が（人）に似合う」",
@@ -18348,7 +18353,7 @@
       {
        "label": "②",
        "sentence": "look at things from a different point of view",
-       "translation": "視点を変えて(異なる視点から) 物事を"
+       "translation": "視点を変えて(異なる視点から) 物事を見る"
       }
      ],
      "reference": "from a ～ point of view「～の視点から」",
@@ -18453,7 +18458,7 @@
       {
        "label": "②",
        "sentence": "leave from Track No. 5",
-       "translation": "スケジュールの経過を追う)番線から発車する"
+       "translation": "番線から発車する"
       }
      ],
      "reference": "keep[lose] track of ～「～の経過を把握する[見失う]」 / lose track of one's time「時間の感覚がなくなる」",
@@ -18476,12 +18481,12 @@
       {
        "label": "②",
        "sentence": "cut along the dotted line",
-       "translation": ""
+       "translation": "点線に沿って切る"
       },
       {
        "label": "③",
        "sentence": "practice my lines",
-       "translation": ""
+       "translation": "セリフを練習する"
       }
      ],
      "reference": "in line「列になって，並んで」 / Drop me a line.「私に手紙をください。」（a line「1行くらいの短い手紙」）",
@@ -18540,7 +18545,7 @@
       {
        "label": "②",
        "sentence": "have vroom for dessert 936 a sight -ej. 937 a view",
-       "translation": "デザートのための余地がある)英語 !の 1 シーンのような) 光景」は"
+       "translation": "うデザトは別腹だデザートのための余地がある)英語 !の 1 シーンのような) 光景」は風景全体」は 940 scenery です.点からの具体的な) 眺め」はは 938 a landscape です."
       }
      ],
      "reference": "room for ～「～のための余地」 / make room for ～「～のために空間を作る，（電車などで）～のために詰める」",
@@ -18581,7 +18586,7 @@
       {
        "label": "②",
        "sentence": "The tall building blocked our view of the sea.",
-       "translation": "ださい(2 区画歩いてください)．"
+       "translation": "その高い建物のせいで海が見えなかった(海の眺めを遮った)．"
       }
      ],
      "reference": "walk ～ block(s)「～区画[ブロック]歩く」 / block one's view of ～「～に対する…の視界を遮る」",
@@ -18663,7 +18668,7 @@
       {
        "label": "②",
        "sentence": "people from different backgrounds",
-       "translation": "ていた．"
+       "translation": "う様々な経歴の人々"
       }
      ],
      "reference": "one's family background「家庭環境」 / one's educational[academic] background「学歴」",
@@ -18686,7 +18691,7 @@
       {
        "label": "②",
        "sentence": "Look at the bottom of page 10.",
-       "translation": ""
+       "translation": "り 10 ページの下を見てください．"
       }
      ],
      "reference": "at the bottom of ～「～の底[下]に」 / Bottoms up!「乾杯！」",
@@ -18745,7 +18750,7 @@
       {
        "label": "②",
        "sentence": "ask for directions",
-       "translation": ""
+       "translation": "道順を尋ねる"
       }
      ],
      "reference": "go in ～ direction「～の方向へ行く」（「方向」は「点」ではなく「面」なので in を用いる）",
@@ -18768,12 +18773,12 @@
       {
        "label": "②",
        "sentence": "This is also the case With humans.",
-       "translation": "人間にとっても事実である)．殺人事件"
+       "translation": "これは人間にも当てはまる人間にとっても事実である)．"
       },
       {
        "label": "③",
        "sentence": "a murder case",
-       "translation": ""
+       "translation": "殺人事件"
       }
      ],
      "reference": "in case S V「～の場合に備えて」 / a case in which[where] S V「～の場合」",
@@ -18796,7 +18801,7 @@
       {
        "label": "②",
        "sentence": "hold a big event",
-       "translation": ""
+       "translation": "大きなイベントを開催する"
       }
      ],
      "reference": "a sporting event「スポーツのイベント[大会]」",
@@ -18819,7 +18824,7 @@
       {
        "label": "②",
        "sentence": "There is little chance of his winning.",
-       "translation": ""
+       "translation": "彼が勝つ可能性はほとんどない．"
       }
      ],
      "reference": "by chance「偶然に」 / Chances are (that) S V.「おそらく～だろう。」",
@@ -18878,7 +18883,7 @@
       {
        "label": "②",
        "sentence": "work under bad conditions",
-       "translation": ""
+       "translation": "悪条件の下で働く"
       }
      ],
      "reference": "in (a[an]) ～ condition「～の状態で」 / on (the) condition that S V「～という条件で」",
@@ -18919,7 +18924,7 @@
       {
        "label": "②",
        "sentence": "be serious about finding a job",
-       "translation": ""
+       "translation": "職探しに真剣だ"
       }
      ],
      "reference": "a serious problem「重大な（＝深刻な）問題」（an important problem は不可） / Are you serious?「本気？」",
@@ -19183,17 +19188,17 @@
       {
        "label": "②",
        "sentence": "You are right.",
-       "translation": "私の右手"
+       "translation": "う君が正しいよ．"
       },
       {
        "label": "③",
        "sentence": "my right hand",
-       "translation": "投票権"
+       "translation": "私の右手"
       },
       {
        "label": "④",
        "sentence": "the right to vote",
-       "translation": ""
+       "translation": "投票権"
       }
      ],
      "reference": "my right hand「私の右手」のような「対になっているもの」以外の「右の～」は on the[one's] right と表現するのが普通 / the room on your right「（向かって）右の部屋」",
@@ -19252,7 +19257,7 @@
       {
        "label": "②",
        "sentence": "complete the project",
-       "translation": ""
+       "translation": "そのプロジェクトを完成させる"
       }
      ],
      "reference": "a complete waste of time「まったくの時間の無駄」 / complete a form「書式に記入する（←完成させる）」",
@@ -19375,7 +19380,7 @@
       {
        "label": "②",
        "sentence": "I cannot possibly solve this problem. f91JÄli, 0303 quickly (Oquick+-ly), Deasily 301 D 302 hardü",
-       "translation": "るかもしれない.この問題がどうしても解けない.戸 easy 十 - Ⅳ) などです.つ例外的な語もあります.」ロ「早く」,よう."
+       "translation": "この問題がどうしても解けない.戸 easy 十 - Ⅳ) などです.つ例外的な語もあります.」ロ「早く」,よう."
       }
      ],
      "reference": "〈確信度〉possibly（30%以下）＜ perhaps（30%以上）＜ maybe（35～50%）＜ probably（70%以上）",
@@ -19416,7 +19421,7 @@
       {
        "label": "②",
        "sentence": "Ken looks younger than he actually is.",
-       "translation": "が，本当は悲しんでいる．"
+       "translation": "ケンは実際より若く見える．"
       }
      ],
      "reference": "look（比較級）than S actually be「実際より～に見える」 / actual+ly なので l は2つ",
@@ -19493,7 +19498,7 @@
       {
        "label": "②",
        "sentence": "take the stairs instead of the elevator",
-       "translation": "に紅茶はいかがですか．エレベーターの代わりに階段を使う"
+       "translation": "エレベーターの代わりに階段を使う"
       }
      ],
      "reference": "instead of ～「～の代わりに」 / 「同時にできる」場合には without ～ を使う（leave the room without saying goodbye「さようならも言わずに部屋を出る」）",
@@ -19552,7 +19557,7 @@
       {
        "label": "②",
        "sentence": "It's too late to go out; besides, it's snowing.",
-       "translation": "勉強する外出するには遅すぎるしおまけに"
+       "translation": "う外出するには遅すぎるし，おまけに雪が降っている．"
       }
      ],
      "reference": "口語的な表現なので，書き言葉では ①in addition to ～ ②in addition,moreover などを使用",
@@ -19611,7 +19616,7 @@
       {
        "label": "②",
        "sentence": "I was hungry. I did not eat it, though.",
-       "translation": "った．お腹が減っていた．けれども，それを"
+       "translation": "お腹が減っていた．けれども，それを食べなかった"
       }
      ],
      "reference": "even though ～「たとえ～でも」 / ②は通例，文頭には不可で，文中，文末に置かれる",
@@ -19652,7 +19657,7 @@
       {
        "label": "②",
        "sentence": "Whether it rains or not, the rugby match will be held.",
-       "translation": "ビーの試合は行われる．"
+       "translation": "雨が降っても降らなくても，そのラグビーの試合は行われる．"
       }
      ],
      "reference": "whether S V or not[whether or not S V]「①～かどうか ②～であろうとなかろうと」 / つづりは when,where などと同様に覚える（weather「天候」と区別）",
@@ -19716,7 +19721,7 @@
       {
        "label": "②",
        "sentence": "talk in a whisper",
-       "translation": ""
+       "translation": "小声(ささやき声) で話す"
       }
      ],
      "reference": "It is rumored that S V.「～といううわさがささやかれる。」 / 擬音語で，whistle「口笛を吹く」と語源が同じ",
@@ -19739,7 +19744,7 @@
       {
        "label": "②",
        "sentence": "remark that the pot is very old",
-       "translation": ""
+       "translation": "そのつぼはとても古いものだと言う"
       }
      ],
      "reference": "「（その場で気づいたこと）を発言する（こと）」 / 「何度も注意する」が元の意味だが，現在では「（普通の）発言」の意味",
@@ -19798,7 +19803,7 @@
       {
        "label": "②",
        "sentence": "look forward to your reply",
-       "translation": ""
+       "translation": "あなたの返事を楽しみにする"
       }
      ],
      "reference": "「（人の言葉，手紙などに）返事をする（こと）」 / apply「～を適用する（←その方向に折る）」",
@@ -19821,7 +19826,7 @@
       {
        "label": "②",
        "sentence": "respond to complaints",
-       "translation": ""
+       "translation": "クレームに対応する"
       }
      ],
      "reference": "「（用件に対して）詳しく答える」（answer より堅い語） / response「返答，反応」",
@@ -19967,12 +19972,12 @@
       {
        "label": "②",
        "sentence": "consult a dictionary",
-       "translation": "進路について友だちに相談する"
+       "translation": "辞書を引く"
       },
       {
        "label": "③",
        "sentence": "consult with a friend about my career\u0001",
-       "translation": ""
+       "translation": "進路について友だちに相談する"
       }
      ],
      "reference": "相談相手が「専門家や権威のある人」の場合は①他動詞となり，「対等の関係の人」の場合は③自動詞となる / consultant「コンサルタント，相談する人」",
@@ -20159,7 +20164,7 @@
       {
        "label": "②",
        "sentence": "the object of this game",
-       "translation": "硬い物"
+       "translation": "このゲームの目的"
       }
      ],
      "reference": "①「（～を）嫌だと思う，口に出して反対する」 / project「～を投影する（←前方に投げる）」 / objection (to ～)「（～への）反対」",
@@ -20472,7 +20477,7 @@
       {
        "label": "②",
        "sentence": "give notice of a change of address",
-       "translation": "* その後も気がついているく状態〉)住所変更の通知をする"
+       "translation": "住所変更の通知をする"
       }
      ],
      "reference": "①「（見たり，聞いたりして）気がついている」（「健康の大切さに気づく」のように「目に見えないこと」には普通使えない） / noticeable「目立った，注目に値する」",
@@ -20549,7 +20554,7 @@
       {
        "label": "②",
        "sentence": "eagerly anticipate his arrival",
-       "translation": ""
+       "translation": "彼の到着を楽しみにして待つ"
       }
      ],
      "reference": "①「～を予測して準備する」 / anticipation「予想，期待」",
@@ -20788,7 +20793,7 @@
       {
        "label": "②",
        "sentence": "commit a crime",
-       "translation": ""
+       "translation": "犯罪を犯す"
       }
      ],
      "reference": "「引っ込みのつかない状態まで（すっかり）送り込む」 / commitment「約束，献身」 / committee「委員会」",
@@ -21475,7 +21480,7 @@
       {
        "label": "②",
        "sentence": "a split in the party",
-       "translation": ""
+       "translation": "党の分裂"
       }
      ],
      "reference": "①「（およそ半分に）割る」 / 覚え方: スプリットは「割る」",
@@ -21521,7 +21526,7 @@
       {
        "label": "②",
        "sentence": "The meeting extended over five hours.",
-       "translation": ""
+       "translation": "うその会議は 5 時間にも及んだ．"
       }
      ],
      "reference": "「（長さ）を伸ばす」から「（時間）を延ばす」まで / extension「拡張，増大，内線」 / extensive「広範囲の」",
@@ -21544,12 +21549,12 @@
       {
        "label": "②",
        "sentence": "8 multiplied by 6 is 48.",
-       "translation": ""
+       "translation": "う 8X6 = 48"
       },
       {
        "label": "③",
        "sentence": "Insects multiply in summer.",
-       "translation": ""
+       "translation": "昆虫は夏に増殖する．"
       }
      ],
      "reference": "8 multiplied by 6 is 48.「8×6＝48」 / multiple「複合的な」 / multiplication「増加」 / multitude「多数，群衆」",
@@ -21572,7 +21577,7 @@
       {
        "label": "②",
        "sentence": "adapt the menu to customers' needs\u0001",
-       "translation": ""
+       "translation": "メニューを客の要望に合わせる"
       }
      ],
      "reference": "「現状を調整して，新しい状況に合わせる」 / 家電製品などで用いられる「アダプター」は「電圧などを機械の設定に適応させる器具」のこと",
@@ -21649,7 +21654,7 @@
       {
        "label": "②",
        "sentence": "in reverse",
-       "translation": ""
+       "translation": "逆の順番で"
       }
      ],
      "reference": "in reverse order「逆の順番で」 / universe「宇宙（←たった1つのものが回転する）」",
@@ -22026,7 +22031,7 @@
       {
        "label": "②",
        "sentence": "up childhood memories",
-       "translation": ""
+       "translation": "子どものころの記憶を呼び覚ます"
       }
      ],
      "reference": "①「（液体状の物）をかき混ぜる」 / mix「（異なる複数の物）を混ぜる」 / storm「嵐（←かき回すもの）」",
@@ -22049,7 +22054,7 @@
       {
        "label": "②",
        "sentence": "The storm wiped out the village.",
-       "translation": ""
+       "translation": "嵐が村を壊滅させた．"
       }
      ],
      "reference": "①「（タオルなどを使って）物の表面を拭く」 / wiper「（車の）ワイパー（←車の前面の窓ガラスにかかる雨滴や汚れをぬぐい取る装置）」",
@@ -22213,7 +22218,7 @@
       {
        "label": "②",
        "sentence": "restore the old church",
-       "translation": ""
+       "translation": "その古い教会を修復する"
       }
      ],
      "reference": "「元の状態に戻す」 / 同語源の restaurant は「疲労を回復させる場所」が元の意味",
@@ -22236,7 +22241,7 @@
       {
        "label": "②",
        "sentence": "look for an escape route",
-       "translation": ""
+       "translation": "逃け道を探す"
       }
      ],
      "reference": "「（今ある現実から）逃げる（こと）」 / look for an escape route「逃げ道を探す」",
@@ -22372,7 +22377,7 @@
       {
        "label": "②",
        "sentence": "dismiss the employees",
-       "translation": ""
+       "translation": "従業員を解雇する"
       }
      ],
      "reference": "dismiss A as B「AをBだとして退ける」 / dismissal「却下，解雇」",
@@ -22431,7 +22436,7 @@
       {
        "label": "②",
        "sentence": "arms manufacture in Israel",
-       "translation": ""
+       "translation": "イスラエルにおける武器の製造"
       }
      ],
      "reference": "「（工場で大量に）製造する（こと）」 / manufacturer「メーカー，製造業者」 / factory「工場」",
@@ -22454,7 +22459,7 @@
       {
        "label": "②",
        "sentence": "yield to her demand emerge from the darkness emerge from the darkness",
-       "translation": ""
+       "translation": "彼女の要求に屈する暗閭から現れる"
       }
      ],
      "reference": "②yield oneself to ～「自らを～に差し出す」から oneself が省略された形 / guild「同業組合，ギルド（←会費を出す組織）」",
@@ -22798,7 +22803,7 @@
       {
        "label": "②",
        "sentence": "have an urge to eat some fish",
-       "translation": "魚を食べたい衝動を持つ)"
+       "translation": "魚が食べたくて仕方ない魚を食べたい衝動を持つ)"
       }
      ],
      "reference": "have an urge to eat some fish「魚が食べたくて仕方ない（魚を食べたい衝動を持つ）」 / 覚え方: アージ（鯵）を食べろと「せき立てる」 / urgent「緊急の」",
@@ -23214,7 +23219,7 @@
       {
        "label": "②",
        "sentence": "the virtues of organic farming",
-       "translation": ""
+       "translation": "有機農法の長所"
       }
      ],
      "reference": "①「道徳的な良さ」→②「長所」 / vice「悪徳」 / by virtue of ～「～のために」",
@@ -23273,7 +23278,7 @@
       {
        "label": "②",
        "sentence": "It is my policy.",
-       "translation": ""
+       "translation": "それは私のポリシー(方針) だ．"
       }
      ],
      "reference": "「国や個人のやり方」 / It is my policy.「それは私のポリシー（方針）だ。」 / politics「政治」 / police「警察」",
@@ -23458,7 +23463,7 @@
       {
        "label": "②",
        "sentence": "tell his fortune with playing cards",
-       "translation": ""
+       "translation": "トランプで彼の運勢を占う"
       }
      ],
      "reference": "②「幸運」→①「（幸運によって得られる）財産」（①は熟語で用いる） / tell his fortune with playing cards「トランプで彼の運勢を占う」 / fortunate「幸運な」（⇔ unfortunate「不運な」） / fortunately「幸運にも」（⇔ unfortunately「不運にも」）",
@@ -23522,7 +23527,7 @@
       {
        "label": "②",
        "sentence": "the property of dissolving in water",
-       "translation": ""
+       "translation": "う水に溶ける特性"
       }
      ],
      "reference": "「所有しているもの」 / the property of dissolving in water「水に溶ける特性」 / コンピュータ用語の「プロパティ」は，「（ファイルやフォルダなどの）属性」の意味",
@@ -23599,7 +23604,7 @@
       {
        "label": "②",
        "sentence": "at the expense Of my health",
-       "translation": ""
+       "translation": "自分の健康を犠牲にして"
       }
      ],
      "reference": "①「（比較的多額の）出費，犠牲」 / at the expense of my health「自分の健康を犠牲にして」 / expensive「高価な」（⇔ inexpensive「安価な」）",
@@ -23771,7 +23776,7 @@
       {
        "label": "②",
        "sentence": "the leisure industry",
-       "translation": ""
+       "translation": "レジャー産業"
       }
      ],
      "reference": "①「大規模な製品の製造」 / the leisure industry「レジャー産業」 / industrial「工業の，産業の」（the Industrial Revolution「産業革命」）",
@@ -23830,7 +23835,7 @@
       {
        "label": "②",
        "sentence": "hire a car",
-       "translation": ""
+       "translation": "車をイ呂りる"
       }
      ],
      "reference": "①employ「（正規に）～を雇う」 / hire a car「車を借りる」 / 発音の似ている fire「～をクビにする」とセットで覚えよう（You're fired!「お前はクビだ！」）",
@@ -23853,7 +23858,7 @@
       {
        "label": "②",
        "sentence": "employ new technology",
-       "translation": ""
+       "translation": "新しい技術を用いる"
       }
      ],
      "reference": "①「（人）を雇用する，雇い入れる」→②「（道具など）を使う」 / employment「雇用」 / employer「雇い主」 / employee「従業員」",
@@ -23876,7 +23881,7 @@
       {
        "label": "②",
        "sentence": "resign my post",
-       "translation": ""
+       "translation": "ポスト(責任ある地位) を辞する"
       }
      ],
      "reference": "「（地位のある人が途中で公的に）辞職する」（役職名は〈不可算〉） / resign my post「ポスト（責任ある地位）を辞する」 / resignation「辞職」",
@@ -24122,7 +24127,7 @@
       {
        "label": "②",
        "sentence": "break branches off the trees",
-       "translation": ""
+       "translation": "その木の枝を折る"
       }
      ],
      "reference": "「枝（branch）分かれしてできたもの」 / break branches off the trees「その木の枝を折る」 / a head office「（銀行などの）本店」 / a headquarters「本部」",
@@ -24145,7 +24150,7 @@
       {
        "label": "②",
        "sentence": "a travel agency",
-       "translation": ""
+       "translation": "旅行代理店"
       }
      ],
      "reference": "「（権限を委ねられて業務を遂行する）組織」 / a travel agency「旅行代理店」 / agent「代理人」 / act「行動する」",
@@ -24222,7 +24227,7 @@
       {
        "label": "②",
        "sentence": "the Secretary General",
-       "translation": ""
+       "translation": "わ(国連などの) 事務総長"
       }
      ],
      "reference": "the Secretary General「（国連などの）事務総長」 / 「秘密を扱う人」",
@@ -24322,7 +24327,7 @@
       {
        "label": "②",
        "sentence": "the United Kingdom",
-       "translation": ""
+       "translation": "連合王国(= 英国)"
       }
      ],
      "reference": "①society「主に（人間）社会」 / the United Kingdom「連合王国（＝英国）」 / kin「親族」",
@@ -24399,7 +24404,7 @@
       {
        "label": "②",
        "sentence": "a code of conduct",
-       "translation": ""
+       "translation": "行動規範"
       }
      ],
      "reference": "①「（調査，実験など）を実施する」 / a code of conduct「行動規範」 / 「全体を導く」 / produce「～を生産する（←前に導く）」 / conductor「指揮者，（列車の）車掌，伝導（体）」",
@@ -24481,7 +24486,7 @@
       {
        "label": "②",
        "sentence": "duty-free shops",
-       "translation": ""
+       "translation": "免税店"
       }
      ],
      "reference": "①「（法律的，道徳的に）果たさなければならないこと」 / duty-free shops「免税店」",
@@ -24594,12 +24599,12 @@
       {
        "label": "②",
        "sentence": "divorce my wife",
-       "translation": ""
+       "translation": "妻と離婚する"
       },
       {
        "label": "③",
        "sentence": "a rise in the divorce rate",
-       "translation": ""
+       "translation": "離婚率の増加"
       }
      ],
      "reference": "divorce my wife「妻と離婚する」 / a rise in the divorce rate「離婚率の増加」 / divorced「離婚した」（get divorced「離婚する」） / marry「～と結婚する」 / marriage「結婚」",
@@ -25046,7 +25051,7 @@
       {
        "label": "②",
        "sentence": "give the command to attack",
-       "translation": ""
+       "translation": "攻撃命令を出す"
       }
      ],
      "reference": "「命じて支配下に置くこと」→①の対象は「言語」 / give the command to attack「攻撃命令を出す」 / command「（尊敬など）を集める，（景色）を見渡せる」",
@@ -25123,7 +25128,7 @@
       {
        "label": "②",
        "sentence": "tune the piano",
-       "translation": ""
+       "translation": "ビアノを調律する"
       }
      ],
      "reference": "①「曲」（メロディ，旋律に重点） / song「歌」（歌声に重点） / lyrics「歌詞」 / tune the piano「ピアノを調律する」 / 「チューンナップ（tune up）」は「調子を合わせる（整備する）」の意味",
@@ -25164,7 +25169,7 @@
       {
        "label": "②",
        "sentence": "enemy craft",
-       "translation": ""
+       "translation": "敵の船隊"
       }
      ],
      "reference": "enemy craft「敵の船隊」 / handicraft「手工芸（品）」 / craftspeople「（集合的に）職人」",
@@ -25313,7 +25318,7 @@
       {
        "label": "②",
        "sentence": "reproduce bacteria",
-       "translation": ""
+       "translation": "バクテリアを繁殖させる"
       }
      ],
      "reference": "「繁殖の仕方」に重点（Fish reproduce by laying eggs.「魚は卵を産むことにより繁殖する。」） / reproduce bacteria「バクテリアを繁殖させる」",
@@ -25354,7 +25359,7 @@
       {
        "label": "②",
        "sentence": "\"Shade\" has several shades of meaning.",
-       "translation": "意味(意味の微妙な違い) がある．"
+       "translation": "b\"Shade ”にはいくつかの微妙に違う意味(意味の微妙な違い) がある."
       }
      ],
      "reference": "①「光線が当たらない所」→②「はっきりしないこと」 / \"Shade\" has several shades of meaning.「\"Shade\" にはいくつかの微妙に違う意味（意味の微妙な違い）がある。」 / shadow「影」と同様に「暗がり」が元の意味 / a shade「少し」",
@@ -25377,7 +25382,7 @@
       {
        "label": "②",
        "sentence": "desert my children",
-       "translation": ""
+       "translation": "子どもたちを見捨てる"
       }
      ],
      "reference": "①「砂，岩石などからなる荒地」 / desert my children「子どもたちを見捨てる」 / dessert「（食事の）デザート」",
@@ -25418,7 +25423,7 @@
       {
        "label": "②",
        "sentence": "be on the trail of a bear",
-       "translation": ""
+       "translation": "クマを追跡している(クマの跡にいる)"
       }
      ],
      "reference": "be on the trail of a bear「クマを追跡している（クマの跡にいる）」 / 「（引っぱった）跡」 / trailer「トレーラー（←引っぱっていくトラック）」",
@@ -25536,7 +25541,7 @@
       {
        "label": "②",
        "sentence": "Traveling broadens your horizons.",
-       "translation": ""
+       "translation": "旅は視野を広げる．"
       }
      ],
      "reference": "①「空と海[大地]を分ける線」→②「視野」 / Traveling broadens your horizons.「旅は視野を広げる。」 / horizontal「水平の」",
@@ -25677,7 +25682,7 @@
       {
        "label": "②",
        "sentence": "a chemical symbol",
-       "translation": ""
+       "translation": "化学記号"
       }
      ],
      "reference": "agricultural chemicals は「農薬」の意味 / a chemical symbol「化学記号」 / chemistry「化学（的性質）」 / chemist「化学者，〈英〉薬剤師」",
@@ -25880,7 +25885,7 @@
       {
        "label": "②",
        "sentence": "launch a campaign against smoking",
-       "translation": ""
+       "translation": "禁煙運動を始める"
       }
      ],
      "reference": "「（事実など）を打ち上げる」→②「始める」 / launch a campaign against smoking「禁煙運動を始める」 / 「lance[やり]を突き刺す（→着手する）」が元の意味 / freelance「（作家，俳優などで）フリーの（←やりのない[主君を持たない]）」",
@@ -25957,7 +25962,7 @@
       {
        "label": "②",
        "sentence": "a cure",
-       "translation": ""
+       "translation": "頭痛の治療法"
       }
      ],
      "reference": "①「（病気，病人など）を完全に治す」 / treat「～を治療（病気の処置）する」（完治するかは不明） / a cure for a headache「頭痛の治療法」 / manicure「マニキュア（←手の世話）」",
@@ -25980,7 +25985,7 @@
       {
        "label": "②",
        "sentence": "strain a muscle in my leg",
-       "translation": ""
+       "translation": "足の筋肉を痛める"
       }
      ],
      "reference": "①「長期にわたって stress を感じ続けている状態」 / strain a muscle in my leg「足の筋肉を痛める」 / 「ぴんと張る」→「負担」 / string「ひも」",
@@ -26003,7 +26008,7 @@
       {
        "label": "②",
        "sentence": "a large wooden chest",
-       "translation": ""
+       "translation": "大きな木の箱"
       }
      ],
      "reference": "①「（男，女の）胸部」 / a large wooden chest「大きな木の箱」 / バスケットボールの chest pass は「胸のあたりから押し出すように投げるパス」のこと / chestnut「栗の実」",
@@ -26026,7 +26031,7 @@
       {
        "label": "②",
        "sentence": "Watch your tongue.",
-       "translation": ""
+       "translation": "言葉遣いに気をつけなさい．"
       }
      ],
      "reference": "①「舌」→②「（舌を使って発する）言葉」 / Watch your tongue.「言葉遣いに気をつけなさい。」 / 焼き肉の「牛タン」は①の意味",
@@ -26067,7 +26072,7 @@
       {
        "label": "②",
        "sentence": "dental surgery",
-       "translation": ""
+       "translation": "ロ腔外科"
       }
      ],
      "reference": "an operation「手術」〈可算〉 / dental surgery「口腔外科」 / surgeon「外科医」 / surgical「外科の」",
@@ -26162,7 +26167,7 @@
       {
        "label": "②",
        "sentence": "take pains to improve my image",
-       "translation": ""
+       "translation": "イメージアップに苦心する"
       }
      ],
      "reference": "「（突き刺すような）肉体的，精神的痛み」 / take pains to improve my image「イメージアップに苦心する」 / 「罪に対する罰」が元の意味 / penalty「罰則」 / painful「（身体が）痛い，（精神的に）痛ましい」",
@@ -26185,7 +26190,7 @@
       {
        "label": "②",
        "sentence": "wounded soldiers",
-       "translation": ""
+       "translation": "傷を負った兵士たち"
       }
      ],
      "reference": "①「（戦争やけんかによる）傷」 / wounded soldiers「傷を負った兵士たち」 / wind「曲がりくねる，（を）巻く」の過去形，過去分詞と同じ形だが，発音は異なる",
@@ -26226,7 +26231,7 @@
       {
        "label": "②",
        "sentence": "his vision for Japan's future",
-       "translation": ""
+       "translation": "日本の未来の彼の予想図"
       }
      ],
      "reference": "①「見る力」 ②「見えているもの」 / his vision for Japan's future「日本の未来の彼の予想図」 / visual「視覚の」 / visible「見える」",
@@ -26362,7 +26367,7 @@
       {
        "label": "②",
        "sentence": "piles of work",
-       "translation": ""
+       "translation": "山のような(多量の) 仕事"
       }
      ],
      "reference": "「山のように積み重なった状態」 / piles of work「山のような（多量の）仕事」 / 「柱」が元の意味 / pillar「支柱」",
@@ -26403,7 +26408,7 @@
       {
        "label": "②",
        "sentence": "This knife has a sharp edge. a key element of his success",
-       "translation": ""
+       "translation": "このナイフはよく切れる(鋭い刃をもっている)．彼の成功の鍵となる要素"
       }
      ],
      "reference": "「鋭い」→②「刃（先）」→①「端，縁」 / This knife has a sharp edge.「このナイフはよく切れる（鋭い刃をもっている）。」 / cutting-edge「最先端の（←刃先から）」 / double-edged「両刃の」",
@@ -26665,7 +26670,7 @@
       {
        "label": "②",
        "sentence": "strong family ties",
-       "translation": ""
+       "translation": "強い家族のきずな"
       }
      ],
      "reference": "strong family ties「強い家族のきずな」 / tie「ネクタイ」の意味もある",
@@ -26688,7 +26693,7 @@
       {
        "label": "②",
        "sentence": "fix the bike",
-       "translation": ""
+       "translation": "う自転車を修理する"
       }
      ],
      "reference": "①「（ガタガタしたもの）を（ネジやクギなどで）固定する」→②「～を修理する」 / fix the bike「自転車を修理する」",
@@ -26711,7 +26716,7 @@
       {
        "label": "②",
        "sentence": "be suspended from school",
-       "translation": ""
+       "translation": "停学になる(停学にさせられる)"
       }
      ],
      "reference": "be suspended from school「停学になる（停学にさせられる）」 / suspension「一時的中断」",
@@ -26839,7 +26844,7 @@
       {
        "label": "②",
        "sentence": "British citizens living in Japan",
-       "translation": "知識が少しある)"
+       "translation": "日本に住むイギリス人"
       }
      ],
      "reference": "「市民権[国籍]を持つ1人の人間」 / British citizens living in Japan「日本に住むイギリス人」 / 「都市に住む人」 / citizenship「市民権（←ある国に属する権利）」",
@@ -26898,7 +26903,7 @@
       {
        "label": "②",
        "sentence": "folk medicine",
-       "translation": ""
+       "translation": "民間療法(民間起源の療法)"
       }
      ],
      "reference": "①「（一般に）人々」を表すややくだけた話（〈米〉では folks と表現する） / folk medicine「民間療法（民間起源の療法）」 / folklore「民間伝承，民俗学」 / folktale「民話」 / folkcraft「民芸品」",
@@ -27052,7 +27057,7 @@
       {
        "label": "②",
        "sentence": "the psychology of five-year-olds",
-       "translation": ""
+       "translation": "り 5 歳児の心理"
       }
      ],
      "reference": "「心の動き（を研究する学問）」 / the psychology of five-year-olds「5歳児の心理」 / 覚え方: サイコロ（を）ジーと見る「心理学」 / psychologist「心理学者」",
@@ -27111,7 +27116,7 @@
       {
        "label": "②",
        "sentence": "cross academic disciplines",
-       "translation": ""
+       "translation": "学間分野を横断する"
       }
      ],
      "reference": "①「規律」→②「（厳密に分けられた）分野」 / cross academic disciplines「学問分野を横断する」 / self-discipline「自制心」 / interdisciplinary「学際的な（←様々な学問分野をまたぐ）」",
@@ -27211,7 +27216,7 @@
       {
        "label": "②",
        "sentence": "settle (down) in Brazil",
-       "translation": ""
+       "translation": "プラジルに定住する"
       }
      ],
      "reference": "「（不安定な状態）を落ち着かせる」 / settle (down) in Brazil「ブラジルに定住する」 / 「固定する，解決する，定住する」 / settlement「解決，定住，入植」",
@@ -27288,7 +27293,7 @@
       {
        "label": "②",
        "sentence": "attempt to escape",
-       "translation": ""
+       "translation": "逃げようと試みる"
       }
      ],
      "reference": "①「（しばしば未遂に終わる）困難への挑戦」 / attempt to escape「逃げようと試みる」 / 覚え方: 吹き矢を当てんプーと「試みる」",
@@ -27388,7 +27393,7 @@
       {
        "label": "②",
        "sentence": "burst out crying",
-       "translation": ""
+       "translation": "突然泣き始める"
       }
      ],
      "reference": "①「（内部からの圧力や衝動によって）爆発する」 / burst out crying「突然泣き始める」 / burst into laughter「突然笑い出す」 / 活用 burst - burst(ed) - burst(ed)",
@@ -27411,7 +27416,7 @@
       {
        "label": "②",
        "sentence": "This town's population exploded",
-       "translation": ""
+       "translation": "この町の人口は爆発的に増えた．"
       }
      ],
      "reference": "①日常では go off や blow up のほうが使われる / This town's population exploded.「この町の人口は爆発的に増えた。」 / explosion「爆発，増加」 / explosive「爆発的な」「爆発物」",
@@ -27547,7 +27552,7 @@
       {
        "label": "②",
        "sentence": "harm his career",
-       "translation": ""
+       "translation": "彼の経歴に傷をつける"
       }
      ],
      "reference": "②日常では be bad for ～ のほうが使われる / harm his career「彼の経歴に傷をつける」 / harmful (to ～)「（～に）有害な」（⇔ harmless「無害の」） / good「（利）益」",
@@ -27678,7 +27683,7 @@
       {
        "label": "②",
        "sentence": "in search of food",
-       "translation": ""
+       "translation": "食べ物を捜して(捜索して)"
       }
      ],
      "reference": "①日常では look (in A) for B「B（物）を求めて A（場所）を捜す」のほうが使われる / in search of food「食べ物を捜して（捜索して）」 / search (for ～)「（～を）捜す」",
@@ -27701,7 +27706,7 @@
       {
        "label": "②",
        "sentence": "a high-resolution monitor",
-       "translation": ""
+       "translation": "高解像度のモニター"
       }
      ],
      "reference": "①「一定期間にわたり，きちんと働いているかをチェックする」 / a high-resolution monitor「高解像度のモニター」 / 「警告する人」 / monster「怪物（←警告する人）」",
@@ -27742,7 +27747,7 @@
       {
        "label": "②",
        "sentence": "receive inquiries from several companies\u0001",
-       "translation": ""
+       "translation": "くつかの会社から問い合わせがある"
       }
      ],
      "reference": "inquire「（～を）尋ねる」は ask より堅い語 / receive inquiries from several companies「いくつかの会社から問い合わせがある」 / for further inquiries「さらにご質問がございましたら」",
@@ -27765,7 +27770,7 @@
       {
        "label": "②",
        "sentence": "disappear without trace",
-       "translation": ""
+       "translation": "跡形もなく消える"
       }
      ],
      "reference": "①「（犯人など）を追跡して見つける」から「（歴史）をさかのぼる」まで / disappear without trace「跡形もなく消える」 / 「引かれた線（跡）を追う」 / attract「～を引きつける」",
@@ -27788,7 +27793,7 @@
       {
        "label": "②",
        "sentence": "a waterproof watch",
-       "translation": "い．②防水の腕時計"
+       "translation": "防水の腕時計"
       }
      ],
      "reference": "①「（evidence を積み上げた）決定的な証拠」 ②「～に対する強度が十分な」 / a waterproof watch「防水の腕時計」 / prove「～を証明する」の名詞形 / testimony「（法廷などの）証言」",
@@ -27811,7 +27816,7 @@
       {
        "label": "②",
        "sentence": "invade a neighboring country",
-       "translation": ""
+       "translation": "隣接する国に侵攻する"
       }
      ],
      "reference": "invade a neighboring country「隣接する国に侵攻する」 / invader「侵略者，侵入者」 / respect「～を尊重する」",
@@ -27834,7 +27839,7 @@
       {
        "label": "②",
        "sentence": "You're under arrest!",
-       "translation": ""
+       "translation": "お前を逮捕する !"
       }
      ],
      "reference": "「罪を犯したので，捕らえ，連行する（こと）」 / You're under arrest!「お前を逮捕する！」 / 「～の動きを止める」→「～を逮捕する」",
@@ -27857,7 +27862,7 @@
       {
        "label": "②",
        "sentence": "cheat the woman out of money",
-       "translation": ""
+       "translation": "その女性をだまして金を取る"
       }
      ],
      "reference": "「自分の利益のために相手をあざむく」 / cheat the woman out of money「その女性をだまして金を取る」 / cheating「カンニング，不正行為」（cunning「ずる賢い」に日本語の「（試験の）カンニング」の意味はない）",
@@ -27898,7 +27903,7 @@
       {
        "label": "②",
        "sentence": "witness the accident",
-       "translation": ""
+       "translation": "その事故を目撃する"
       }
      ],
      "reference": "「犯罪や事故について見たことを語る（人）」 / witness the accident「その事故を目撃する」 / 「知っている」+「状態」→「目撃者，証人」 / wise「賢い」 / wit「機知（←ものを知っていること）」",
@@ -27939,7 +27944,7 @@
       {
        "label": "②",
        "sentence": "I felt insulted when nobody agreed with me.",
-       "translation": "誰も賛同してくれなかったので侮辱さ"
+       "translation": "誰も賛同してくれなかったので侮辱されたと感じた．"
       }
      ],
      "reference": "「相手に対して失礼な言動をとる（こと）」 / I felt insulted when nobody agreed with me.「誰も賛同してくれなかったので侮辱されたと感じた。」 / 覚え方: イヌ！サル！と「侮辱する」",
@@ -27962,7 +27967,7 @@
       {
        "label": "②",
        "sentence": "drug abuse make an enemy of him",
-       "translation": ""
+       "translation": "薬物の乱用彼を敵に回す(彼から敵を作る)"
       }
      ],
      "reference": "「（子どもなどの）虐待」から「（権力や薬物の）乱用」まで / drug abuse「薬物の乱用」 / 「ふつうではない使い方」→「乱用」 / abuse「～を虐待する，乱用する」",
@@ -28111,7 +28116,7 @@
       {
        "label": "②",
        "sentence": "compete in a half marathon",
-       "translation": ""
+       "translation": "ハーフマラソンに参加する"
       }
      ],
      "reference": "①「（他者と同じものを求めて）競い合う」 / compete in a half marathon「ハーフマラソンに参加する」 / competition「競争，コンペ」 / competitive「競争の」 / competitor「競争相手」",
@@ -28211,7 +28216,7 @@
       {
        "label": "②",
        "sentence": "an aggressive salesperson",
-       "translation": ""
+       "translation": "積極的な販売員"
       }
      ],
      "reference": "主に①の「マイナスイメージ」で使うが，明らかに「プラスイメージ」と分かる場合は②の意味となる / an aggressive salesperson「積極的な販売員」 / 「前に進む」 / progress「進歩，発展」",
@@ -28270,7 +28275,7 @@
       {
        "label": "②",
        "sentence": "a modest house with a small garden",
-       "translation": "成功に対して謙虚でいる)小さな庭つきの質素な家(* 謙遜して)"
+       "translation": "小さな庭つきの質素な家(* 謙遜して)"
       }
      ],
      "reference": "①「（よい意味で）慎み深い，控えめな」 ②謙遜した表現 / a modest house with a small garden「小さな庭つきの質素な家（謙遜して）」 / 「適切な尺度を持つ」 / moderate「適度な」",
@@ -28293,7 +28298,7 @@
       {
        "label": "②",
        "sentence": "a brilliant idea have a lively conversation",
-       "translation": ""
+       "translation": "すばらしい考え生き生きとした会話をする"
       }
      ],
      "reference": "①「きらきらと明るく輝いている」（bright よりも明るい） / a brilliant idea「すばらしい考え」 / brilliance「輝き，すばらしい才能」",
@@ -28465,7 +28470,7 @@
       {
        "label": "②",
        "sentence": "a genuine Picasso",
-       "translation": ""
+       "translation": "本物のビカソ(の作品)"
       }
      ],
      "reference": "②「（美術品や歴史資料などが）本物の」は authentic のほうが使われる / a genuine Picasso「本物のピカソ（の作品）」 / 「生まれたままの」 / gene「遺伝子」 / fake「偽の，偽物」",
@@ -28506,7 +28511,7 @@
       {
        "label": "②",
        "sentence": "a luxury hotel",
-       "translation": ""
+       "translation": "豪華なホテル"
       }
      ],
      "reference": "a luxury hotel「豪華なホテル」 / lux「ルクス（照度の国際単位）」→「光り輝く」→「豪華」と覚えよう",
@@ -28565,7 +28570,7 @@
       {
        "label": "②",
        "sentence": "a rough idea of the plan",
-       "translation": ""
+       "translation": "その計画の概略(大まかな考え)"
       }
      ],
      "reference": "「粗い，ざらざらした」 / a rough idea of the plan「その計画の概略（大まかな考え）」 / 日本語でも「ラフなプラン」など②の意味で使うことがある / ①smooth「なめらかな」 / roughly「おおよそ」",
@@ -28804,7 +28809,7 @@
       {
        "label": "②",
        "sentence": "primary symptoms",
-       "translation": ""
+       "translation": "初期症状"
       }
      ],
      "reference": "primary symptoms「初期症状」 / 「第1の」 / primate「霊長類（←動物の最高位）」 / prime「主要な」 / primarily「第1に」",
@@ -28863,7 +28868,7 @@
       {
        "label": "②",
        "sentence": "a critical attitude",
-       "translation": ""
+       "translation": "批判的な態度"
       }
      ],
      "reference": "①「（運命を決定するような）重要な」 ②「同意できない」 / a critical attitude「批判的な態度」 / ①crisis「危機」の形容詞形，②criticism「批判」の形容詞形",
@@ -29017,7 +29022,7 @@
       {
        "label": "②",
        "sentence": "at a reasonable price",
-       "translation": ""
+       "translation": "手頃な値段で"
       }
      ],
      "reference": "②「値段が（理にかなっていて）高すぎない」 / at a reasonable price「手頃な値段で」 / 「理性で納得できる」",
@@ -29058,7 +29063,7 @@
       {
        "label": "②",
        "sentence": "a plain building",
-       "translation": ""
+       "translation": "飾り気のない建物"
       }
      ],
      "reference": "②「平らな，何もない」 / a plain building「飾り気のない建物」 / plain yogurt（プレーンヨーグルト）は「甘みやフルーツを加えていないシンプルなヨーグルト」のこと / plainly「はっきりと，明らかに」",
@@ -29189,7 +29194,7 @@
       {
        "label": "②",
        "sentence": "stuff chicken with rice",
-       "translation": ""
+       "translation": "鶏肉に米を詰める"
       }
      ],
      "reference": "「ごちゃごちゃと詰まった物」→①「名前が分からない物」 / stuff chicken with rice「鶏肉に米を詰める」 / stuffed「剥製の，ぬいぐるみの，詰めた」（a stuffed lion「〈米〉ライオンのぬいぐるみ」）",
@@ -29476,12 +29481,12 @@
       {
        "label": "②",
        "sentence": "turn down the volume",
-       "translation": "巻からなる百科事典"
+       "translation": "音量を下げる"
       },
       {
        "label": "③",
        "sentence": "an encyclopedia in 30 volumes",
-       "translation": ""
+       "translation": "巻からなる百科事典"
       }
      ],
      "reference": "turn down the volume「音量を下げる」 / an encyclopedia in 30 volumes「30巻からなる百科事典」 / 「巻く」→「巻き物」が元の意味 / involve「～を巻き込む」",
@@ -29563,7 +29568,7 @@
       {
        "label": "②",
        "sentence": "step on the scale(s) step on the scale(s)",
-       "translation": ""
+       "translation": "体車計に乗る"
       }
      ],
      "reference": "①②は別語源 / step on the scale(s)「体重計に乗る」",
@@ -29753,7 +29758,7 @@
       {
        "label": "②",
        "sentence": "I'm sort of tired today.",
-       "translation": ""
+       "translation": "今日はちょっと疲れている．"
       }
      ],
      "reference": "①「性格」や「性質」などに関する分類 / I'm sort of tired today.「今日はちょっと疲れている。」 / sort「～を分類する」",
@@ -29776,7 +29781,7 @@
       {
        "label": "②",
        "sentence": "be content with my job",
-       "translation": ""
+       "translation": "仕事に満足している"
       }
      ],
      "reference": "「中身[心]が満たされている」→②「これ以上何もいらない」 / be content with my job「仕事に満足している」 / contain「～を含む」と同語源",
@@ -29799,7 +29804,7 @@
       {
        "label": "②",
        "sentence": "alternatiVe energy sources",
-       "translation": ""
+       "translation": "代替エネルギー源"
       }
      ],
      "reference": "①「ある方法がダメな場合に取る別の方法」 / alternative energy sources「代替エネルギー源」 / 「ほかのものにする」",
@@ -29876,7 +29881,7 @@
       {
        "label": "②",
        "sentence": "an annual income",
-       "translation": ""
+       "translation": "年収"
       }
      ],
      "reference": "後ろにくる名詞により①か②か意味が決まる / an annual income「年収」 / anniversary「記念日」 / annually「毎年，年1回の」",
@@ -30012,7 +30017,7 @@
       {
        "label": "②",
        "sentence": "Her initials are M.N.",
-       "translation": ""
+       "translation": "彼女のイニシャルは M．N．です．"
       }
      ],
      "reference": "Her initials are M.N.「彼女のイニシャルは M.N.です。」 / initiate「～を始める」 / initialize「～を初期化する」 / initially「最初は」",
@@ -30279,7 +30284,7 @@
       {
        "label": "②",
        "sentence": "domestic violence (DV) My office is located in Tokyo.",
-       "translation": ""
+       "translation": "家庭内暴力私の職場は東京にある．"
       }
      ],
      "reference": "②「家の中の，家庭の」→①「国内の」 / domestic violence (DV)「家庭内暴力」 / dome「家」 / foreign「外国の」",
@@ -30546,7 +30551,7 @@
       {
        "label": "②",
        "sentence": "a dull knife(e a sharp knife) an awkward silence",
-       "translation": "切れ味の悪いナイフ(鋭いナイフ)"
+       "translation": "切れ味の悪いナイフ(鋭いナイフ)気まずい沈黙"
       }
      ],
      "reference": "①日常では boring のほうが使われる / a dull knife (⇔ a sharp knife)「切れ味の悪いナイフ（⇔鋭いナイフ）」 / 覚え方: ダルいし，「退屈だ」 / ②sharp「鋭い」",
@@ -30787,7 +30792,7 @@
       {
        "label": "②",
        "sentence": "camping equipment",
-       "translation": ""
+       "translation": "キャンプ用品"
       }
      ],
      "reference": "「（比較的，大きな）設備」から「キャンプ用品」まで / equip A with B「AにBを備え付ける」",
@@ -30864,7 +30869,7 @@
       {
        "label": "②",
        "sentence": "the aim of this course",
-       "translation": ""
+       "translation": "この講座の狙い"
       }
      ],
      "reference": "①「明確な目的を定め，その達成のために努力する」 / the aim of this course「この講座の狙い」",
@@ -30887,7 +30892,7 @@
       {
        "label": "②",
        "sentence": "achieve my objective",
-       "translation": ""
+       "translation": "私の目標を達成する"
       }
      ],
      "reference": "②「（長期的な視野に立った具体的な）目標」（堅い語） / subjective「主観的な」 / achieve my objective「私の目標を達成する」",
@@ -30928,7 +30933,7 @@
       {
        "label": "②",
        "sentence": "speak slowly and deliberately",
-       "translation": ""
+       "translation": "ゆっくりと慎重に話す"
       }
      ],
      "reference": "①日常では on purpose のほうが使われる / speak slowly and deliberately「ゆっくりと慎重に話す」 / deliberate「故意の，慎重な」",
@@ -30974,7 +30979,7 @@
       {
        "label": "②",
        "sentence": "Her success was largely because of luck.",
-       "translation": ""
+       "translation": "彼女の成功は主に幸運のおかげだった．"
       }
      ],
      "reference": "①= mostly ②chiefly より強い語 / large「大きい，多い」の副詞形 / partly「一部には」",
@@ -31033,7 +31038,7 @@
       {
        "label": "②",
        "sentence": "faint in the extreme heat",
-       "translation": ""
+       "translation": "猛暑の中で気絶する"
       }
      ],
      "reference": "faint in the extreme heat「猛暑の中で気絶する」 / feint「フェイント（攻撃）」は別語源の語",
@@ -31313,7 +31318,7 @@
       {
        "label": "②",
        "sentence": "That'll be $120 altogether, please.",
-       "translation": ""
+       "translation": "全部で 120 ドルになります．"
       }
      ],
      "reference": "①completely より強い意味 / That'll be $120 altogether,please.「全部で120ドルになります。」 / not altogether「まったく～というわけではない」",
@@ -31354,7 +31359,7 @@
       {
        "label": "②",
        "sentence": "She looked different somehow.",
-       "translation": ""
+       "translation": "どういうわけか彼女は違って見えた．"
       }
      ],
      "reference": "「方法」や「理由」は不明確であることを示唆 / She looked different somehow.「どういうわけか彼女は違って見えた。」 / 「（よく分からない）何かの」+「方法，点」",
@@ -31377,7 +31382,7 @@
       {
        "label": "②",
        "sentence": "She began thus.",
-       "translation": "それゆえ，解くのは簡単だ．彼女はこのように切り出した．"
+       "translation": "彼女はこのように切り出した．"
       }
      ],
      "reference": "堅い語 / She began thus.「彼女はこのように切り出した。」",
@@ -31400,7 +31405,7 @@
       {
        "label": "②",
        "sentence": "a really pretty bag",
-       "translation": ""
+       "translation": "本当にかわいいかばん"
       }
      ],
      "reference": "①文語では fairly のほうが使われる ②日本語の「かわいい」よりも，もっと大人っぽい「美しさ」に対して用いる（主に女性言葉） / a really pretty bag「本当にかわいいかばん」 / pretty good「まあまあいいよ」（人に対しては失礼な表現）",

@@ -227,7 +227,7 @@ const revealed = ref(false)
 const selected = ref<number | null>(null)
 const inputVal = ref('')
 const choicesShown = ref(false) // 4択の段階表示
-const showTrans = ref(false) // 和訳トグル
+const transShown = ref<Record<number, boolean>>({}) // 例文ごとの和訳トグル
 const showExpl = ref(false) // 例文説明トグル
 
 function primeDisplay() {
@@ -238,7 +238,7 @@ function primeDisplay() {
   selected.value = ans?.selected ?? null
   inputVal.value = ans?.input ?? ''
   choicesShown.value = !!ans // 回答済みなら選択肢を復元表示
-  showTrans.value = false
+  transShown.value = {}
   showExpl.value = false
   if (!ans && displayed.value) speak(displayed.value.vocab.word)
 }
@@ -747,10 +747,11 @@ function toggleSec(id: number) {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>
                   </button>
                 </div>
-                <div v-if="e.translation && showTrans" style="font-size: 12px; color: var(--faint); margin-top: 3px"><span v-if="e.label" class="ex-label" style="color: var(--faint)">{{ e.label }}</span>{{ e.translation }}</div>
-              </div>
-              <div v-if="!showTrans && examples.some((e) => e.translation)" style="margin-top: 4px">
-                <button class="mini-link" @click="showTrans = true">和訳を表示</button>
+                <!-- 和訳は例文ごとに表示を切り替える -->
+                <div v-if="e.translation" style="margin-top: 2px">
+                  <button v-if="!transShown[ei]" class="mini-link" @click="transShown[ei] = true">和訳を表示</button>
+                  <div v-else style="font-size: 12px; color: var(--faint); margin-top: 3px"><span v-if="e.label" class="ex-label" style="color: var(--faint)">{{ e.label }}</span>{{ e.translation }}</div>
+                </div>
               </div>
               <div v-if="displayed.vocab.exampleExplanation" style="margin-top: 6px">
                 <button v-if="!showExpl" class="mini-link" @click="showExpl = true">例文の説明を表示</button>
