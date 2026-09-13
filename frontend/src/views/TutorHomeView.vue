@@ -144,10 +144,6 @@ async function deleteEvent() {
   eventModal.value = null
 }
 
-function fmtMd(isoDate: string) {
-  const d = parseDate(isoDate)
-  return `${d.getMonth() + 1}/${d.getDate()}`
-}
 
 function recordColorHex(c: string | null): string {
   return c === 'red' ? '#d92d20' : c === 'blue' ? '#2563eb' : c === 'green' ? '#2e9d62' : '#1c2024'
@@ -219,7 +215,6 @@ function recordColorHex(c: string | null): string {
               <div v-for="b in g.books" :key="b.name" class="book-block">
                 <div class="book-name">{{ b.name }}</div>
                 <div v-for="r in b.rows" :key="r.id" class="rec-row">
-                  <span style="font-size: 11.5px; color: var(--mut); width: 36px; flex-shrink: 0">{{ fmtMd(r.date) }}</span>
                   <span class="rec-badge" :style="{ background: TYPE_BADGE[r.type]?.bg ?? '#f1f2f4', color: TYPE_BADGE[r.type]?.fg ?? '#6b7280' }">{{ r.type }}</span>
                   <span class="rec-title" :style="{ color: recordColorHex(r.color) }">{{ parentLabel(r) }}</span>
                   <span class="rec-src">
