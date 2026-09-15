@@ -31,7 +31,7 @@ const secSel = ref<Record<number, boolean>>({})
 const impSel = ref<number[]>([]) // 重要度絞り込み（空=全件）
 const labelSel = ref<VocabularyLabel[]>([]) // ラベル絞り込み（空=全件）
 const quizType = ref<QuizType>('choice')
-const ordered = ref(false)
+const ordered = ref(true) // 出題順のデフォルトは「順番」
 const count = ref(10)
 const incorrectOnly = ref(false)
 const wq = ref('')

@@ -24,7 +24,7 @@ const form = reactive<{ resourceId: number | null; sectionIds: Set<number>; coun
   count: 20,
   type: 'meaning',
   format: 'free',
-  order: 'random',
+  order: 'ordered', // デフォルトは単語帳の順番
   unstudiedFirst: false,
 })
 
