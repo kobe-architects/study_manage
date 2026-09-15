@@ -35,35 +35,46 @@ class VocabularyService
         $ordered = (bool) ($params['ordered'] ?? false);
         $offset = max(0, (int) ($params['offset'] ?? 0));
         $vocabularyIds = $params['vocabularyIds'] ?? null;
+        $rangeFrom = max(0, (int) ($params['rangeFrom'] ?? 0));
+        $rangeTo = max(0, (int) ($params['rangeTo'] ?? 0));
 
         $base = Vocabulary::query()
             ->whereHas('section', fn ($q) => $q->where('study_resource_id', $resource->id))
-            ->with(['userStat' => fn ($q) => $q->where('user_id', $userId)]);
+            ->with(['section', 'userStat' => fn ($q) => $q->where('user_id', $userId)]);
+        // 単語帳の並び（一覧 API と同じ: セクション ID 順 → セクション内の並び順）。通し番号 No. はこの順の位置
+        $bookOrder = fn (Collection $c) => $c
+            ->sortBy(fn (Vocabulary $v) => sprintf('%010d-%08d', $v->study_resource_section_id, $v->sort_order))
+            ->values();
 
         // 1. 特定単語指定（リトライ/復習）
         if (! empty($vocabularyIds)) {
             return $base->whereIn('id', $vocabularyIds)->get()->shuffle()->values();
         }
 
-        // 2. 絞り込み
-        if (! empty($sectionIds)) {
-            $base->whereIn('study_resource_section_id', $sectionIds);
+        // 2. 絞り込み（通し番号の範囲指定があればセクション選択より優先）
+        if ($rangeFrom >= 1 && $rangeTo >= $rangeFrom) {
+            $all = $bookOrder($base->get());
+            $base = null;
+            $pool = $all->slice($rangeFrom - 1, $rangeTo - $rangeFrom + 1)->values();
+        } else {
+            if (! empty($sectionIds)) {
+                $base->whereIn('study_resource_section_id', $sectionIds);
+            }
+            $pool = $base->get();
         }
         if (! empty($importances)) {
-            $base->whereIn('importance', $importances);
+            $pool = $pool->whereIn('importance', $importances)->values();
         }
         if (! empty($labels)) {
-            $base->whereIn('label', $labels);
+            $pool = $pool->whereIn('label', $labels)->values();
         }
-
-        $pool = $base->get();
         if ($pool->isEmpty()) {
             return collect();
         }
 
         // 3. 順番通り（offset で「続きから」の出題に対応）
         if ($ordered) {
-            $sorted = $pool->sortBy('sort_order')->values();
+            $sorted = $bookOrder($pool);
             if ($offset > 0) {
                 $sorted = $sorted->slice($offset)->values();
             }

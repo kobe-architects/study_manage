@@ -200,13 +200,15 @@ function statusOf(w: Vocabulary): { t: string; c: string } {
 const wordRows = computed(() => {
   const term = wq.value.trim().toLowerCase()
   return vocab.items
-    .filter((w) => (wSec.value === 'all' || w.sectionId === wSec.value) && (!term || (w.word + w.meaning).toLowerCase().includes(term)))
+    .map((w, i) => ({ w, no: i + 1 })) // 配列位置 = 単語帳の通し番号（「番号で指定」と同じ No.）
+    .filter(({ w }) => (wSec.value === 'all' || w.sectionId === wSec.value) && (!term || (w.word + w.meaning).toLowerCase().includes(term)))
     .slice(0, 60)
-    .map((w) => {
+    .map(({ w, no }) => {
       const prof = w.proficiency
       const sm = statusOf(w)
       return {
         id: w.id,
+        no,
         word: w.word,
         meaning: w.meaning,
         pos: w.partOfSpeech ?? '',
@@ -263,9 +265,11 @@ async function saveMemo() {
 }
 
 function settingsObj(extra?: Partial<QuizSettings>): QuizSettings {
-  const sectionIds = sections.value.filter((s) => secSel.value[s.id]).map((s) => s.id)
+  // 番号範囲の指定があればセクション選択より優先（クイズも小テストも同じ対象）
+  const sectionIds = rangeActive.value ? [] : sections.value.filter((s) => secSel.value[s.id]).map((s) => s.id)
   return {
     sectionIds,
+    range: rangeActive.value ? { from: Number(printRange.from), to: Number(printRange.to) } : undefined,
     quizType: quizType.value,
     count: wantCount.value,
     ordered: ordered.value,
@@ -548,7 +552,7 @@ function toggleSec(id: number) {
             <button v-if="printRange.from !== null || printRange.to !== null" class="link-btn" style="color: #9aa1ab" @click="clearRange">クリア</button>
           </div>
           <div v-if="rangeActive" class="range-note">
-            No.{{ printRange.from }}〜{{ printRange.to }} の {{ printWords.length }}語が小テストの対象になります（セクション選択より優先）。
+            No.{{ printRange.from }}〜{{ printRange.to }} の {{ printWords.length }}語がクイズ・小テストの対象になります（セクション選択より優先）。
             出題順「ランダム」でシャッフルされます。
           </div>
 
@@ -642,9 +646,10 @@ function toggleSec(id: number) {
           </div>
           <div style="overflow-x: auto">
             <table class="wtbl">
-              <thead><tr><th>単語</th><th>意味</th><th style="width: 42px">品詞</th><th style="width: 54px">重要度</th><th style="width: 46px">習熟</th><th style="width: 60px">状態</th></tr></thead>
+              <thead><tr><th style="width: 44px">No</th><th>単語</th><th>意味</th><th style="width: 42px">品詞</th><th style="width: 54px">重要度</th><th style="width: 46px">習熟</th><th style="width: 60px">状態</th></tr></thead>
               <tbody>
                 <tr v-for="r in wordRows" :key="r.id">
+                  <td style="color: #9aa1ab; font-size: 12px">{{ r.no }}</td>
                   <td><button class="bare dm" style="font-size: 13.5px; font-weight: 700; color: #1c2024" @click="speak(r.word)">{{ r.word }}</button></td>
                   <td style="color: #4b5563">{{ r.meaning }}</td>
                   <td style="color: #9aa1ab">{{ r.pos }}</td>

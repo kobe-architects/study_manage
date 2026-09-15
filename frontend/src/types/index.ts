@@ -382,6 +382,8 @@ export interface QuizSettings {
   ordered?: boolean
   offset?: number
   vocabularyIds?: number[]
+  /** 単語帳の通し番号（No.）で範囲指定。指定時はセクション選択より優先 */
+  range?: { from: number; to: number }
 }
 
 export interface FlashcardSettings {

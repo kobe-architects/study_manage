@@ -29,6 +29,8 @@ class VocabularyQuizController extends Controller
             'ordered' => filter_var($request->query('ordered', false), FILTER_VALIDATE_BOOLEAN),
             'offset' => max(0, (int) $request->query('offset', 0)),
             'vocabularyIds' => $this->csv($request->query('vocabularyIds')),
+            'rangeFrom' => (int) $request->query('rangeFrom', 0),
+            'rangeTo' => (int) $request->query('rangeTo', 0),
         ];
 
         $words = $this->service->getQuizWords($studyResource, $userId, $params);
