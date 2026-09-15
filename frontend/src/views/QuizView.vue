@@ -71,6 +71,13 @@ function clearRange() {
   printRange.from = null
   printRange.to = null
 }
+// 番号範囲を指定したら、その語数（差分）を問題数に自動設定する
+watch(
+  () => [printRange.from, printRange.to],
+  () => {
+    if (rangeActive.value) count.value = Number(printRange.to) - Number(printRange.from) + 1
+  },
+)
 const printWords = computed(() => {
   // vocab.items はセクション順・並び順で取得されるため、配列位置 = 単語帳の通し番号
   const base = rangeActive.value
