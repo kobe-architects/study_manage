@@ -53,7 +53,11 @@ const WIDTHS: { key: 'thin' | 'mid' | 'thick'; label: string; f: number }[] = [
 
 const tool = ref<Tool>('pen')
 const color = ref(COLORS[0]!)
-const widthKey = ref<'thin' | 'mid' | 'thick'>('mid')
+/** 線の太さ係数（画像幅 500px 基準）。既定は「細」。プリセット以外にスライダーで自由に設定できる */
+const widthF = ref(1.4)
+const WIDTH_MIN = 0.6
+const WIDTH_MAX = 6
+const isWidth = (f: number) => Math.abs(widthF.value - f) < 0.05
 /** 縦型ツールバーの詳細設定（色・太さ・取り消し・ズーム等）の展開状態。既定は閉じる */
 const expanded = ref(false)
 /** 指はスクロール（ペン・マウスのみで描く）。スマホ・タブレットでは既定でオン */
@@ -78,7 +82,7 @@ const dirty = ref(false)
 
 /** 画像サイズに対する相対的な線幅（画像幅 500px 基準） */
 const unit = computed(() => Math.max(1, W.value / 500))
-const lineWidth = computed(() => unit.value * (WIDTHS.find((w) => w.key === widthKey.value)?.f ?? 2.4))
+const lineWidth = computed(() => unit.value * widthF.value)
 const textSize = computed(() => Math.round(W.value / 42))
 
 // ---------- 読み込み ----------
@@ -827,7 +831,11 @@ onBeforeUnmount(() => {
             <button v-for="c in COLORS" :key="c" class="sw" :class="{ on: color === c }" :style="{ background: c }" :title="c" @click="color = c"></button>
           </div>
           <div class="group">
-            <button v-for="w in WIDTHS" :key="w.key" class="tb sm" :class="{ on: widthKey === w.key }" @click="widthKey = w.key">{{ w.label }}</button>
+            <button v-for="w in WIDTHS" :key="w.key" class="tb sm" :class="{ on: isWidth(w.f) }" @click="widthF = w.f">{{ w.label }}</button>
+            <div class="wslider v" title="太さ">
+              <input v-model.number="widthF" type="range" :min="WIDTH_MIN" :max="WIDTH_MAX" step="0.2" />
+            </div>
+            <span class="wval"><i :style="{ width: Math.min(24, 3 + widthF * 3) + 'px', height: Math.min(24, 3 + widthF * 3) + 'px' }"></i>{{ widthF.toFixed(1) }}</span>
           </div>
           <div class="group">
             <button class="tb sm" :disabled="!selectedId" title="選択を削除" @click="deleteSelected">削除</button>
@@ -863,7 +871,11 @@ onBeforeUnmount(() => {
             <button v-for="c in COLORS" :key="c" class="sw" :class="{ on: color === c }" :style="{ background: c }" :title="c" @click="color = c"></button>
           </div>
           <div class="group">
-            <button v-for="w in WIDTHS" :key="w.key" class="tb sm" :class="{ on: widthKey === w.key }" @click="widthKey = w.key">{{ w.label }}</button>
+            <button v-for="w in WIDTHS" :key="w.key" class="tb sm" :class="{ on: isWidth(w.f) }" @click="widthF = w.f">{{ w.label }}</button>
+            <div class="wslider" title="太さ">
+              <input v-model.number="widthF" type="range" :min="WIDTH_MIN" :max="WIDTH_MAX" step="0.2" />
+            </div>
+            <span class="wval"><i :style="{ width: Math.min(24, 3 + widthF * 3) + 'px', height: Math.min(24, 3 + widthF * 3) + 'px' }"></i>{{ widthF.toFixed(1) }}</span>
           </div>
           <div class="group">
             <button class="tb sm" :disabled="!history.length" title="元に戻す (Ctrl+Z)" @click="undo">↶</button>
@@ -1004,6 +1016,49 @@ onBeforeUnmount(() => {
 }
 .sw.on {
   box-shadow: 0 0 0 2px #1c2024;
+}
+/* 太さスライダー（横型ツールバー）。縦型（compact）では回転して縦に置く */
+.wslider {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+}
+.wslider input[type='range'] {
+  width: 90px;
+  accent-color: #1c2024;
+  touch-action: pan-x;
+}
+.wslider.v {
+  width: 44px;
+  height: 104px;
+  justify-content: center;
+  overflow: hidden;
+}
+.wslider.v input[type='range'] {
+  width: 96px;
+  transform: rotate(-90deg);
+  touch-action: none;
+}
+.wval {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--mut);
+  font-variant-numeric: tabular-nums;
+}
+.wval i {
+  display: inline-block;
+  border-radius: 50%;
+  background: currentColor;
+  color: var(--ink);
+}
+.toolbar.vertical.compact .wval {
+  flex-direction: column;
+  color: #cfd3d9;
+}
+.toolbar.vertical.compact .wval i {
+  color: #fff;
 }
 .zoom {
   font-size: 11px;
