@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AnnotationEditor from '@/components/AnnotationEditor.vue'
 import AuthImage from '@/components/AuthImage.vue'
@@ -11,8 +11,11 @@ import type { AnnotationDoc, QuizDetail, QuizMark, QuizPageDetail } from '@/type
 
 /**
  * 講師用: 採点・添削画面。
- * 左レール: 添削ツール（固定）＋ページリスト / 中央: 回答写真の添削エディタ /
- * 右レール: ステータス・完了ボタン（固定）＋採点＋英単語テストの解答一覧。
+ * PC: 左レール: 添削ツール（固定）＋ページリスト / 中央: 回答写真の添削エディタ /
+ *     右レール: ステータス・完了ボタン（固定）＋採点＋英単語テストの解答一覧。
+ * タブレット・スマホ（幅 1100px 以下）: ツール・ページリストは表示せず、回答写真（閲覧用）をタップすると
+ *     全画面の添削モードを開く。全画面では左に縦型ツール、上にページ一覧（横スクロール）、
+ *     「解答を表示」で上下分割して下に解答ページ（境界はドラッグで移動）。PC でも「全画面」ボタンで同じ画面を使える。
  * 添削はペン等で変更すると自動保存される。
  */
 const route = useRoute()
@@ -31,6 +34,59 @@ const answerUrl = ref<string | null>(null)
 const vocabAnswers = computed(() => (page.value?.kind === 'vocab' ? page.value.vocabWords ?? [] : []))
 
 const form = reactive<{ mark: QuizMark | null; comment: string; saving: boolean }>({ mark: null, comment: '', saving: false })
+
+// ---- 画面幅（タブレット・スマホ判定）と全画面添削モード ----
+const mq = typeof window !== 'undefined' ? window.matchMedia('(max-width: 1100px)') : null
+const narrow = ref(mq?.matches ?? false)
+const onMq = (e: MediaQueryListEvent) => (narrow.value = e.matches)
+const fsOpen = ref(false)
+/** オーバーレイが DOM に入ってからエディタを描画する（ツールバーのテレポート先 #fs-tools を先に作るため） */
+const fsReady = ref(false)
+const showAns = ref(false)
+/** 上下分割の上側（添削）の比率 */
+const splitRatio = ref(0.55)
+const fsMain = ref<HTMLElement | null>(null)
+async function openFs() {
+  if (!page.value?.hasAnswer) return
+  fsOpen.value = true
+  fsReady.value = false
+  document.body.style.overflow = 'hidden'
+  await nextTick()
+  fsReady.value = true
+}
+async function closeFs() {
+  await flushAnnotations()
+  fsOpen.value = false
+  fsReady.value = false
+  document.body.style.overflow = ''
+}
+/** 解答ペインに出せる内容があるか（解答つき PDF のページ、または英単語テストの解答一覧） */
+const hasAnsPane = computed(() => {
+  const p = page.value
+  if (!p) return false
+  return (p.kind === 'pdf' && !!p.ansPdfId && !!p.ansPage) || (p.kind === 'vocab' && vocabAnswers.value.length > 0)
+})
+let dragDiv: number | null = null
+function onDivDown(e: PointerEvent) {
+  dragDiv = e.pointerId
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  e.preventDefault()
+}
+function onDivMove(e: PointerEvent) {
+  if (dragDiv !== e.pointerId || !fsMain.value) return
+  const r = fsMain.value.getBoundingClientRect()
+  splitRatio.value = Math.min(0.85, Math.max(0.2, (e.clientY - r.top) / r.height))
+}
+function onDivUp(e: PointerEvent) {
+  if (dragDiv === e.pointerId) dragDiv = null
+}
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Escape' && fsOpen.value) {
+    const t = e.target as HTMLElement | null
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return
+    closeFs()
+  }
+}
 
 async function load(keepIdx = true) {
   const q = await quizApi.show(quizId)
@@ -71,9 +127,14 @@ onMounted(async () => {
     ui.notify('小テストの取得に失敗しました')
     router.push({ name: 'tutor-quizzes' })
   }
+  mq?.addEventListener('change', onMq)
+  window.addEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => {
   if (answerUrl.value) URL.revokeObjectURL(answerUrl.value)
+  mq?.removeEventListener('change', onMq)
+  window.removeEventListener('keydown', onKey)
+  document.body.style.overflow = ''
 })
 
 watch(pageIdx, async () => {
@@ -109,6 +170,7 @@ async function onSave(doc: AnnotationDoc, blob: Blob) {
       if (updated && quiz.value!.pages[pageIdx.value]) {
         quiz.value!.pages[pageIdx.value]!.hasAnnotated = updated.hasAnnotated
         quiz.value!.pages[pageIdx.value]!.annotatedVersion = updated.annotatedVersion
+        quiz.value!.pages[pageIdx.value]!.annotations = doc
       }
       editor.value?.markSaved()
       dirty.value = editor.value?.isDirty() ?? false
@@ -239,10 +301,11 @@ async function downloadResult() {
         <span v-if="page.chapter">{{ page.chapter }}</span>
         <span v-if="page.difficulty" style="color: #d98a1a">{{ page.difficulty }}</span>
         <span class="bar-ctrl">
-          <template v-if="answerUrl">
+          <template v-if="answerUrl && !narrow">
             <button class="mini" title="縮小" @click="editor?.zoomBy(1 / 1.25)">−</button>
             <button class="mini" title="拡大" @click="editor?.zoomBy(1.25)">＋</button>
             <button class="mini" title="画像全体を表示" @click="editor?.fit()">全体</button>
+            <button class="mini" title="全画面で添削" @click="openFs">全画面</button>
             <span class="ctrl-sep"></span>
           </template>
           <button class="mini" :disabled="pageIdx === 0" @click="gotoPage(pageIdx - 1)">‹ 前へ</button>
@@ -251,8 +314,13 @@ async function downloadResult() {
         </span>
       </div>
       <template v-if="page">
+        <!-- タブレット・スマホ: 閲覧用（タップで全画面添削） -->
+        <div v-if="narrow && answerUrl && !fsOpen" class="preview" @click="openFs">
+          <AnnotationEditor :key="'pv' + page.id" :image-url="answerUrl" :model-value="page.annotations" readonly />
+          <div class="preview-hint">タップして添削（全画面）</div>
+        </div>
         <AnnotationEditor
-          v-if="answerUrl"
+          v-else-if="!narrow && answerUrl && !fsOpen"
           ref="editor"
           :key="page.id"
           :image-url="answerUrl"
@@ -262,8 +330,8 @@ async function downloadResult() {
           @save="onSave"
           @dirty="dirty = $event"
         />
-        <div v-else-if="page.hasAnswer" class="empty">回答画像を読み込み中…</div>
-        <div v-else class="empty">このページの回答はまだ提出されていません。</div>
+        <div v-else-if="page.hasAnswer && !fsOpen" class="empty">回答画像を読み込み中…</div>
+        <div v-else-if="!page.hasAnswer" class="empty">このページの回答はまだ提出されていません。</div>
       </template>
     </div>
 
@@ -333,6 +401,68 @@ async function downloadResult() {
     </aside>
   </div>
   <div v-else class="empty">読み込み中…</div>
+  <!-- 全画面添削: 上=ページ一覧（横スクロール）・左=縦型ツール・中央=添削キャンバス（「解答を表示」で上下分割） -->
+  <div v-if="fsOpen && quiz && page" class="fs">
+    <div class="fs-top">
+      <button class="fs-close" @click="closeFs">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        閉じる
+      </button>
+      <div class="fs-pages">
+        <button v-for="(p, i) in quiz.pages" :key="p.id" class="fs-page" :class="{ on: i === pageIdx }" @click="gotoPage(i)">
+          <span class="pn">{{ p.pageNo }}</span>
+          <span class="pl">{{ p.label }}</span>
+          <span v-if="p.mark" class="pm" :style="{ color: i === pageIdx ? MARK_COLOR[p.mark] : MARK_COLOR[p.mark] }">{{ MARK_LABEL[p.mark] }}</span>
+          <span v-else-if="!p.hasAnswer" class="pm ng">未</span>
+        </button>
+      </div>
+      <button v-if="hasAnsPane" class="fs-ans-btn" :class="{ on: showAns }" @click="showAns = !showAns">{{ showAns ? '解答を閉じる' : '解答を表示' }}</button>
+      <span class="fs-state" :class="{ dirty: dirty || saving }">{{ saving ? '保存中…' : dirty ? '自動保存待ち…' : '保存済み' }}</span>
+    </div>
+    <div class="fs-body">
+      <aside class="fs-side"><div id="fs-tools"></div></aside>
+      <div ref="fsMain" class="fs-main">
+        <div class="fs-canvas" :style="{ height: showAns && hasAnsPane ? 'calc(' + Math.round(splitRatio * 100) + '% - 6px)' : '100%' }">
+          <AnnotationEditor
+            v-if="fsReady && answerUrl"
+            ref="editor"
+            :key="'fs' + page.id"
+            :image-url="answerUrl"
+            :model-value="page.annotations"
+            :saving="saving"
+            toolbar-target="#fs-tools"
+            compact
+            fit-to-container
+            @save="onSave"
+            @dirty="dirty = $event"
+          />
+          <div v-else-if="!page.hasAnswer" class="fs-empty">このページの回答はまだ提出されていません。</div>
+          <div v-else class="fs-empty">回答画像を読み込み中…</div>
+        </div>
+        <template v-if="showAns && hasAnsPane">
+          <div class="fs-divider" title="ドラッグで境界を移動" @pointerdown="onDivDown" @pointermove="onDivMove" @pointerup="onDivUp" @pointercancel="onDivUp"><span></span></div>
+          <div class="fs-answer">
+            <div v-if="page.kind === 'pdf' && page.ansPdfId && page.ansPage" class="fs-ans-pdf">
+              <div class="fs-ans-title">解答（{{ page.ansPdfTitle }} p.{{ page.ansPage }}）</div>
+              <PdfThumb :key="'fsans' + page.id" :pdf-id="page.ansPdfId" :page="page.ansPage" :width="1400" eager />
+            </div>
+            <div v-else class="fs-ans-pdf">
+              <div class="fs-ans-title">解答一覧（{{ vocabAnswers.length }}問）</div>
+              <table class="ans">
+                <tbody>
+                  <tr v-for="(w, i) in vocabAnswers" :key="w.id">
+                    <td class="n">{{ i + 1 }}</td>
+                    <td class="q">{{ w.question }}</td>
+                    <td class="a">{{ w.answer }}<span v-if="w.choices?.length" class="ch">（{{ 'ABCD'[w.choices.indexOf(w.answer)] ?? '?' }}）</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
   <div v-if="sheetOpen && quiz && page" class="sheet-overlay" @click="sheetOpen = false">
     <div class="sheet-modal" @click.stop>
       <button class="sheet-x" @click="sheetOpen = false">×</button>
@@ -368,7 +498,7 @@ async function downloadResult() {
   gap: 10px;
   scrollbar-width: thin;
 }
-/* タブレット・スマホ: 1カラムに。ツール＋ページリストは上部に固定し、ページは横スクロールのチップ列にする */
+/* タブレット・スマホ: 1カラム。ツール・ページリスト（左レール）は表示せず、回答写真のタップで全画面添削を開く */
 @media (max-width: 1100px) {
   .grade {
     width: auto;
@@ -383,34 +513,210 @@ async function downloadResult() {
     position: static;
   }
   .rail-l {
-    position: sticky;
-    top: 0;
-    z-index: 6;
-    background: #f6f7f9;
-    padding-bottom: 4px;
-    gap: 8px;
-  }
-  .plist-body {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-  }
-  .plist-body::-webkit-scrollbar {
     display: none;
   }
-  .plist-body .prow {
-    width: auto;
-    flex-shrink: 0;
-    border: 1px solid #e3e6ea;
-    border-radius: 999px;
-    padding: 6px 12px;
-  }
-  .plist-body .pl {
-    max-width: 150px;
-    flex: none;
-  }
+}
+/* 閲覧用プレビュー（タブレット） */
+.preview {
+  position: relative;
+  cursor: pointer;
+}
+.preview :deep(.stage) {
+  max-height: 70vh;
+  min-height: 200px;
+}
+.preview-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(28, 32, 36, 0.78);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
+  white-space: nowrap;
+}
+/* 全画面添削 */
+.fs {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  background: #1f2328;
+  color: #fff;
+  overscroll-behavior: contain;
+}
+.fs-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #2a2f36;
+  flex-shrink: 0;
+  padding-top: max(6px, env(safe-area-inset-top));
+}
+.fs-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border: 1px solid #444a53;
+  border-radius: 9px;
+  background: transparent;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.fs-pages {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 0;
+}
+.fs-pages::-webkit-scrollbar {
+  display: none;
+}
+.fs-page {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid #444a53;
+  border-radius: 999px;
+  background: transparent;
+  color: #cfd3d9;
+  font-size: 12px;
+  cursor: pointer;
+  max-width: 220px;
+}
+.fs-page .pn {
+  background: rgba(255, 255, 255, 0.14);
+}
+.fs-page.on {
+  background: #fff;
+  border-color: #fff;
+  color: #1c2024;
+}
+.fs-page.on .pn {
+  background: rgba(0, 0, 0, 0.08);
+}
+.fs-page .pl {
+  max-width: 140px;
+}
+.fs-ans-btn {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border: 1px solid #444a53;
+  border-radius: 9px;
+  background: transparent;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fs-ans-btn.on {
+  background: #fff;
+  border-color: #fff;
+  color: #1c2024;
+}
+.fs-state {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #8fd1a5;
+  white-space: nowrap;
+}
+.fs-state.dirty {
+  color: #f0c36d;
+}
+.fs-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.fs-side {
+  width: 56px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  background: #2a2f36;
+  padding: 4px 6px;
+  padding-left: max(6px, env(safe-area-inset-left));
+}
+.fs-side::-webkit-scrollbar {
+  display: none;
+}
+.fs-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.fs-canvas {
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+.fs-canvas :deep(.editor.fill) {
+  width: 100%;
+  height: 100%;
+}
+.fs-canvas :deep(.stage) {
+  background: #3a3f46;
+}
+.fs-empty {
+  margin: auto;
+  color: #9aa1ab;
+  font-size: 13px;
+}
+.fs-divider {
+  height: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2a2f36;
+  cursor: row-resize;
+  touch-action: none;
+}
+.fs-divider span {
+  width: 56px;
+  height: 5px;
+  border-radius: 3px;
+  background: #9aa1ab;
+}
+.fs-answer {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #fff;
+  color: #1c2024;
+}
+.fs-ans-pdf {
+  padding: 8px 10px;
+}
+.fs-ans-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mut);
+  margin-bottom: 6px;
+}
+.fs-ans-pdf :deep(.thumb) {
+  width: 100% !important;
+  aspect-ratio: auto;
+  border: none;
 }
 .card {
   background: #fff;

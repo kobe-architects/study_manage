@@ -8,10 +8,21 @@ import type { AnnotationDoc, AnnotationItem, AnnotationShape } from '@/types'
  * - テキストは入力後も「選択」でドラッグ移動・右下ハンドルでサイズ変更できる（入力確定時に自動で選択状態になる）
  * - 注釈は画像ピクセル座標のベクターとして保持し、変更が止まると自動保存（合成 JPEG も生成）
  * - toolbarTarget を指定するとツールバーをその要素へテレポートして縦型表示にする
+ * - compact: 全画面添削のサイドメニュー用。ペン・消しゴム・戻す・進むだけ常時表示し、他は展開ボタンで表示
+ * - fitToContainer: 表示領域（.stage）の高さに合わせて画像をフィットさせる（全画面表示用）
+ * - フリーハンドで線を引いたまま止めて（ホールド）いると、直線に書き直される（ほぼ直線の場合のみ）
  */
 type Tool = 'select' | 'pen' | 'eraser' | AnnotationShape | 'text'
 
-const props = defineProps<{ imageUrl: string; modelValue: AnnotationDoc | null; saving?: boolean; readonly?: boolean; toolbarTarget?: string }>()
+const props = defineProps<{
+  imageUrl: string
+  modelValue: AnnotationDoc | null
+  saving?: boolean
+  readonly?: boolean
+  toolbarTarget?: string
+  compact?: boolean
+  fitToContainer?: boolean
+}>()
 const emit = defineEmits<{ save: [doc: AnnotationDoc, blob: Blob]; dirty: [boolean] }>()
 
 const TOOLS: { key: Tool; label: string; icon: string }[] = [
@@ -27,6 +38,11 @@ const TOOLS: { key: Tool; label: string; icon: string }[] = [
   { key: 'text', label: '文字', icon: 'M5 6h14 M12 6v13 M8 19h8' },
 ]
 const COLORS = ['#e5322d', '#2d5be5', '#1f9d55', '#111111', '#e58f2d']
+const iconOf = (k: Tool) => TOOLS.find((t) => t.key === k)?.icon ?? ''
+const ICON_UNDO = 'M9 14L4 9l5-5 M4 9h10a6 6 0 0 1 0 12h-3'
+const ICON_REDO = 'M15 14l5-5-5-5 M20 9H10a6 6 0 0 0 0 12h3'
+/** compact（全画面サイドメニュー）で展開時に表示するツール */
+const SECONDARY_TOOLS = TOOLS.filter((t) => t.key !== 'pen' && t.key !== 'eraser')
 const WIDTHS: { key: 'thin' | 'mid' | 'thick'; label: string; f: number }[] = [
   { key: 'thin', label: '細', f: 1.4 },
   { key: 'mid', label: '中', f: 2.4 },
@@ -116,13 +132,17 @@ function scheduleSave(delay = 1000) {
 // ---------- 表示 ----------
 let ro: ResizeObserver | null = null
 let lastCw = 0
+let lastCh = 0
 function fit() {
   if (!container.value || !W.value) return
   lastCw = container.value.clientWidth
   const cw = lastCw - 2
   // 画像全体が画面に収まるサイズを既定にする（幅・高さの両方でフィット）
   const top = container.value.getBoundingClientRect().top
-  const availH = Math.max(280, window.innerHeight - Math.max(0, top) - 24)
+  lastCh = container.value.clientHeight
+  const availH = props.fitToContainer && lastCh > 0
+    ? Math.max(120, lastCh - 2)
+    : Math.max(280, window.innerHeight - Math.max(0, top) - 24)
   fitScale.value = Math.min(1, cw / W.value, availH / H.value) || 1
   zoom.value = 1
   nextTick(draw)
@@ -355,6 +375,49 @@ let resizeItem: { id: string; startSize: number; sx: number; sy: number; snapped
 let moved = false
 const uid = () => Math.random().toString(36).slice(2, 10)
 
+// ---------- フリーハンドのホールドで直線化 ----------
+let holdTimer: ReturnType<typeof setTimeout> | null = null
+let holdAnchor: { x: number; y: number } | null = null
+const HOLD_MS = 550
+function clearHold() {
+  if (holdTimer) clearTimeout(holdTimer)
+  holdTimer = null
+  holdAnchor = null
+}
+/** ペンが動いたら計測をやり直す。止まったまま HOLD_MS 経つと直線化を試みる */
+function armHold(p: { x: number; y: number }) {
+  if (holdAnchor && Math.hypot(p.x - holdAnchor.x, p.y - holdAnchor.y) * scale.value < 4) return
+  if (holdTimer) clearTimeout(holdTimer)
+  holdAnchor = p
+  holdTimer = setTimeout(straightenIfHeld, HOLD_MS)
+}
+function straightenIfHeld() {
+  holdTimer = null
+  if (!temp || temp.type !== 'pen') return
+  const pts = temp.points
+  if (pts.length < 8) return
+  const x1 = pts[0]!
+  const y1 = pts[1]!
+  const x2 = pts[pts.length - 2]!
+  const y2 = pts[pts.length - 1]!
+  const len = Math.hypot(x2 - x1, y2 - y1)
+  if (len * scale.value < 40) return // 短すぎる（点・小さな丸など）は対象外
+  // 始点→現在位置の線分からのずれが小さい（ほぼ直線）場合だけ直線にする
+  let maxD = 0
+  for (let i = 0; i < pts.length; i += 2) {
+    maxD = Math.max(maxD, distToSeg(pts[i]!, pts[i + 1]!, x1, y1, x2, y2))
+  }
+  if (maxD > Math.max(10 / scale.value, len * 0.08)) return
+  // 水平・垂直に近ければ揃える
+  let ex = x2
+  let ey = y2
+  const deg = Math.abs((Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI)
+  if (deg < 8 || deg > 172) ey = y1
+  else if (Math.abs(deg - 90) < 8) ex = x1
+  temp = { id: temp.id, type: 'line', color: temp.color, width: temp.width, x1, y1, x2: ex, y2: ey }
+  draw()
+}
+
 function toImage(e: PointerEvent): { x: number; y: number } {
   const r = canvas.value!.getBoundingClientRect()
   return { x: (e.clientX - r.left) / scale.value, y: (e.clientY - r.top) / scale.value }
@@ -378,6 +441,7 @@ function onDown(e: PointerEvent) {
   switch (tool.value) {
     case 'pen':
       temp = { id: uid(), type: 'pen', color: color.value, width: lineWidth.value, points: [p.x, p.y] }
+      armHold(p)
       break
     case 'eraser':
       eraseAt(p.x, p.y)
@@ -417,6 +481,7 @@ function onMove(e: PointerEvent) {
       const p = toImage(ev)
       temp.points.push(p.x, p.y)
     }
+    armHold(last)
     draw()
   } else if (temp && temp.type !== 'text') {
     temp.x2 = last.x
@@ -452,6 +517,7 @@ function onMove(e: PointerEvent) {
 function onUp(e: PointerEvent) {
   if (activePointer !== e.pointerId) return
   activePointer = null
+  clearHold()
   const p = toImage(e)
 
   if (temp) {
@@ -484,6 +550,7 @@ function onUp(e: PointerEvent) {
 function onCancel(e: PointerEvent) {
   if (activePointer !== e.pointerId) return
   activePointer = null
+  clearHold()
   temp = null
   dragItem = null
   resizeItem = null
@@ -613,7 +680,8 @@ onMounted(() => {
   // そこで再フィットするとズームがリセットされてしまうため、幅が大きく変わったときだけ再フィットする
   ro = new ResizeObserver(() => {
     const cw = container.value?.clientWidth ?? 0
-    if (Math.abs(cw - lastCw) > 24) fit()
+    const ch = container.value?.clientHeight ?? 0
+    if (Math.abs(cw - lastCw) > 24 || (props.fitToContainer && Math.abs(ch - lastCh) > 24)) fit()
   })
   if (container.value) ro.observe(container.value)
   window.addEventListener('keydown', onKey)
@@ -622,13 +690,61 @@ onBeforeUnmount(() => {
   ro?.disconnect()
   window.removeEventListener('keydown', onKey)
   if (saveTimer) clearTimeout(saveTimer)
+  clearHold()
 })
 </script>
 
 <template>
-  <div class="editor">
+  <div class="editor" :class="{ fill: fitToContainer }">
     <Teleport :to="toolbarTarget" :disabled="!toolbarTarget">
-      <div v-if="!readonly" class="toolbar" :class="{ vertical: !!toolbarTarget }">
+      <div v-if="!readonly && compact" class="toolbar vertical compact">
+        <!-- 常時表示: ペン・消しゴム・戻す・進む＋展開 -->
+        <div class="group tools">
+          <button class="tb" :class="{ on: tool === 'pen' }" title="ペン" @click="tool = 'pen'; selectedId = null; draw()">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="iconOf('pen')" /></svg>
+          </button>
+          <button class="tb" :class="{ on: tool === 'eraser' }" title="消しゴム" @click="tool = 'eraser'; selectedId = null; draw()">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="iconOf('eraser')" /></svg>
+          </button>
+          <button class="tb" :disabled="!history.length" title="元に戻す" @click="undo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="ICON_UNDO" /></svg>
+          </button>
+          <button class="tb" :disabled="!redoStack.length" title="やり直す" @click="redo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="ICON_REDO" /></svg>
+          </button>
+          <button class="tb more" :class="{ on: expanded }" :title="expanded ? 'ツールを閉じる' : 'その他のツール'" @click="expanded = !expanded">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+          </button>
+        </div>
+        <template v-if="expanded">
+          <div class="group tools">
+            <button v-for="t in SECONDARY_TOOLS" :key="t.key" class="tb" :class="{ on: tool === t.key }" :title="t.label" @click="tool = t.key; selectedId = null; draw()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="t.icon" /></svg>
+              <span class="tb-label">{{ t.label }}</span>
+            </button>
+          </div>
+          <div class="group colors">
+            <button v-for="c in COLORS" :key="c" class="sw" :class="{ on: color === c }" :style="{ background: c }" :title="c" @click="color = c"></button>
+          </div>
+          <div class="group">
+            <button v-for="w in WIDTHS" :key="w.key" class="tb sm" :class="{ on: widthKey === w.key }" @click="widthKey = w.key">{{ w.label }}</button>
+          </div>
+          <div class="group">
+            <button class="tb sm" :disabled="!selectedId" title="選択を削除" @click="deleteSelected">削除</button>
+            <button class="tb sm" :disabled="!items.length" title="すべて消す" @click="clearAll">全消去</button>
+          </div>
+          <div class="group">
+            <button class="tb sm" @click="zoomBy(1.25)">＋</button>
+            <span class="zoom">{{ Math.round(zoom * 100) }}%</span>
+            <button class="tb sm" @click="zoomBy(1 / 1.25)">−</button>
+            <button class="tb sm" @click="fit">全体</button>
+          </div>
+          <label class="chk" title="オンにすると指はスクロール・ペン（Apple Pencil）やマウスだけで描きます">
+            <input v-model="penOnly" type="checkbox" /> 指はスクロール
+          </label>
+        </template>
+      </div>
+      <div v-else-if="!readonly" class="toolbar" :class="{ vertical: !!toolbarTarget }">
         <!-- ツールアイコン（縦型ではアイコンのみ・常時表示） -->
         <div class="group tools">
           <button v-for="t in TOOLS" :key="t.key" class="tb" :class="{ on: tool === t.key }" :title="t.label" @click="tool = t.key; selectedId = null; draw()">
@@ -926,6 +1042,90 @@ onBeforeUnmount(() => {
 .toolbar.vertical .save-state {
   margin: 8px 0 0;
   text-align: center;
+}
+/* 全画面添削のサイドメニュー（compact）: 縦一列・アイコンのみ */
+.toolbar.vertical.compact {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+}
+.toolbar.vertical.compact .group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.toolbar.vertical.compact .group.tools {
+  display: flex;
+  flex-direction: column;
+}
+.toolbar.vertical.compact .tb {
+  width: 44px;
+  height: 44px;
+  min-width: 0;
+  padding: 0;
+  justify-content: center;
+  border-radius: 10px;
+  color: #cfd3d9;
+  font-size: 12px;
+  font-weight: 700;
+}
+.toolbar.vertical.compact .tb:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.toolbar.vertical.compact .tb.on {
+  background: #fff;
+  border-color: #fff;
+  color: #1c2024;
+}
+.toolbar.vertical.compact .tb.more.on {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+.toolbar.vertical.compact .tb.sm {
+  height: 36px;
+}
+.toolbar.vertical.compact .tools .tb-label {
+  display: none;
+}
+.toolbar.vertical.compact .sw {
+  width: 24px;
+  height: 24px;
+  margin: 2px 0;
+  border-color: #2a2f36;
+}
+.toolbar.vertical.compact .sw.on {
+  box-shadow: 0 0 0 2px #fff;
+}
+.toolbar.vertical.compact .zoom {
+  color: #cfd3d9;
+  width: auto;
+}
+.toolbar.vertical.compact .chk {
+  color: #cfd3d9;
+  flex-direction: column;
+  font-size: 10px;
+  padding: 6px 2px;
+  white-space: normal;
+  text-align: center;
+}
+/* 表示領域の高さに合わせる（全画面添削） */
+.editor.fill {
+  width: 100%;
+  height: 100%;
+  gap: 0;
+}
+.editor.fill .stage {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  border: none;
+  border-radius: 0;
 }
 .stage.pen .overlay,
 .stage.circle .overlay,
