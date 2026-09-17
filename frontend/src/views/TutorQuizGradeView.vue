@@ -46,11 +46,51 @@ const showAns = ref(false)
 /** 上下分割の上側（添削）の比率 */
 const splitRatio = ref(0.55)
 const fsMain = ref<HTMLElement | null>(null)
+/** 全画面中はページを完全に固定する（iOS のゴムスクロール・引っ張って更新・ダブルタップ拡大を防ぐ） */
+let lockedScrollY = 0
+function lockPage() {
+  lockedScrollY = window.scrollY
+  const b = document.body.style
+  b.position = 'fixed'
+  b.top = `-${lockedScrollY}px`
+  b.left = '0'
+  b.right = '0'
+  b.width = '100%'
+  b.overflow = 'hidden'
+  b.overscrollBehavior = 'none'
+  document.documentElement.style.overscrollBehavior = 'none'
+  document.addEventListener('touchmove', onDocTouchMove, { passive: false })
+  document.addEventListener('gesturestart', preventEvent)
+  document.addEventListener('gesturechange', preventEvent)
+}
+function unlockPage() {
+  const b = document.body.style
+  b.position = ''
+  b.top = ''
+  b.left = ''
+  b.right = ''
+  b.width = ''
+  b.overflow = ''
+  b.overscrollBehavior = ''
+  document.documentElement.style.overscrollBehavior = ''
+  document.removeEventListener('touchmove', onDocTouchMove)
+  document.removeEventListener('gesturestart', preventEvent)
+  document.removeEventListener('gesturechange', preventEvent)
+  window.scrollTo(0, lockedScrollY)
+}
+function preventEvent(e: Event) {
+  e.preventDefault()
+}
+/** 全画面中のタッチ移動: スクロールさせる領域（解答ペイン・ページ一覧・ツール列）以外は既定動作を止める */
+function onDocTouchMove(e: TouchEvent) {
+  const t = e.target as HTMLElement | null
+  if (e.touches.length > 1 || !t || !t.closest('.fs-answer, .fs-pages, .fs-side')) e.preventDefault()
+}
 async function openFs() {
   if (!page.value?.hasAnswer) return
   fsOpen.value = true
   fsReady.value = false
-  document.body.style.overflow = 'hidden'
+  lockPage()
   await nextTick()
   fsReady.value = true
 }
@@ -58,7 +98,7 @@ async function closeFs() {
   await flushAnnotations()
   fsOpen.value = false
   fsReady.value = false
-  document.body.style.overflow = ''
+  unlockPage()
 }
 /** 解答ペインに出せる内容があるか（解答つき PDF のページ、または英単語テストの解答一覧） */
 const hasAnsPane = computed(() => {
@@ -134,7 +174,7 @@ onBeforeUnmount(() => {
   if (answerUrl.value) URL.revokeObjectURL(answerUrl.value)
   mq?.removeEventListener('change', onMq)
   window.removeEventListener('keydown', onKey)
-  document.body.style.overflow = ''
+  if (fsOpen.value) unlockPage()
 })
 
 watch(pageIdx, async () => {
@@ -548,6 +588,17 @@ async function downloadResult() {
   flex-direction: column;
   background: #1f2328;
   color: #fff;
+  overscroll-behavior: none;
+  /* ダブルタップ拡大・ピンチ・引っ張って更新をブラウザに任せない */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* スクロールさせる領域だけパンを許可（ダブルタップ拡大・ピンチは許可しない） */
+.fs-pages,
+.fs-side,
+.fs-answer {
+  touch-action: pan-x pan-y;
   overscroll-behavior: contain;
 }
 .fs-top {
