@@ -81,14 +81,19 @@ class QuizController extends Controller
             ->get()
             ->keyBy('resource_book_item_id');
 
-        // 出題履歴（過去に出題した回数と最新の判定）
+        // 出題履歴（過去に出題した回数と、最後に採点された小テストの得点率）
         $history = QuizPage::query()
             ->join('quizzes', 'quizzes.id', '=', 'quiz_pages.quiz_id')
             ->where('quizzes.user_id', $userId)
             ->whereIn('quiz_pages.resource_book_item_id', $ids)
             ->orderBy('quiz_pages.id')
-            ->get(['quiz_pages.resource_book_item_id as item_id', 'quiz_pages.mark', 'quiz_pages.score'])
+            ->get(['quiz_pages.resource_book_item_id as item_id', 'quizzes.status as q_status', 'quizzes.score as q_score', 'quizzes.max_score as q_max'])
             ->groupBy('item_id');
+        $lastRate = function ($hist): ?int {
+            $g = $hist?->filter(fn ($h) => $h->q_status === Quiz::STATUS_GRADED && $h->q_score !== null && $h->q_max > 0)->last();
+
+            return $g ? (int) round($g->q_score / $g->q_max * 100) : null;
+        };
 
         $pagesFor = function (?string $seq) use ($pdfs): object {
             $pages = [];
@@ -115,7 +120,7 @@ class QuizController extends Controller
                 'recordCount' => (int) ($rec->c ?? 0),
                 'lastDate' => $rec?->last_on,
                 'quizCount' => $hist ? $hist->count() : 0,
-                'lastMark' => $hist ? $hist->last()->mark : null,
+                'lastRate' => $lastRate($hist),
             ];
 
             // 章行に出題用ページ（STEP① など）が定義されていれば展開する
@@ -356,18 +361,12 @@ class QuizController extends Controller
             if ($rel === null || ! $disk->exists($rel)) {
                 continue;
             }
-            $markText = match ($p->mark) {
-                'o' => 'O',
-                'tri' => 'TRIANGLE',
-                'x' => 'X',
-                default => '-',
-            };
-            $scoreText = $p->score !== null ? $p->score.'/'.$p->maxScore($quiz) : '-';
+            $scoreText = $quiz->score !== null && $quiz->max_score !== null ? "   Score: {$quiz->score}/{$quiz->max_score}" : '';
             $no = $p->item?->seq_no !== null && preg_match('/^[0-9A-Za-z.\-]+$/', (string) $p->item->seq_no) ? '  No.'.$p->item->seq_no : '';
             $kind = $p->isVocab() ? '  (vocabulary test)' : '';
             $images[] = [
                 'path' => $disk->path($rel),
-                'header' => "Page {$p->page_no}/{$n}{$no}{$kind}   Mark: {$markText}   Score: {$scoreText}",
+                'header' => "Page {$p->page_no}/{$n}{$no}{$kind}{$scoreText}",
             ];
         }
         abort_if($images === [], 404, '回答画像がありません。');
@@ -492,41 +491,49 @@ class QuizController extends Controller
     }
 
     /** 採点（○△× / 点数 / コメント）。点数省略時は ○=満点 △=半分 ×=0 */
+    /** ページごとのコメント（生徒に表示）。ページ別の○△×評価は廃止し、採点は小テスト全体の得点・満点で行う */
     public function grade(Request $request, Quiz $quiz, QuizPage $page): JsonResponse
     {
         $this->authorizePage($request, $quiz, $page);
-        $max = $page->maxScore($quiz);
         $data = $request->validate([
-            'mark' => ['nullable', 'in:o,tri,x'],
-            'score' => ['nullable', 'integer', 'min:0', 'max:'.$max],
             'comment' => ['nullable', 'string', 'max:2000'],
         ]);
-
-        $score = $data['score'] ?? null;
-        if ($score === null && ! empty($data['mark'])) {
-            $score = match ($data['mark']) {
-                'o' => $max,
-                'tri' => (int) ceil($max / 2),
-                default => 0,
-            };
-        }
-        $page->update(['mark' => $data['mark'] ?? null, 'score' => $score, 'comment' => $data['comment'] ?? null]);
+        $page->update(['comment' => $data['comment'] ?? null]);
 
         return response()->json(['data' => $this->pagePayload($page->fresh(['pdf', 'refPdf', 'item']), $quiz, true)]);
     }
 
-    /** 添削完了（全ページ採点済みで status: graded） */
+    /** 小テスト全体の採点（得点＝分子・満点＝分母）。null で未入力に戻せる */
+    public function score(Request $request, Quiz $quiz): JsonResponse
+    {
+        $this->authorizeQuiz($request, $quiz);
+        $data = $request->validate([
+            'score' => ['nullable', 'integer', 'min:0', 'max:100000'],
+            'maxScore' => ['nullable', 'integer', 'min:1', 'max:100000'],
+        ]);
+        $score = $data['score'] ?? null;
+        $max = $data['maxScore'] ?? null;
+        abort_if($score !== null && $max !== null && $score > $max, 422, '得点が満点を超えています。');
+        $quiz->update(['score' => $score, 'max_score' => $max]);
+
+        return response()->json(['data' => [
+            'id' => $quiz->id,
+            'score' => $quiz->score,
+            'maxScore' => $quiz->max_score,
+            'rate' => $quiz->score !== null && $quiz->max_score > 0 ? (int) round($quiz->score / $quiz->max_score * 100) : null,
+        ]]);
+    }
+
+    /** 添削完了（得点・満点が入力済みで status: graded） */
     public function finish(Request $request, Quiz $quiz): JsonResponse
     {
         $this->authorizeQuiz($request, $quiz);
-        $missing = $quiz->pages()->whereNull('score')->count();
-        abort_if($missing > 0, 422, "未採点のページが {$missing} ページあります。");
+        abort_if($quiz->score === null || $quiz->max_score === null, 422, '採点（得点・満点）が未入力です。');
 
         $quiz->update(['status' => Quiz::STATUS_GRADED, 'graded_at' => now()]);
 
         // 生徒へ LINE 通知（連携時のみ）
-        $s = $this->scoreSums([$quiz->id])->get($quiz->id);
-        $scoreText = $s !== null ? "（{$s->s} / {$s->max_total}点）" : '';
+        $scoreText = "（{$quiz->score} / {$quiz->max_score}点）";
         \App\Support\LineNotify::push(
             $quiz->user,
             "【受験ナビ】小テスト「{$quiz->title}」の採点・添削が完了しました{$scoreText}。\n結果を確認しましょう。\n".config('app.url'),
@@ -547,63 +554,44 @@ class QuizController extends Controller
 
     // ====================== 分析 ======================
 
-    /** 採点結果の集計（全体・推移・章別・中分類別・難易度別・弱点例題） */
+    /**
+     * 採点結果の集計（全体・推移・章別・中分類別・難易度別・弱点例題）。
+     * 採点は小テスト全体の得点／満点で行うため、章別などのページ単位の集計は
+     * 「小テストの得点率 × ページ満点」で按分した値を使う（その単元を含む小テストの平均的な出来）。
+     */
     public function stats(Request $request): JsonResponse
     {
         $userId = $this->targetUserId($request);
-        $all = Quiz::where('user_id', $userId)->get(['id', 'title', 'status', 'graded_at', 'max_score_per_page']);
+        $all = Quiz::where('user_id', $userId)->get(['id', 'title', 'status', 'graded_at', 'max_score_per_page', 'score', 'max_score']);
         $graded = $all->where('status', Quiz::STATUS_GRADED)
+            ->filter(fn (Quiz $q) => $q->score !== null && $q->max_score !== null && $q->max_score > 0)
             ->sortBy(fn (Quiz $q) => ($q->graded_at?->timestamp ?? 0) * 100000 + $q->id)
             ->values();
-        $defaultMax = $graded->pluck('max_score_per_page', 'id');
         $order = $graded->pluck('id')->flip();
+        $quizById = $graded->keyBy('id');
+        $rateOf = fn (Quiz $q) => $q->score / $q->max_score;
+
+        $sum = (int) $graded->sum('score');
+        $max = (int) $graded->sum('max_score');
+
+        $timeline = $graded->map(fn (Quiz $q) => [
+            'id' => $q->id,
+            'title' => $q->title,
+            'gradedOn' => $q->graded_at?->toDateString(),
+            'score' => (int) $q->score,
+            'max' => (int) $q->max_score,
+            'rate' => (int) round($rateOf($q) * 100),
+        ])->values();
 
         $pages = QuizPage::with(['item.studyItem.mid.major.subject', 'item.book:id,title'])
             ->whereIn('quiz_id', $graded->pluck('id'))
-            ->whereNotNull('score')
             ->get()
             ->sortBy(fn (QuizPage $p) => ($order[$p->quiz_id] ?? 0) * 1000 + $p->page_no)
             ->values();
-        $maxOf = fn (QuizPage $p) => (int) ($p->max_score ?? $defaultMax[$p->quiz_id]);
+        $maxOf = fn (QuizPage $p) => (int) ($p->max_score ?? $quizById[$p->quiz_id]->max_score_per_page);
+        $scoreOf = fn (QuizPage $p) => $rateOf($quizById[$p->quiz_id]) * $maxOf($p);
 
-        $sum = 0;
-        $max = 0;
-        $marks = ['o' => 0, 'tri' => 0, 'x' => 0];
-        $perQuiz = [];
-        foreach ($pages as $p) {
-            $m = $maxOf($p);
-            $sum += $p->score;
-            $max += $m;
-            if ($p->mark && isset($marks[$p->mark])) {
-                $marks[$p->mark]++;
-            }
-            $perQuiz[$p->quiz_id]['s'] = ($perQuiz[$p->quiz_id]['s'] ?? 0) + $p->score;
-            $perQuiz[$p->quiz_id]['m'] = ($perQuiz[$p->quiz_id]['m'] ?? 0) + $m;
-            if ($p->mark) {
-                $perQuiz[$p->quiz_id][$p->mark] = ($perQuiz[$p->quiz_id][$p->mark] ?? 0) + 1;
-            }
-        }
-
-        $timeline = $graded->map(function (Quiz $q) use ($perQuiz) {
-            $s = $perQuiz[$q->id]['s'] ?? 0;
-            $m = $perQuiz[$q->id]['m'] ?? 0;
-
-            return [
-                'id' => $q->id,
-                'title' => $q->title,
-                'gradedOn' => $q->graded_at?->toDateString(),
-                'score' => $s,
-                'max' => $m,
-                'rate' => $m > 0 ? (int) round($s / $m * 100) : null,
-                'marks' => [
-                    'o' => (int) ($perQuiz[$q->id]['o'] ?? 0),
-                    'tri' => (int) ($perQuiz[$q->id]['tri'] ?? 0),
-                    'x' => (int) ($perQuiz[$q->id]['x'] ?? 0),
-                ],
-            ];
-        })->values();
-
-        $group = function (callable $keyFn) use ($pages, $maxOf) {
+        $group = function (callable $keyFn) use ($pages, $maxOf, $scoreOf) {
             $g = [];
             foreach ($pages as $p) {
                 $k = $keyFn($p);
@@ -611,20 +599,19 @@ class QuizController extends Controller
                     continue;
                 }
                 [$key, $label, $sub] = $k;
-                $g[$key] ??= ['key' => $key, 'label' => $label, 'sub' => $sub, 'pages' => 0, 's' => 0, 'm' => 0, 'o' => 0, 'tri' => 0, 'x' => 0];
+                $g[$key] ??= ['key' => $key, 'label' => $label, 'sub' => $sub, 'pages' => 0, 'quizzes' => [], 's' => 0.0, 'm' => 0];
                 $g[$key]['pages']++;
-                $g[$key]['s'] += $p->score;
+                $g[$key]['quizzes'][$p->quiz_id] = true;
+                $g[$key]['s'] += $scoreOf($p);
                 $g[$key]['m'] += $maxOf($p);
-                if ($p->mark && isset($g[$key][$p->mark])) {
-                    $g[$key][$p->mark]++;
-                }
             }
 
             return collect(array_values($g))->map(function (array $x) {
                 $x['rate'] = $x['m'] > 0 ? (int) round($x['s'] / $x['m'] * 100) : null;
-                $x['score'] = $x['s'];
+                $x['score'] = (int) round($x['s']);
                 $x['max'] = $x['m'];
-                unset($x['s'], $x['m']);
+                $x['quizCount'] = count($x['quizzes']);
+                unset($x['s'], $x['m'], $x['quizzes']);
 
                 return $x;
             })->values();
@@ -661,12 +648,13 @@ class QuizController extends Controller
             return ['d:'.$d, $d, null];
         })->sortBy(fn (array $x) => mb_strlen($x['label']))->values();
 
-        // 弱点: 例題ごとの得点率が 60% 未満、または最新の判定が × / △（英単語テストは除く）
+        // 弱点: 例題ごと（出題された小テストの得点率の平均）が 60% 未満（英単語テストは除く）
         $items = [];
         foreach ($pages as $p) {
             if ($p->isVocab()) {
                 continue;
             }
+            $q = $quizById[$p->quiz_id];
             $key = $p->resource_book_item_id ? 'i:'.$p->resource_book_item_id : 'l:'.$p->label;
             $items[$key] ??= [
                 'itemId' => $p->resource_book_item_id,
@@ -675,24 +663,24 @@ class QuizController extends Controller
                 'seqNo' => $p->item?->seq_no,
                 'title' => $p->item?->title ?? $p->label,
                 'difficulty' => $p->item?->difficulty,
-                'attempts' => 0, 's' => 0, 'm' => 0, 'lastMark' => null, 'lastOn' => null,
+                'attempts' => 0, 's' => 0.0, 'm' => 0, 'lastRate' => null, 'lastOn' => null,
             ];
             $items[$key]['attempts']++;
-            $items[$key]['s'] += $p->score;
+            $items[$key]['s'] += $scoreOf($p);
             $items[$key]['m'] += $maxOf($p);
-            $items[$key]['lastMark'] = $p->mark;
-            $items[$key]['lastOn'] = $graded->firstWhere('id', $p->quiz_id)?->graded_at?->toDateString();
+            $items[$key]['lastRate'] = (int) round($rateOf($q) * 100);
+            $items[$key]['lastOn'] = $q->graded_at?->toDateString();
         }
         $weak = collect(array_values($items))
             ->map(function (array $x) {
                 $x['rate'] = $x['m'] > 0 ? (int) round($x['s'] / $x['m'] * 100) : null;
-                $x['score'] = $x['s'];
+                $x['score'] = (int) round($x['s']);
                 $x['max'] = $x['m'];
                 unset($x['s'], $x['m']);
 
                 return $x;
             })
-            ->filter(fn (array $x) => ($x['rate'] !== null && $x['rate'] < 60) || in_array($x['lastMark'], ['x', 'tri'], true))
+            ->filter(fn (array $x) => $x['rate'] !== null && $x['rate'] < 60)
             ->sortBy([['rate', 'asc'], ['attempts', 'desc']])
             ->take(40)
             ->values();
@@ -706,8 +694,11 @@ class QuizController extends Controller
                 'pageCount' => $pages->count(),
                 'score' => $sum,
                 'max' => $max,
+                // 合計得点率（総得点 ÷ 総満点）と、小テストごとの得点率の平均
                 'avgRate' => $max > 0 ? (int) round($sum / $max * 100) : null,
-                'marks' => $marks,
+                'avgQuizRate' => $graded->count() ? (int) round($graded->avg(fn (Quiz $q) => $rateOf($q) * 100)) : null,
+                'bestRate' => $graded->count() ? (int) round($graded->max(fn (Quiz $q) => $rateOf($q) * 100)) : null,
+                'lastRate' => $graded->count() ? (int) round($rateOf($graded->last()) * 100) : null,
             ],
             'timeline' => $timeline,
             'byChapter' => $byChapter,
@@ -903,7 +894,7 @@ class QuizController extends Controller
         $quiz->update(['file_path' => $rel]);
     }
 
-    /** 小テストごとの採点合計（SUM(score), COUNT(score), 満点合計） */
+    /** 小テストごとのページ満点の合計（満点が未入力のときの既定値に使う） */
     private function scoreSums(array $quizIds)
     {
         if ($quizIds === []) {
@@ -913,10 +904,7 @@ class QuizController extends Controller
         return QuizPage::query()
             ->join('quizzes', 'quizzes.id', '=', 'quiz_pages.quiz_id')
             ->whereIn('quiz_pages.quiz_id', $quizIds)
-            ->selectRaw('quiz_pages.quiz_id, SUM(quiz_pages.score) as s, COUNT(quiz_pages.score) as n, SUM(COALESCE(quiz_pages.max_score, quizzes.max_score_per_page)) as max_total,'
-                ." SUM(CASE WHEN quiz_pages.mark = 'o' THEN 1 ELSE 0 END) as o_c,"
-                ." SUM(CASE WHEN quiz_pages.mark = 'tri' THEN 1 ELSE 0 END) as tri_c,"
-                ." SUM(CASE WHEN quiz_pages.mark = 'x' THEN 1 ELSE 0 END) as x_c")
+            ->selectRaw('quiz_pages.quiz_id, SUM(COALESCE(quiz_pages.max_score, quizzes.max_score_per_page)) as max_total')
             ->groupBy('quiz_pages.quiz_id')
             ->get()
             ->keyBy('quiz_id');
@@ -926,8 +914,10 @@ class QuizController extends Controller
     {
         $pageCount = (int) ($q->pages_count ?? 0);
         $answered = (int) ($q->answered_count ?? 0);
-        $max = $score !== null ? (int) $score->max_total : $pageCount * $q->max_score_per_page;
-        $sum = $score !== null && (int) $score->n > 0 ? (int) $score->s : null;
+        // 満点は講師が採点時に入力する。未入力ならページ満点の合計（英単語テストは出題数、教材ページは既定値）
+        $defaultMax = $score !== null ? (int) $score->max_total : $pageCount * $q->max_score_per_page;
+        $max = $q->max_score ?? $defaultMax;
+        $sum = $q->score;
         $graded = $q->status === Quiz::STATUS_GRADED;
 
         return [
@@ -942,14 +932,13 @@ class QuizController extends Controller
             'answeredCount' => $answered,
             'maxScorePerPage' => $q->max_score_per_page,
             'maxScore' => $max,
+            'defaultMaxScore' => $defaultMax,
             'score' => $graded ? $sum : null,
             'rate' => $graded && $max > 0 && $sum !== null ? (int) round($sum / $max * 100) : null,
-            // ○△× の内訳（採点・添削済みのとき表示に使う）
-            'marks' => [
-                'o' => (int) ($score->o_c ?? 0),
-                'tri' => (int) ($score->tri_c ?? 0),
-                'x' => (int) ($score->x_c ?? 0),
-            ],
+            // 採点（得点・満点）の入力状態（講師の採点画面用）
+            'scoreEntered' => $q->score !== null && $q->max_score !== null,
+            'enteredScore' => $q->score,
+            'enteredMaxScore' => $q->max_score,
             'submittedAt' => $q->submitted_at?->toDateTimeString(),
             'gradedAt' => $q->graded_at?->toDateTimeString(),
             'bookId' => $q->resource_book_id,
@@ -1009,8 +998,6 @@ class QuizController extends Controller
             'annotations' => $p->annotations,
             'hasAnnotated' => $p->annotated_path !== null,
             'annotatedVersion' => $p->updated_at?->timestamp,
-            'mark' => $p->mark,
-            'score' => $p->score,
             'maxScore' => $p->maxScore($quiz),
             'comment' => $p->comment,
         ];

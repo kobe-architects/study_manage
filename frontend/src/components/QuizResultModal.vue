@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import AuthImage from '@/components/AuthImage.vue'
-import { MARK_COLOR, MARK_LABEL, quizApi } from '@/api/quiz'
+import { quizApi, rateColor } from '@/api/quiz'
 import { useUiStore } from '@/stores/ui'
 import type { QuizDetail } from '@/types'
 
-/** 添削結果の閲覧（生徒・講師共用）。注釈を合成した回答画像・判定・点数・コメントを表示する */
+/** 添削結果の閲覧（生徒・講師共用）。注釈を合成した回答画像・得点（小テスト全体）・コメントを表示する */
 const props = defineProps<{ quizId: number }>()
 const emit = defineEmits<{ close: [] }>()
 
@@ -56,11 +56,11 @@ async function download(kind: 'result' | 'quiz') {
       <template v-else-if="quiz">
         <div class="total">
           <div class="marks big-marks">
-            <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" :style="{ color: MARK_COLOR[m] }">
-              <b>{{ MARK_LABEL[m] }}</b>{{ quiz.pages.filter((p) => p.mark === m).length }}
-            </span>
+            <span v-if="quiz.score !== null"><b :style="{ color: rateColor(quiz.rate) }">{{ quiz.score }}</b><span style="font-size: 14px; color: var(--mut)"> / {{ quiz.maxScore }}点</span></span>
+            <span v-else style="font-size: 13px; color: var(--faint)">未採点</span>
+            <span v-if="quiz.rate !== null" class="rate-chip" :style="{ background: rateColor(quiz.rate) }">{{ quiz.rate }}%</span>
           </div>
-          <span style="font-size: 11.5px; color: var(--faint); margin-left: auto">全 {{ quiz.pageCount }}問</span>
+          <span style="font-size: 11.5px; color: var(--faint); margin-left: auto">全 {{ quiz.pageCount }}ページ</span>
         </div>
 
         <div class="pages">
@@ -72,7 +72,6 @@ async function download(kind: 'result' | 'quiz') {
             </div>
             <div class="info">
               <div style="display: flex; align-items: center; gap: 8px">
-                <span class="mark" :style="{ color: p.mark ? MARK_COLOR[p.mark] : '#9aa1ab', borderColor: p.mark ? MARK_COLOR[p.mark] : '#d8dce1' }">{{ p.mark ? MARK_LABEL[p.mark] : '–' }}</span>
                 <div style="min-width: 0">
                   <div style="font-size: 13px; font-weight: 700">{{ p.pageNo }}. {{ p.label }}</div>
                   <div style="font-size: 11px; color: var(--faint)">
@@ -172,6 +171,16 @@ async function download(kind: 'result' | 'quiz') {
   gap: 10px;
   font-size: 12px;
   font-weight: 700;
+}
+.rate-chip {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  vertical-align: middle;
 }
 .big-marks {
   gap: 20px;

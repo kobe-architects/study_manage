@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { MARK_COLOR, MARK_LABEL, QUIZ_STATUS_LABEL, groupStatus } from '@/api/quiz'
+import { QUIZ_STATUS_LABEL, groupStatus, rateColor } from '@/api/quiz'
 import type { QuizSummary } from '@/types'
 
 /**
@@ -40,14 +40,17 @@ function partLabel(q: QuizSummary): string {
   return q.bookTitle ?? '英単語テスト'
 }
 
-const totalMarks = computed(() => {
-  const t = { o: 0, tri: 0, x: 0 }
+/** 全パートの得点・満点の合計（採点・添削済みのもの） */
+const total = computed(() => {
+  let s = 0
+  let m = 0
   for (const q of props.parts) {
-    t.o += q.marks?.o ?? 0
-    t.tri += q.marks?.tri ?? 0
-    t.x += q.marks?.x ?? 0
+    if (q.status === 'graded' && q.score !== null) {
+      s += q.score
+      m += q.maxScore
+    }
   }
-  return t
+  return { s, m, rate: m > 0 ? Math.round((s / m) * 100) : null }
 })
 const allGraded = computed(() => props.parts.every((q) => q.status === 'graded'))
 
@@ -88,10 +91,9 @@ function fmt(d: string | null): string {
           <span v-if="q.status === 'graded' && q.gradedAt">採点・添削 {{ fmt(q.gradedAt) }}</span>
           <span v-if="q.status === 'assigned' && q.answeredCount" style="color: #2f7a4f">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み（未提出）</span>
         </div>
-        <div v-if="q.status === 'graded'" class="marks-row">
-          <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" class="mk" :style="{ color: MARK_COLOR[m] }">
-            <b>{{ MARK_LABEL[m] }}</b>{{ q.marks?.[m] ?? 0 }}
-          </span>
+        <div v-if="q.status === 'graded' && q.score !== null" class="marks-row">
+          <span class="mk"><b :style="{ color: rateColor(q.rate) }">{{ q.score }}</b> / {{ q.maxScore }}点</span>
+          <span class="mk" :style="{ color: rateColor(q.rate) }">{{ q.rate ?? '–' }}%</span>
         </div>
       </div>
       <div class="actions">
@@ -115,7 +117,8 @@ function fmt(d: string | null): string {
 
     <div v-if="multi && allGraded" class="total-row">
       合計
-      <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" class="mk" :style="{ color: MARK_COLOR[m] }"><b>{{ MARK_LABEL[m] }}</b>{{ totalMarks[m] }}</span>
+      <span class="mk"><b :style="{ color: rateColor(total.rate) }">{{ total.s }}</b> / {{ total.m }}点</span>
+      <span class="mk" :style="{ color: rateColor(total.rate) }">{{ total.rate ?? '–' }}%</span>
     </div>
   </div>
 </template>

@@ -1,5 +1,5 @@
 import client from '@/api/client'
-import type { AnnotationDoc, BookPdf, PdfPageMap, QuizBook, QuizDetail, QuizMark, QuizPageSpec, QuizRow, QuizStats, QuizSummary, StudyResource, Vocabulary } from '@/types'
+import type { AnnotationDoc, BookPdf, PdfPageMap, QuizBook, QuizDetail, QuizPageSpec, QuizRow, QuizStats, QuizSummary, StudyResource, Vocabulary } from '@/types'
 
 /** API プレフィックス。家庭教師ログイン時は /tutor 配下の生徒スコープ API を使う */
 function p(): string {
@@ -219,8 +219,15 @@ export const quizApi = {
     await client.post(`${p()}/quizzes/${quizId}/pages/${pageId}/annotations`, fd)
   },
 
-  async grade(quizId: number, pageId: number, payload: { mark: QuizMark | null; score: number | null; comment: string | null }): Promise<void> {
+  /** ページごとのコメント（生徒に表示） */
+  async grade(quizId: number, pageId: number, payload: { comment: string | null }): Promise<void> {
     await client.put(`${p()}/quizzes/${quizId}/pages/${pageId}/grade`, payload)
+  },
+
+  /** 小テスト全体の採点（得点＝分子・満点＝分母）。null で未入力に戻す */
+  async score(quizId: number, payload: { score: number | null; maxScore: number | null }): Promise<{ id: number; score: number | null; maxScore: number | null; rate: number | null }> {
+    const { data } = await client.put(`${p()}/quizzes/${quizId}/score`, payload)
+    return data.data
   },
 
   async finish(quizId: number): Promise<void> {
@@ -270,11 +277,11 @@ export function groupStatus(parts: QuizSummary[], role: 'owner' | 'tutor'): 'ass
   return 'graded'
 }
 
-export const MARK_LABEL: Record<QuizMark, string> = { o: '○', tri: '△', x: '×' }
-export const MARK_COLOR: Record<QuizMark, string> = { o: '#2f9e5b', tri: '#d98a1a', x: '#cf4444' }
-
-export function scoreForMark(mark: QuizMark, max: number): number {
-  if (mark === 'o') return max
-  if (mark === 'tri') return Math.ceil(max / 2)
-  return 0
+/** 得点率に応じた色（60%未満: 赤 / 80%未満: 橙 / それ以上: 青） */
+export function rateColor(rate: number | null | undefined): string {
+  if (rate === null || rate === undefined) return '#9aa1ab'
+  if (rate < 60) return '#cf4444'
+  if (rate < 80) return '#d98a1a'
+  return '#3b50cc'
 }
+

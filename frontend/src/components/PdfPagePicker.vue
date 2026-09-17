@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import PdfThumb from '@/components/PdfThumb.vue'
-import { MARK_COLOR, MARK_LABEL } from '@/api/quiz'
+import { rateColor } from '@/api/quiz'
 import type { BookPdf, QuizPageSpec, QuizRow } from '@/types'
 
 /**
@@ -249,8 +249,8 @@ function showPreview(pdfId: number, page: number | null) {
                 <span v-if="r.important" class="imp">重要</span>
               </span>
               <span class="diff">{{ r.difficulty }}</span>
-              <span v-if="r.quizCount" class="hist" :style="{ color: r.lastMark ? MARK_COLOR[r.lastMark] : 'var(--faint)' }">
-                出題{{ r.quizCount }}回<template v-if="r.lastMark"> {{ MARK_LABEL[r.lastMark] }}</template>
+              <span v-if="r.quizCount" class="hist" :style="{ color: r.lastRate !== null ? rateColor(r.lastRate) : 'var(--faint)' }">
+                出題{{ r.quizCount }}回<template v-if="r.lastRate !== null"> 前回{{ r.lastRate }}%</template>
               </span>
               <span class="pg">{{ pageOfRow(r) !== null ? 'p.' + pageOfRow(r) : '対応なし' }}</span>
             </div>

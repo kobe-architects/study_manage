@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { MARK_COLOR, MARK_LABEL } from '@/api/quiz'
+import { rateColor } from '@/api/quiz'
 import type { QuizStatGroup, QuizStats } from '@/types'
 
 /**
- * 小テストの分析（生徒・講師共用）。
- * 平均得点率などの要約、得点率の推移（折れ線）、章別・中分類別・難易度別の得点率（横棒）、弱点例題。
+ * 小テストの分析（生徒・講師共用）。採点は小テスト全体の得点／満点。
+ * 得点率の要約、得点率の推移（折れ線）、章別・中分類別・難易度別の得点率（横棒。小テストの得点率をページ満点で按分）、弱点例題。
  */
 const props = defineProps<{ stats: QuizStats }>()
 
 const s = computed(() => props.stats.summary)
 const hasData = computed(() => s.value.gradedCount > 0)
 
-// ---- 推移（折れ線・○率） ----
-const timeline = computed(() => props.stats.timeline.filter((t) => t.marks && t.marks.o + t.marks.tri + t.marks.x > 0))
+// ---- 推移（折れ線・得点率） ----
+const timeline = computed(() => props.stats.timeline)
 const CW = 640
 const CH = 200
 const PAD = { l: 36, r: 16, t: 14, b: 30 }
@@ -21,7 +21,7 @@ const points = computed(() =>
   timeline.value.map((t, i) => {
     const n = timeline.value.length
     const x = PAD.l + (n === 1 ? (CW - PAD.l - PAD.r) / 2 : ((CW - PAD.l - PAD.r) * i) / (n - 1))
-    const y = PAD.t + ((CH - PAD.t - PAD.b) * (100 - (oRateOf(t.marks) ?? 0))) / 100
+    const y = PAD.t + ((CH - PAD.t - PAD.b) * (100 - t.rate)) / 100
     return { x, y, t }
   }),
 )
@@ -47,28 +47,14 @@ const GROUP_TABS: { key: GroupKey; label: string }[] = [
 const groups = computed<QuizStatGroup[]>(() => {
   const list = [...props.stats[groupTab.value]]
   if (groupTab.value === 'byDifficulty') return list
-  return list.sort((a, b) => (groupORate(a) ?? 0) - (groupORate(b) ?? 0))
+  return list.sort((a, b) => (a.rate ?? 0) - (b.rate ?? 0))
 })
-function groupORate(g: QuizStatGroup): number | null {
-  return oRateOf({ o: g.o, tri: g.tri, x: g.x })
-}
-function rateColor(rate: number | null): string {
-  if (rate === null) return '#cfd4db'
-  if (rate < 60) return '#cf4444'
-  if (rate < 80) return '#d98a1a'
-  return '#3b50cc'
-}
-/** ○の割合（%） */
-function oRateOf(m: { o: number; tri: number; x: number }): number | null {
-  const n = m.o + m.tri + m.x
-  return n > 0 ? Math.round((m.o / n) * 100) : null
-}
 </script>
 
 <template>
   <div class="stats">
     <div v-if="!hasData" class="empty">
-      採点・添削済みの小テストがまだありません。採点・添削が完了すると、得点率の推移や単元別の正答率がここに表示されます。
+      採点・添削済みの小テストがまだありません。採点・添削が完了すると、得点率の推移や単元別の得点率がここに表示されます。
       <div v-if="s.quizCount" style="margin-top: 6px; font-size: 11.5px">
         出題 {{ s.quizCount }}件（未提出 {{ s.assignedCount }}・採点・添削待ち {{ s.submittedCount }}）
       </div>
@@ -78,21 +64,19 @@ function oRateOf(m: { o: number; tri: number; x: number }): number | null {
       <!-- 要約 -->
       <div class="tiles">
         <div class="tile">
-          <div class="t-label">評価の内訳</div>
-          <div class="t-marks">
-            <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" :style="{ color: MARK_COLOR[m] }"><b>{{ MARK_LABEL[m] }}</b>{{ s.marks[m] }}</span>
-          </div>
-          <div class="t-sub">○ 正解・△ おしい・× 不正解</div>
+          <div class="t-label">合計得点率</div>
+          <div class="t-val"><b :style="{ color: rateColor(s.avgRate) }">{{ s.avgRate ?? '–' }}</b><span>%</span></div>
+          <div class="t-sub">合計 {{ s.score }} / {{ s.max }}点</div>
         </div>
         <div class="tile">
-          <div class="t-label">○率</div>
-          <div class="t-val"><b>{{ oRateOf(s.marks) ?? '–' }}</b><span>%</span></div>
-          <div class="t-sub">評価済み {{ s.marks.o + s.marks.tri + s.marks.x }}問のうち ○ の割合</div>
+          <div class="t-label">1回あたりの平均得点率</div>
+          <div class="t-val"><b :style="{ color: rateColor(s.avgQuizRate) }">{{ s.avgQuizRate ?? '–' }}</b><span>%</span></div>
+          <div class="t-sub">最高 {{ s.bestRate ?? '–' }}%・直近 {{ s.lastRate ?? '–' }}%</div>
         </div>
         <div class="tile">
           <div class="t-label">採点・添削済み</div>
           <div class="t-val"><b>{{ s.gradedCount }}</b><span>回</span></div>
-          <div class="t-sub">{{ s.pageCount }}問を評価</div>
+          <div class="t-sub">{{ s.pageCount }}ページ分</div>
         </div>
         <div class="tile">
           <div class="t-label">進行中</div>
@@ -103,7 +87,7 @@ function oRateOf(m: { o: number; tri: number; x: number }): number | null {
 
       <!-- 推移 -->
       <div class="card sec">
-        <div class="sec-title">○率の推移</div>
+        <div class="sec-title">得点率の推移</div>
         <div class="chart-wrap">
           <svg :viewBox="`0 0 ${CW} ${CH}`" class="chart" @mouseleave="hover = null">
             <g v-for="v in [0, 25, 50, 75, 100]" :key="v">
@@ -112,7 +96,7 @@ function oRateOf(m: { o: number; tri: number; x: number }): number | null {
             </g>
             <path v-if="points.length > 1" :d="path" fill="none" stroke="#3b50cc" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
             <g v-for="(p, i) in points" :key="p.t.id">
-              <circle :cx="p.x" :cy="p.y" r="4.5" fill="#3b50cc" stroke="#fff" stroke-width="2" />
+              <circle :cx="p.x" :cy="p.y" r="4.5" :fill="rateColor(p.t.rate)" stroke="#fff" stroke-width="2" />
               <text :x="p.x" :y="CH - PAD.b + 16" text-anchor="middle" font-size="10" fill="#6b7280">{{ md(p.t.gradedOn) }}</text>
               <rect :x="p.x - 14" :y="PAD.t" width="28" :height="CH - PAD.t - PAD.b" fill="transparent" @mouseenter="hover = i" />
             </g>
@@ -122,19 +106,17 @@ function oRateOf(m: { o: number; tri: number; x: number }): number | null {
           </svg>
           <div v-if="hover !== null && points[hover]" class="tip" :style="{ left: (points[hover]!.x / CW) * 100 + '%' }">
             <div style="font-weight: 700">{{ points[hover]!.t.title }}</div>
-            <div>○{{ points[hover]!.t.marks.o }} △{{ points[hover]!.t.marks.tri }} ×{{ points[hover]!.t.marks.x }}（○率 {{ oRateOf(points[hover]!.t.marks) }}%）・{{ points[hover]!.t.gradedOn?.replace(/-/g, '/') }}</div>
+            <div>{{ points[hover]!.t.score }} / {{ points[hover]!.t.max }}点（{{ points[hover]!.t.rate }}%）・{{ points[hover]!.t.gradedOn?.replace(/-/g, '/') }}</div>
           </div>
         </div>
         <table class="tbl">
-          <thead><tr><th>小テスト</th><th>採点・添削日</th><th class="r">評価（○△×）</th><th class="r">○率</th></tr></thead>
+          <thead><tr><th>小テスト</th><th>採点・添削日</th><th class="r">得点</th><th class="r">得点率</th></tr></thead>
           <tbody>
             <tr v-for="t in [...timeline].reverse()" :key="t.id">
               <td>{{ t.title }}</td>
               <td>{{ t.gradedOn?.replace(/-/g, '/') }}</td>
-              <td class="r">
-                <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" :style="{ color: MARK_COLOR[m], fontWeight: 700, marginLeft: '8px' }">{{ MARK_LABEL[m] }}{{ t.marks[m] }}</span>
-              </td>
-              <td class="r"><b :style="{ color: rateColor(oRateOf(t.marks)) }">{{ oRateOf(t.marks) }}%</b></td>
+              <td class="r"><b>{{ t.score }}</b> / {{ t.max }}</td>
+              <td class="r"><b :style="{ color: rateColor(t.rate) }">{{ t.rate }}%</b></td>
             </tr>
           </tbody>
         </table>
@@ -143,38 +125,38 @@ function oRateOf(m: { o: number; tri: number; x: number }): number | null {
       <!-- 単元別 -->
       <div class="card sec">
         <div class="sec-title" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
-          単元別の○率
+          単元別の得点率
           <div class="seg">
             <button v-for="t in GROUP_TABS" :key="t.key" :class="{ on: groupTab === t.key }" @click="groupTab = t.key">{{ t.label }}</button>
           </div>
-          <span style="font-size: 11px; color: var(--faint); font-weight: 400; margin-left: auto">○率の低い順</span>
+          <span style="font-size: 11px; color: var(--faint); font-weight: 400; margin-left: auto">得点率の低い順（小テストの得点率をページ数で按分）</span>
         </div>
         <div v-if="!groups.length" class="empty small">集計対象がありません</div>
         <div v-else class="bars">
-          <div v-for="g in groups" :key="g.key" class="bar-row" :title="`${g.label}: ○${g.o} △${g.tri} ×${g.x}`">
+          <div v-for="g in groups" :key="g.key" class="bar-row" :title="`${g.label}: ${g.score} / ${g.max}点`">
             <div class="bar-label">
               <div class="bl-main">{{ g.label }}</div>
               <div v-if="g.sub" class="bl-sub">{{ g.sub }}</div>
             </div>
-            <div class="bar-track"><span :style="{ width: (groupORate(g) ?? 0) + '%', background: rateColor(groupORate(g)) }"></span></div>
-            <div class="bar-val"><b :style="{ color: rateColor(groupORate(g)) }">{{ groupORate(g) ?? '–' }}%</b><span>{{ g.pages }}問・○{{ g.o }} △{{ g.tri }} ×{{ g.x }}</span></div>
+            <div class="bar-track"><span :style="{ width: (g.rate ?? 0) + '%', background: rateColor(g.rate) }"></span></div>
+            <div class="bar-val"><b :style="{ color: rateColor(g.rate) }">{{ g.rate ?? '–' }}%</b><span>{{ g.quizCount }}回・{{ g.pages }}ページ</span></div>
           </div>
         </div>
       </div>
 
       <!-- 弱点 -->
       <div class="card sec">
-        <div class="sec-title">弱点の例題 <span class="sec-note">評価率 60% 未満（○=100%・△=50%換算）、または最新の評価が △ / ×</span></div>
+        <div class="sec-title">弱点の例題 <span class="sec-note">出題された小テストの得点率（平均）が 60% 未満の例題</span></div>
         <div v-if="!stats.weak.length" class="empty small">弱点の例題はありません。よくできています。</div>
         <table v-else class="tbl">
-          <thead><tr><th>例題</th><th>章</th><th>難易度</th><th class="r">評価率</th><th class="r">最新</th><th class="r">回数</th><th class="r">最終</th></tr></thead>
+          <thead><tr><th>例題</th><th>章</th><th>難易度</th><th class="r">得点率</th><th class="r">直近</th><th class="r">回数</th><th class="r">最終</th></tr></thead>
           <tbody>
             <tr v-for="w in stats.weak" :key="w.itemId ?? w.label ?? ''">
               <td><b>{{ w.label }}</b></td>
               <td>{{ w.chapter ?? '' }}</td>
               <td style="color: #d98a1a">{{ w.difficulty ?? '' }}</td>
               <td class="r"><b :style="{ color: rateColor(w.rate) }">{{ w.rate ?? '–' }}%</b></td>
-              <td class="r"><span v-if="w.lastMark" :style="{ color: MARK_COLOR[w.lastMark], fontWeight: 700 }">{{ MARK_LABEL[w.lastMark] }}</span></td>
+              <td class="r"><span v-if="w.lastRate !== null" :style="{ color: rateColor(w.lastRate), fontWeight: 700 }">{{ w.lastRate }}%</span></td>
               <td class="r">{{ w.attempts }}</td>
               <td class="r">{{ w.lastOn?.slice(5).replace('-', '/') }}</td>
             </tr>

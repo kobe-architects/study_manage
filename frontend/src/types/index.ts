@@ -486,7 +486,6 @@ export interface QuizBook {
   rowCount: number
 }
 
-export type QuizMark = 'o' | 'tri' | 'x'
 export type QuizStatus = 'assigned' | 'submitted' | 'graded'
 
 /** 出題ページ選択用の教材行（章行の quiz_pages 展開により同じ id が複数行になりうる） */
@@ -503,7 +502,8 @@ export interface QuizRow {
   recordCount: number
   lastDate: string | null
   quizCount: number
-  lastMark: QuizMark | null
+  /** 最後に採点された小テストの得点率（%） */
+  lastRate: number | null
   /** PDF ID → 対応ページ（番号=ページ対応の PDF のみ） */
   pages: Record<string, number>
 }
@@ -520,11 +520,17 @@ export interface QuizSummary {
   pageCount: number
   answeredCount: number
   maxScorePerPage: number
+  /** 満点（講師が採点時に入力。未入力ならページ満点の合計） */
   maxScore: number
+  /** ページ満点の合計（満点の既定値） */
+  defaultMaxScore: number
+  /** 得点（採点・添削済みのときのみ） */
   score: number | null
   rate: number | null
-  /** ○△× の内訳（採点・添削の評価表示に使う） */
-  marks: { o: number; tri: number; x: number }
+  /** 採点（得点・満点）が入力済みか。enteredScore / enteredMaxScore は入力値そのもの（講師の採点画面用） */
+  scoreEntered: boolean
+  enteredScore: number | null
+  enteredMaxScore: number | null
   submittedAt: string | null
   gradedAt: string | null
   bookId: number | null
@@ -577,8 +583,6 @@ export interface QuizPageDetail {
   annotations: AnnotationDoc | null
   hasAnnotated: boolean
   annotatedVersion: number | null
-  mark: QuizMark | null
-  score: number | null
   /** ページ満点（英単語テストは出題数、教材ページは小テストの既定値） */
   maxScore: number
   comment: string | null
@@ -626,9 +630,8 @@ export interface QuizStatGroup {
   label: string
   sub: string | null
   pages: number
-  o: number
-  tri: number
-  x: number
+  /** 集計に含まれる小テスト数 */
+  quizCount: number
   rate: number | null
   score: number
   max: number
@@ -641,7 +644,8 @@ export interface QuizWeakItem {
   title: string | null
   difficulty: string | null
   attempts: number
-  lastMark: QuizMark | null
+  /** 最後に出題された小テストの得点率（%） */
+  lastRate: number | null
   lastOn: string | null
   rate: number | null
   score: number
@@ -656,10 +660,14 @@ export interface QuizStats {
     pageCount: number
     score: number
     max: number
+    /** 合計得点率（総得点 ÷ 総満点） */
     avgRate: number | null
-    marks: { o: number; tri: number; x: number }
+    /** 小テストごとの得点率の平均 */
+    avgQuizRate: number | null
+    bestRate: number | null
+    lastRate: number | null
   }
-  timeline: { id: number; title: string; gradedOn: string | null; score: number; max: number; rate: number | null; marks: { o: number; tri: number; x: number } }[]
+  timeline: { id: number; title: string; gradedOn: string | null; score: number; max: number; rate: number }[]
   byChapter: QuizStatGroup[]
   byMid: QuizStatGroup[]
   byDifficulty: QuizStatGroup[]

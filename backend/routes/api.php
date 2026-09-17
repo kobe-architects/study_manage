@@ -226,6 +226,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/study-resources', [StudyResourceController::class, 'index']);
         Route::get('/study-resources/{studyResource}/vocabularies', [VocabularyController::class, 'indexByResource']);
         Route::put('/quizzes/{quiz}/pages/{page}/grade', [QuizController::class, 'grade']);
+        Route::put('/quizzes/{quiz}/score', [QuizController::class, 'score']);
         Route::post('/quizzes/{quiz}/finish', [QuizController::class, 'finish']);
         Route::post('/quizzes/{quiz}/reopen', [QuizController::class, 'reopen']);
     });

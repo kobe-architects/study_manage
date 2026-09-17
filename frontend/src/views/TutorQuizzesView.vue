@@ -5,7 +5,7 @@ import HelpTip from '@/components/HelpTip.vue'
 import PdfPagePicker, { type SelectedPage } from '@/components/PdfPagePicker.vue'
 import VocabTestDialog from '@/components/VocabTestDialog.vue'
 import { renderVocabSheet, TEST_FORMAT_LABEL, TEST_TYPE_LABEL } from '@/lib/vocabTest'
-import { MARK_COLOR, MARK_LABEL, groupQuizzes, groupStatus, quizApi } from '@/api/quiz'
+import { groupQuizzes, groupStatus, quizApi, rateColor } from '@/api/quiz'
 import { iso } from '@/lib/design'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
@@ -65,27 +65,24 @@ function fmt(d: string | null): string {
   return `${y}/${Number(m)}/${Number(dd)}`
 }
 
-// ---------- 分析: 採点・添削済みの結果（○△×）を累積表示 ----------
+// ---------- 分析: 採点・添削済みの結果（得点）を累積表示 ----------
 const gradedList = computed(() =>
   quizzes.value
     .filter((q) => q.status === 'graded')
     .sort((a, b) => (b.gradedAt ?? '').localeCompare(a.gradedAt ?? '') || b.id - a.id),
 )
-const gradedMarks = computed(() => {
-  const t = { o: 0, tri: 0, x: 0 }
+/** 採点済み小テストの合計得点・満点・合計得点率 */
+const gradedTotal = computed(() => {
+  let s = 0
+  let m = 0
   for (const q of gradedList.value) {
-    t.o += q.marks?.o ?? 0
-    t.tri += q.marks?.tri ?? 0
-    t.x += q.marks?.x ?? 0
+    if (q.score !== null) {
+      s += q.score
+      m += q.maxScore
+    }
   }
-  return t
+  return { s, m, rate: m > 0 ? Math.round((s / m) * 100) : null }
 })
-/** ○の割合（%）。評価済みの問題のうち ○ だった割合 */
-function oRate(m: { o: number; tri: number; x: number } | undefined): number | null {
-  if (!m) return null
-  const n = m.o + m.tri + m.x
-  return n > 0 ? Math.round((m.o / n) * 100) : null
-}
 
 async function openPdf(q: QuizSummary) {
   try {
@@ -427,8 +424,9 @@ function setDueIn(days: number) {
                   <span class="qr-pages">{{ q.pageCount }}ページ</span>
                   <span class="qr-chip" :class="partChip(q).cls">{{ partChip(q).label }}</span>
                   <span class="qr-score">
-                    <template v-if="q.status === 'graded'">
-                      <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" :style="{ color: MARK_COLOR[m], fontWeight: 700, marginRight: '8px' }">{{ MARK_LABEL[m] }}{{ q.marks?.[m] ?? 0 }}</span>
+                    <template v-if="q.status === 'graded' && q.score !== null">
+                      <b :style="{ color: rateColor(q.rate) }">{{ q.score }}</b> / {{ q.maxScore }}点
+                      <span :style="{ color: rateColor(q.rate), fontWeight: 700, marginLeft: '6px' }">{{ q.rate ?? '–' }}%</span>
                     </template>
                     <template v-else-if="q.status === 'assigned' && q.answeredCount">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</template>
                   </span>
@@ -455,14 +453,12 @@ function setDueIn(days: number) {
       </div>
       <template v-else>
         <div class="st-sum">
-          実施 <b>{{ gradedList.length }}</b> 回・
-          <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" :style="{ color: MARK_COLOR[m], fontWeight: 700, marginRight: '8px' }">{{ MARK_LABEL[m] }}{{ gradedMarks[m] }}</span>
-          ・○率 <b>{{ oRate(gradedMarks) ?? '–' }}%</b>
+          実施 <b>{{ gradedList.length }}</b> 回・合計 <b>{{ gradedTotal.s }}</b> / {{ gradedTotal.m }}点・得点率 <b :style="{ color: rateColor(gradedTotal.rate) }">{{ gradedTotal.rate ?? '–' }}%</b>
         </div>
         <div class="st-table-wrap">
           <table class="st-table">
             <thead>
-              <tr><th>採点・添削日</th><th>タイトル</th><th>教材</th><th class="r">ページ</th><th class="r">評価（○△×）</th><th class="r">○率</th><th></th></tr>
+              <tr><th>採点・添削日</th><th>タイトル</th><th>教材</th><th class="r">ページ</th><th class="r">得点</th><th class="r">得点率</th><th></th></tr>
             </thead>
             <tbody>
               <tr v-for="q in gradedList" :key="q.id">
@@ -470,12 +466,10 @@ function setDueIn(days: number) {
                 <td class="ttl-cell">{{ q.title }}</td>
                 <td>{{ partLabel(q) }}</td>
                 <td class="r">{{ q.pageCount }}</td>
-                <td class="r nowrap">
-                  <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" :style="{ color: MARK_COLOR[m], fontWeight: 700, marginLeft: '8px' }">{{ MARK_LABEL[m] }}{{ q.marks?.[m] ?? 0 }}</span>
-                </td>
+                <td class="r nowrap"><b>{{ q.score ?? '–' }}</b> / {{ q.maxScore }}</td>
                 <td class="r rate-cell">
-                  <span class="rate-bar"><span :style="{ width: (oRate(q.marks) ?? 0) + '%' }"></span></span>
-                  <span class="nowrap">{{ oRate(q.marks) ?? '–' }}%</span>
+                  <span class="rate-bar"><span :style="{ width: (q.rate ?? 0) + '%', background: rateColor(q.rate) }"></span></span>
+                  <span class="nowrap" :style="{ color: rateColor(q.rate), fontWeight: 700 }">{{ q.rate ?? '–' }}%</span>
                 </td>
                 <td class="r"><button class="btn" style="padding: 5px 10px" @click="grade(q)">結果</button></td>
               </tr>

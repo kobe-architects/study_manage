@@ -287,6 +287,8 @@ php artisan config:cache && php artisan route:cache
 
 ## 13. 英単語帳「LEAP basic」・英単語小テスト（2026-09-10 追加）の運用メモ
 
+- 2026-09-18: マイグレーション `2026_09_18_000001_add_score_to_quizzes` で quizzes に `score`（得点）と `max_score`（満点）を追加し、
+  採点済みの小テストはページ得点・ページ満点の合計を引き継ぐ。ページ別の○△×（quiz_pages.mark / score）は使わなくなった（列は残す）。
 - 2026-09-14: マイグレーション `2026_09_14_000001_add_examples_and_reference_to_vocabularies` で vocabularies に
   `examples`（JSON: 複数例文）と `reference_note`（参考）を追加し、LEAP basic の memo（"No.N ..."）を reference_note へ移す。
   例文データを更新した場合は `php artisan vocab:import-leap` を再実行する（leap_basic.json は Git 管理）。

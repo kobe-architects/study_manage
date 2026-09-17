@@ -4,15 +4,15 @@ import { useRoute, useRouter } from 'vue-router'
 import AnnotationEditor from '@/components/AnnotationEditor.vue'
 import AuthImage from '@/components/AuthImage.vue'
 import PdfThumb from '@/components/PdfThumb.vue'
-import { MARK_COLOR, MARK_LABEL, fetchBlobUrl, quizApi } from '@/api/quiz'
+import { fetchBlobUrl, quizApi, rateColor } from '@/api/quiz'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
-import type { AnnotationDoc, QuizDetail, QuizMark, QuizPageDetail } from '@/types'
+import type { AnnotationDoc, QuizDetail, QuizPageDetail } from '@/types'
 
 /**
  * 講師用: 採点・添削画面。
  * PC: 左レール: 添削ツール（固定）＋ページリスト / 中央: 回答写真の添削エディタ /
- *     右レール: ステータス・完了ボタン（固定）＋採点＋英単語テストの解答一覧。
+ *     右レール: ステータス・完了ボタン・採点（小テスト全体の得点／満点）＋ページのコメント＋英単語テストの解答一覧。
  * タブレット・スマホ（幅 1100px 以下）: ツール・ページリストは表示せず、回答写真（閲覧用）をタップすると
  *     全画面の添削モードを開く。全画面では左に縦型ツール、上にページ一覧（横スクロール）、
  *     「解答を表示」で上下分割して下に解答ページ（境界はドラッグで移動）。PC でも「全画面」ボタンで同じ画面を使える。
@@ -33,7 +33,44 @@ const answerUrl = ref<string | null>(null)
 /** 英単語テストの解答一覧（採点用） */
 const vocabAnswers = computed(() => (page.value?.kind === 'vocab' ? page.value.vocabWords ?? [] : []))
 
-const form = reactive<{ mark: QuizMark | null; comment: string; saving: boolean }>({ mark: null, comment: '', saving: false })
+const form = reactive<{ comment: string; saving: boolean }>({ comment: '', saving: false })
+/** 小テスト全体の採点（得点＝分子・満点＝分母）。ページ別の○△×は廃止 */
+const scoreForm = reactive<{ score: number | null; maxScore: number | null; saving: boolean }>({ score: null, maxScore: null, saving: false })
+const scoreEntered = computed(() => scoreForm.score !== null && scoreForm.maxScore !== null && scoreForm.maxScore > 0)
+const scoreRate = computed(() => (scoreEntered.value ? Math.round((scoreForm.score! / scoreForm.maxScore!) * 100) : null))
+/** 完了時の採点未入力の警告モーダル */
+const warnOpen = ref(false)
+const scoreInput = ref<HTMLInputElement | null>(null)
+function syncScoreForm() {
+  const q = quiz.value
+  scoreForm.score = q?.enteredScore ?? null
+  // 満点が未入力ならページ満点の合計（英単語テストは出題数）を既定値にする
+  scoreForm.maxScore = q?.enteredMaxScore ?? q?.defaultMaxScore ?? null
+}
+async function saveScore() {
+  if (!quiz.value) return
+  const sc = scoreForm.score === null || scoreForm.score === ('' as unknown) ? null : Math.max(0, Math.floor(Number(scoreForm.score)))
+  const mx = scoreForm.maxScore === null || scoreForm.maxScore === ('' as unknown) ? null : Math.max(1, Math.floor(Number(scoreForm.maxScore)))
+  if (sc !== null && mx !== null && sc > mx) {
+    ui.notify('得点が満点を超えています')
+    return
+  }
+  scoreForm.saving = true
+  try {
+    const r = await quizApi.score(quiz.value.id, { score: sc, maxScore: mx })
+    quiz.value.enteredScore = r.score
+    quiz.value.enteredMaxScore = r.maxScore
+    quiz.value.scoreEntered = r.score !== null && r.maxScore !== null
+    if (r.maxScore !== null) quiz.value.maxScore = r.maxScore
+    scoreForm.score = r.score
+    scoreForm.maxScore = r.maxScore ?? quiz.value.defaultMaxScore
+  } catch (e: unknown) {
+    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+    ui.notify(msg || '採点の保存に失敗しました')
+  } finally {
+    scoreForm.saving = false
+  }
+}
 
 // ---- 画面幅（タブレット・スマホ判定）と全画面添削モード ----
 const mq = typeof window !== 'undefined' ? window.matchMedia('(max-width: 1100px)') : null
@@ -132,6 +169,7 @@ async function load(keepIdx = true) {
   const q = await quizApi.show(quizId)
   quiz.value = q
   if (!keepIdx || pageIdx.value >= q.pages.length) pageIdx.value = 0
+  syncScoreForm()
 }
 
 async function loadAnswer() {
@@ -148,7 +186,6 @@ async function loadAnswer() {
 
 function syncForm() {
   const p = page.value
-  form.mark = p?.mark ?? null
   form.comment = p?.comment ?? ''
 }
 
@@ -238,43 +275,32 @@ async function downloadAnswers() {
     ui.notify('ダウンロードに失敗しました')
   }
 }
-function setMark(m: QuizMark) {
-  form.mark = form.mark === m ? null : m
-  saveGrade()
-}
+/** ページのコメント（生徒に表示） */
 async function saveGrade() {
   if (!quiz.value || !page.value) return
+  const p = quiz.value.pages[pageIdx.value]!
+  const next = form.comment.trim() || null
+  if ((p.comment ?? null) === next) return
   form.saving = true
   try {
-    // 点数はサーバー側でマークから自動設定（○=満点・△=半分・×=0）。表示には使わない
-    await quizApi.grade(quiz.value.id, page.value.id, { mark: form.mark, score: null, comment: form.comment.trim() || null })
-    const p = quiz.value.pages[pageIdx.value]!
-    p.mark = form.mark
-    p.comment = form.comment.trim() || null
+    await quizApi.grade(quiz.value.id, page.value.id, { comment: next })
+    p.comment = next
   } catch {
-    ui.notify('採点の保存に失敗しました')
+    ui.notify('コメントの保存に失敗しました')
   } finally {
     form.saving = false
   }
 }
 
-const gradedCount = computed(() => quiz.value?.pages.filter((p) => p.mark !== null).length ?? 0)
-const markCounts = computed(() => {
-  const t = { o: 0, tri: 0, x: 0 }
-  for (const p of quiz.value?.pages ?? []) {
-    if (p.mark) t[p.mark]++
-  }
-  return t
-})
-
 async function finish() {
   if (!quiz.value) return
   await flushAnnotations()
-  if (gradedCount.value < quiz.value.pages.length) {
-    ui.notify(`未評価のページがあります（${gradedCount.value}/${quiz.value.pages.length}）`)
+  if (!scoreEntered.value || !quiz.value.scoreEntered) {
+    // 採点が未入力ならモーダルで警告する
+    warnOpen.value = true
     return
   }
-  if (!confirm(`採点・添削を完了しますか？（○${markCounts.value.o} △${markCounts.value.tri} ×${markCounts.value.x}）\n完了すると生徒に結果が表示されます。`)) return
+  if (!confirm(`採点・添削を完了しますか？（得点 ${scoreForm.score} / ${scoreForm.maxScore}点・${scoreRate.value}%）\n完了すると生徒に結果が表示されます。`)) return
   try {
     await quizApi.finish(quiz.value.id)
     ui.notify('採点・添削を完了しました')
@@ -283,6 +309,10 @@ async function finish() {
     const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
     ui.notify(msg || '完了処理に失敗しました')
   }
+}
+function goToScoreInput() {
+  warnOpen.value = false
+  nextTick(() => scoreInput.value?.focus())
 }
 async function reopen() {
   if (!quiz.value || !confirm('採点・添削をやり直しますか？（生徒側では「提出済み」に戻ります）')) return
@@ -318,8 +348,7 @@ async function downloadResult() {
           <button v-for="(p, i) in quiz.pages" :key="p.id" class="prow" :class="{ on: i === pageIdx }" @click="gotoPage(i)">
             <span class="pn">{{ p.pageNo }}</span>
             <span class="pl">{{ p.label }}</span>
-            <span v-if="p.mark" class="pm" :style="{ color: i === pageIdx ? '#fff' : MARK_COLOR[p.mark] }">{{ MARK_LABEL[p.mark] }}</span>
-            <span v-else-if="!p.hasAnswer" class="pm ng">未</span>
+            <span v-if="!p.hasAnswer" class="pm ng">未</span>
           </button>
         </div>
       </div>
@@ -381,9 +410,24 @@ async function downloadResult() {
         <div class="status-line">
           <span class="chip" :class="quiz.status">{{ quiz.status === 'graded' ? '採点・添削済み' : quiz.status === 'submitted' ? '採点・添削待ち' : '未提出' }}</span>
           <span class="total">
-            評価 {{ gradedCount }}/{{ quiz.pageCount }}
-            <span v-for="m in (['o', 'tri', 'x'] as const)" :key="m" :style="{ color: MARK_COLOR[m], fontWeight: 700, marginLeft: '6px' }">{{ MARK_LABEL[m] }}{{ markCounts[m] }}</span>
+            <template v-if="scoreEntered"><b :style="{ color: rateColor(scoreRate) }">{{ scoreForm.score }}</b> / {{ scoreForm.maxScore }}点（{{ scoreRate }}%）</template>
+            <template v-else>採点未入力</template>
           </span>
+        </div>
+        <!-- 採点: 小テスト全体の得点（分子）と満点（分母） -->
+        <div class="score-box">
+          <div class="score-title">
+            採点（得点 / 満点）
+            <span v-if="scoreForm.saving" style="font-size: 11px; font-weight: 400; color: var(--faint); margin-left: 6px">保存中…</span>
+          </div>
+          <div class="score-inputs">
+            <input ref="scoreInput" v-model.number="scoreForm.score" type="number" min="0" inputmode="numeric" placeholder="得点" :disabled="quiz.status === 'assigned'" @change="saveScore" />
+            <span class="slash">/</span>
+            <input v-model.number="scoreForm.maxScore" type="number" min="1" inputmode="numeric" placeholder="満点" :disabled="quiz.status === 'assigned'" @change="saveScore" />
+            <span class="unit">点</span>
+            <span v-if="scoreEntered" class="rate" :style="{ background: rateColor(scoreRate) }">{{ scoreRate }}%</span>
+          </div>
+          <div class="score-hint">満点の初期値はページ満点の合計（英単語テストは出題数）です。自由に変更できます。</div>
         </div>
         <div class="status-btns">
           <button v-if="quiz.status !== 'graded'" class="btn primary" :disabled="quiz.status === 'assigned'" @click="finish">採点・添削を完了</button>
@@ -395,15 +439,10 @@ async function downloadResult() {
 
       <div v-if="page" class="card grading">
         <div style="font-size: 12.5px; font-weight: 700; margin-bottom: 8px">
-          評価（○△×）
+          このページへのコメント
           <span v-if="form.saving" style="font-size: 11px; font-weight: 400; color: var(--faint); margin-left: 6px">保存中…</span>
         </div>
-        <div class="marks">
-          <button v-for="m in (['o', 'tri', 'x'] as const)" :key="m" class="mark" :class="{ on: form.mark === m }" :style="{ '--c': MARK_COLOR[m] }" :disabled="!page.hasAnswer" @click="setMark(m)">
-            <span class="mk">{{ MARK_LABEL[m] }}</span>
-          </button>
-        </div>
-        <textarea v-model="form.comment" rows="3" style="margin-top: 10px" placeholder="コメント（生徒に表示されます）" :disabled="!page.hasAnswer" @blur="saveGrade"></textarea>
+        <textarea v-model="form.comment" rows="3" placeholder="コメント（生徒に表示されます）" :disabled="!page.hasAnswer" @blur="saveGrade"></textarea>
         <div class="nav">
           <button class="btn" :disabled="pageIdx === 0" @click="gotoPage(pageIdx - 1)">‹ 前へ</button>
           <button class="btn" :disabled="pageIdx >= quiz.pages.length - 1" @click="gotoPage(pageIdx + 1)">次へ ›</button>
@@ -452,8 +491,7 @@ async function downloadResult() {
         <button v-for="(p, i) in quiz.pages" :key="p.id" class="fs-page" :class="{ on: i === pageIdx }" @click="gotoPage(i)">
           <span class="pn">{{ p.pageNo }}</span>
           <span class="pl">{{ p.label }}</span>
-          <span v-if="p.mark" class="pm" :style="{ color: i === pageIdx ? MARK_COLOR[p.mark] : MARK_COLOR[p.mark] }">{{ MARK_LABEL[p.mark] }}</span>
-          <span v-else-if="!p.hasAnswer" class="pm ng">未</span>
+          <span v-if="!p.hasAnswer" class="pm ng">未</span>
         </button>
       </div>
       <button v-if="hasAnsPane" class="fs-ans-btn" :class="{ on: showAns }" @click="showAns = !showAns">{{ showAns ? '解答を閉じる' : '解答を表示' }}</button>
@@ -500,6 +538,17 @@ async function downloadResult() {
             </div>
           </div>
         </template>
+      </div>
+    </div>
+  </div>
+  <!-- 採点未入力の警告 -->
+  <div v-if="warnOpen" class="sheet-overlay" style="z-index: 90" @click="warnOpen = false">
+    <div class="warn-modal" @click.stop>
+      <div class="warn-title">採点が入力されていません</div>
+      <div class="warn-body">「採点・添削を完了」するには、右側の採点欄に得点と満点を入力してください。完了すると生徒に結果（得点・添削）が表示されます。</div>
+      <div class="warn-btns">
+        <button class="btn" @click="warnOpen = false">閉じる</button>
+        <button class="btn primary" @click="goToScoreInput">採点を入力する</button>
       </div>
     </div>
   </div>
@@ -980,6 +1029,75 @@ async function downloadResult() {
 .btn:disabled {
   opacity: 0.4;
   cursor: default;
+}
+.score-box {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f1f3;
+}
+.score-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.score-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.score-inputs input {
+  width: 74px;
+  padding: 8px 8px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: right;
+}
+.score-inputs .slash {
+  font-size: 18px;
+  color: var(--faint);
+}
+.score-inputs .unit {
+  font-size: 12px;
+  color: var(--mut);
+}
+.score-inputs .rate {
+  margin-left: auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+.score-hint {
+  font-size: 10.5px;
+  color: var(--faint);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+.warn-modal {
+  background: #fff;
+  border-radius: 14px;
+  max-width: 420px;
+  width: 100%;
+  padding: 20px 20px 16px;
+}
+.warn-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.warn-body {
+  font-size: 12.5px;
+  color: var(--mut);
+  line-height: 1.7;
+}
+.warn-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
 }
 .marks {
   display: grid;

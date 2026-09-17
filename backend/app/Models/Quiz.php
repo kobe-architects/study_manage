@@ -21,7 +21,7 @@ class Quiz extends Model
 
     protected $fillable = [
         'user_id', 'created_by', 'group_key', 'resource_book_id', 'title', 'note', 'due_on',
-        'max_score_per_page', 'file_path', 'status', 'submitted_at', 'graded_at',
+        'max_score_per_page', 'score', 'max_score', 'file_path', 'status', 'submitted_at', 'graded_at',
     ];
 
     protected $casts = [
@@ -29,6 +29,8 @@ class Quiz extends Model
         'submitted_at' => 'datetime',
         'graded_at' => 'datetime',
         'max_score_per_page' => 'integer',
+        'score' => 'integer',
+        'max_score' => 'integer',
     ];
 
     protected static function booted(): void
