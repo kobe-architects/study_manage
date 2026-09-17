@@ -383,6 +383,8 @@ function deleteSelected() {
 // ---------- ポインタ操作 ----------
 let temp: AnnotationItem | null = null
 let activePointer: number | null = null
+/** 描画中のポインタ種別（pen / touch / mouse）。ペンで描いている間は指（手のひら）を無視するために使う */
+let activeType = ''
 let start: { x: number; y: number } | null = null
 let dragItem: { id: string; ox: number; oy: number } | null = null
 /** テキストのサイズ変更ドラッグ中の状態 */
@@ -442,11 +444,20 @@ function onDown(e: PointerEvent) {
   if (props.readonly || !loaded.value) return
   if (e.pointerType === 'pen' && !penOnly.value) penOnly.value = true // Apple Pencil を検出したら指はスクロール扱い
   if (e.pointerType === 'touch' && penOnly.value) return
-  if (activePointer !== null) return
+  if (activePointer !== null) {
+    // 指で描いている途中にペンが触れたらペンを優先する。それ以外（描画中の別ポインタ）は無視
+    if (e.pointerType === 'pen' && activeType === 'touch') cancelActive()
+    else return
+  }
   if (e.button !== 0 && e.pointerType === 'mouse') return
   if (textEdit.value) commitText()
   activePointer = e.pointerId
-  canvas.value!.setPointerCapture(e.pointerId)
+  activeType = e.pointerType
+  try {
+    canvas.value!.setPointerCapture(e.pointerId)
+  } catch {
+    // キャプチャできない環境でも描画は続ける（終了は document 側の保険で拾う）
+  }
   e.preventDefault()
   const p = toImage(e)
   start = p
@@ -563,7 +574,7 @@ function onUp(e: PointerEvent) {
 }
 
 // ---------- タッチのピンチ拡縮・1本指スクロール（ステージで受ける） ----------
-const touches = new Map<number, { x: number; y: number }>()
+const touches = new Map<number, { x: number; y: number; t: number }>()
 let pinch: { dist: number; zoom0: number } | null = null
 let pan: { id: number; x: number; y: number } | null = null
 function cancelActive() {
@@ -587,20 +598,38 @@ function touchMid(): { x: number; y: number; dist: number } {
 }
 function onStageDown(e: PointerEvent) {
   if (props.readonly || e.pointerType !== 'touch') return
-  touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  // ペン（Apple Pencil）で描いている最中の指（手のひら）はピンチ・スクロールに使わない
+  if (activePointer !== null && activeType === 'pen') return
+  const now = performance.now()
+  // 終了イベントが届かず残った古い指の記録は捨てる（残っていると2本指扱いになり描画が取り消され続ける）
+  for (const [id, t] of touches) {
+    if (now - t.t > 15000) touches.delete(id)
+  }
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY, t: now })
   if (touches.size === 2) {
-    // 2本目の指が触れたら描画は取り消してピンチにする
-    cancelActive()
-    pan = null
-    pinch = { dist: Math.max(1, touchMid().dist), zoom0: zoom.value }
+    const [a, b] = [...touches.values()]
+    // ほぼ同時に置かれた2本の指だけをピンチとみなす（遅れて触れた指は手のひら等として無視）
+    if (a && b && Math.abs(a.t - b.t) <= 500) {
+      cancelActive()
+      pan = null
+      pinch = { dist: Math.max(1, touchMid().dist), zoom0: zoom.value }
+    }
   } else if (touches.size === 1 && penOnly.value) {
     pan = { id: e.pointerId, x: e.clientX, y: e.clientY }
+  }
+}
+/** 指を離した位置がステージ外でも記録を消す。描画中ポインタの終了が canvas に届かなかった場合の保険にもなる */
+function onDocPointerEnd(e: PointerEvent) {
+  if (touches.has(e.pointerId)) onStageUp(e)
+  if (activePointer === e.pointerId) {
+    if (e.type === 'pointerup') onUp(e)
+    else onCancel(e)
   }
 }
 let pinchBusy = false
 async function onStageMove(e: PointerEvent) {
   if (!touches.has(e.pointerId)) return
-  touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY, t: touches.get(e.pointerId)?.t ?? performance.now() })
   const st = container.value
   if (!st) return
   if (pinch && touches.size >= 2) {
@@ -786,6 +815,8 @@ onMounted(() => {
     container.value.addEventListener('touchmove', onTouchMove, { passive: false })
   }
   window.addEventListener('keydown', onKey)
+  document.addEventListener('pointerup', onDocPointerEnd)
+  document.addEventListener('pointercancel', onDocPointerEnd)
 })
 onBeforeUnmount(() => {
   ro?.disconnect()
@@ -793,6 +824,8 @@ onBeforeUnmount(() => {
   container.value?.removeEventListener('gesturechange', onGesture)
   container.value?.removeEventListener('touchmove', onTouchMove)
   window.removeEventListener('keydown', onKey)
+  document.removeEventListener('pointerup', onDocPointerEnd)
+  document.removeEventListener('pointercancel', onDocPointerEnd)
   if (saveTimer) clearTimeout(saveTimer)
   clearHold()
 })
