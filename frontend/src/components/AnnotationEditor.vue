@@ -106,7 +106,15 @@ function loadItems() {
 }
 
 watch(() => props.imageUrl, loadImage)
-watch(() => props.modelValue, loadItems)
+watch(
+  () => props.modelValue,
+  (v) => {
+    // 自動保存した内容が親から戻ってきただけ（中身が同じ）なら再読込しない
+    // （再読込すると履歴が消えて「元に戻す」が効かなくなる）
+    if (JSON.stringify(v?.items ?? []) === JSON.stringify(items.value)) return
+    loadItems()
+  },
+)
 
 function setDirty(v: boolean) {
   if (dirty.value !== v) {
