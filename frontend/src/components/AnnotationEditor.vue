@@ -170,20 +170,42 @@ function zoomBy(f: number) {
 function draw() {
   const c = canvas.value
   if (!c || !W.value) return
-  const dpr = window.devicePixelRatio || 1
   const cw = Math.round(W.value * scale.value)
   const ch = Math.round(H.value * scale.value)
-  if (c.width !== Math.round(cw * dpr) || c.height !== Math.round(ch * dpr)) {
-    c.width = Math.round(cw * dpr)
-    c.height = Math.round(ch * dpr)
+  // 拡大時にキャンバスの実サイズが大きくなりすぎると（iOS Safari は約 1,600 万画素・1辺 8192px が上限）
+  // 何も描画されなくなるため、実サイズの倍率（dpr）を上限内に収める
+  let dpr = window.devicePixelRatio || 1
+  const MAX_AREA = 14_000_000
+  const MAX_SIDE = 8192
+  if (cw * ch * dpr * dpr > MAX_AREA) dpr = Math.sqrt(MAX_AREA / (cw * ch))
+  if (cw * dpr > MAX_SIDE) dpr = MAX_SIDE / cw
+  if (ch * dpr > MAX_SIDE) dpr = MAX_SIDE / ch
+  const bw = Math.max(1, Math.round(cw * dpr))
+  const bh = Math.max(1, Math.round(ch * dpr))
+  if (c.width !== bw || c.height !== bh) {
+    c.width = bw
+    c.height = bh
   }
   c.style.width = cw + 'px'
   c.style.height = ch + 'px'
   const ctx = c.getContext('2d')!
-  ctx.setTransform(dpr * scale.value, 0, 0, dpr * scale.value, 0, 0)
+  ctx.setTransform((bw / cw) * scale.value, 0, 0, (bh / ch) * scale.value, 0, 0)
   ctx.clearRect(0, 0, W.value, H.value)
   for (const it of items.value) drawItem(ctx, it)
   if (temp) drawItem(ctx, temp)
+  // 消しゴム: 消える範囲を円で示す
+  if (tool.value === 'eraser' && hover.value && !props.readonly) {
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(hover.value.x, hover.value.y, ERASE_TOL / scale.value, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(229, 50, 45, 0.12)'
+    ctx.fill()
+    ctx.setLineDash([4 / scale.value, 3 / scale.value])
+    ctx.strokeStyle = '#e5322d'
+    ctx.lineWidth = 1.5 / scale.value
+    ctx.stroke()
+    ctx.restore()
+  }
   if (selectedId.value) {
     const it = items.value.find((x) => x.id === selectedId.value)
     if (it) {
@@ -383,6 +405,9 @@ function deleteSelected() {
 // ---------- ポインタ操作 ----------
 let temp: AnnotationItem | null = null
 let activePointer: number | null = null
+/** 消しゴムの有効半径（画面 px）と、消しゴム表示用のポインタ位置（画像座標） */
+const ERASE_TOL = 14
+const hover = ref<{ x: number; y: number } | null>(null)
 /** 描画中のポインタ種別（pen / touch / mouse）。ペンで描いている間は指（手のひら）を無視するために使う */
 let activeType = ''
 let start: { x: number; y: number } | null = null
@@ -497,6 +522,11 @@ function onDown(e: PointerEvent) {
 }
 
 function onMove(e: PointerEvent) {
+  if (tool.value === 'eraser' && !props.readonly && (activePointer === null || activePointer === e.pointerId)) {
+    // 押していなくても（マウス・ペンのホバー）消しゴムの範囲を表示する
+    hover.value = toImage(e)
+    if (activePointer !== e.pointerId) draw()
+  }
   if (activePointer !== e.pointerId) return
   const events = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : [e]
   const last = toImage(e)
@@ -701,7 +731,7 @@ function moveItem(it: AnnotationItem, dx: number, dy: number) {
 
 let eraseSnap = false
 function eraseAt(x: number, y: number) {
-  const tol = 12 / scale.value
+  const tol = ERASE_TOL / scale.value
   const before = items.value.length
   const next = items.value.filter((it) => !hit(it, x, y, tol))
   if (next.length !== before) {
@@ -855,7 +885,7 @@ onBeforeUnmount(() => {
         </div>
         <template v-if="expanded">
           <div class="group tools">
-            <button v-for="t in SECONDARY_TOOLS" :key="t.key" class="tb" :class="{ on: tool === t.key }" :title="t.label" @click="tool = t.key; selectedId = null; draw()">
+            <button v-for="t in SECONDARY_TOOLS" :key="t.key" class="tb" :class="{ on: tool === t.key }" :title="t.label" @click="tool = t.key; selectedId = null; hover = null; draw()">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="t.icon" /></svg>
               <span class="tb-label">{{ t.label }}</span>
             </button>
@@ -888,7 +918,7 @@ onBeforeUnmount(() => {
       <div v-else-if="!readonly" class="toolbar" :class="{ vertical: !!toolbarTarget }">
         <!-- ツールアイコン（縦型ではアイコンのみ・常時表示） -->
         <div class="group tools">
-          <button v-for="t in TOOLS" :key="t.key" class="tb" :class="{ on: tool === t.key }" :title="t.label" @click="tool = t.key; selectedId = null; draw()">
+          <button v-for="t in TOOLS" :key="t.key" class="tb" :class="{ on: tool === t.key }" :title="t.label" @click="tool = t.key; selectedId = null; hover = null; draw()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="t.icon" /></svg>
             <span class="tb-label">{{ t.label }}</span>
           </button>
@@ -953,6 +983,7 @@ onBeforeUnmount(() => {
           @pointermove="onMove"
           @pointerup="onUp"
           @pointercancel="onCancel"
+          @pointerleave="hover = null; draw()"
           @dblclick="onDblClick"
           @contextmenu.prevent
         ></canvas>
