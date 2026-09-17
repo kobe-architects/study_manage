@@ -11,6 +11,8 @@ import type { AnnotationDoc, AnnotationItem, AnnotationShape } from '@/types'
  * - compact: 全画面添削のサイドメニュー用。ペン・消しゴム・戻す・進むだけ常時表示し、他は展開ボタンで表示
  * - fitToContainer: 表示領域（.stage）の高さに合わせて画像をフィットさせる（全画面表示用）
  * - フリーハンドで線を引いたまま止めて（ホールド）いると、直線に書き直される（ほぼ直線の場合のみ）
+ * - タッチ操作はブラウザに任せず自前で処理する: 2本指のピンチで画像だけを拡縮（ページは拡縮しない）、
+ *   「指はスクロール」のときは1本指でスクロール
  */
 type Tool = 'select' | 'pen' | 'eraser' | AnnotationShape | 'text'
 
@@ -61,6 +63,7 @@ const fitScale = ref(1)
 const scale = computed(() => fitScale.value * zoom.value)
 
 const container = ref<HTMLElement | null>(null)
+const innerEl = ref<HTMLElement | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
 const img = ref<HTMLImageElement | null>(null)
 const W = ref(0)
@@ -547,6 +550,87 @@ function onUp(e: PointerEvent) {
   start = null
 }
 
+// ---------- タッチのピンチ拡縮・1本指スクロール（ステージで受ける） ----------
+const touches = new Map<number, { x: number; y: number }>()
+let pinch: { dist: number; zoom0: number } | null = null
+let pan: { id: number; x: number; y: number } | null = null
+function cancelActive() {
+  if (activePointer === null) return
+  try {
+    canvas.value?.releasePointerCapture(activePointer)
+  } catch {
+    // ignore
+  }
+  activePointer = null
+  clearHold()
+  temp = null
+  dragItem = null
+  resizeItem = null
+  draw()
+}
+function touchMid(): { x: number; y: number; dist: number } {
+  const [a, b] = [...touches.values()]
+  if (!a || !b) return { x: 0, y: 0, dist: 0 }
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, dist: Math.hypot(a.x - b.x, a.y - b.y) }
+}
+function onStageDown(e: PointerEvent) {
+  if (props.readonly || e.pointerType !== 'touch') return
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  if (touches.size === 2) {
+    // 2本目の指が触れたら描画は取り消してピンチにする
+    cancelActive()
+    pan = null
+    pinch = { dist: Math.max(1, touchMid().dist), zoom0: zoom.value }
+  } else if (touches.size === 1 && penOnly.value) {
+    pan = { id: e.pointerId, x: e.clientX, y: e.clientY }
+  }
+}
+let pinchBusy = false
+async function onStageMove(e: PointerEvent) {
+  if (!touches.has(e.pointerId)) return
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  const st = container.value
+  if (!st) return
+  if (pinch && touches.size >= 2) {
+    e.preventDefault()
+    if (pinchBusy) return
+    pinchBusy = true
+    const m = touchMid()
+    const rect = st.getBoundingClientRect()
+    const inner = innerEl.value
+    const s0 = scale.value
+    const offL = inner?.offsetLeft ?? 0
+    const offT = inner?.offsetTop ?? 0
+    // 指の中央にある画像上の点を拡縮後も同じ位置に保つ
+    const ix = (m.x - rect.left + st.scrollLeft - offL) / s0
+    const iy = (m.y - rect.top + st.scrollTop - offT) / s0
+    zoom.value = Math.min(5, Math.max(0.5, (pinch.zoom0 * m.dist) / pinch.dist))
+    await nextTick()
+    draw()
+    const s1 = scale.value
+    st.scrollLeft = ix * s1 + (inner?.offsetLeft ?? 0) - (m.x - rect.left)
+    st.scrollTop = iy * s1 + (inner?.offsetTop ?? 0) - (m.y - rect.top)
+    pinchBusy = false
+  } else if (pan && pan.id === e.pointerId && touches.size === 1) {
+    st.scrollLeft -= e.clientX - pan.x
+    st.scrollTop -= e.clientY - pan.y
+    pan = { id: e.pointerId, x: e.clientX, y: e.clientY }
+  }
+}
+function onStageUp(e: PointerEvent) {
+  if (!touches.has(e.pointerId)) return
+  touches.delete(e.pointerId)
+  if (touches.size < 2) pinch = null
+  if (pan && pan.id === e.pointerId) pan = null
+}
+/** Safari のページ拡縮（gesture イベント）と2本指の既定動作を止める */
+function onGesture(e: Event) {
+  if (!props.readonly) e.preventDefault()
+}
+function onTouchMove(e: TouchEvent) {
+  if (!props.readonly && e.touches.length > 1) e.preventDefault()
+}
+
 function onCancel(e: PointerEvent) {
   if (activePointer !== e.pointerId) return
   activePointer = null
@@ -683,11 +767,19 @@ onMounted(() => {
     const ch = container.value?.clientHeight ?? 0
     if (Math.abs(cw - lastCw) > 24 || (props.fitToContainer && Math.abs(ch - lastCh) > 24)) fit()
   })
-  if (container.value) ro.observe(container.value)
+  if (container.value) {
+    ro.observe(container.value)
+    container.value.addEventListener('gesturestart', onGesture)
+    container.value.addEventListener('gesturechange', onGesture)
+    container.value.addEventListener('touchmove', onTouchMove, { passive: false })
+  }
   window.addEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => {
   ro?.disconnect()
+  container.value?.removeEventListener('gesturestart', onGesture)
+  container.value?.removeEventListener('gesturechange', onGesture)
+  container.value?.removeEventListener('touchmove', onTouchMove)
   window.removeEventListener('keydown', onKey)
   if (saveTimer) clearTimeout(saveTimer)
   clearHold()
@@ -787,14 +879,23 @@ onBeforeUnmount(() => {
       </div>
     </Teleport>
 
-    <div ref="container" class="stage" :class="{ [tool]: true }" @contextmenu.prevent>
+    <div
+      ref="container"
+      class="stage"
+      :class="{ [tool]: true, touchy: !readonly }"
+      @contextmenu.prevent
+      @pointerdown="onStageDown"
+      @pointermove="onStageMove"
+      @pointerup="onStageUp"
+      @pointercancel="onStageUp"
+    >
       <div v-if="!loaded" class="loading">画像を読み込み中…</div>
-      <div v-else class="inner" :style="{ width: Math.round(W * scale) + 'px', height: Math.round(H * scale) + 'px' }">
+      <div v-else ref="innerEl" class="inner" :style="{ width: Math.round(W * scale) + 'px', height: Math.round(H * scale) + 'px' }">
         <img :src="imageUrl" class="base" alt="" draggable="false" />
         <canvas
           ref="canvas"
           class="overlay"
-          :style="{ touchAction: readonly ? 'auto' : penOnly ? 'pan-x pan-y pinch-zoom' : 'none' }"
+          :style="{ touchAction: readonly ? 'auto' : 'none' }"
           @pointerdown="onDown"
           @pointermove="onMove"
           @pointerup="onUp"
@@ -1113,6 +1214,10 @@ onBeforeUnmount(() => {
   padding: 6px 2px;
   white-space: normal;
   text-align: center;
+}
+/* 編集中はタッチをブラウザに任せない（ピンチは画像だけを拡縮、1本指スクロールは自前） */
+.stage.touchy {
+  touch-action: none;
 }
 /* 表示領域の高さに合わせる（全画面添削） */
 .editor.fill {
