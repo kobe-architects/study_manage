@@ -131,14 +131,18 @@ async function openFs() {
   await nextTick()
   fsReady.value = true
 }
-/** 全画面の終了時に添削をまとめて保存する（全画面中は変更のたびの自動保存をしない） */
+/** 全画面の終了時に添削をまとめて保存する（全画面中は変更のたびの自動保存をしない）。保存中はモーダルを表示 */
+const closing = ref(false)
 async function closeFs() {
+  if (closing.value) return
   if (dirty.value && editor.value) {
+    closing.value = true
     saving.value = true
     try {
       await flushAnnotations()
     } finally {
       saving.value = false
+      closing.value = false
     }
   }
   fsOpen.value = false
@@ -513,6 +517,13 @@ async function downloadResult() {
       </div>
       <button v-if="hasAnsPane" class="fs-ans-btn" :class="{ on: showAns }" @click="showAns = !showAns">{{ showAns ? '解答を閉じる' : '解答を表示' }}</button>
     </div>
+    <!-- 閉じるときの保存中モーダル -->
+    <div v-if="closing" class="fs-saving">
+      <div class="fs-saving-box">
+        <span class="spinner"></span>
+        添削を保存しています…
+      </div>
+    </div>
     <div class="fs-body">
       <aside class="fs-side"><div id="fs-tools"></div></aside>
       <div ref="fsMain" class="fs-main">
@@ -666,6 +677,40 @@ async function downloadResult() {
 .fs-answer {
   touch-action: pan-x pan-y;
   overscroll-behavior: contain;
+}
+.fs-saving {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 24, 32, 0.55);
+}
+.fs-saving-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 26px;
+  border-radius: 14px;
+  background: #fff;
+  color: #1c2024;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+.spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid #e3e6ea;
+  border-top-color: #1c2024;
+  animation: fs-spin 0.8s linear infinite;
+}
+@keyframes fs-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .fs-top {
   display: flex;
