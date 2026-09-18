@@ -490,13 +490,12 @@ async function deleteEvent(id: number) {
   }
 }
 
-const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1fr'))
 </script>
 
 <template>
   <div>
     <!-- tabs -->
-    <div style="display: flex; margin-bottom: 18px">
+    <div style="display: flex; margin-bottom: 18px" :class="{ 'full-w': tab === 'progress' && !isMobile }">
       <div class="seg">
         <button class="seg-btn" :class="{ on: tab === 'progress' }" @click="tab = 'progress'">進捗率</button>
         <button class="seg-btn" :class="{ on: tab === 'goals' }" @click="selectGoals">目標</button>
@@ -505,9 +504,10 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
     </div>
 
     <!-- Progress tab -->
-    <div v-if="tab === 'progress'" :style="{ display: 'grid', gridTemplateColumns: homeCols, gap: '18px', alignItems: 'start' }">
-      <!-- LEFT -->
-      <div :style="{ display: 'flex', flexDirection: 'column', gap: '14px', order: isMobile ? 2 : 0 }">
+    <!-- 進捗率: カレンダー / 先生からの課題 / 小テスト / 進捗率 の4カラム（PC は全幅・各カラムが独立してスクロール） -->
+    <div v-if="tab === 'progress'" class="home-cols" :class="{ mobile: isMobile }">
+      <!-- カレンダー列 -->
+      <div class="hcol hcol-cal" :style="{ order: isMobile ? 3 : 0 }">
         <div class="card" style="padding: 16px 18px">
           <div class="row-between" style="margin-bottom: 12px">
             <span style="font-size: 13px; font-weight: 700">学習カレンダー</span>
@@ -515,15 +515,6 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
           </div>
           <Heatmap :counts="study.recordStats?.heatmap ?? {}" :cell="11" />
         </div>
-
-        <!-- 先生からの課題 -->
-        <template v-if="pendingAssignments.length">
-          <div style="font-size: 13px; font-weight: 700; margin: 2px 2px -6px">先生からの課題</div>
-          <AssignmentCard v-for="a in pendingAssignments" :key="a.id" :assignment="a" readonly />
-        </template>
-
-        <!-- 小テスト（未提出・添削待ち・直近の結果） -->
-        <QuizHomePanel />
 
         <MonthCalendar :events="study.events" :exam-date="examDate" @day-click="openEvent" />
 
@@ -554,8 +545,22 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
         </div>
       </div>
 
-      <!-- RIGHT -->
-      <div :style="{ minWidth: 0, order: isMobile ? 1 : 0 }">
+      <!-- 先生からの課題列 -->
+      <div class="hcol hcol-asg" :style="{ order: isMobile ? 2 : 0 }">
+        <div class="hcol-title">先生からの課題</div>
+        <template v-if="pendingAssignments.length">
+          <AssignmentCard v-for="a in pendingAssignments" :key="a.id" :assignment="a" readonly />
+        </template>
+        <div v-else class="card hcol-empty">進行中の課題はありません</div>
+      </div>
+
+      <!-- 小テスト列（未提出・添削待ち・直近の結果） -->
+      <div class="hcol hcol-quiz" :style="{ order: isMobile ? 1 : 0 }">
+        <QuizHomePanel always />
+      </div>
+
+      <!-- 進捗率列 -->
+      <div class="hcol hcol-prog" :style="{ order: isMobile ? 0 : 0 }">
         <!-- 科目別進捗（講師の科目別学習状況と同じペラいち表示） -->
         <SubjectProgressPanels :hide-empty="hideEmpty" style="margin-bottom: 16px" />
 
@@ -859,6 +864,54 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
   font-size: 10.5px;
   color: var(--faint);
   margin-left: 6px;
+}
+/* 進捗率タブ: 4カラム。PC ではコンテンツ幅の外側の余白まで使い、各カラムが独立してスクロールする */
+.full-w {
+  width: calc(100vw - 60px);
+  margin-left: calc(50% - 50vw + 30px);
+}
+.home-cols {
+  width: calc(100vw - 60px);
+  margin-left: calc(50% - 50vw + 30px);
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) minmax(240px, 280px) minmax(280px, 330px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.hcol {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 2px;
+}
+.hcol-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 2px 2px -6px;
+}
+.hcol-empty {
+  padding: 16px 18px;
+  font-size: 12px;
+  color: var(--faint);
+}
+.home-cols.mobile {
+  width: auto;
+  margin-left: 0;
+  grid-template-columns: 1fr;
+}
+.home-cols.mobile .hcol {
+  max-height: none;
+  overflow: visible;
+}
+@media (max-width: 1280px) and (min-width: 861px) {
+  .home-cols {
+    grid-template-columns: minmax(260px, 300px) minmax(220px, 250px) minmax(250px, 290px) minmax(0, 1fr);
+  }
 }
 .seg {
   display: flex;

@@ -9,6 +9,8 @@ import { useQuizActions } from '@/lib/quizActions'
 import type { QuizSummary } from '@/types'
 
 /** 生徒トップページの「小テスト」パネル。未提出・添削待ちと直近の添削結果を表示する */
+/** always: 表示する小テストがなくても見出しと空メッセージを出す（トップページの小テスト列用） */
+defineProps<{ always?: boolean }>()
 const router = useRouter()
 const quizzes = ref<QuizSummary[]>([])
 
@@ -36,7 +38,7 @@ const shown = computed(() => {
 </script>
 
 <template>
-  <template v-if="shown.length">
+  <template v-if="shown.length || always">
     <div style="display: flex; align-items: baseline; justify-content: space-between; margin: 2px 2px -6px">
       <span style="font-size: 13px; font-weight: 700">小テスト</span>
       <button class="more" @click="router.push({ name: 'quizzes' })">すべて見る・分析 ›</button>
@@ -51,6 +53,7 @@ const shown = computed(() => {
       @capture="openCapture($event)"
       @result="openResult($event)"
     />
+    <div v-if="!shown.length" class="card" style="padding: 16px 18px; font-size: 12px; color: var(--faint)">未提出・採点待ちの小テストはありません</div>
     <CameraCapture v-if="state.capture" :quiz="state.capture" @close="state.capture = null" @submitted="onSubmitted" />
     <QuizResultModal v-if="state.resultId !== null" :quiz-id="state.resultId" @close="state.resultId = null" />
   </template>
