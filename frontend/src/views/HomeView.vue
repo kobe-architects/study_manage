@@ -447,9 +447,15 @@ const upcoming = computed(() =>
     .sort((a, b) => a.d.getTime() - b.d.getTime()),
 )
 /** 次の模試（「模試として登録」された予定のうち直近のもの） */
-const nextEvent = computed(() => upcoming.value.find((e) => e.isMock) ?? null)
+/** 今後の模試（模試として登録された予定。受験本番までと同じカウントダウン表示にする） */
+const upcomingMocks = computed(() =>
+  upcoming.value
+    .filter((e) => e.isMock)
+    .slice(0, 3)
+    .map((e) => ({ title: e.title, by: e.createdByName, dateLabel: `${e.d.getMonth() + 1}/${e.d.getDate()}`, days: Math.max(0, daysBetween(today, e.d)) })),
+)
 const upcomingList = computed(() =>
-  upcoming.value.slice(0, 3).map((e) => ({
+  upcoming.value.filter((e) => !e.isMock).slice(0, 3).map((e) => ({
     title: e.title,
     isMock: e.isMock,
     by: e.createdByName,
@@ -525,9 +531,13 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
             <span style="font-size: 11.5px; color: #b7bcc6">受験本番まで</span>
             <span><span class="dm" style="font-size: 24px; font-weight: 700">{{ daysToExam }}</span><span style="font-size: 11px; color: #b7bcc6; margin-left: 2px">日</span></span>
           </div>
-          <div v-if="nextEvent" class="row-between" style="align-items: baseline; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.12)">
-            <span style="font-size: 11.5px; color: #b7bcc6"><span class="mock-tag">模試</span>{{ nextEvent.title }}まで</span>
-            <span><span class="dm" style="font-size: 18px; font-weight: 700; color: #9fb4ff">{{ Math.max(0, daysBetween(today, nextEvent.d)) }}</span><span style="font-size: 11px; color: #b7bcc6; margin-left: 2px">日</span></span>
+          <div v-for="(m, i) in upcomingMocks" :key="i" class="row-between mock-row">
+            <span style="min-width: 0; display: flex; align-items: baseline; gap: 6px">
+              <span class="mock-tag">模試</span>
+              <span style="font-size: 11.5px; color: #e6e8ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ m.title }}</span>
+              <span style="font-size: 10.5px; color: #8e95a2; white-space: nowrap">{{ m.dateLabel }}</span>
+            </span>
+            <span style="flex-shrink: 0"><span class="dm" style="font-size: 20px; font-weight: 700; color: #ff9ecb">{{ m.days }}</span><span style="font-size: 11px; color: #b7bcc6; margin-left: 2px">日</span></span>
           </div>
         </div>
 
@@ -823,15 +833,21 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
 </template>
 
 <style scoped>
+.mock-row {
+  align-items: baseline;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
 .mock-tag {
   display: inline-block;
   font-size: 10px;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 999px;
-  background: #9fb4ff;
+  background: #ff9ecb;
   color: #1c2024;
-  margin-right: 6px;
+  margin-right: 0;
   vertical-align: middle;
 }
 .mock-tag.dark {
