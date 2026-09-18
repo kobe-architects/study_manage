@@ -73,7 +73,7 @@ watch(
         <input v-model="value" placeholder="例: 全国統一模試" class="inp" @keydown.enter="submit" />
         <label class="mock-chk">
           <input v-model="mock" type="checkbox" />
-          模試として登録する<span class="mock-note">（トップページに模試までの残り日数を表示します）</span>
+          模試として登録する
         </label>
         <div style="display: flex; gap: 10px; justify-content: flex-end">
           <button v-if="editingId !== null" class="btn-ghost" @click="cancelEdit">編集をやめる</button>
