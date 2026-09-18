@@ -18,7 +18,7 @@ const loading = ref(true)
 const words = ref<Vocabulary[]>([])
 const loadingWords = ref(false)
 
-const form = reactive<{ resourceId: number | null; from: number | null; to: number | null; count: number; type: PrintTestType; format: PrintTestFormat; order: 'random' | 'ordered'; unstudiedFirst: boolean }>({
+const form = reactive<{ resourceId: number | null; from: number | null; to: number | null; count: number; type: PrintTestType; format: PrintTestFormat; order: 'random' | 'ordered' }>({
   resourceId: null,
   from: 1,
   to: 20,
@@ -26,7 +26,6 @@ const form = reactive<{ resourceId: number | null; from: number | null; to: numb
   type: 'meaning',
   format: 'free',
   order: 'ordered', // デフォルトは単語帳の順番
-  unstudiedFirst: false,
 })
 
 onMounted(async () => {
@@ -124,13 +123,7 @@ function add() {
     ui.notify('出題できる単語がありません（番号の範囲を確認してください）')
     return
   }
-  let pool = [...candidates.value]
-  if (form.unstudiedFirst) {
-    // 未学習・習熟度の低い語を優先
-    const rank = (w: Vocabulary) => (w.learningStat ? (w.proficiency === 'high' ? 2 : w.proficiency === 'medium' ? 1 : 0) : -1)
-    pool.sort((a, b) => rank(a) - rank(b))
-    pool = [...pool.slice(0, effectiveCount.value * 2)]
-  }
+  const pool = [...candidates.value]
   const picked = (form.order === 'random' ? shuffle(pool) : pool).slice(0, effectiveCount.value)
   const ordered = form.order === 'random' ? picked : picked.sort((a, b) => a.sectionId - b.sectionId || a.sortOrder - b.sortOrder)
   const testWords = buildTestWords(ordered, words.value, form.type, form.format)
@@ -158,8 +151,8 @@ function add() {
 </script>
 
 <template>
-  <div class="overlay" @click="emit('close')">
-    <div class="modal" @click.stop>
+  <div class="overlay">
+    <div class="modal">
       <div class="head">
         <div style="font-size: 15px; font-weight: 700">英単語テストを追加</div>
         <button class="x" @click="emit('close')">×</button>
@@ -174,7 +167,6 @@ function add() {
 
         <div class="lab" style="display: flex; align-items: center; gap: 10px">
           出題範囲（単語帳の番号 No.）
-          <span style="margin-left: auto; font-weight: 400; color: var(--faint)">全 {{ words.length }}語・初期値は今週の{{ BLOCK }}語（毎週木曜日に次へ進む）</span>
         </div>
         <div class="range-row">
           <span class="rl">No.</span>
@@ -187,10 +179,6 @@ function add() {
             <button class="link" @click="setRange(thisWeekFrom, BLOCK)">今週（No.{{ thisWeekFrom }}〜{{ Math.min(thisWeekFrom + BLOCK - 1, words.length) }}）</button>
             <button class="link" :disabled="!range || range.to >= words.length" @click="setRange((range?.to ?? 0) + 1, BLOCK)">次の{{ BLOCK }}語 ›</button>
           </span>
-        </div>
-        <div v-if="range && rangeWords.length" class="range-note">
-          <b>No.{{ range.from }} {{ rangeWords[0]!.word }}</b> 〜 <b>No.{{ range.to }} {{ rangeWords[rangeWords.length - 1]!.word }}</b>
-          <span v-if="rangeSectionNames.length" style="color: var(--faint)">（{{ rangeSectionNames.slice(0, 3).join('、') }}{{ rangeSectionNames.length > 3 ? ' 他' : '' }}）</span>
         </div>
 
         <div class="grid">
@@ -214,7 +202,6 @@ function add() {
             </select>
           </label>
         </div>
-        <label class="chk"><input v-model="form.unstudiedFirst" type="checkbox" /> 未学習・習熟度の低い語を優先する</label>
 
         <div class="summary">
           <b>{{ effectiveCount }}問</b> を <b>{{ pageCount }}枚</b> の用紙に出題。
