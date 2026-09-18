@@ -8,7 +8,7 @@ import type { PrintTestFormat, PrintTestType, QuizPageSpec, StudyResource, Vocab
 
 /**
  * 講師の小テストに追加する「英単語テスト」の設定ダイアログ。
- * 単語帳 → セクション（Part / Week）→ 出題数・形式 を選ぶと、1枚あたりの上限で複数ページに分割して返す。
+ * 単語帳 → 出題範囲（単語帳の通し番号 No.）→ 出題数・形式 を選ぶと、1枚あたりの上限で複数ページに分割して返す。
  */
 const emit = defineEmits<{ close: []; add: [pages: QuizPageSpec[]] }>()
 const ui = useUiStore()
@@ -18,9 +18,10 @@ const loading = ref(true)
 const words = ref<Vocabulary[]>([])
 const loadingWords = ref(false)
 
-const form = reactive<{ resourceId: number | null; sectionIds: Set<number>; count: number; type: PrintTestType; format: PrintTestFormat; order: 'random' | 'ordered'; unstudiedFirst: boolean }>({
+const form = reactive<{ resourceId: number | null; from: number | null; to: number | null; count: number; type: PrintTestType; format: PrintTestFormat; order: 'random' | 'ordered'; unstudiedFirst: boolean }>({
   resourceId: null,
-  sectionIds: new Set(),
+  from: 1,
+  to: 20,
   count: 20,
   type: 'meaning',
   format: 'free',
@@ -40,25 +41,21 @@ onMounted(async () => {
 })
 
 const resource = computed(() => resources.value.find((r) => r.id === form.resourceId) ?? null)
-const sections = computed(() => resource.value?.sections ?? [])
-
-/** セクション名の「/」より前（Part 1 など）でグループ化 */
-const groups = computed(() => {
-  const m = new Map<string, number[]>()
-  for (const s of sections.value) {
-    const key = s.name.includes(' / ') ? s.name.split(' / ')[0]! : ''
-    if (!m.has(key)) m.set(key, [])
-    m.get(key)!.push(s.id)
-  }
-  return Array.from(m.entries()).filter(([k]) => k !== '')
+/** セクション ID → セクション名（範囲に含まれるセクションの表示用） */
+const sectionNameOf = computed(() => {
+  const m: Record<number, string> = {}
+  for (const sec of resource.value?.sections ?? []) m[sec.id] = sec.name
+  return m
 })
 
 async function selectResource(id: number) {
   form.resourceId = id
-  form.sectionIds = new Set()
   loadingWords.value = true
   try {
+    // 一覧 API はセクション順 → 並び順で返るので、配列位置 + 1 が単語帳の通し番号（No.）
     words.value = await quizApi.vocabularies(id)
+    form.from = 1
+    form.to = Math.min(20, words.value.length)
   } catch {
     ui.notify('単語の取得に失敗しました')
     words.value = []
@@ -67,40 +64,45 @@ async function selectResource(id: number) {
   }
 }
 
-function toggleSection(id: number) {
-  const next = new Set(form.sectionIds)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  form.sectionIds = next
-}
-function toggleGroup(ids: number[]) {
-  const all = ids.every((id) => form.sectionIds.has(id))
-  const next = new Set(form.sectionIds)
-  ids.forEach((id) => (all ? next.delete(id) : next.add(id)))
-  form.sectionIds = next
-}
-function selectAll(on: boolean) {
-  form.sectionIds = on ? new Set(sections.value.map((s) => s.id)) : new Set()
-}
-
-const candidates = computed(() =>
-  words.value.filter((w) => form.sectionIds.has(w.sectionId) && (form.type !== 'fill_spelling' || !!w.exampleSentence)),
-)
+/** 有効な番号範囲（1 〜 語数、from <= to） */
+const range = computed<{ from: number; to: number } | null>(() => {
+  const n = words.value.length
+  const f = Number(form.from)
+  const t = Number(form.to)
+  if (!n || !Number.isInteger(f) || !Number.isInteger(t) || f < 1 || t < f) return null
+  return { from: f, to: Math.min(t, n) }
+})
+const rangeWords = computed(() => (range.value ? words.value.slice(range.value.from - 1, range.value.to) : []))
+const candidates = computed(() => rangeWords.value.filter((w) => form.type !== 'fill_spelling' || !!w.exampleSentence))
 const perPage = computed(() => VOCAB_PER_PAGE[form.format][form.type])
-const effectiveCount = computed(() => Math.min(form.count, candidates.value.length))
+/** 出題数の上限（用紙 8 枚分） */
+const maxCount = computed(() => perPage.value * 8)
+const effectiveCount = computed(() => Math.min(form.count, candidates.value.length, maxCount.value))
 const pageCount = computed(() => Math.ceil(effectiveCount.value / perPage.value))
+/** 範囲内の単語が属するセクション名（重複なし） */
+const rangeSectionNames = computed(() =>
+  Array.from(new Set(rangeWords.value.map((w) => sectionNameOf.value[w.sectionId]).filter((x): x is string => !!x))),
+)
 
+// 番号範囲を変えたら、その語数を出題数にする（生徒側の「番号で指定」と同じ挙動）
+watch(range, (r) => {
+  if (r) form.count = Math.min(r.to - r.from + 1, maxCount.value)
+})
 watch(
   () => [form.format, form.type],
   () => {
-    if (form.count > perPage.value * 4) form.count = perPage.value * 4
+    if (form.count > maxCount.value) form.count = maxCount.value
   },
 )
+function setRange(from: number, size: number) {
+  form.from = Math.max(1, Math.min(from, Math.max(1, words.value.length)))
+  form.to = Math.min(words.value.length, form.from + size - 1)
+}
 
 function add() {
   if (!resource.value) return
   if (!effectiveCount.value) {
-    ui.notify('出題できる単語がありません（セクションを選択してください）')
+    ui.notify('出題できる単語がありません（番号の範囲を確認してください）')
     return
   }
   let pool = [...candidates.value]
@@ -113,14 +115,15 @@ function add() {
   const picked = (form.order === 'random' ? shuffle(pool) : pool).slice(0, effectiveCount.value)
   const ordered = form.order === 'random' ? picked : picked.sort((a, b) => a.sectionId - b.sectionId || a.sortOrder - b.sortOrder)
   const testWords = buildTestWords(ordered, words.value, form.type, form.format)
-  const sectionNames = sections.value.filter((s) => form.sectionIds.has(s.id)).map((s) => s.name)
+  const rangeLabel = range.value ? `No.${range.value.from}〜${range.value.to}` : ''
+  const sectionNames = [rangeLabel, ...rangeSectionNames.value]
   const pages: QuizPageSpec[] = []
   for (let i = 0; i < testWords.length; i += perPage.value) {
     const chunk = testWords.slice(i, i + perPage.value)
     const pageNo = Math.floor(i / perPage.value) + 1
     pages.push({
       kind: 'vocab',
-      label: `英単語テスト（${resource.value.name}${sectionNames.length === 1 ? ' ' + sectionNames[0] : ''}・${chunk.length}問${pageCount.value > 1 ? ` ${pageNo}/${pageCount.value}` : ''}）`,
+      label: `英単語テスト（${resource.value.name} ${rangeLabel}・${chunk.length}問${pageCount.value > 1 ? ` ${pageNo}/${pageCount.value}` : ''}）`,
       vocab: {
         resourceId: resource.value.id,
         resourceName: resource.value.name,
@@ -151,18 +154,24 @@ function add() {
         </div>
 
         <div class="lab" style="display: flex; align-items: center; gap: 10px">
-          出題範囲（セクション）
-          <button class="link" @click="selectAll(true)">全選択</button>
-          <button class="link" style="color: #9aa1ab" @click="selectAll(false)">解除</button>
-          <span style="margin-left: auto; font-weight: 400; color: var(--faint)">{{ form.sectionIds.size }} / {{ sections.length }} セクション・{{ candidates.length }}語</span>
+          出題範囲（単語帳の番号 No.）
+          <span style="margin-left: auto; font-weight: 400; color: var(--faint)">全 {{ words.length }}語</span>
         </div>
-        <div v-if="groups.length" class="groups">
-          <button v-for="[g, ids] in groups" :key="g" class="grp" :class="{ on: ids.every((id) => form.sectionIds.has(id)) }" @click="toggleGroup(ids)">{{ g }}</button>
+        <div class="range-row">
+          <span class="rl">No.</span>
+          <input v-model.number="form.from" type="number" min="1" :max="words.length" class="rng" :disabled="loadingWords" />
+          <span class="rl">〜</span>
+          <input v-model.number="form.to" type="number" min="1" :max="words.length" class="rng" :disabled="loadingWords" />
+          <span class="rl" style="color: var(--faint)">{{ range ? range.to - range.from + 1 + '語' : '範囲が不正です' }}</span>
+          <span class="quick">
+            <button class="link" @click="setRange(1, 20)">1〜20</button>
+            <button class="link" @click="setRange((range?.to ?? 0) + 1, 20)">次の20語</button>
+            <button class="link" @click="setRange((range?.to ?? 0) + 1, 40)">次の40語</button>
+          </span>
         </div>
-        <div class="chips">
-          <button v-for="s in sections" :key="s.id" class="chip" :class="{ on: form.sectionIds.has(s.id) }" @click="toggleSection(s.id)">
-            {{ s.name.includes(' / ') ? s.name.split(' / ')[1] : s.name }}<span class="cnt">{{ s.wordCount }}</span>
-          </button>
+        <div v-if="range && rangeWords.length" class="range-note">
+          <b>No.{{ range.from }} {{ rangeWords[0]!.word }}</b> 〜 <b>No.{{ range.to }} {{ rangeWords[rangeWords.length - 1]!.word }}</b>
+          <span v-if="rangeSectionNames.length" style="color: var(--faint)">（{{ rangeSectionNames.slice(0, 3).join('、') }}{{ rangeSectionNames.length > 3 ? ' 他' : '' }}）</span>
         </div>
 
         <div class="grid">
@@ -176,8 +185,8 @@ function add() {
               <option v-for="(l, k) in TEST_FORMAT_LABEL" :key="k" :value="k">{{ l }}</option>
             </select>
           </label>
-          <label class="fld"><span>出題数（1枚 {{ perPage }}問まで・最大 {{ perPage * 4 }}問）</span>
-            <input v-model.number="form.count" type="number" min="1" :max="perPage * 4" />
+          <label class="fld"><span>出題数（1枚 {{ perPage }}問まで・最大 {{ maxCount }}問）</span>
+            <input v-model.number="form.count" type="number" min="1" :max="maxCount" />
           </label>
           <label class="fld"><span>出題順</span>
             <select v-model="form.order">
@@ -202,6 +211,36 @@ function add() {
 </template>
 
 <style scoped>
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.range-row .rl {
+  font-size: 12.5px;
+  color: var(--mut);
+}
+.range-row .rng {
+  width: 84px;
+  padding: 8px 10px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+}
+.range-row .quick {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+.range-note {
+  font-size: 12px;
+  color: var(--mut);
+  margin-bottom: 10px;
+}
 .overlay {
   position: fixed;
   inset: 0;
