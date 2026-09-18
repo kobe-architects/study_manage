@@ -525,9 +525,12 @@ function onDown(e: PointerEvent) {
 
 function onMove(e: PointerEvent) {
   if (tool.value === 'eraser' && !props.readonly && (activePointer === null || activePointer === e.pointerId)) {
-    // 押していなくても（マウス・ペンのホバー）消しゴムの範囲を表示する
+    // 消しゴムの範囲はペン（ホバー中・消している最中とも）に追従して表示する
     hover.value = toImage(e)
-    if (activePointer !== e.pointerId) draw()
+    if (activePointer !== e.pointerId) {
+      draw()
+      return
+    }
   }
   if (activePointer !== e.pointerId) return
   const events = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : [e]
@@ -547,6 +550,7 @@ function onMove(e: PointerEvent) {
     draw()
   } else if (tool.value === 'eraser') {
     eraseAt(last.x, last.y)
+    draw() // 消しゴムの範囲表示を追従させる
   } else if (resizeItem) {
     const it = items.value.find((x) => x.id === resizeItem!.id)
     if (it && it.type === 'text') {

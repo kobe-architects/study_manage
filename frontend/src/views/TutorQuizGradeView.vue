@@ -512,7 +512,6 @@ async function downloadResult() {
         </button>
       </div>
       <button v-if="hasAnsPane" class="fs-ans-btn" :class="{ on: showAns }" @click="showAns = !showAns">{{ showAns ? '解答を閉じる' : '解答を表示' }}</button>
-      <span class="fs-state" :class="{ dirty: dirty || saving }">{{ saving ? '保存中…' : dirty ? '未保存（閉じるときに保存）' : '保存済み' }}</span>
     </div>
     <div class="fs-body">
       <aside class="fs-side"><div id="fs-tools"></div></aside>
