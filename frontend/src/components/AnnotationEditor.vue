@@ -24,6 +24,8 @@ const props = defineProps<{
   toolbarTarget?: string
   compact?: boolean
   fitToContainer?: boolean
+  /** false にすると変更のたびの自動保存をせず、親が save() を呼んだとき（全画面終了時など）だけ保存する */
+  autoSave?: boolean
 }>()
 const emit = defineEmits<{ save: [doc: AnnotationDoc, blob: Blob]; dirty: [boolean] }>()
 
@@ -125,7 +127,7 @@ function setDirty(v: boolean) {
     dirty.value = v
     emit('dirty', v)
   }
-  if (v && !props.readonly) scheduleSave()
+  if (v && !props.readonly && props.autoSave !== false) scheduleSave()
 }
 
 // ---------- 自動保存（変更が止まったら保存） ----------

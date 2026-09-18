@@ -131,11 +131,26 @@ async function openFs() {
   await nextTick()
   fsReady.value = true
 }
+/** 全画面の終了時に添削をまとめて保存する（全画面中は変更のたびの自動保存をしない） */
 async function closeFs() {
-  await flushAnnotations()
+  if (dirty.value && editor.value) {
+    saving.value = true
+    try {
+      await flushAnnotations()
+    } finally {
+      saving.value = false
+    }
+  }
   fsOpen.value = false
   fsReady.value = false
   unlockPage()
+}
+/** 全画面中に未保存の添削があるままページを閉じようとしたら確認する */
+function onBeforeUnload(e: BeforeUnloadEvent) {
+  if (fsOpen.value && dirty.value) {
+    e.preventDefault()
+    e.returnValue = ''
+  }
 }
 /** 解答ペインに出せる内容があるか（解答つき PDF のページ、または英単語テストの解答一覧） */
 const hasAnsPane = computed(() => {
@@ -206,11 +221,13 @@ onMounted(async () => {
   }
   mq?.addEventListener('change', onMq)
   window.addEventListener('keydown', onKey)
+  window.addEventListener('beforeunload', onBeforeUnload)
 })
 onBeforeUnmount(() => {
   if (answerUrl.value) URL.revokeObjectURL(answerUrl.value)
   mq?.removeEventListener('change', onMq)
   window.removeEventListener('keydown', onKey)
+  window.removeEventListener('beforeunload', onBeforeUnload)
   if (fsOpen.value) unlockPage()
 })
 
@@ -495,7 +512,7 @@ async function downloadResult() {
         </button>
       </div>
       <button v-if="hasAnsPane" class="fs-ans-btn" :class="{ on: showAns }" @click="showAns = !showAns">{{ showAns ? '解答を閉じる' : '解答を表示' }}</button>
-      <span class="fs-state" :class="{ dirty: dirty || saving }">{{ saving ? '保存中…' : dirty ? '自動保存待ち…' : '保存済み' }}</span>
+      <span class="fs-state" :class="{ dirty: dirty || saving }">{{ saving ? '保存中…' : dirty ? '未保存（閉じるときに保存）' : '保存済み' }}</span>
     </div>
     <div class="fs-body">
       <aside class="fs-side"><div id="fs-tools"></div></aside>
@@ -511,6 +528,7 @@ async function downloadResult() {
             toolbar-target="#fs-tools"
             compact
             fit-to-container
+            :auto-save="false"
             @save="onSave"
             @dirty="dirty = $event"
           />
