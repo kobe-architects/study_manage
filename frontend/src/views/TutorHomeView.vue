@@ -232,7 +232,7 @@ function recordColorHex(c: string | null): string {
               <span style="font-size: 11px; font-weight: 600; color: #cf4486">{{ e.days }}日</span>
             </div>
           </div>
-          <div v-else style="font-size: 12px; color: var(--faint)">登録された予定はありません（カレンダーの日付をクリックで登録）</div>
+          <div v-else style="font-size: 12px; color: var(--faint)">登録された予定はありません</div>
         </div>
       </div>
 

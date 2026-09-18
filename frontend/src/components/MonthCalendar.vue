@@ -95,9 +95,6 @@ function click(c: { inM: boolean; iso: string; evName: string }) {
         <span v-if="c.show" class="cal-ev" :style="{ background: c.evColor }">{{ c.evName }}</span>
       </button>
     </div>
-    <div style="font-size: 10.5px; color: var(--faint); margin-top: 8px; line-height: 1.5">
-      日付をタップして模試などの予定を登録できます（1日に複数登録可）
-    </div>
   </div>
 </template>
 
