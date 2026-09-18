@@ -452,39 +452,35 @@ const upcomingList = computed(() =>
   upcoming.value.slice(0, 3).map((e) => ({
     title: e.title,
     isMock: e.isMock,
+    by: e.createdByName,
     dateLabel: `${e.d.getMonth() + 1}/${e.d.getDate()}`,
     days: Math.max(0, daysBetween(today, e.d)),
   })),
 )
 
-const eventModal = ref<{ date: string; title: string; isMock: boolean } | null>(null)
-function openEvent(date: string, title: string) {
-  const ev = study.events.find((e) => e.date === date)
-  eventModal.value = { date, title, isMock: ev?.isMock ?? false }
+const eventModal = ref<{ date: string } | null>(null)
+/** モーダルで開いている日の予定（複数可） */
+const eventsOfModalDate = computed(() => (eventModal.value ? study.events.filter((e) => e.date === eventModal.value!.date) : []))
+function openEvent(date: string) {
+  eventModal.value = { date }
 }
-async function saveEvent(title: string, isMock: boolean) {
+async function saveEvent(id: number | null, title: string, isMock: boolean) {
   if (!eventModal.value) return
-  const date = eventModal.value.date
-  if (title.trim()) {
-    await study.saveEvent(date, title.trim(), isMock)
-    ui.notify('予定を保存しました')
-  } else {
-    const ev = study.events.find((e) => e.date === date)
-    if (ev) {
-      await study.deleteEvent(ev.id)
-      ui.notify('予定を削除しました')
-    }
+  try {
+    await study.saveEvent(eventModal.value.date, title, isMock, id)
+    ui.notify(id === null ? '予定を追加しました' : '予定を保存しました')
+  } catch {
+    ui.notify('予定の保存に失敗しました')
   }
-  eventModal.value = null
 }
-async function deleteEvent() {
-  if (!eventModal.value) return
-  const ev = study.events.find((e) => e.date === eventModal.value!.date)
-  if (ev) {
-    await study.deleteEvent(ev.id)
+async function deleteEvent(id: number) {
+  if (!confirm('この予定を削除しますか？')) return
+  try {
+    await study.deleteEvent(id)
     ui.notify('予定を削除しました')
+  } catch {
+    ui.notify('予定の削除に失敗しました')
   }
-  eventModal.value = null
 }
 
 const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1fr'))
@@ -540,7 +536,7 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
           <div style="display: flex; flex-direction: column; gap: 8px">
             <div v-for="(e, i) in upcomingList" :key="i" style="display: flex; align-items: center; gap: 9px">
               <span style="font-size: 11px; color: var(--faint); width: 36px">{{ e.dateLabel }}</span>
-              <span style="flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span v-if="e.isMock" class="mock-tag dark">模試</span>{{ e.title }}</span>
+              <span style="flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span v-if="e.isMock" class="mock-tag dark">模試</span>{{ e.title }}<span v-if="e.by" class="ev-by">{{ e.by }}</span></span>
               <span style="font-size: 11px; font-weight: 600; color: #cf4486">{{ e.days }}日</span>
             </div>
           </div>
@@ -818,8 +814,7 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
     <EventModal
       v-if="eventModal"
       :date="eventModal.date"
-      :title="eventModal.title"
-      :is-mock="eventModal.isMock"
+      :events="eventsOfModalDate"
       @save="saveEvent"
       @delete="deleteEvent"
       @close="eventModal = null"
@@ -842,6 +837,11 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
 .mock-tag.dark {
   background: #e8eefb;
   color: #2e4a8f;
+}
+.ev-by {
+  font-size: 10.5px;
+  color: var(--faint);
+  margin-left: 6px;
 }
 .seg {
   display: flex;

@@ -82,6 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/events', [CalendarEventController::class, 'index']);
         Route::post('/events', [CalendarEventController::class, 'store']);
+        Route::put('/events/{calendarEvent}', [CalendarEventController::class, 'update']);
         Route::delete('/events/{calendarEvent}', [CalendarEventController::class, 'destroy']);
 
         Route::put('/settings', [SettingController::class, 'update']);
@@ -172,6 +173,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // カレンダー予定（生徒と共有・模試予定など）
         Route::get('/events', [CalendarEventController::class, 'index']);
         Route::post('/events', [CalendarEventController::class, 'store']);
+        Route::put('/events/{calendarEvent}', [CalendarEventController::class, 'update']);
         Route::delete('/events/{calendarEvent}', [CalendarEventController::class, 'destroy']);
 
         // 課題の対象選択用ツリー（教材→章→行）

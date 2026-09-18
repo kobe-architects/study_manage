@@ -236,11 +236,17 @@ export const useStudyStore = defineStore('study', {
       return data.data as GoalItemDetail[]
     },
 
-    async saveEvent(date: string, title: string, isMock = false) {
+    /** 予定の追加（id なし）または編集（id あり）。同じ日付に複数登録できる */
+    async saveEvent(date: string, title: string, isMock = false, id: number | null = null) {
+      if (id !== null) {
+        const { data } = await client.put(`${p()}/events/${id}`, { title, isMock })
+        const idx = this.events.findIndex((e) => e.id === id)
+        if (idx >= 0) this.events[idx] = data.data
+        else this.events.push(data.data)
+        return
+      }
       const { data } = await client.post(`${p()}/events`, { date, title, isMock })
-      const idx = this.events.findIndex((e) => e.date === date)
-      if (idx >= 0) this.events[idx] = data.data
-      else this.events.push(data.data)
+      this.events.push(data.data)
     },
 
     async deleteEvent(id: number) {

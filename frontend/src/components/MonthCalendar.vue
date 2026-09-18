@@ -4,7 +4,7 @@ import { iso } from '@/lib/design'
 import type { CalendarEvent } from '@/types'
 
 const props = defineProps<{ events: CalendarEvent[]; examDate: string | null }>()
-const emit = defineEmits<{ dayClick: [date: string, title: string] }>()
+const emit = defineEmits<{ dayClick: [date: string] }>()
 
 const today = new Date()
 today.setHours(0, 0, 0, 0)
@@ -12,9 +12,10 @@ const month = ref(new Date(today.getFullYear(), today.getMonth(), 1))
 
 const weekDays = ['日', '月', '火', '水', '木', '金', '土']
 
+/** 日付 → その日の予定（複数可） */
 const eventMap = computed(() => {
-  const m: Record<string, string> = {}
-  props.events.forEach((e) => (m[e.date] = e.title))
+  const m: Record<string, CalendarEvent[]> = {}
+  props.events.forEach((e) => (m[e.date] ??= []).push(e))
   return m
 })
 
@@ -40,7 +41,8 @@ const weeks = computed(() => {
     const d = new Date(cm.getFullYear(), cm.getMonth(), dn)
     const di = iso(d)
     const isToday = inM && di === iso(today)
-    const evx = inM ? eventMap.value[di] : null
+    const evs = inM ? (eventMap.value[di] ?? []) : []
+    const evx = evs.length ? evs[0]!.title + (evs.length > 1 ? ` +${evs.length - 1}` : '') : null
     const isExam = inM && di === props.examDate
     const dow = d.getDay()
     cells.push({
@@ -50,7 +52,7 @@ const weeks = computed(() => {
       bg: isToday ? '#1c2024' : evx ? '#fbeef4' : isExam ? '#eaeefb' : 'transparent',
       color: !inM ? 'transparent' : isToday ? '#fff' : dow === 0 ? '#cf5563' : dow === 6 ? '#4b73c4' : '#3a4250',
       evName: evx || (isExam ? '受験日' : ''),
-      evColor: isExam ? '#3b50cc' : '#cf4486',
+      evColor: evs.length ? (evs.some((e) => e.isMock) ? '#cf4486' : '#7a5af5') : '#3b50cc',
       show: !!(evx || isExam),
     })
   }
@@ -69,7 +71,7 @@ function move(delta: number) {
 }
 function click(c: { inM: boolean; iso: string; evName: string }) {
   if (!c.inM) return
-  emit('dayClick', c.iso, eventMap.value[c.iso] || '')
+  emit('dayClick', c.iso)
 }
 </script>
 
@@ -94,7 +96,7 @@ function click(c: { inM: boolean; iso: string; evName: string }) {
       </button>
     </div>
     <div style="font-size: 10.5px; color: var(--faint); margin-top: 8px; line-height: 1.5">
-      日付をタップして模試などの予定を登録できます
+      日付をタップして模試などの予定を登録できます（1日に複数登録可）
     </div>
   </div>
 </template>
