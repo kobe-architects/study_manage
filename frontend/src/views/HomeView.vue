@@ -24,7 +24,7 @@ const router = useRouter()
 const today = new Date()
 today.setHours(0, 0, 0, 0)
 
-const tab = ref<'progress' | 'goals' | 'review'>('progress')
+const tab = ref<'plan' | 'progress' | 'goals' | 'review'>('plan')
 
 // 先生からの課題（未記録のみカード表示）
 study.fetchAssignments().catch(() => {})
@@ -495,19 +495,19 @@ async function deleteEvent(id: number) {
 <template>
   <div>
     <!-- tabs -->
-    <div style="display: flex; margin-bottom: 18px" :class="{ 'full-w': tab === 'progress' && !isMobile }">
+    <div style="display: flex; margin-bottom: 18px" :class="{ 'full-w': (tab === 'plan' || tab === 'progress') && !isMobile }">
       <div class="seg">
+        <button class="seg-btn" :class="{ on: tab === 'plan' }" @click="tab = 'plan'">計画</button>
         <button class="seg-btn" :class="{ on: tab === 'progress' }" @click="tab = 'progress'">進捗率</button>
         <button class="seg-btn" :class="{ on: tab === 'goals' }" @click="selectGoals">目標</button>
         <button class="seg-btn" :class="{ on: tab === 'review' }" @click="selectReview">復習項目<span v-if="reviewDueCount" class="tab-badge">{{ reviewDueCount }}</span></button>
       </div>
     </div>
 
-    <!-- Progress tab -->
-    <!-- 進捗率: カレンダー / 先生からの課題 / 小テスト / 進捗率 の4カラム（PC は全幅・各カラムが独立してスクロール） -->
-    <div v-if="tab === 'progress'" class="home-cols" :class="{ mobile: isMobile }">
+    <!-- 計画タブ: カレンダー / 先生からの課題 / 小テスト の3カラム（PC は全幅・各カラムが独立してスクロール） -->
+    <div v-if="tab === 'plan'" class="home-cols plan-cols" :class="{ mobile: isMobile }">
       <!-- カレンダー列 -->
-      <div class="hcol hcol-cal" :style="{ order: isMobile ? 3 : 0 }">
+      <div class="hcol hcol-cal" :style="{ order: isMobile ? 2 : 0 }">
         <div class="card" style="padding: 16px 18px">
           <div class="row-between" style="margin-bottom: 12px">
             <span style="font-size: 13px; font-weight: 700">学習カレンダー</span>
@@ -546,7 +546,7 @@ async function deleteEvent(id: number) {
       </div>
 
       <!-- 先生からの課題列 -->
-      <div class="hcol hcol-asg" :style="{ order: isMobile ? 2 : 0 }">
+      <div class="hcol hcol-asg" :style="{ order: isMobile ? 1 : 0 }">
         <div class="hcol-title">先生からの課題</div>
         <template v-if="pendingAssignments.length">
           <AssignmentCard v-for="a in pendingAssignments" :key="a.id" :assignment="a" readonly />
@@ -555,12 +555,14 @@ async function deleteEvent(id: number) {
       </div>
 
       <!-- 小テスト列（未提出・添削待ち・直近の結果） -->
-      <div class="hcol hcol-quiz" :style="{ order: isMobile ? 1 : 0 }">
+      <div class="hcol hcol-quiz" :style="{ order: isMobile ? 0 : 0 }">
         <QuizHomePanel always />
       </div>
+    </div>
 
-      <!-- 進捗率列 -->
-      <div class="hcol hcol-prog" :style="{ order: isMobile ? 0 : 0 }">
+    <!-- 進捗率タブ: 科目別進捗・英単語の習得率のみ -->
+    <div v-else-if="tab === 'progress'" :class="{ 'full-w': !isMobile }">
+      <div>
         <!-- 科目別進捗（講師の科目別学習状況と同じペラいち表示） -->
         <SubjectProgressPanels :hide-empty="hideEmpty" style="margin-bottom: 16px" />
 
@@ -899,6 +901,9 @@ async function deleteEvent(id: number) {
   font-size: 12px;
   color: var(--faint);
 }
+.home-cols.plan-cols {
+  grid-template-columns: minmax(300px, 380px) minmax(260px, 340px) minmax(0, 1fr);
+}
 .home-cols.mobile {
   width: auto;
   margin-left: 0;
@@ -909,8 +914,8 @@ async function deleteEvent(id: number) {
   overflow: visible;
 }
 @media (max-width: 1280px) and (min-width: 861px) {
-  .home-cols {
-    grid-template-columns: minmax(260px, 300px) minmax(220px, 250px) minmax(250px, 290px) minmax(0, 1fr);
+  .home-cols.plan-cols {
+    grid-template-columns: minmax(260px, 320px) minmax(220px, 280px) minmax(0, 1fr);
   }
 }
 .seg {
