@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import CameraCapture from '@/components/CameraCapture.vue'
 import HelpTip from '@/components/HelpTip.vue'
-import QuizCard from '@/components/QuizCard.vue'
+import QuizTable from '@/components/QuizTable.vue'
 import QuizResultModal from '@/components/QuizResultModal.vue'
 import QuizStats from '@/components/QuizStats.vue'
-import { groupQuizzes, groupStatus, quizApi } from '@/api/quiz'
+import { quizApi } from '@/api/quiz'
 import { useQuizActions } from '@/lib/quizActions'
 import { useUiStore } from '@/stores/ui'
 import type { QuizStats as QuizStatsT, QuizSummary } from '@/types'
@@ -43,12 +43,6 @@ const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(
   if (tab.value === 'stats') await loadStats()
 })
 
-const boxes = computed(() => groupQuizzes(quizzes.value))
-const groups = computed(() => [
-  { key: 'assigned', label: '未提出', list: boxes.value.filter((b) => groupStatus(b, 'owner') === 'assigned') },
-  { key: 'submitted', label: '提出済み（採点・添削待ち）', list: boxes.value.filter((b) => groupStatus(b, 'owner') === 'submitted') },
-  { key: 'graded', label: '採点・添削済み', list: boxes.value.filter((b) => groupStatus(b, 'owner') === 'graded') },
-])
 </script>
 
 <template>
@@ -71,16 +65,7 @@ const groups = computed(() => [
       <div v-else-if="!quizzes.length" class="hint">
         小テストはまだありません。先生が出題すると、ここに問題 PDF のプレビューと回答の提出ボタンが表示されます。
       </div>
-      <template v-else>
-        <template v-for="g in groups" :key="g.key">
-          <div v-if="g.list.length" class="group">
-            <div class="group-title">{{ g.label }}<span class="cnt">{{ g.list.length }}</span></div>
-            <div class="cards">
-              <QuizCard v-for="b in g.list" :key="b[0]!.id" :parts="b" role="owner" @pdf="openPdf($event)" @capture="openCapture($event)" @result="openResult($event)" />
-            </div>
-          </div>
-        </template>
-      </template>
+      <QuizTable v-else :quizzes="quizzes" role="owner" @pdf="openPdf($event)" @capture="openCapture($event)" @result="openResult($event)" />
     </template>
 
     <template v-else>

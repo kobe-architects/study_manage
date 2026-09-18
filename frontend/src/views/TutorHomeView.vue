@@ -113,8 +113,25 @@ const pendingAssignments = computed(() =>
     })),
 )
 
-// ---- カレンダー（生徒と同じ: 模試予定などの登録・削除） ----
+// ---- カレンダー（生徒と同じ: 模試予定などの登録・削除、受験本番までの日数、今後の予定） ----
 const examDate = computed(() => auth.user?.student?.examDate ?? null)
+const daysToExam = computed(() => (examDate.value ? Math.max(0, daysBetween(today, parseDate(examDate.value))) : 0))
+const upcoming = computed(() =>
+  study.events
+    .map((e) => ({ ...e, d: parseDate(e.date) }))
+    .filter((e) => e.d >= today)
+    .sort((a, b) => a.d.getTime() - b.d.getTime()),
+)
+const nextEvent = computed(() => upcoming.value[0] ?? null)
+const upcomingList = computed(() =>
+  upcoming.value.slice(0, 5).map((e) => ({
+    title: e.title,
+    dateLabel: `${e.d.getMonth() + 1}/${e.d.getDate()}`,
+    days: Math.max(0, daysBetween(today, e.d)),
+  })),
+)
+/** 直近の学習記録の展開状態（既定は折り畳み） */
+const recordsOpen = ref(false)
 const eventModal = ref<{ date: string; title: string } | null>(null)
 function openEvent(date: string, title: string) {
   eventModal.value = { date, title }
@@ -175,14 +192,41 @@ function recordColorHex(c: string | null): string {
         </div>
 
         <MonthCalendar :events="study.events" :exam-date="examDate" @day-click="openEvent" />
+
+        <div style="background: #1c2024; border-radius: 16px; padding: 15px 18px; color: #fff">
+          <div class="row-between" style="align-items: baseline">
+            <span style="font-size: 11.5px; color: #b7bcc6">受験本番まで</span>
+            <span><span class="dm" style="font-size: 24px; font-weight: 700">{{ daysToExam }}</span><span style="font-size: 11px; color: #b7bcc6; margin-left: 2px">日</span></span>
+          </div>
+          <div v-if="nextEvent" class="row-between" style="align-items: baseline; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.12)">
+            <span style="font-size: 11.5px; color: #b7bcc6">{{ nextEvent.title }}</span>
+            <span><span class="dm" style="font-size: 18px; font-weight: 700; color: #9fb4ff">{{ Math.max(0, daysBetween(today, nextEvent.d)) }}</span><span style="font-size: 11px; color: #b7bcc6; margin-left: 2px">日</span></span>
+          </div>
+        </div>
+
+        <div class="card" style="padding: 14px 16px">
+          <div style="font-size: 12px; font-weight: 700; margin-bottom: 9px">今後の予定</div>
+          <div v-if="upcomingList.length" style="display: flex; flex-direction: column; gap: 8px">
+            <div v-for="(e, i) in upcomingList" :key="i" style="display: flex; align-items: center; gap: 9px">
+              <span style="font-size: 11px; color: var(--faint); width: 36px">{{ e.dateLabel }}</span>
+              <span style="flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ e.title }}</span>
+              <span style="font-size: 11px; font-weight: 600; color: #cf4486">{{ e.days }}日</span>
+            </div>
+          </div>
+          <div v-else style="font-size: 12px; color: var(--faint)">登録された予定はありません（カレンダーの日付をクリックで登録）</div>
+        </div>
       </div>
 
       <!-- RIGHT: 直近の学習記録（科目別・期間選択付き） -->
       <div style="min-width: 0">
         <div class="card period-bar">
-          <span style="font-size: 13.5px; font-weight: 700; flex-shrink: 0">直近の学習記録（科目別）</span>
+          <button class="toggle" :class="{ open: recordsOpen }" @click="recordsOpen = !recordsOpen">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+            直近の学習記録（科目別）
+          </button>
+          <span v-if="!loading" style="font-size: 11.5px; color: var(--faint); white-space: nowrap">{{ periodLabel }}・{{ records.length }}件</span>
           <span style="flex: 1"></span>
-          <div class="period-chips">
+          <div v-if="recordsOpen" class="period-chips">
             <button
               v-for="pOpt in PERIODS"
               :key="pOpt.key"
@@ -194,14 +238,14 @@ function recordColorHex(c: string | null): string {
         </div>
 
         <!-- 詳細期間選択 -->
-        <div v-if="period === 'custom'" class="card custom-range">
+        <div v-if="recordsOpen && period === 'custom'" class="card custom-range">
           <input v-model="customFrom" type="date" :max="customTo" />
           <span style="color: var(--faint)">〜</span>
           <input v-model="customTo" type="date" :min="customFrom" />
           <button class="apply-btn" @click="fetchRecords">表示</button>
         </div>
 
-        <div class="card" style="padding: 6px 0">
+        <div v-if="recordsOpen" class="card" style="padding: 6px 0">
           <div v-if="loading" style="padding: 40px; text-align: center; color: var(--faint); font-size: 13px">読み込み中…</div>
           <template v-else>
             <div style="padding: 8px 18px 0; font-size: 11px; color: var(--faint)">{{ periodLabel }}・全{{ records.length }}件</div>
@@ -280,6 +324,26 @@ function recordColorHex(c: string | null): string {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.toggle svg {
+  transition: transform 0.15s;
+  color: var(--mut);
+}
+.toggle.open svg {
+  transform: rotate(90deg);
 }
 .p-chip {
   border: 1px solid #e3e6ea;

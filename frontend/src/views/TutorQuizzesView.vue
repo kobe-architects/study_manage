@@ -2,10 +2,11 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import HelpTip from '@/components/HelpTip.vue'
+import QuizTable from '@/components/QuizTable.vue'
 import PdfPagePicker, { type SelectedPage } from '@/components/PdfPagePicker.vue'
 import VocabTestDialog from '@/components/VocabTestDialog.vue'
 import { renderVocabSheet, TEST_FORMAT_LABEL, TEST_TYPE_LABEL } from '@/lib/vocabTest'
-import { groupQuizzes, groupStatus, quizApi, rateColor } from '@/api/quiz'
+import { quizApi, rateColor } from '@/api/quiz'
 import { iso } from '@/lib/design'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
@@ -43,19 +44,6 @@ onMounted(() => {
   load()
 })
 
-const boxes = computed(() => groupQuizzes(quizzes.value))
-const groups = computed(() => [
-  { key: 'submitted', label: '採点・添削待ち', list: boxes.value.filter((b) => groupStatus(b, 'tutor') === 'submitted') },
-  { key: 'assigned', label: '出題中（未提出）', list: boxes.value.filter((b) => groupStatus(b, 'tutor') === 'assigned') },
-  { key: 'graded', label: '採点・添削済み', list: boxes.value.filter((b) => groupStatus(b, 'tutor') === 'graded') },
-])
-
-function partChip(q: QuizSummary): { label: string; cls: string } {
-  if (q.status === 'graded') return { label: '採点・添削済み', cls: 'graded' }
-  if (q.status === 'submitted') return { label: '採点・添削待ち', cls: 'submitted' }
-  if (q.overdue) return { label: '期限切れ', cls: 'overdue' }
-  return { label: '未提出', cls: 'assigned' }
-}
 function partLabel(q: QuizSummary): string {
   return q.bookTitle ?? '英単語テスト'
 }
@@ -405,44 +393,7 @@ function setDueIn(days: number) {
       <div v-else-if="!quizzes.length" class="hint" style="text-align: center">
         小テストはまだありません。「小テストを出題」から、PDF を紐づけた教材や英単語テストを選んで出題してください。
       </div>
-      <template v-else>
-        <template v-for="g in groups" :key="g.key">
-          <div v-if="g.list.length" class="group">
-            <div class="group-title">{{ g.label }}<span class="cnt">{{ g.list.length }}</span></div>
-            <div class="qlist">
-              <div v-for="b in g.list" :key="b[0]!.id" class="qbox">
-                <div class="qbox-head">
-                  <b class="qb-title">{{ b[0]!.title }}</b>
-                  <span class="qb-meta">
-                    <template v-if="b.length > 1">{{ b.length }}教材・</template>{{ b.reduce((s, q) => s + q.pageCount, 0) }}ページ
-                    <template v-if="b[0]!.dueOn">・期限 {{ fmt(b[0]!.dueOn) }}</template>
-                    <template v-if="b[0]!.note">・{{ b[0]!.note }}</template>
-                  </span>
-                </div>
-                <div v-for="q in b" :key="q.id" class="qrow">
-                  <span class="qr-name">{{ partLabel(q) }}</span>
-                  <span class="qr-pages">{{ q.pageCount }}ページ</span>
-                  <span class="qr-chip" :class="partChip(q).cls">{{ partChip(q).label }}</span>
-                  <span class="qr-score">
-                    <template v-if="q.status === 'graded' && q.score !== null">
-                      <b :style="{ color: rateColor(q.rate) }">{{ q.score }}</b> / {{ q.maxScore }}点
-                      <span :style="{ color: rateColor(q.rate), fontWeight: 700, marginLeft: '6px' }">{{ q.rate ?? '–' }}%</span>
-                    </template>
-                    <template v-else-if="q.status === 'assigned' && q.answeredCount">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</template>
-                  </span>
-                  <span class="qr-actions">
-                    <button v-if="q.status === 'submitted'" class="btn primary" @click="grade(q)">採点・添削する</button>
-                    <button v-else-if="q.status === 'graded'" class="btn primary" @click="grade(q)">採点・添削結果</button>
-                    <button v-else class="btn" @click="openWizard(q)">編集</button>
-                    <button class="btn" title="問題 PDF を別タブでプレビュー" @click="openPdf(q)">問題PDF</button>
-                    <button class="btn danger" @click="remove(q)">削除</button>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-      </template>
+      <QuizTable v-else :quizzes="quizzes" role="tutor" @pdf="openPdf($event)" @grade="grade($event)" @edit="openWizard($event)" @remove="remove($event)" />
     </template>
 
     <!-- 分析: 実施済み小テストの結果を累積表示 -->
