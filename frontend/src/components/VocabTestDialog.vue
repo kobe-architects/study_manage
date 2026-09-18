@@ -54,8 +54,7 @@ async function selectResource(id: number) {
   try {
     // 一覧 API はセクション順 → 並び順で返るので、配列位置 + 1 が単語帳の通し番号（No.）
     words.value = await quizApi.vocabularies(id)
-    form.from = 1
-    form.to = Math.min(20, words.value.length)
+    setRange(weekBlockStart(words.value.length), BLOCK)
   } catch {
     ui.notify('単語の取得に失敗しました')
     words.value = []
@@ -63,6 +62,26 @@ async function selectResource(id: number) {
     loadingWords.value = false
   }
 }
+
+/** 1週間の出題ブロックの語数。毎週木曜日に次のブロックへ進む */
+const BLOCK = 140
+/** 基準となる木曜日（この週が No.1〜140）。2026-09-17（木）の週が 141〜280 になるよう 2026-09-10 を基準にする */
+const BLOCK_EPOCH = new Date(2026, 8, 10)
+/** 今日が属する週（木曜始まり）の木曜日 0:00 */
+function thursdayOf(d: Date): Date {
+  const t = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  t.setDate(t.getDate() - ((t.getDay() + 7 - 4) % 7))
+  return t
+}
+/** 今週のブロックの開始番号。単語帳の末尾を超えたら先頭に戻る */
+function weekBlockStart(total: number): number {
+  if (total <= BLOCK) return 1
+  const weeks = Math.round((thursdayOf(new Date()).getTime() - BLOCK_EPOCH.getTime()) / 604800000)
+  const blocks = Math.ceil(total / BLOCK)
+  const idx = ((weeks % blocks) + blocks) % blocks
+  return idx * BLOCK + 1
+}
+const thisWeekFrom = computed(() => weekBlockStart(words.value.length))
 
 /** 有効な番号範囲（1 〜 語数、from <= to） */
 const range = computed<{ from: number; to: number } | null>(() => {
@@ -155,7 +174,7 @@ function add() {
 
         <div class="lab" style="display: flex; align-items: center; gap: 10px">
           出題範囲（単語帳の番号 No.）
-          <span style="margin-left: auto; font-weight: 400; color: var(--faint)">全 {{ words.length }}語</span>
+          <span style="margin-left: auto; font-weight: 400; color: var(--faint)">全 {{ words.length }}語・初期値は今週の{{ BLOCK }}語（毎週木曜日に次へ進む）</span>
         </div>
         <div class="range-row">
           <span class="rl">No.</span>
@@ -164,9 +183,9 @@ function add() {
           <input v-model.number="form.to" type="number" min="1" :max="words.length" class="rng" :disabled="loadingWords" />
           <span class="rl" style="color: var(--faint)">{{ range ? range.to - range.from + 1 + '語' : '範囲が不正です' }}</span>
           <span class="quick">
-            <button class="link" @click="setRange(1, 20)">1〜20</button>
-            <button class="link" @click="setRange((range?.to ?? 0) + 1, 20)">次の20語</button>
-            <button class="link" @click="setRange((range?.to ?? 0) + 1, 40)">次の40語</button>
+            <button class="link" :disabled="!range || range.from <= 1" @click="setRange((range?.from ?? 1) - BLOCK, BLOCK)">‹ 前の{{ BLOCK }}語</button>
+            <button class="link" @click="setRange(thisWeekFrom, BLOCK)">今週（No.{{ thisWeekFrom }}〜{{ Math.min(thisWeekFrom + BLOCK - 1, words.length) }}）</button>
+            <button class="link" :disabled="!range || range.to >= words.length" @click="setRange((range?.to ?? 0) + 1, BLOCK)">次の{{ BLOCK }}語 ›</button>
           </span>
         </div>
         <div v-if="range && rangeWords.length" class="range-note">
@@ -235,6 +254,10 @@ function add() {
   display: flex;
   gap: 10px;
   margin-left: auto;
+}
+.range-row .quick button:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 .range-note {
   font-size: 12px;
