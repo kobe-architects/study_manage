@@ -221,6 +221,8 @@ export interface CalendarEvent {
   id: number
   date: string
   title: string
+  /** 模試（トップページに残り日数を表示） */
+  isMock: boolean
 }
 
 export interface UserSettings {

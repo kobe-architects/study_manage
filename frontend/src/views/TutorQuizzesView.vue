@@ -183,7 +183,10 @@ async function openWizard(edit?: QuizSummary) {
   wiz.pages = []
   wiz.title = ''
   wiz.note = ''
-  wiz.dueOn = ''
+  // 期限の既定は 7 日後
+  const due = new Date()
+  due.setDate(due.getDate() + 7)
+  wiz.dueOn = iso(due)
   wiz.maxScore = 10
   wiz.loading = true
   bookFilter.subject = ''

@@ -2,10 +2,11 @@
 import { ref } from 'vue'
 import { parseDate } from '@/lib/design'
 
-const props = defineProps<{ date: string; title: string }>()
-const emit = defineEmits<{ save: [title: string]; delete: []; close: [] }>()
+const props = defineProps<{ date: string; title: string; isMock?: boolean }>()
+const emit = defineEmits<{ save: [title: string, isMock: boolean]; delete: []; close: [] }>()
 
 const value = ref(props.title)
+const mock = ref(!!props.isMock)
 const existing = !!props.title
 
 const d = parseDate(props.date)
@@ -21,13 +22,17 @@ const label = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
         v-model="value"
         placeholder="例: 全国統一模試"
         style="width: 100%; padding: 10px 12px; border: 1px solid #d8dce1; border-radius: 10px; font-size: 14px; outline: none; margin-bottom: 16px"
-        @keydown.enter="emit('save', value)"
+        @keydown.enter="emit('save', value, mock)"
       />
+      <label class="mock-chk">
+        <input v-model="mock" type="checkbox" />
+        模試として登録する<span class="mock-note">（トップページに模試までの残り日数を表示します）</span>
+      </label>
       <div style="display: flex; gap: 10px; align-items: center">
         <button v-if="existing" class="btn-danger" @click="emit('delete')">削除</button>
         <div style="display: flex; gap: 10px; margin-left: auto">
           <button class="btn-ghost" @click="emit('close')">キャンセル</button>
-          <button class="btn-dark" @click="emit('save', value)">保存</button>
+          <button class="btn-dark" @click="emit('save', value, mock)">保存</button>
         </div>
       </div>
     </div>
@@ -35,6 +40,24 @@ const label = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 </template>
 
 <style scoped>
+.mock-chk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: -6px 0 16px;
+  cursor: pointer;
+}
+.mock-chk input {
+  width: 16px;
+  height: 16px;
+}
+.mock-note {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--faint);
+}
 .overlay {
   position: fixed;
   inset: 0;

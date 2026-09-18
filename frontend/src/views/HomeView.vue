@@ -446,24 +446,27 @@ const upcoming = computed(() =>
     .filter((e) => e.d >= today)
     .sort((a, b) => a.d.getTime() - b.d.getTime()),
 )
-const nextEvent = computed(() => upcoming.value[0] ?? null)
+/** 次の模試（「模試として登録」された予定のうち直近のもの） */
+const nextEvent = computed(() => upcoming.value.find((e) => e.isMock) ?? null)
 const upcomingList = computed(() =>
   upcoming.value.slice(0, 3).map((e) => ({
     title: e.title,
+    isMock: e.isMock,
     dateLabel: `${e.d.getMonth() + 1}/${e.d.getDate()}`,
     days: Math.max(0, daysBetween(today, e.d)),
   })),
 )
 
-const eventModal = ref<{ date: string; title: string } | null>(null)
+const eventModal = ref<{ date: string; title: string; isMock: boolean } | null>(null)
 function openEvent(date: string, title: string) {
-  eventModal.value = { date, title }
+  const ev = study.events.find((e) => e.date === date)
+  eventModal.value = { date, title, isMock: ev?.isMock ?? false }
 }
-async function saveEvent(title: string) {
+async function saveEvent(title: string, isMock: boolean) {
   if (!eventModal.value) return
   const date = eventModal.value.date
   if (title.trim()) {
-    await study.saveEvent(date, title.trim())
+    await study.saveEvent(date, title.trim(), isMock)
     ui.notify('予定を保存しました')
   } else {
     const ev = study.events.find((e) => e.date === date)
@@ -527,7 +530,7 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
             <span><span class="dm" style="font-size: 24px; font-weight: 700">{{ daysToExam }}</span><span style="font-size: 11px; color: #b7bcc6; margin-left: 2px">日</span></span>
           </div>
           <div v-if="nextEvent" class="row-between" style="align-items: baseline; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.12)">
-            <span style="font-size: 11.5px; color: #b7bcc6">{{ nextEvent.title }}</span>
+            <span style="font-size: 11.5px; color: #b7bcc6"><span class="mock-tag">模試</span>{{ nextEvent.title }}まで</span>
             <span><span class="dm" style="font-size: 18px; font-weight: 700; color: #9fb4ff">{{ Math.max(0, daysBetween(today, nextEvent.d)) }}</span><span style="font-size: 11px; color: #b7bcc6; margin-left: 2px">日</span></span>
           </div>
         </div>
@@ -537,7 +540,7 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
           <div style="display: flex; flex-direction: column; gap: 8px">
             <div v-for="(e, i) in upcomingList" :key="i" style="display: flex; align-items: center; gap: 9px">
               <span style="font-size: 11px; color: var(--faint); width: 36px">{{ e.dateLabel }}</span>
-              <span style="flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ e.title }}</span>
+              <span style="flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span v-if="e.isMock" class="mock-tag dark">模試</span>{{ e.title }}</span>
               <span style="font-size: 11px; font-weight: 600; color: #cf4486">{{ e.days }}日</span>
             </div>
           </div>
@@ -816,6 +819,7 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
       v-if="eventModal"
       :date="eventModal.date"
       :title="eventModal.title"
+      :is-mock="eventModal.isMock"
       @save="saveEvent"
       @delete="deleteEvent"
       @close="eventModal = null"
@@ -824,6 +828,21 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
 </template>
 
 <style scoped>
+.mock-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #9fb4ff;
+  color: #1c2024;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.mock-tag.dark {
+  background: #e8eefb;
+  color: #2e4a8f;
+}
 .seg {
   display: flex;
   background: #fff;

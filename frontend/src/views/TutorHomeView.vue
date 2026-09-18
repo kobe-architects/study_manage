@@ -122,25 +122,38 @@ const upcoming = computed(() =>
     .filter((e) => e.d >= today)
     .sort((a, b) => a.d.getTime() - b.d.getTime()),
 )
-const nextEvent = computed(() => upcoming.value[0] ?? null)
+/** 次の模試（「模試として登録」された予定のうち直近のもの） */
+const nextEvent = computed(() => upcoming.value.find((e) => e.isMock) ?? null)
 const upcomingList = computed(() =>
   upcoming.value.slice(0, 5).map((e) => ({
     title: e.title,
+    isMock: e.isMock,
     dateLabel: `${e.d.getMonth() + 1}/${e.d.getDate()}`,
     days: Math.max(0, daysBetween(today, e.d)),
   })),
 )
-/** 直近の学習記録の展開状態（既定は折り畳み） */
-const recordsOpen = ref(false)
-const eventModal = ref<{ date: string; title: string } | null>(null)
-function openEvent(date: string, title: string) {
-  eventModal.value = { date, title }
+/** 直近の学習記録: 教材（個別学習データ）ごとの展開状態（既定は折り畳み） */
+const openBooks = ref<Set<string>>(new Set())
+function bookKey(subject: string, book: string): string {
+  return `${subject}\u0000${book}`
 }
-async function saveEvent(title: string) {
+function toggleBook(subject: string, book: string) {
+  const k = bookKey(subject, book)
+  const next = new Set(openBooks.value)
+  if (next.has(k)) next.delete(k)
+  else next.add(k)
+  openBooks.value = next
+}
+const eventModal = ref<{ date: string; title: string; isMock: boolean } | null>(null)
+function openEvent(date: string, title: string) {
+  const ev = study.events.find((e) => e.date === date)
+  eventModal.value = { date, title, isMock: ev?.isMock ?? false }
+}
+async function saveEvent(title: string, isMock: boolean) {
   if (!eventModal.value) return
   const date = eventModal.value.date
   if (title.trim()) {
-    await study.saveEvent(date, title.trim())
+    await study.saveEvent(date, title.trim(), isMock)
     ui.notify('予定を保存しました')
   } else {
     const ev = study.events.find((e) => e.date === date)
@@ -199,7 +212,7 @@ function recordColorHex(c: string | null): string {
             <span><span class="dm" style="font-size: 24px; font-weight: 700">{{ daysToExam }}</span><span style="font-size: 11px; color: #b7bcc6; margin-left: 2px">日</span></span>
           </div>
           <div v-if="nextEvent" class="row-between" style="align-items: baseline; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.12)">
-            <span style="font-size: 11.5px; color: #b7bcc6">{{ nextEvent.title }}</span>
+            <span style="font-size: 11.5px; color: #b7bcc6"><span class="mock-tag">模試</span>{{ nextEvent.title }}まで</span>
             <span><span class="dm" style="font-size: 18px; font-weight: 700; color: #9fb4ff">{{ Math.max(0, daysBetween(today, nextEvent.d)) }}</span><span style="font-size: 11px; color: #b7bcc6; margin-left: 2px">日</span></span>
           </div>
         </div>
@@ -209,7 +222,7 @@ function recordColorHex(c: string | null): string {
           <div v-if="upcomingList.length" style="display: flex; flex-direction: column; gap: 8px">
             <div v-for="(e, i) in upcomingList" :key="i" style="display: flex; align-items: center; gap: 9px">
               <span style="font-size: 11px; color: var(--faint); width: 36px">{{ e.dateLabel }}</span>
-              <span style="flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ e.title }}</span>
+              <span style="flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span v-if="e.isMock" class="mock-tag dark">模試</span>{{ e.title }}</span>
               <span style="font-size: 11px; font-weight: 600; color: #cf4486">{{ e.days }}日</span>
             </div>
           </div>
@@ -220,13 +233,9 @@ function recordColorHex(c: string | null): string {
       <!-- RIGHT: 直近の学習記録（科目別・期間選択付き） -->
       <div style="min-width: 0">
         <div class="card period-bar">
-          <button class="toggle" :class="{ open: recordsOpen }" @click="recordsOpen = !recordsOpen">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
-            直近の学習記録（科目別）
-          </button>
-          <span v-if="!loading" style="font-size: 11.5px; color: var(--faint); white-space: nowrap">{{ periodLabel }}・{{ records.length }}件</span>
+          <span style="font-size: 13.5px; font-weight: 700; flex-shrink: 0">直近の学習記録（科目別）</span>
           <span style="flex: 1"></span>
-          <div v-if="recordsOpen" class="period-chips">
+          <div class="period-chips">
             <button
               v-for="pOpt in PERIODS"
               :key="pOpt.key"
@@ -238,14 +247,14 @@ function recordColorHex(c: string | null): string {
         </div>
 
         <!-- 詳細期間選択 -->
-        <div v-if="recordsOpen && period === 'custom'" class="card custom-range">
+        <div v-if="period === 'custom'" class="card custom-range">
           <input v-model="customFrom" type="date" :max="customTo" />
           <span style="color: var(--faint)">〜</span>
           <input v-model="customTo" type="date" :min="customFrom" />
           <button class="apply-btn" @click="fetchRecords">表示</button>
         </div>
 
-        <div v-if="recordsOpen" class="card" style="padding: 6px 0">
+        <div class="card" style="padding: 6px 0">
           <div v-if="loading" style="padding: 40px; text-align: center; color: var(--faint); font-size: 13px">読み込み中…</div>
           <template v-else>
             <div style="padding: 8px 18px 0; font-size: 11px; color: var(--faint)">{{ periodLabel }}・全{{ records.length }}件</div>
@@ -257,8 +266,11 @@ function recordColorHex(c: string | null): string {
                 <span style="font-size: 11.5px; color: var(--faint)">{{ g.count }}件</span>
               </div>
               <div v-for="b in g.books" :key="b.name" class="book-block">
-                <div class="book-name">{{ b.name }}</div>
-                <div v-for="r in b.rows" :key="r.id" class="rec-row">
+                <button class="book-name toggle" :class="{ open: openBooks.has(bookKey(g.name, b.name)) }" @click="toggleBook(g.name, b.name)">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+                  {{ b.name }}<span class="book-cnt">{{ b.rows.length }}件</span>
+                </button>
+                <div v-if="openBooks.has(bookKey(g.name, b.name))" v-for="r in b.rows" :key="r.id" class="rec-row">
                   <span class="rec-badge" :style="{ background: TYPE_BADGE[r.type]?.bg ?? '#f1f2f4', color: TYPE_BADGE[r.type]?.fg ?? '#6b7280' }">{{ r.type }}</span>
                   <span class="rec-title" :style="{ color: recordColorHex(r.color) }">{{ parentLabel(r) }}</span>
                   <span class="rec-src">
@@ -279,6 +291,7 @@ function recordColorHex(c: string | null): string {
       v-if="eventModal"
       :date="eventModal.date"
       :title="eventModal.title"
+      :is-mock="eventModal.isMock"
       @save="saveEvent"
       @delete="deleteEvent"
       @close="eventModal = null"
@@ -287,6 +300,21 @@ function recordColorHex(c: string | null): string {
 </template>
 
 <style scoped>
+.mock-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #9fb4ff;
+  color: #1c2024;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.mock-tag.dark {
+  background: #e8eefb;
+  color: #2e4a8f;
+}
 .grid {
   display: grid;
   grid-template-columns: minmax(280px, 330px) 1fr;
@@ -331,12 +359,21 @@ function recordColorHex(c: string | null): string {
   gap: 6px;
   border: none;
   background: none;
-  padding: 0;
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--ink);
   cursor: pointer;
   white-space: nowrap;
+}
+.book-name.toggle {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+.book-cnt {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--faint);
+  background: #f1f2f4;
+  padding: 1px 7px;
+  border-radius: 999px;
 }
 .toggle svg {
   transition: transform 0.15s;

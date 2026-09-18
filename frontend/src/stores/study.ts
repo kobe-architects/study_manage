@@ -236,8 +236,8 @@ export const useStudyStore = defineStore('study', {
       return data.data as GoalItemDetail[]
     },
 
-    async saveEvent(date: string, title: string) {
-      const { data } = await client.post(`${p()}/events`, { date, title })
+    async saveEvent(date: string, title: string, isMock = false) {
+      const { data } = await client.post(`${p()}/events`, { date, title, isMock })
       const idx = this.events.findIndex((e) => e.date === date)
       if (idx >= 0) this.events[idx] = data.data
       else this.events.push(data.data)
