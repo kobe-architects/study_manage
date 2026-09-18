@@ -27,6 +27,7 @@ class CalendarEventController extends Controller
             'date' => ['required', 'date'],
             'title' => ['required', 'string', 'max:255'],
             'isMock' => ['nullable', 'boolean'],
+            'note' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $event = CalendarEvent::create([
@@ -34,6 +35,7 @@ class CalendarEventController extends Controller
             'date' => $data['date'],
             'title' => $data['title'],
             'is_mock' => (bool) ($data['isMock'] ?? false),
+            'note' => ($data['note'] ?? '') !== '' ? $data['note'] : null,
             'created_by' => $request->user()->id,
         ]);
 
@@ -47,8 +49,9 @@ class CalendarEventController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'isMock' => ['nullable', 'boolean'],
+            'note' => ['nullable', 'string', 'max:2000'],
         ]);
-        $calendarEvent->update(['title' => $data['title'], 'is_mock' => (bool) ($data['isMock'] ?? false)]);
+        $calendarEvent->update(['title' => $data['title'], 'is_mock' => (bool) ($data['isMock'] ?? false), 'note' => ($data['note'] ?? '') !== '' ? $data['note'] : null]);
 
         return response()->json(['data' => $this->payload($calendarEvent->fresh(['creator:id,name']))]);
     }
@@ -60,6 +63,7 @@ class CalendarEventController extends Controller
             'date' => $e->date->toDateString(),
             'title' => $e->title,
             'isMock' => (bool) $e->is_mock,
+            'note' => $e->note,
             'createdByName' => $e->creator?->name,
         ];
     }

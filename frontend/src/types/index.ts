@@ -223,6 +223,8 @@ export interface CalendarEvent {
   title: string
   /** 模試（トップページに残り日数を表示） */
   isMock: boolean
+  /** 備考 */
+  note: string | null
   /** 登録したユーザー名（生徒本人または講師） */
   createdByName: string | null
 }

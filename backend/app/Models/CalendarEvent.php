@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CalendarEvent extends Model
 {
-    protected $fillable = ['user_id', 'date', 'title', 'is_mock', 'created_by'];
+    protected $fillable = ['user_id', 'date', 'title', 'is_mock', 'note', 'created_by'];
 
     protected $casts = ['date' => 'date', 'is_mock' => 'boolean'];
 

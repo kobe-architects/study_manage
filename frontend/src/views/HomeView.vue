@@ -459,6 +459,7 @@ const upcomingList = computed(() =>
     title: e.title,
     isMock: e.isMock,
     by: e.createdByName,
+    note: e.note,
     dateLabel: `${e.d.getMonth() + 1}/${e.d.getDate()}`,
     days: Math.max(0, daysBetween(today, e.d)),
   })),
@@ -470,10 +471,10 @@ const eventsOfModalDate = computed(() => (eventModal.value ? study.events.filter
 function openEvent(date: string) {
   eventModal.value = { date }
 }
-async function saveEvent(id: number | null, title: string, isMock: boolean) {
+async function saveEvent(id: number | null, title: string, isMock: boolean, note: string) {
   if (!eventModal.value) return
   try {
-    await study.saveEvent(eventModal.value.date, title, isMock, id)
+    await study.saveEvent(eventModal.value.date, title, isMock, id, note)
     ui.notify(id === null ? '予定を追加しました' : '予定を保存しました')
   } catch {
     ui.notify('予定の保存に失敗しました')
@@ -546,7 +547,7 @@ const homeCols = computed(() => (isMobile.value ? '1fr' : 'minmax(300px,340px) 1
           <div style="display: flex; flex-direction: column; gap: 8px">
             <div v-for="(e, i) in upcomingList" :key="i" style="display: flex; align-items: center; gap: 9px">
               <span style="font-size: 11px; color: var(--faint); width: 36px">{{ e.dateLabel }}</span>
-              <span style="flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span v-if="e.isMock" class="mock-tag dark">模試</span>{{ e.title }}<span v-if="e.by" class="ev-by">{{ e.by }}</span></span>
+              <span style="flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span v-if="e.isMock" class="mock-tag dark">模試</span>{{ e.title }}<span v-if="e.by" class="ev-by">{{ e.by }}</span><span v-if="e.note" class="ev-by" :title="e.note">・{{ e.note }}</span></span>
               <span style="font-size: 11px; font-weight: 600; color: #cf4486">{{ e.days }}日</span>
             </div>
           </div>

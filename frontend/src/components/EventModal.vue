@@ -8,11 +8,12 @@ import type { CalendarEvent } from '@/types'
  * その日の予定を一覧（登録者名つき）で表示し、追加・編集・削除ができる。1日に複数登録可。
  */
 const props = defineProps<{ date: string; events: CalendarEvent[] }>()
-const emit = defineEmits<{ save: [id: number | null, title: string, isMock: boolean]; delete: [id: number]; close: [] }>()
+const emit = defineEmits<{ save: [id: number | null, title: string, isMock: boolean, note: string]; delete: [id: number]; close: [] }>()
 
 const editingId = ref<number | null>(null)
 const value = ref('')
 const mock = ref(false)
+const note = ref('')
 const saving = ref(false)
 
 const d = parseDate(props.date)
@@ -23,24 +24,26 @@ function startEdit(e: CalendarEvent) {
   editingId.value = e.id
   value.value = e.title
   mock.value = e.isMock
+  note.value = e.note ?? ''
 }
 function cancelEdit() {
   editingId.value = null
   value.value = ''
   mock.value = false
+  note.value = ''
 }
 async function submit() {
   if (!value.value.trim() || saving.value) return
   saving.value = true
   try {
-    emit('save', editingId.value, value.value.trim(), mock.value)
+    emit('save', editingId.value, value.value.trim(), mock.value, note.value.trim())
   } finally {
     saving.value = false
   }
 }
 // 保存されて一覧が更新されたら入力欄を戻す
 watch(
-  () => props.events.map((e) => `${e.id}:${e.title}:${e.isMock}`).join('|'),
+  () => props.events.map((e) => `${e.id}:${e.title}:${e.isMock}:${e.note ?? ''}`).join('|'),
   () => cancelEdit(),
 )
 </script>
@@ -60,6 +63,7 @@ watch(
         <div v-for="e in list" :key="e.id" class="item" :class="{ editing: editingId === e.id }">
           <div class="item-main">
             <div class="item-title"><span v-if="e.isMock" class="mock-tag">模試</span>{{ e.title }}</div>
+            <div v-if="e.note" class="item-note">{{ e.note }}</div>
             <div class="item-by">登録: {{ e.createdByName ?? '不明' }}</div>
           </div>
           <button class="mini" @click="startEdit(e)">編集</button>
@@ -71,6 +75,7 @@ watch(
       <div class="form">
         <div class="form-title">{{ editingId === null ? '予定を追加' : '予定を編集' }}</div>
         <input v-model="value" placeholder="例: 全国統一模試" class="inp" @keydown.enter="submit" />
+        <textarea v-model="note" class="inp" rows="2" placeholder="備考（任意）" style="resize: vertical; font-size: 13px"></textarea>
         <label class="mock-chk">
           <input v-model="mock" type="checkbox" />
           模試として登録する
@@ -148,6 +153,12 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.item-note {
+  font-size: 11.5px;
+  color: var(--mut);
+  white-space: pre-wrap;
+  margin-top: 2px;
 }
 .item-by {
   font-size: 11px;
