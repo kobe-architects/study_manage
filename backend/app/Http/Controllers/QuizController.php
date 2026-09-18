@@ -213,7 +213,7 @@ class QuizController extends Controller
         if ($gk === null || ! Quiz::where('group_key', $gk)->where('id', '<', $quiz->id)->exists()) {
             \App\Support\LineNotify::push(
                 $quiz->user,
-                "【受験ナビ】小テストが出題されました。\n「{$quiz->title}」"
+                "小テストが出題されました。\n「{$quiz->title}」"
                 .($quiz->due_on ? '（期限 '.$quiz->due_on->toDateString().'）' : '')."\n".config('app.url'),
             );
         }
@@ -451,7 +451,7 @@ class QuizController extends Controller
         $part = $quiz->book?->title ?? '英単語テスト';
         \App\Support\LineNotify::push(
             $quiz->creator,
-            "【受験ナビ】{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を提出しました。\n採点・添削をお願いします。\n".config('app.url'),
+            "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を提出しました。\n採点・添削をお願いします。\n".config('app.url'),
         );
 
         return response()->json(['data' => ['id' => $quiz->id, 'status' => $quiz->status]]);
@@ -536,7 +536,7 @@ class QuizController extends Controller
         $scoreText = "（{$quiz->score} / {$quiz->max_score}点）";
         \App\Support\LineNotify::push(
             $quiz->user,
-            "【受験ナビ】小テスト「{$quiz->title}」の採点・添削が完了しました{$scoreText}。\n結果を確認しましょう。\n".config('app.url'),
+            "小テスト「{$quiz->title}」の採点・添削が完了しました{$scoreText}。\n結果を確認しましょう。\n".config('app.url'),
         );
 
         return response()->json(['data' => ['id' => $quiz->id, 'status' => $quiz->status]]);

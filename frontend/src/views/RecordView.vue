@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import HelpTip from '@/components/HelpTip.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import Heatmap from '@/components/Heatmap.vue'
 import { computeReviewOn, REVIEW_OPTIONS, TYPE_BADGE, iso } from '@/lib/design'
@@ -16,6 +17,35 @@ const ui = useUiStore()
 const vw = ref(window.innerWidth)
 window.addEventListener('resize', () => (vw.value = window.innerWidth))
 const isMobile = computed(() => vw.value < 860)
+
+/** 登録方法: 教材の行に記録 / 科目を選んで自由入力 */
+const mode = ref<'book' | 'free'>('book')
+const free = reactive({ subjectId: 0, title: '', date: iso(new Date()) })
+/** 科目一覧（学習項目データから重複なしで抽出） */
+const subjects = computed(() => {
+  // 同名の科目（文系/理系などの区分違い）は1つにまとめる
+  const m = new Map<string, { id: number; name: string; color: string }>()
+  for (const it of study.items) {
+    if (!m.has(it.subjectName)) m.set(it.subjectName, { id: it.subjectId, name: it.subjectName, color: ui.colorOf(it.colorSoft, it.colorVivid) })
+  }
+  return [...m.values()]
+})
+watch(subjects, (list) => {
+  if (!list.find((s) => s.id === free.subjectId)) free.subjectId = list[0]?.id ?? 0
+}, { immediate: true })
+async function registerFree() {
+  if (!free.subjectId) {
+    ui.notify('科目を選択してください')
+    return
+  }
+  if (!free.title.trim()) {
+    ui.notify('学習内容を入力してください')
+    return
+  }
+  await study.addFreeRecord(free.subjectId, free.title.trim(), free.date)
+  ui.notify(`「${free.title.trim()}」を登録しました`)
+  free.title = ''
+}
 
 const form = reactive({
   type: (auth.settings?.defaultType ?? '問題集') as StudyType,
@@ -80,8 +110,8 @@ const recent = computed(() =>
       ...r,
       dateLabel: `${d.getMonth() + 1}/${d.getDate()}`,
       color: ui.colorOf(r.colorSoft, r.colorVivid),
-      path: `${r.subjectName} › ${r.major} › ${r.mid}`,
-      badge: TYPE_BADGE[r.type],
+      path: r.type === '自由' ? `${r.subjectName} › 自由入力` : `${r.subjectName} › ${r.major} › ${r.mid}`,
+      badge: TYPE_BADGE[r.type] ?? TYPE_BADGE.自由,
     }
   }),
 )
@@ -182,11 +212,32 @@ async function exportExcel() {
   <div :style="{ display: 'grid', gridTemplateColumns: recCols, gap: '18px', alignItems: 'start' }">
     <!-- form -->
     <div class="card" style="padding: 20px">
-      <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px">学習日を登録</div>
-      <div style="font-size: 12px; color: var(--faint); margin-bottom: 16px">
-        教材（講義・問題集・教科書）の各行に学習日を記録します。同じ行に何度でも登録できます（復習用）。
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px">
+        <div style="font-size: 15px; font-weight: 700">学習日を登録</div>
+        <HelpTip text="教材の行: 講義・問題集・教科書の各行に学習日を記録します（同じ行に何度でも登録可・復習期限も設定できます）。&#10;自由入力: 教材に紐づかない学習（YouTube の英語コンテンツ、英会話など）を科目と内容で記録します。" />
       </div>
-      <div style="display: flex; flex-direction: column; gap: 12px">
+      <div class="seg2" style="margin-bottom: 14px">
+        <button :class="{ on: mode === 'book' }" @click="mode = 'book'">教材の行</button>
+        <button :class="{ on: mode === 'free' }" @click="mode = 'free'">自由入力</button>
+      </div>
+      <div v-if="mode === 'free'" style="display: flex; flex-direction: column; gap: 12px">
+        <label class="fld"><span>科目</span>
+          <select v-model.number="free.subjectId">
+            <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
+        </label>
+        <label class="fld"><span>学習内容</span>
+          <input v-model="free.title" type="text" maxlength="255" placeholder="例: YouTube で英語のリスニング、オンライン英会話 30分" @keydown.enter="registerFree" />
+        </label>
+        <label class="fld"><span>学習日</span>
+          <input v-model="free.date" type="date" />
+        </label>
+        <button class="register-btn" @click="registerFree">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5" /></svg>
+          学習日を登録
+        </button>
+      </div>
+      <div v-else style="display: flex; flex-direction: column; gap: 12px">
         <label class="fld"><span>種別</span>
           <div class="seg2">
             <button v-for="t in STUDY_TYPES" :key="t" :class="{ on: form.type === t }" @click="form.type = t">{{ t }}</button>
@@ -321,12 +372,12 @@ async function exportExcel() {
                     <span :style="{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: ui.colorOf(r.colorSoft, r.colorVivid), marginRight: '6px' }"></span>{{ r.subjectName ?? '—' }}
                   </td>
                   <td>
-                    <div style="font-weight: 500">{{ r.rowTitle ?? r.sub ?? '—' }}</div>
+                    <div style="font-weight: 500">{{ r.rowTitle ?? r.sub ?? r.title ?? '—' }}</div>
                     <div style="font-size: 11px; color: var(--faint)">{{ [r.major, r.mid].filter(Boolean).join(' › ') }}</div>
                   </td>
                   <td>{{ r.bookTitle ?? '—' }}</td>
                   <td style="white-space: nowrap">
-                    <span :style="{ fontSize: '10.5px', fontWeight: 600, padding: '2px 8px', borderRadius: '99px', background: TYPE_BADGE[r.type].bg, color: TYPE_BADGE[r.type].fg }">{{ r.type }}</span>
+                    <span :style="{ fontSize: '10.5px', fontWeight: 600, padding: '2px 8px', borderRadius: '99px', background: (TYPE_BADGE[r.type] ?? TYPE_BADGE.自由).bg, color: (TYPE_BADGE[r.type] ?? TYPE_BADGE.自由).fg }">{{ r.type }}</span>
                   </td>
                   <td style="text-align: center">
                     <span v-if="r.color" :style="{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: DATE_COLORS[r.color] }" :title="COLOR_LABEL[r.color]"></span>

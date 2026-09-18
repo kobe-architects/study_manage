@@ -79,6 +79,12 @@ export const useStudyStore = defineStore('study', {
       this.events = data.data
     },
 
+    /** 科目＋自由入力の学習記録（教材に紐づかない学習） */
+    async addFreeRecord(subjectId: number, title: string, studiedOn: string) {
+      await client.post('/records', { subjectId, title, studiedOn })
+      await Promise.all([this.fetchRecordStats()])
+    },
+
     async addRecord(studyItemId: number, type: StudyType, studiedOn: string) {
       await client.post('/records', { studyItemId, type, studiedOn })
       await Promise.all([this.fetchItems(), this.fetchRecordStats(), this.fetchGoals()])

@@ -61,7 +61,7 @@ class AssignmentController extends Controller
         $title = trim((string) ($data['title'] ?? ''));
         \App\Support\LineNotify::push(
             $this->targetUser($request),
-            "【受験ナビ】{$request->user()->name}先生から新しい課題が設定されました。\n"
+            "{$request->user()->name}先生から新しい課題が設定されました。\n"
             .($title !== '' ? "「{$title}」" : '')."（期限 {$data['dueOn']}）\n".config('app.url'),
         );
 

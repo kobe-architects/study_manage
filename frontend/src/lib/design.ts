@@ -106,6 +106,7 @@ export const TYPE_BADGE = {
   講義: { bg: '#eef1f6', fg: '#5b6b8c' },
   問題集: { bg: '#fdeef4', fg: '#b85188' },
   教科書: { bg: '#eef7f0', fg: '#3a8a5c' },
+  自由: { bg: '#fff4e5', fg: '#b7681a' },
 } as const
 
 // TTS（女性音声優先）

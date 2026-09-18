@@ -135,14 +135,18 @@ export interface RecentRecord {
   major: string
   mid: string
   sub: string
-  type: StudyType
+  type: StudyType | '自由'
+  /** 自由入力の記録の内容 */
+  title?: string | null
 }
 
 /** 学習記録の出力機能（期間指定一覧）の1行 */
 export interface RecordListItem {
   id: number
   date: string
-  type: StudyType
+  type: StudyType | '自由'
+  /** 自由入力の記録の内容（教材に紐づかない学習） */
+  title: string | null
   subjectName: string | null
   colorSoft: string
   colorVivid: string

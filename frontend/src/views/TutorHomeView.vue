@@ -86,7 +86,7 @@ const subjectGroups = computed(() => {
     }
     const g = map.get(key)!
     g.count++
-    const bookKey = r.bookTitle ?? (r.major ? `${r.major}›${r.mid}` : 'その他')
+    const bookKey = r.bookTitle ?? (r.type === '自由' ? '自由入力' : r.major ? `${r.major}›${r.mid}` : 'その他')
     if (!g.books.has(bookKey)) g.books.set(bookKey, { name: bookKey, rows: [] })
     g.books.get(bookKey)!.rows.push(r)
   }
@@ -97,6 +97,7 @@ const subjectGroups = computed(() => {
 
 /** 行の親項目名（章）。章がない行は 大分類›中分類、それもなければ行タイトルで代替 */
 function parentLabel(r: RecordListItem): string {
+  if (r.type === '自由') return r.title ?? '（無題）'
   const parent = r.chapter ?? (r.major ? `${r.major}›${r.mid}` : '')
   return parent || (r.rowTitle ?? r.sub ?? '（無題）')
 }

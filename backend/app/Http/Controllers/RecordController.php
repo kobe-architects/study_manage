@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ResourceBookItem;
 use App\Models\StudyItem;
 use App\Models\StudyRecord;
+use App\Models\Subject;
 use App\Support\XlsxHelper;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -48,6 +49,26 @@ class RecordController extends Controller
             return response()->json(['data' => ['id' => $record->id]], 201);
         }
 
+        // 科目＋自由入力（YouTube の英語コンテンツ、英会話など教材に紐づかない学習）
+        if ($request->filled('subjectId')) {
+            $data = $request->validate([
+                'subjectId' => ['required', 'integer'],
+                'title' => ['required', 'string', 'max:255'],
+                'studiedOn' => ['required', 'date'],
+            ]);
+            Subject::where('user_id', $userId)->findOrFail($data['subjectId']);
+            $record = StudyRecord::create([
+                'user_id' => $userId,
+                'study_item_id' => null,
+                'subject_id' => $data['subjectId'],
+                'type' => StudyRecord::TYPE_FREE,
+                'title' => $data['title'],
+                'studied_on' => $data['studiedOn'],
+            ]);
+
+            return response()->json(['data' => ['id' => $record->id]], 201);
+        }
+
         $data = $request->validate([
             'studyItemId' => ['required', 'integer'],
             'type' => ['required', 'in:講義,問題集,教科書'],
@@ -76,7 +97,7 @@ class RecordController extends Controller
         $today = Carbon::today();
 
         $records = StudyRecord::query()
-            ->with('item.mid.major.subject')
+            ->with(['item.mid.major.subject', 'subject'])
             ->where('user_id', $userId)
             ->orderByDesc('studied_on')
             ->orderByDesc('id')
@@ -108,18 +129,19 @@ class RecordController extends Controller
 
         // 最近の記録 12件
         $recent = $records->take(12)->map(function ($r) {
-            $subject = $r->item->mid->major->subject;
+            $subject = $r->item?->mid?->major?->subject ?? $r->subject;
 
             return [
                 'id' => $r->id,
                 'date' => $r->studied_on->toDateString(),
-                'subjectName' => $subject->name,
-                'colorSoft' => $subject->color_soft,
-                'colorVivid' => $subject->color_vivid,
-                'major' => $r->item->mid->major->name,
-                'mid' => $r->item->mid->name,
-                'sub' => $r->item->name,
+                'subjectName' => $subject?->name ?? '',
+                'colorSoft' => $subject?->color_soft ?? '#475569',
+                'colorVivid' => $subject?->color_vivid ?? '#475569',
+                'major' => $r->item?->mid?->major?->name ?? '',
+                'mid' => $r->item?->mid?->name ?? '',
+                'sub' => $r->item?->name ?? ($r->title ?? ''),
                 'type' => $r->type,
+                'title' => $r->title,
             ];
         })->values();
 
@@ -145,13 +167,14 @@ class RecordController extends Controller
 
         $data = $records->map(function (StudyRecord $r) {
             $item = $r->item;
-            $subject = $item?->mid?->major?->subject;
+            $subject = $item?->mid?->major?->subject ?? $r->subject;
             $row = $r->bookItem;
 
             return [
                 'id' => $r->id,
                 'date' => $r->studied_on->toDateString(),
                 'type' => $r->type,
+                'title' => $r->title,
                 'subjectName' => $subject?->name,
                 'colorSoft' => $subject?->color_soft ?? '#475569',
                 'colorVivid' => $subject?->color_vivid ?? '#475569',
@@ -186,10 +209,10 @@ class RecordController extends Controller
             return [
                 $r->studied_on->toDateString(),
                 $r->type,
-                $item?->mid?->major?->subject?->name,
+                $item?->mid?->major?->subject?->name ?? $r->subject?->name,
                 $item?->mid?->major?->name,
                 $item?->mid?->name,
-                $item?->name,
+                $item?->name ?? $r->title,
                 $row?->book?->title,
                 $row?->seq_no,
                 $row?->title,
@@ -222,7 +245,7 @@ class RecordController extends Controller
     private function recordsBetween(int $userId, ?string $from, ?string $to)
     {
         return StudyRecord::query()
-            ->with(['item.mid.major.subject', 'bookItem.book'])
+            ->with(['item.mid.major.subject', 'bookItem.book', 'subject'])
             ->where('user_id', $userId)
             ->when($from, fn ($q) => $q->whereDate('studied_on', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('studied_on', '<=', $to))
