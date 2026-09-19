@@ -129,7 +129,7 @@ const upcomingMocks = computed(() =>
   upcoming.value
     .filter((e) => e.isMock)
     .slice(0, 3)
-    .map((e) => ({ title: e.title, by: e.createdByName, dateLabel: `${e.d.getMonth() + 1}/${e.d.getDate()}`, days: Math.max(0, daysBetween(today, e.d)) })),
+    .map((e) => ({ title: e.title, by: e.createdByName, note: e.note, dateLabel: `${e.d.getMonth() + 1}/${e.d.getDate()}`, days: Math.max(0, daysBetween(today, e.d)) })),
 )
 const upcomingList = computed(() =>
   upcoming.value.filter((e) => !e.isMock).slice(0, 5).map((e) => ({
@@ -216,10 +216,13 @@ function recordColorHex(c: string | null): string {
             <span><span class="dm" style="font-size: 24px; font-weight: 700">{{ daysToExam }}</span><span style="font-size: 11px; color: #b7bcc6; margin-left: 2px">日</span></span>
           </div>
           <div v-for="(m, i) in upcomingMocks" :key="i" class="row-between mock-row">
-            <span style="min-width: 0; display: flex; align-items: baseline; gap: 6px">
-              <span class="mock-tag">模試</span>
-              <span style="font-size: 11.5px; color: #e6e8ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ m.title }}</span>
-              <span style="font-size: 10.5px; color: #8e95a2; white-space: nowrap">{{ m.dateLabel }}</span>
+            <span style="min-width: 0">
+              <span style="display: flex; align-items: baseline; gap: 6px; min-width: 0">
+                <span class="mock-tag">模試</span>
+                <span style="font-size: 11.5px; color: #e6e8ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ m.title }}</span>
+                <span style="font-size: 10.5px; color: #8e95a2; white-space: nowrap">{{ m.dateLabel }}</span>
+              </span>
+              <span v-if="m.note" class="mock-memo">{{ m.note }}</span>
             </span>
             <span style="flex-shrink: 0"><span class="dm" style="font-size: 20px; font-weight: 700; color: #ff9ecb">{{ m.days }}</span><span style="font-size: 11px; color: #b7bcc6; margin-left: 2px">日</span></span>
           </div>
@@ -228,10 +231,13 @@ function recordColorHex(c: string | null): string {
         <div class="card" style="padding: 14px 16px">
           <div style="font-size: 12px; font-weight: 700; margin-bottom: 9px">今後の予定</div>
           <div v-if="upcomingList.length" style="display: flex; flex-direction: column; gap: 8px">
-            <div v-for="(e, i) in upcomingList" :key="i" style="display: flex; align-items: center; gap: 9px">
-              <span style="font-size: 11px; color: var(--faint); width: 36px">{{ e.dateLabel }}</span>
-              <span style="flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span v-if="e.isMock" class="mock-tag dark">模試</span>{{ e.title }}<span v-if="e.by" class="ev-by">{{ e.by }}</span><span v-if="e.note" class="ev-by" :title="e.note">・{{ e.note }}</span></span>
-              <span style="font-size: 11px; font-weight: 600; color: #cf4486">{{ e.days }}日</span>
+            <div v-for="(e, i) in upcomingList" :key="i" class="upc-row">
+              <span class="upc-date">{{ e.dateLabel }}</span>
+              <span class="upc-main">
+                <span class="upc-title"><span v-if="e.isMock" class="mock-tag dark">模試</span>{{ e.title }}<span v-if="e.by" class="ev-by">{{ e.by }}</span></span>
+                <span v-if="e.note" class="upc-note">{{ e.note }}</span>
+              </span>
+              <span class="upc-days">{{ e.days }}日</span>
             </div>
           </div>
           <div v-else style="font-size: 12px; color: var(--faint)">登録された予定はありません</div>
@@ -307,8 +313,58 @@ function recordColorHex(c: string | null): string {
 </template>
 
 <style scoped>
+/* 今後の予定（備考は2行目に小さく表示） */
+.upc-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.upc-date {
+  font-size: 11px;
+  color: var(--faint);
+  width: 36px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.upc-main {
+  flex: 1;
+  min-width: 0;
+}
+.upc-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.upc-note {
+  display: block;
+  font-size: 10.5px;
+  color: var(--faint);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 1px;
+}
+.upc-days {
+  font-size: 11px;
+  font-weight: 600;
+  color: #cf4486;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.mock-memo {
+  display: block;
+  font-size: 10.5px;
+  color: #8e95a2;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-top: 2px;
+}
 .mock-row {
-  align-items: baseline;
+  align-items: flex-start;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
