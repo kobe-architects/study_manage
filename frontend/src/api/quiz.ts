@@ -207,9 +207,12 @@ export const quizApi = {
     await client.post(`/quizzes/${quizId}/pages/${pageId}/answer`, fd)
   },
 
-  /** 提出。自己採点済みなら得点・満点を一緒に送る（講師の採点を待たずに採点済みになる） */
-  async submit(quizId: number, selfGrade?: { score: number; maxScore: number } | null): Promise<void> {
-    await client.post(`/quizzes/${quizId}/submit`, selfGrade ? { selfGraded: true, score: selfGrade.score, maxScore: selfGrade.maxScore } : { selfGraded: false })
+  /** 提出。自己採点済みなら得点・満点を、先生への一言（任意）があれば note を一緒に送る */
+  async submit(quizId: number, selfGrade?: { score: number; maxScore: number } | null, note?: string | null): Promise<void> {
+    await client.post(`/quizzes/${quizId}/submit`, {
+      ...(selfGrade ? { selfGraded: true, score: selfGrade.score, maxScore: selfGrade.maxScore } : { selfGraded: false }),
+      note: note ?? null,
+    })
   },
 
   // ===== 添削・採点（講師） =====

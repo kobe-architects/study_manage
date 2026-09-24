@@ -539,6 +539,8 @@ export interface QuizSummary {
   rate: number | null
   /** 生徒が提出時に自己採点したもの（得点は生徒の入力。講師が採点・添削を完了すると false に戻る） */
   selfGraded: boolean
+  /** 提出時の生徒からの一言（任意。講師への LINE 通知に含まれる） */
+  submitNote: string | null
   /** 採点（得点・満点）が入力済みか。enteredScore / enteredMaxScore は入力値そのもの（講師の採点画面用） */
   scoreEntered: boolean
   enteredScore: number | null

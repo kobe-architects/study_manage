@@ -385,6 +385,7 @@ async function downloadResult() {
           <template v-if="quiz.submittedAt">・提出 {{ quiz.submittedAt.slice(0, 16).replace(/-/g, '/') }}</template>
         </span>
       </div>
+      <div v-if="quiz.submitNote" class="snote">生徒からの一言: {{ quiz.submitNote }}</div>
       <div v-if="page" class="label-bar">
         <b>{{ page.pageNo }}. {{ page.label }}</b>
         <span v-if="page.kind === 'vocab'" class="vtag">英単語テスト・{{ page.maxScore }}問</span>
@@ -979,6 +980,15 @@ async function downloadResult() {
 .meta {
   font-size: 11.5px;
   color: var(--mut);
+}
+.snote {
+  font-size: 12px;
+  color: #5b3fa0;
+  background: #f5f2fb;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin: 0 0 8px;
+  white-space: pre-wrap;
 }
 .label-bar {
   display: flex;

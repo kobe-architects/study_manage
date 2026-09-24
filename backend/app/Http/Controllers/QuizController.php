@@ -452,35 +452,40 @@ class QuizController extends Controller
             'selfGraded' => ['nullable', 'boolean'],
             'score' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'maxScore' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'note' => ['nullable', 'string', 'max:500'],
         ]);
         $selfGraded = (bool) ($data['selfGraded'] ?? false);
+        // 先生への一言（任意）。再提出のたびに上書きする
+        $note = trim((string) ($data['note'] ?? ''));
+        $note = $note === '' ? null : $note;
 
         if ($selfGraded) {
             abort_if(! isset($data['score'], $data['maxScore']), 422, '自己採点の得点・満点を入力してください。');
             abort_if($data['score'] > $data['maxScore'], 422, '得点が満点を超えています。');
             $quiz->update([
                 'status' => Quiz::STATUS_GRADED, 'submitted_at' => now(), 'graded_at' => now(),
-                'self_graded' => true, 'score' => $data['score'], 'max_score' => $data['maxScore'],
+                'self_graded' => true, 'score' => $data['score'], 'max_score' => $data['maxScore'], 'submit_note' => $note,
             ]);
         } elseif ($quiz->self_graded) {
             // 自己採点していたものを通常の提出（講師の採点待ち）に戻す
             $quiz->update([
                 'status' => Quiz::STATUS_SUBMITTED, 'submitted_at' => now(), 'graded_at' => null,
-                'self_graded' => false, 'score' => null, 'max_score' => null,
+                'self_graded' => false, 'score' => null, 'max_score' => null, 'submit_note' => $note,
             ]);
         } else {
-            $quiz->update(['status' => Quiz::STATUS_SUBMITTED, 'submitted_at' => now()]);
+            $quiz->update(['status' => Quiz::STATUS_SUBMITTED, 'submitted_at' => now(), 'submit_note' => $note]);
         }
 
         // 出題した講師へ LINE 通知（連携時のみ）
         $studentName = $quiz->user->settings?->name ?: $quiz->user->name;
         $part = $quiz->book?->title ?? '英単語テスト';
+        $noteLine = $note !== null ? "一言: {$note}\n" : '';
         if ($selfGraded) {
             $rate = (int) round($data['score'] / $data['maxScore'] * 100);
             $message = "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を自己採点して提出しました。\n"
-                ."得点 {$data['score']} / {$data['maxScore']}点（{$rate}%）\n".config('app.url');
+                ."得点 {$data['score']} / {$data['maxScore']}点（{$rate}%）\n".$noteLine.config('app.url');
         } else {
-            $message = "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を提出しました。\n採点・添削をお願いします。\n".config('app.url');
+            $message = "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を提出しました。\n".$noteLine."採点・添削をお願いします。\n".config('app.url');
         }
         LineNotify::push($quiz->creator, $message);
 
@@ -968,6 +973,7 @@ class QuizController extends Controller
             'rate' => $graded && $max > 0 && $sum !== null ? (int) round($sum / $max * 100) : null,
             // 生徒が提出時に自己採点したもの（得点は生徒の入力）
             'selfGraded' => (bool) $q->self_graded,
+            'submitNote' => $q->submit_note,
             // 採点（得点・満点）の入力状態（講師の採点画面用）
             'scoreEntered' => $q->score !== null && $q->max_score !== null,
             'enteredScore' => $q->score,

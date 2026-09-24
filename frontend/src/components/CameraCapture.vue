@@ -46,6 +46,8 @@ const selfGradeValid = computed(
   () => selfGrade.score !== null && selfGrade.maxScore !== null && selfGrade.maxScore > 0 && selfGrade.score >= 0 && selfGrade.score <= selfGrade.maxScore,
 )
 const selfRate = computed(() => (selfGradeValid.value ? Math.round((selfGrade.score! / selfGrade.maxScore!) * 100) : null))
+// 先生への一言（任意。LINE 通知に含まれる）。再提出時は前回の内容を初期値にする
+const submitNote = ref(props.quiz.submitNote ?? '')
 
 function stateOf(pageId: number, hasAnswer: boolean): 'new' | 'old' | 'none' {
   if (shots.value.has(pageId)) return 'new'
@@ -221,7 +223,7 @@ async function submit() {
       await quizApi.uploadAnswer(props.quiz.id, p.id, s.blob)
       progress.value.done++
     }
-    await quizApi.submit(props.quiz.id, selfGrade.on ? { score: selfGrade.score!, maxScore: selfGrade.maxScore! } : null)
+    await quizApi.submit(props.quiz.id, selfGrade.on ? { score: selfGrade.score!, maxScore: selfGrade.maxScore! } : null, submitNote.value.trim() || null)
     ui.notify(selfGrade.on ? '自己採点つきで提出しました' : '回答を提出しました')
     emit('submitted')
   } catch (e: unknown) {
@@ -322,6 +324,10 @@ onBeforeUnmount(() => {
           <span style="font-size: 11px; color: #b7bcc6">撮り直す ›</span>
         </div>
       </div>
+      <!-- 先生への一言（任意） -->
+      <div class="msg-row">
+        <input v-model="submitNote" type="text" maxlength="500" placeholder="先生への一言（任意）" class="msg-input" />
+      </div>
       <!-- 自己採点（任意） -->
       <div class="sg">
         <label class="sg-toggle">
@@ -353,6 +359,27 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* 先生への一言（提出前確認） */
+.msg-row {
+  margin: 0 14px 8px;
+}
+.msg-input {
+  width: 100%;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  font-size: 13px;
+  padding: 0 12px;
+  outline: none;
+}
+.msg-input::placeholder {
+  color: #8e95a2;
+}
+.msg-input:focus {
+  border-color: #5b7cff;
+}
 /* 自己採点（提出前確認） */
 .sg {
   margin: 0 14px;

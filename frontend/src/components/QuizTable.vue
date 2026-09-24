@@ -188,6 +188,7 @@ function dueClass(q: QuizSummary): string {
                 <span v-if="partIndex[q.id] && partIndex[q.id]!.n > 1" class="part-no">{{ partIndex[q.id]!.i }}/{{ partIndex[q.id]!.n }}</span>
               </div>
               <div v-if="q.note" class="note">{{ q.note }}</div>
+              <div v-if="q.submitNote" class="note snote">一言: {{ q.submitNote }}</div>
               <div v-if="role === 'owner' && q.createdByName" class="note">{{ q.createdByName }}</div>
             </td>
             <td class="c-book">{{ partLabel(q) }}</td>
@@ -425,6 +426,9 @@ function dueClass(q: QuizSummary): string {
   color: var(--faint);
   margin-top: 2px;
   white-space: pre-wrap;
+}
+.note.snote {
+  color: #5b3fa0;
 }
 .badge {
   display: inline-block;

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
  * 小テスト。user_id は生徒、created_by は出題した講師。
  * status: assigned(出題中) → submitted(回答提出済み) → graded(添削・採点済み)
  * self_graded: 生徒が提出時に自己採点（得点・満点を入力）して graded になったもの。講師が採点・添削を完了すると false に戻る。
+ * submit_note: 提出時の生徒からの一言（任意。講師への LINE 通知に含める）
  */
 class Quiz extends Model
 {
@@ -22,7 +23,7 @@ class Quiz extends Model
 
     protected $fillable = [
         'user_id', 'created_by', 'group_key', 'resource_book_id', 'title', 'note', 'due_on',
-        'max_score_per_page', 'score', 'max_score', 'self_graded', 'file_path', 'status', 'submitted_at', 'graded_at',
+        'max_score_per_page', 'score', 'max_score', 'self_graded', 'submit_note', 'file_path', 'status', 'submitted_at', 'graded_at',
     ];
 
     protected $casts = [

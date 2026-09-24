@@ -92,6 +92,7 @@ function fmt(d: string | null): string {
           <span v-if="q.status === 'graded' && q.selfGraded" class="pchip self">自己採点</span>
           <span v-if="q.status === 'assigned' && q.answeredCount" style="color: #2f7a4f">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み（未提出）</span>
         </div>
+        <div v-if="q.submitNote" class="part-meta" style="color: #5b3fa0">一言: {{ q.submitNote }}</div>
         <div v-if="q.status === 'graded' && q.score !== null" class="marks-row">
           <span class="mk"><b :style="{ color: rateColor(q.rate) }">{{ q.score }}</b> / {{ q.maxScore }}点</span>
           <span class="mk" :style="{ color: rateColor(q.rate) }">{{ q.rate ?? '–' }}%</span>
