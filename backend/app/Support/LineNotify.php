@@ -19,7 +19,14 @@ class LineNotify
     public static function push(?User $user, string $message): void
     {
         $token = config('services.line.channel_access_token');
-        if (! $token || $user === null || ! $user->line_user_id) {
+        if (! $token || $user === null) {
+            return;
+        }
+        // 列を絞って取得されたモデル（with('tutor:id,name,...') など）には line_user_id が無いので取り直す
+        if (! array_key_exists('line_user_id', $user->getAttributes()) && $user->getKey() !== null) {
+            $user = User::find($user->getKey());
+        }
+        if ($user === null || ! $user->line_user_id) {
             return;
         }
         try {
