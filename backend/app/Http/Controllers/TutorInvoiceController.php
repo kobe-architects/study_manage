@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\TutorInvoice;
 use App\Models\TutorWorkEntry;
+use App\Models\User;
 use App\Support\ImageTools;
 use App\Support\LineNotify;
 use App\Support\PdfTools;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -64,12 +66,12 @@ class TutorInvoiceController extends Controller
         } else {
             $tutorId = (int) ($data['tutorId'] ?? 0);
             abort_unless(
-                \App\Models\User::where('id', $tutorId)->where('role', 'tutor')->where('student_id', $userId)->exists(),
+                User::where('id', $tutorId)->where('role', 'tutor')->where('student_id', $userId)->exists(),
                 422,
                 '講師を選択してください。',
             );
         }
-        $on = \Carbon\Carbon::parse($data['workOn']);
+        $on = Carbon::parse($data['workOn']);
 
         $invoice = TutorInvoice::firstOrCreate(
             ['tutor_id' => $tutorId, 'year' => $on->year, 'month' => $on->month],
@@ -77,7 +79,7 @@ class TutorInvoiceController extends Controller
                 'user_id' => $userId,
                 'status' => TutorInvoice::STATUS_OPEN,
                 // 時給は講師アカウント（システム設定）の値。締め時にスナップショットされる
-                'hourly_rate' => (int) (\App\Models\User::where('id', $tutorId)->value('hourly_rate') ?? 0),
+                'hourly_rate' => (int) (User::where('id', $tutorId)->value('hourly_rate') ?? 0),
             ],
         );
         abort_unless($invoice->user_id === $userId, 403);
@@ -95,10 +97,15 @@ class TutorInvoiceController extends Controller
         if (! $request->user()->isTutor()) {
             $hm = fn (int $m) => sprintf('%d:%02d', intdiv($m, 60), $m % 60);
             $note = ($data['note'] ?? '') !== '' ? "（{$data['note']}）" : '';
+            // その日の稼働（同じ日に複数登録されている場合は合計）
+            $dayEntries = $invoice->entries->filter(fn (TutorWorkEntry $e) => $e->work_on?->isSameDay($on));
+            $dayMinutes = (int) $dayEntries->sum(fn (TutorWorkEntry $e) => $e->end_min - $e->start_min);
+            $dayCount = $dayEntries->count();
             LineNotify::push(
                 $invoice->tutor,
                 "{$invoice->user?->name}さんが稼働時間を登録しました。\n"
                 .$on->format('n月j日').' '.$hm((int) $data['startMin']).'〜'.$hm((int) $data['endMin']).$note."\n"
+                .'この日の稼働 '.$this->hoursText($dayMinutes).($dayCount > 1 ? "（{$dayCount}件）" : '')."\n"
                 ."{$invoice->year}年{$invoice->month}月分 合計 {$this->amountText($invoice)}\n".config('app.url'),
             );
         }
@@ -149,7 +156,7 @@ class TutorInvoiceController extends Controller
         $this->authorizeInvoice($request, $invoice);
         abort_if($invoice->entries()->count() === 0, 422, '稼働時間が登録されていません。');
         // 締め時点の講師の時給（システム設定）をスナップショットする
-        $rate = (int) (\App\Models\User::where('id', $invoice->tutor_id)->value('hourly_rate') ?? 0);
+        $rate = (int) (User::where('id', $invoice->tutor_id)->value('hourly_rate') ?? 0);
         $this->transition($invoice, TutorInvoice::STATUS_OPEN, TutorInvoice::STATUS_CLOSED, ['closed_at' => now(), 'hourly_rate' => $rate]);
 
         return $this->show($request, $invoice->fresh());
@@ -253,19 +260,32 @@ class TutorInvoiceController extends Controller
     private function amountText(TutorInvoice $invoice): string
     {
         $minutes = (int) $invoice->entries()->get()->sum(fn (TutorWorkEntry $e) => $e->end_min - $e->start_min);
-        $amount = (int) round($minutes * $invoice->hourly_rate / 60);
-        $hours = rtrim(rtrim(number_format($minutes / 60, 1), '0'), '.');
+        $amount = (int) round($minutes * $this->effectiveRate($invoice) / 60);
 
-        return "{$hours}時間・".number_format($amount).'円';
+        return $this->hoursText($minutes).'・'.number_format($amount).'円';
+    }
+
+    /**
+     * 金額計算に使う時給。締め前は講師アカウント（システム設定）の現在の時給、
+     * 締め後は請求書作成時のスナップショットを使う（画面表示 payload() と同じルール）。
+     */
+    private function effectiveRate(TutorInvoice $invoice): int
+    {
+        return $invoice->status === TutorInvoice::STATUS_OPEN
+            ? (int) ($invoice->tutor?->hourly_rate ?? $invoice->hourly_rate)
+            : (int) $invoice->hourly_rate;
+    }
+
+    private function hoursText(int $minutes): string
+    {
+        return rtrim(rtrim(number_format($minutes / 60, 1), '0'), '.').'時間';
     }
 
     private function payload(TutorInvoice $i, bool $withEntries = false): array
     {
         $minutes = (int) $i->entries->sum(fn (TutorWorkEntry $e) => $e->end_min - $e->start_min);
         // 締め前は講師アカウント（システム設定）の現在の時給、締め後はスナップショットを使う
-        $rate = $i->status === TutorInvoice::STATUS_OPEN
-            ? (int) ($i->tutor?->hourly_rate ?? $i->hourly_rate)
-            : $i->hourly_rate;
+        $rate = $this->effectiveRate($i);
         $out = [
             'id' => $i->id,
             'year' => $i->year,
