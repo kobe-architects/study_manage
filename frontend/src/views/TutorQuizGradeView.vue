@@ -430,6 +430,7 @@ async function downloadResult() {
       <div class="card status-card">
         <div class="status-line">
           <span class="chip" :class="quiz.status">{{ quiz.status === 'graded' ? '採点・添削済み' : quiz.status === 'submitted' ? '採点・添削待ち' : '未提出' }}</span>
+          <span v-if="quiz.selfGraded" class="chip self" title="生徒が提出時に自己採点した得点です。「やり直す」で講師の採点・添削に置き換えられます">自己採点</span>
           <span class="total">
             <template v-if="scoreEntered"><b :style="{ color: rateColor(scoreRate) }">{{ scoreForm.score }}</b> / {{ scoreForm.maxScore }}点（{{ scoreRate }}%）</template>
             <template v-else>採点未入力</template>
@@ -1057,6 +1058,10 @@ async function downloadResult() {
 .chip.graded {
   background: #e6f5ec;
   color: #2f7a4f;
+}
+.chip.self {
+  background: #efe9fb;
+  color: #5b3fa0;
 }
 .total {
   font-size: 11.5px;

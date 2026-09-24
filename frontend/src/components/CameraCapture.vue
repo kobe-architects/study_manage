@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import AuthImage from '@/components/AuthImage.vue'
-import { quizApi } from '@/api/quiz'
+import HelpTip from '@/components/HelpTip.vue'
+import { quizApi, rateColor } from '@/api/quiz'
 import { useUiStore } from '@/stores/ui'
 import type { QuizDetail } from '@/types'
 
@@ -25,7 +26,8 @@ const facing = ref<'environment' | 'user'>('environment')
 const canSwitch = ref(false)
 
 const idx = ref(0)
-const phase = ref<'shoot' | 'review' | 'done' | 'uploading'>('shoot')
+// 全ページ提出済み（再提出・自己採点の修正）のときは撮影を飛ばして確認画面から始める
+const phase = ref<'shoot' | 'review' | 'done' | 'uploading'>(props.quiz.pages.length && props.quiz.pages.every((p) => p.hasAnswer) ? 'done' : 'shoot')
 const shots = ref<Map<number, { blob: Blob; url: string }>>(new Map())
 const progress = ref({ done: 0, total: 0 })
 
@@ -33,6 +35,17 @@ const current = computed(() => pages.value[idx.value] ?? null)
 const currentShot = computed(() => (current.value ? shots.value.get(current.value.id) ?? null : null))
 const hasAll = computed(() => pages.value.every((p) => shots.value.has(p.id) || p.hasAnswer))
 const newCount = computed(() => shots.value.size)
+
+// 自己採点: チェックして得点・満点を入力すると、先生の採点を待たずに採点済みとして登録される
+const selfGrade = reactive<{ on: boolean; score: number | null; maxScore: number | null }>({
+  on: props.quiz.selfGraded,
+  score: props.quiz.selfGraded ? props.quiz.enteredScore : null,
+  maxScore: props.quiz.enteredMaxScore ?? props.quiz.defaultMaxScore ?? null,
+})
+const selfGradeValid = computed(
+  () => selfGrade.score !== null && selfGrade.maxScore !== null && selfGrade.maxScore > 0 && selfGrade.score >= 0 && selfGrade.score <= selfGrade.maxScore,
+)
+const selfRate = computed(() => (selfGradeValid.value ? Math.round((selfGrade.score! / selfGrade.maxScore!) * 100) : null))
 
 function stateOf(pageId: number, hasAnswer: boolean): 'new' | 'old' | 'none' {
   if (shots.value.has(pageId)) return 'new'
@@ -195,6 +208,10 @@ async function submit() {
     ui.notify('すべてのページを撮影してください')
     return
   }
+  if (selfGrade.on && !selfGradeValid.value) {
+    ui.notify(selfGrade.score !== null && selfGrade.maxScore !== null && selfGrade.score > selfGrade.maxScore ? '得点が満点を超えています' : '自己採点の得点と満点を入力してください')
+    return
+  }
   phase.value = 'uploading'
   progress.value = { done: 0, total: newCount.value }
   try {
@@ -204,8 +221,8 @@ async function submit() {
       await quizApi.uploadAnswer(props.quiz.id, p.id, s.blob)
       progress.value.done++
     }
-    await quizApi.submit(props.quiz.id)
-    ui.notify('回答を提出しました')
+    await quizApi.submit(props.quiz.id, selfGrade.on ? { score: selfGrade.score!, maxScore: selfGrade.maxScore! } : null)
+    ui.notify(selfGrade.on ? '自己採点つきで提出しました' : '回答を提出しました')
     emit('submitted')
   } catch (e: unknown) {
     const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -214,7 +231,9 @@ async function submit() {
   }
 }
 
-onMounted(startCamera)
+onMounted(() => {
+  if (phase.value === 'shoot') startCamera()
+})
 onBeforeUnmount(() => {
   stopCamera()
   shots.value.forEach((s) => URL.revokeObjectURL(s.url))
@@ -303,11 +322,26 @@ onBeforeUnmount(() => {
           <span style="font-size: 11px; color: #b7bcc6">撮り直す ›</span>
         </div>
       </div>
+      <!-- 自己採点（任意） -->
+      <div class="sg">
+        <label class="sg-toggle">
+          <input v-model="selfGrade.on" type="checkbox" />
+          <span>自己採点済み</span>
+          <HelpTip text="自分で丸つけした場合はチェックして得点と満点を入力します。&#10;先生の採点・添削を待たずに結果・分析へ反映されます。&#10;先生があとから採点・添削をやり直すこともできます。" />
+        </label>
+        <div v-if="selfGrade.on" class="sg-inputs">
+          <input v-model.number="selfGrade.score" type="number" min="0" inputmode="numeric" placeholder="得点" />
+          <span class="sg-slash">/</span>
+          <input v-model.number="selfGrade.maxScore" type="number" min="1" inputmode="numeric" placeholder="満点" />
+          <span class="sg-unit">点</span>
+          <span v-if="selfRate !== null" class="sg-rate" :style="{ background: rateColor(selfRate) }">{{ selfRate }}%</span>
+        </div>
+      </div>
       <div class="controls">
         <button class="btn ghost" @click="goto(0)">最初から撮り直す</button>
-        <button class="btn primary" :disabled="!hasAll" @click="submit">提出する</button>
+        <button class="btn primary" :disabled="!hasAll" @click="submit">{{ selfGrade.on ? '自己採点して提出' : '提出する' }}</button>
       </div>
-      <div class="note">提出後、先生が採点・添削します。採点・添削が始まる前なら撮り直して再提出できます。</div>
+      <div v-if="!selfGrade.on" class="note">提出後、先生が採点・添削します。採点・添削が始まる前なら撮り直して再提出できます。</div>
     </div>
 
     <!-- 送信中 -->
@@ -319,6 +353,66 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* 自己採点（提出前確認） */
+.sg {
+  margin: 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.sg-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sg-toggle input {
+  width: 17px;
+  height: 17px;
+  accent-color: #5b7cff;
+}
+.sg-inputs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sg-inputs input {
+  width: 64px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+}
+.sg-inputs input:focus {
+  border-color: #5b7cff;
+}
+.sg-slash {
+  font-size: 15px;
+  color: #b7bcc6;
+}
+.sg-unit {
+  font-size: 12px;
+  color: #b7bcc6;
+}
+.sg-rate {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 999px;
+  margin-left: 4px;
+}
 .cam-overlay {
   position: fixed;
   inset: 0;

@@ -88,7 +88,8 @@ function fmt(d: string | null): string {
         <div class="part-meta">
           <span>{{ q.pageCount }}ページ</span>
           <span v-if="q.status === 'submitted' && q.submittedAt">提出 {{ fmt(q.submittedAt) }}</span>
-          <span v-if="q.status === 'graded' && q.gradedAt">採点・添削 {{ fmt(q.gradedAt) }}</span>
+          <span v-if="q.status === 'graded' && q.gradedAt">{{ q.selfGraded ? '自己採点' : '採点・添削' }} {{ fmt(q.gradedAt) }}</span>
+          <span v-if="q.status === 'graded' && q.selfGraded" class="pchip self">自己採点</span>
           <span v-if="q.status === 'assigned' && q.answeredCount" style="color: #2f7a4f">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み（未提出）</span>
         </div>
         <div v-if="q.status === 'graded' && q.score !== null" class="marks-row">
@@ -99,6 +100,7 @@ function fmt(d: string | null): string {
       <div class="actions">
         <template v-if="role === 'owner'">
           <button v-if="q.status === 'graded'" class="btn primary" @click="emit('result', q)">結果を見る</button>
+          <button v-if="q.status === 'graded' && q.selfGraded" class="btn" title="撮り直し・自己採点の点数の修正" @click="emit('capture', q)">再提出</button>
           <button v-if="q.status !== 'graded'" class="btn primary" @click="emit('capture', q)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-2h6l2 2h3v12H4z" /><circle cx="12" cy="13" r="3.5" /></svg>
             {{ q.status === 'submitted' ? '撮り直して再提出' : '撮影して提出' }}
@@ -181,6 +183,11 @@ function fmt(d: string | null): string {
 .pchip.graded {
   background: #e6f5ec;
   color: #2f7a4f;
+}
+.pchip.self {
+  background: #efe9fb;
+  color: #5b3fa0;
+  margin-left: 0;
 }
 .pchip {
   font-size: 10px;

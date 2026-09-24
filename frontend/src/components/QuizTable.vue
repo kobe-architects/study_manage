@@ -195,6 +195,7 @@ function dueClass(q: QuizSummary): string {
             <td class="c-due nowrap" :class="dueClass(q)">{{ fmt(q.dueOn) }}</td>
             <td class="c-status">
               <span class="badge" :class="statusOf(q)">{{ STATUS_LABEL[statusOf(q)] }}</span>
+              <span v-if="q.status === 'graded' && q.selfGraded" class="badge self">自己採点</span>
               <span v-if="q.status === 'assigned' && q.answeredCount" class="badge sub">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</span>
               <div v-if="q.status === 'submitted' && q.submittedAt" class="sub-date">提出 {{ fmt(q.submittedAt) }}</div>
               <div v-else-if="q.status === 'graded' && q.gradedAt" class="sub-date">採点 {{ fmt(q.gradedAt) }}</div>
@@ -213,7 +214,8 @@ function dueClass(q: QuizSummary): string {
               <div class="acts">
                 <template v-if="role === 'owner'">
                   <button v-if="q.status === 'graded'" class="btn primary" @click="emit('result', q)">結果を見る</button>
-                  <button v-else class="btn primary" @click="emit('capture', q)">{{ q.status === 'submitted' ? '撮り直して再提出' : '撮影して提出' }}</button>
+                  <button v-if="q.status !== 'graded'" class="btn primary" @click="emit('capture', q)">{{ q.status === 'submitted' ? '撮り直して再提出' : '撮影して提出' }}</button>
+                  <button v-else-if="q.selfGraded" class="btn" title="撮り直し・自己採点の点数の修正" @click="emit('capture', q)">再提出</button>
                   <button class="btn" title="問題 PDF を別タブでプレビュー" @click="emit('pdf', q)">問題PDF</button>
                 </template>
                 <template v-else>
@@ -451,6 +453,11 @@ function dueClass(q: QuizSummary): string {
 .badge.sub {
   background: #fff4e5;
   color: #b7681a;
+  margin-left: 4px;
+}
+.badge.self {
+  background: #efe9fb;
+  color: #5b3fa0;
   margin-left: 4px;
 }
 .sub-date {

@@ -46,7 +46,7 @@ async function download(kind: 'result' | 'quiz') {
         <div style="min-width: 0">
           <div style="font-size: 15px; font-weight: 700">{{ quiz?.title ?? '採点・添削結果' }}</div>
           <div v-if="quiz" style="font-size: 11.5px; color: var(--mut); margin-top: 2px">
-            {{ quiz.bookTitle }}・{{ quiz.pageCount }}ページ<template v-if="quiz.gradedAt">・採点・添削 {{ quiz.gradedAt.slice(0, 10).replace(/-/g, '/') }}</template>
+            {{ quiz.bookTitle }}・{{ quiz.pageCount }}ページ<template v-if="quiz.gradedAt">・{{ quiz.selfGraded ? '自己採点' : '採点・添削' }} {{ quiz.gradedAt.slice(0, 10).replace(/-/g, '/') }}</template>
           </div>
         </div>
         <button class="x" @click="emit('close')">×</button>
@@ -59,6 +59,7 @@ async function download(kind: 'result' | 'quiz') {
             <span v-if="quiz.score !== null"><b :style="{ color: rateColor(quiz.rate) }">{{ quiz.score }}</b><span style="font-size: 14px; color: var(--mut)"> / {{ quiz.maxScore }}点</span></span>
             <span v-else style="font-size: 13px; color: var(--faint)">未採点</span>
             <span v-if="quiz.rate !== null" class="rate-chip" :style="{ background: rateColor(quiz.rate) }">{{ quiz.rate }}%</span>
+            <span v-if="quiz.selfGraded" class="self-chip">自己採点</span>
           </div>
           <span style="font-size: 11.5px; color: var(--faint); margin-left: auto">全 {{ quiz.pageCount }}ページ</span>
         </div>
@@ -95,6 +96,15 @@ async function download(kind: 'result' | 'quiz') {
 </template>
 
 <style scoped>
+.self-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #efe9fb;
+  color: #5b3fa0;
+  margin-left: 6px;
+}
 .overlay {
   position: fixed;
   inset: 0;

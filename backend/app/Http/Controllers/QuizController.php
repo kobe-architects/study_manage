@@ -10,6 +10,7 @@ use App\Models\ResourceBookPdf;
 use App\Models\StudyRecord;
 use App\Models\StudyResource;
 use App\Support\ImageTools;
+use App\Support\LineNotify;
 use App\Support\PdfTools;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -211,7 +212,7 @@ class QuizController extends Controller
         // 生徒へ LINE 通知（複数教材をまとめて出題した場合は最初のパートのみ）
         $gk = $data['groupKey'] ?? null;
         if ($gk === null || ! Quiz::where('group_key', $gk)->where('id', '<', $quiz->id)->exists()) {
-            \App\Support\LineNotify::push(
+            LineNotify::push(
                 $quiz->user,
                 "小テストが出題されました。\n「{$quiz->title}」"
                 .($quiz->due_on ? '（期限 '.$quiz->due_on->toDateString().'）' : '')."\n".config('app.url'),
@@ -436,25 +437,54 @@ class QuizController extends Controller
         return response()->json(['data' => $this->pagePayload($page->fresh(['pdf', 'refPdf', 'item']), $quiz, false)]);
     }
 
-    /** 全ページ撮影済みで提出（status: submitted） */
+    /**
+     * 全ページ撮影済みで提出（status: submitted）。
+     * 自己採点済み（selfGraded）の場合は得点・満点を保存してそのまま graded にする（講師の採点・添削を待たずに結果・分析へ反映）。
+     * 講師が完了した採点・添削は再提出できないが、自己採点のみのものは撮り直し・点数の修正のために再提出できる。
+     */
     public function submit(Request $request, Quiz $quiz): JsonResponse
     {
         $this->authorizeQuiz($request, $quiz);
-        abort_if($quiz->status === Quiz::STATUS_GRADED, 422, '採点・添削済みの小テストは再提出できません。');
+        abort_if($quiz->status === Quiz::STATUS_GRADED && ! $quiz->self_graded, 422, '採点・添削済みの小テストは再提出できません。');
         $missing = $quiz->pages()->whereNull('answer_path')->count();
         abort_if($missing > 0, 422, "未撮影のページが {$missing} ページあります。");
+        $data = $request->validate([
+            'selfGraded' => ['nullable', 'boolean'],
+            'score' => ['nullable', 'integer', 'min:0', 'max:100000'],
+            'maxScore' => ['nullable', 'integer', 'min:1', 'max:100000'],
+        ]);
+        $selfGraded = (bool) ($data['selfGraded'] ?? false);
 
-        $quiz->update(['status' => Quiz::STATUS_SUBMITTED, 'submitted_at' => now()]);
+        if ($selfGraded) {
+            abort_if(! isset($data['score'], $data['maxScore']), 422, '自己採点の得点・満点を入力してください。');
+            abort_if($data['score'] > $data['maxScore'], 422, '得点が満点を超えています。');
+            $quiz->update([
+                'status' => Quiz::STATUS_GRADED, 'submitted_at' => now(), 'graded_at' => now(),
+                'self_graded' => true, 'score' => $data['score'], 'max_score' => $data['maxScore'],
+            ]);
+        } elseif ($quiz->self_graded) {
+            // 自己採点していたものを通常の提出（講師の採点待ち）に戻す
+            $quiz->update([
+                'status' => Quiz::STATUS_SUBMITTED, 'submitted_at' => now(), 'graded_at' => null,
+                'self_graded' => false, 'score' => null, 'max_score' => null,
+            ]);
+        } else {
+            $quiz->update(['status' => Quiz::STATUS_SUBMITTED, 'submitted_at' => now()]);
+        }
 
         // 出題した講師へ LINE 通知（連携時のみ）
         $studentName = $quiz->user->settings?->name ?: $quiz->user->name;
         $part = $quiz->book?->title ?? '英単語テスト';
-        \App\Support\LineNotify::push(
-            $quiz->creator,
-            "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を提出しました。\n採点・添削をお願いします。\n".config('app.url'),
-        );
+        if ($selfGraded) {
+            $rate = (int) round($data['score'] / $data['maxScore'] * 100);
+            $message = "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を自己採点して提出しました。\n"
+                ."得点 {$data['score']} / {$data['maxScore']}点（{$rate}%）\n".config('app.url');
+        } else {
+            $message = "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を提出しました。\n採点・添削をお願いします。\n".config('app.url');
+        }
+        LineNotify::push($quiz->creator, $message);
 
-        return response()->json(['data' => ['id' => $quiz->id, 'status' => $quiz->status]]);
+        return response()->json(['data' => ['id' => $quiz->id, 'status' => $quiz->status, 'selfGraded' => $quiz->self_graded]]);
     }
 
     // ====================== 講師: 添削・採点 ======================
@@ -530,11 +560,12 @@ class QuizController extends Controller
         $this->authorizeQuiz($request, $quiz);
         abort_if($quiz->score === null || $quiz->max_score === null, 422, '採点（得点・満点）が未入力です。');
 
-        $quiz->update(['status' => Quiz::STATUS_GRADED, 'graded_at' => now()]);
+        // 講師が完了した採点で自己採点を上書きする
+        $quiz->update(['status' => Quiz::STATUS_GRADED, 'graded_at' => now(), 'self_graded' => false]);
 
         // 生徒へ LINE 通知（連携時のみ）
         $scoreText = "（{$quiz->score} / {$quiz->max_score}点）";
-        \App\Support\LineNotify::push(
+        LineNotify::push(
             $quiz->user,
             "小テスト「{$quiz->title}」の採点・添削が完了しました{$scoreText}。\n結果を確認しましょう。\n".config('app.url'),
         );
@@ -935,6 +966,8 @@ class QuizController extends Controller
             'defaultMaxScore' => $defaultMax,
             'score' => $graded ? $sum : null,
             'rate' => $graded && $max > 0 && $sum !== null ? (int) round($sum / $max * 100) : null,
+            // 生徒が提出時に自己採点したもの（得点は生徒の入力）
+            'selfGraded' => (bool) $q->self_graded,
             // 採点（得点・満点）の入力状態（講師の採点画面用）
             'scoreEntered' => $q->score !== null && $q->max_score !== null,
             'enteredScore' => $q->score,
