@@ -132,6 +132,42 @@ function toggle(pdf: BookPdf, page: number, row: QuizRow | null) {
   preview.value = { pdfId: pdf.id, page }
 }
 
+/** 章の行（絞り込み後・ページ対応あり）のうち選択済みの状態: 'none' | 'some' | 'all' */
+function chapterState(rows: QuizRow[]): 'none' | 'some' | 'all' {
+  const keys = rows.map((r) => pageOfRow(r)).filter((p): p is number => p !== null).map((p) => keyOf(activePdfId.value, p))
+  if (!keys.length) return 'none'
+  const n = keys.filter((k) => selectedKeys.value.has(k)).length
+  return n === 0 ? 'none' : n === keys.length ? 'all' : 'some'
+}
+/** 章ごとに一括でチェック／解除（すべて選択済みなら解除、それ以外は未選択分を追加） */
+function toggleChapter(rows: QuizRow[]) {
+  const pdf = activePdf.value
+  if (!pdf || refTarget.value) return
+  const all = chapterState(rows) === 'all'
+  let list = [...props.modelValue]
+  for (const r of rows) {
+    const page = pageOfRow(r)
+    if (page === null) continue
+    const key = keyOf(pdf.id, page)
+    const has = list.some((s) => s.key === key)
+    if (all && has) list = list.filter((s) => s.key !== key)
+    else if (!all && !has) {
+      list.push({
+        key,
+        kind: 'pdf',
+        pdfId: pdf.id,
+        page,
+        itemId: r.id,
+        label: rowLabel(r),
+        pdfTitle: pdf.title,
+        bookId: props.bookId ?? null,
+        bookTitle: props.bookTitle ?? '',
+      })
+    }
+  }
+  emit('update:modelValue', list)
+}
+
 function toggleRow(r: QuizRow) {
   const pdf = activePdf.value
   const page = pageOfRow(r)
@@ -254,7 +290,14 @@ function showPreview(pdfId: number, page: number | null) {
         </div>
         <div class="rows">
           <template v-for="g in groupedRows" :key="g.chapter">
-            <div class="chap">{{ g.chapter || '（章なし）' }}</div>
+            <div class="chap" :class="{ on: chapterState(g.rows) === 'all' }" title="この章の表示中の問題をまとめてチェック／解除" @click="toggleChapter(g.rows)">
+              <span class="box" :class="{ some: chapterState(g.rows) === 'some' }">
+                <svg v-if="chapterState(g.rows) === 'all'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7" /></svg>
+                <span v-else-if="chapterState(g.rows) === 'some'" class="dash"></span>
+              </span>
+              {{ g.chapter || '（章なし）' }}
+              <span class="chap-n">{{ g.rows.length }}問</span>
+            </div>
             <div
               v-for="r in g.rows"
               :key="r.key"
@@ -541,6 +584,37 @@ function showPreview(pdfId: number, page: number | null) {
   color: var(--mut);
   padding: 6px 12px;
   border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.chap:hover {
+  background: #eef0f4;
+}
+.chap.on {
+  color: var(--ink);
+}
+.chap.on .box {
+  background: #3b50cc;
+  border-color: #3b50cc;
+}
+.chap .box.some {
+  background: #fff;
+  border-color: #1c2024;
+}
+.chap .dash {
+  display: block;
+  width: 8px;
+  height: 2px;
+  background: #1c2024;
+  border-radius: 1px;
+}
+.chap-n {
+  font-weight: 500;
+  color: var(--faint);
+  font-size: 10.5px;
   z-index: 1;
 }
 .row {

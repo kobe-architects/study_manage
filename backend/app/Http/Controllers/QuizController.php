@@ -154,13 +154,13 @@ class QuizController extends Controller
 
     /**
      * 生徒用: 選んだページだけの問題 PDF をその場で作って返す（小テストとしては登録せず、履歴も残さない）。
-     * pages: [{pdfId, page}, ...]（最大 40 ページ）
+     * pages: [{pdfId, page}, ...]（最大 200 ページ。本番実測: 40 ページで peak 23MB・1 秒未満）
      */
     public function printPdf(Request $request): BinaryFileResponse
     {
         $userId = $this->targetUserId($request);
         $data = $request->validate([
-            'pages' => ['required', 'array', 'min:1', 'max:40'],
+            'pages' => ['required', 'array', 'min:1', 'max:200'],
             'pages.*.pdfId' => ['required', 'integer'],
             'pages.*.page' => ['required', 'integer', 'min:1'],
             'title' => ['nullable', 'string', 'max:100'],

@@ -70,8 +70,17 @@ async function output(mode: 'preview' | 'download') {
   try {
     await quizApi.printPdf(list, title.value, mode)
   } catch (e: unknown) {
-    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
-    ui.notify(msg || 'PDF の作成に失敗しました')
+    // responseType が blob のためエラー本文も Blob で届く。JSON の message を読み出して表示する
+    const res = (e as { response?: { status?: number; data?: unknown } })?.response
+    let msg = ''
+    try {
+      const d = res?.data
+      if (d instanceof Blob) msg = (JSON.parse(await d.text()) as { message?: string })?.message ?? ''
+      else msg = (d as { message?: string })?.message ?? ''
+    } catch {
+      msg = ''
+    }
+    ui.notify(msg || `PDF の作成に失敗しました${res?.status ? `（${res.status}）` : ''}`)
   } finally {
     busy.value = false
   }
