@@ -190,15 +190,17 @@ function dueClass(q: QuizSummary): string {
       </div>
     </div>
 
-    <div v-for="g in groups" :key="g.name" class="tbl-wrap">
+    <div v-for="g in groups" :key="g.name" class="group">
+      <!-- 科目の見出し（テーブルの外・左上に科目色のバッジ） -->
+      <div class="subj">
+        <span class="subj-badge" :style="{ background: g.color, color: textOn(g.color) }">{{ g.name }}</span>
+        <span class="subj-n">{{ g.rows.length }}件</span>
+      </div>
+      <div class="tbl-wrap">
       <table class="tbl">
         <thead>
           <tr>
-            <!-- 科目はテーブル左上（操作列の見出し位置）にバッジで表示 -->
-            <th class="c-actions subj">
-              <span class="subj-badge" :style="{ background: g.color, color: textOn(g.color) }">{{ g.name }}</span>
-              <span class="subj-n">{{ g.rows.length }}件</span>
-            </th>
+            <th class="c-actions"></th>
             <th class="c-status">ステータス</th>
             <th class="c-date">出題日</th>
             <th class="c-book">教材</th>
@@ -260,6 +262,7 @@ function dueClass(q: QuizSummary): string {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
     <div v-if="!groups.length" class="tbl-wrap empty">条件に一致する小テストはありません</div>
   </div>
@@ -373,12 +376,16 @@ function dueClass(q: QuizSummary): string {
   border-radius: 14px;
   overflow-x: auto;
 }
-.tbl th.subj {
-  padding-top: 6px;
-  padding-bottom: 6px;
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.subj-badge + .subj-n {
-  margin-left: 8px;
+.subj {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
 }
 .subj-badge {
   display: inline-block;
