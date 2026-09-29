@@ -109,6 +109,16 @@ const rows = computed(() => {
   })
   return list
 })
+/** 科目ごとにテーブルを分ける（科目の並び順 → 名前順）。英単語テストは「英語」に入る */
+const groups = computed(() => {
+  const m = new Map<string, { name: string; order: number; rows: QuizSummary[] }>()
+  for (const q of rows.value) {
+    const g = m.get(q.subjectName) ?? { name: q.subjectName, order: q.subjectOrder, rows: [] }
+    g.rows.push(q)
+    m.set(q.subjectName, g)
+  }
+  return [...m.values()].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'ja'))
+})
 const filtered = computed(() => filter.status !== 'all' || !!filter.book || filter.period !== 'all' || !!filter.q.trim())
 function clearFilters() {
   filter.status = 'all'
@@ -165,52 +175,22 @@ function dueClass(q: QuizSummary): string {
       </div>
     </div>
 
-    <div class="tbl-wrap">
+    <div v-for="g in groups" :key="g.name" class="tbl-wrap">
+      <div class="subj">{{ g.name }}<span class="subj-n">{{ g.rows.length }}件</span></div>
       <table class="tbl">
         <thead>
           <tr>
+            <th class="c-actions"></th>
+            <th class="c-status">ステータス</th>
             <th class="c-date">出題日</th>
-            <th class="c-title">タイトル</th>
             <th class="c-book">教材</th>
             <th class="c-pages r">ページ</th>
             <th class="c-due">期限</th>
-            <th class="c-status">ステータス</th>
             <th class="c-score">得点</th>
-            <th class="c-actions"></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="q in rows" :key="q.id" :class="['row', statusOf(q)]">
-            <td class="c-date nowrap">{{ fmt(q.createdOn) }}</td>
-            <td class="c-title">
-              <div class="ttl">
-                {{ q.title }}
-                <span v-if="partIndex[q.id] && partIndex[q.id]!.n > 1" class="part-no">{{ partIndex[q.id]!.i }}/{{ partIndex[q.id]!.n }}</span>
-              </div>
-              <div v-if="q.note" class="note">{{ q.note }}</div>
-              <div v-if="q.submitNote" class="note snote">一言: {{ q.submitNote }}</div>
-              <div v-if="role === 'owner' && q.createdByName" class="note">{{ q.createdByName }}</div>
-            </td>
-            <td class="c-book">{{ partLabel(q) }}</td>
-            <td class="c-pages r">{{ q.pageCount }}</td>
-            <td class="c-due nowrap" :class="dueClass(q)">{{ fmt(q.dueOn) }}</td>
-            <td class="c-status">
-              <span class="badge" :class="statusOf(q)">{{ STATUS_LABEL[statusOf(q)] }}</span>
-              <span v-if="q.status === 'graded' && q.selfGraded" class="badge self">自己採点</span>
-              <span v-if="q.status === 'assigned' && q.answeredCount" class="badge sub">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</span>
-              <div v-if="q.status === 'submitted' && q.submittedAt" class="sub-date">提出 {{ fmt(q.submittedAt) }}</div>
-              <div v-else-if="q.status === 'graded' && q.gradedAt" class="sub-date">採点 {{ fmt(q.gradedAt) }}</div>
-            </td>
-            <td class="c-score">
-              <template v-if="q.status === 'graded' && q.score !== null">
-                <div class="score-line"><b :style="{ color: rateColor(q.rate) }">{{ q.score }}</b><span class="max"> / {{ q.maxScore }}点</span></div>
-                <div class="rate-line">
-                  <span class="rate-bar"><span :style="{ width: (q.rate ?? 0) + '%', background: rateColor(q.rate) }"></span></span>
-                  <span class="rate" :style="{ color: rateColor(q.rate) }">{{ q.rate ?? '–' }}%</span>
-                </div>
-              </template>
-              <span v-else class="dash">–</span>
-            </td>
+          <tr v-for="q in g.rows" :key="q.id" :class="['row', statusOf(q)]">
             <td class="c-actions">
               <div class="acts">
                 <template v-if="role === 'owner'">
@@ -231,13 +211,40 @@ function dueClass(q: QuizSummary): string {
                 </template>
               </div>
             </td>
-          </tr>
-          <tr v-if="!rows.length">
-            <td colspan="8" class="empty">条件に一致する小テストはありません</td>
+            <td class="c-status">
+              <span class="badge" :class="statusOf(q)">{{ STATUS_LABEL[statusOf(q)] }}</span>
+              <span v-if="q.status === 'graded' && q.selfGraded" class="badge self">自己採点</span>
+              <span v-if="q.status === 'assigned' && q.answeredCount" class="badge sub">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</span>
+              <span v-if="q.status === 'submitted' && q.submittedAt" class="sub-date">提出 {{ fmt(q.submittedAt) }}</span>
+              <span v-else-if="q.status === 'graded' && q.gradedAt" class="sub-date">採点 {{ fmt(q.gradedAt) }}</span>
+            </td>
+            <td class="c-date nowrap">{{ fmt(q.createdOn) }}</td>
+            <td class="c-book">
+              <div class="bk">
+                {{ partLabel(q) }}
+                <span v-if="partIndex[q.id] && partIndex[q.id]!.n > 1" class="part-no" :title="q.title">{{ partIndex[q.id]!.i }}/{{ partIndex[q.id]!.n }}</span>
+              </div>
+              <div v-if="q.note" class="note">{{ q.note }}</div>
+              <div v-if="q.submitNote" class="note snote">一言: {{ q.submitNote }}</div>
+              <div v-if="role === 'owner' && q.createdByName" class="note">{{ q.createdByName }}</div>
+            </td>
+            <td class="c-pages r">{{ q.pageCount }}</td>
+            <td class="c-due nowrap" :class="dueClass(q)">{{ fmt(q.dueOn) }}</td>
+            <td class="c-score">
+              <template v-if="q.status === 'graded' && q.score !== null">
+                <span class="score-line"><b :style="{ color: rateColor(q.rate) }">{{ q.score }}</b><span class="max"> / {{ q.maxScore }}点</span></span>
+                <span class="rate-line">
+                  <span class="rate-bar"><span :style="{ width: (q.rate ?? 0) + '%', background: rateColor(q.rate) }"></span></span>
+                  <span class="rate" :style="{ color: rateColor(q.rate) }">{{ q.rate ?? '–' }}%</span>
+                </span>
+              </template>
+              <span v-else class="dash">–</span>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
+    <div v-if="!groups.length" class="tbl-wrap empty">条件に一致する小テストはありません</div>
   </div>
 </template>
 
@@ -349,6 +356,22 @@ function dueClass(q: QuizSummary): string {
   border-radius: 14px;
   overflow-x: auto;
 }
+.subj {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.subj-n {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--faint);
+}
 .tbl {
   width: 100%;
   min-width: 760px;
@@ -356,7 +379,7 @@ function dueClass(q: QuizSummary): string {
   font-size: 12.5px;
 }
 .tbl th {
-  padding: 10px 12px;
+  padding: 7px 10px;
   text-align: left;
   font-size: 11px;
   font-weight: 700;
@@ -366,9 +389,14 @@ function dueClass(q: QuizSummary): string {
   white-space: nowrap;
 }
 .tbl td {
-  padding: 10px 12px;
+  padding: 5px 10px;
   border-bottom: 1px solid #f1f2f4;
   vertical-align: middle;
+  line-height: 1.35;
+}
+/* 行の背景は交互に */
+.tbl tbody tr:nth-child(even) {
+  background: #f6f7f9;
 }
 .tbl tr:last-child td {
   border-bottom: none;
@@ -379,14 +407,8 @@ function dueClass(q: QuizSummary): string {
 .nowrap {
   white-space: nowrap;
 }
-.row.submitted {
-  background: #f6f8fe;
-}
-.row.overdue {
-  background: #fff7f7;
-}
-.row:hover {
-  background: #f8f9fb;
+.tbl tbody tr:hover {
+  background: #eef2fb;
 }
 .c-date,
 .c-due {
@@ -397,20 +419,21 @@ function dueClass(q: QuizSummary): string {
   width: 56px;
 }
 .c-status {
-  width: 150px;
+  width: 190px;
+  white-space: nowrap;
+}
+.c-actions {
+  width: 1%;
+  white-space: nowrap;
 }
 .c-score {
   width: 150px;
 }
 .c-book {
-  color: var(--mut);
-  white-space: nowrap;
+  min-width: 180px;
 }
-.c-title {
-  min-width: 200px;
-}
-.ttl {
-  font-weight: 700;
+.bk {
+  font-weight: 600;
   color: var(--ink);
 }
 .part-no {
@@ -470,7 +493,7 @@ function dueClass(q: QuizSummary): string {
 .sub-date {
   font-size: 10.5px;
   color: var(--faint);
-  margin-top: 3px;
+  margin-left: 6px;
 }
 .due-soon {
   color: #d98a1a;
@@ -480,18 +503,22 @@ function dueClass(q: QuizSummary): string {
   color: #c0444f;
   font-weight: 700;
 }
+.c-score {
+  white-space: nowrap;
+}
 .score-line b {
-  font-size: 15px;
+  font-size: 14px;
 }
 .score-line .max {
   font-size: 11.5px;
   color: var(--mut);
 }
 .rate-line {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 3px;
+  margin-left: 8px;
+  vertical-align: middle;
 }
 .rate-bar {
   flex: 1;
@@ -516,12 +543,11 @@ function dueClass(q: QuizSummary): string {
 }
 .acts {
   display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
+  gap: 5px;
+  flex-wrap: nowrap;
 }
 .btn {
-  padding: 6px 10px;
+  padding: 4px 9px;
   border: 1px solid #e3e6ea;
   border-radius: 8px;
   background: #fff;
@@ -542,7 +568,8 @@ function dueClass(q: QuizSummary): string {
 .empty {
   text-align: center;
   color: var(--faint);
-  padding: 28px 12px !important;
+  padding: 28px 12px;
+  font-size: 12.5px;
 }
 @media (max-width: 640px) {
   /* スマホは横スクロールで表示（列を詰めて折り返すより読みやすい） */

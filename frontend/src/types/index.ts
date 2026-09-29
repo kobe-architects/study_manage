@@ -549,6 +549,9 @@ export interface QuizSummary {
   gradedAt: string | null
   bookId: number | null
   bookTitle: string | null
+  /** 科目名と並び順（一覧で科目ごとにテーブルを分ける。英単語テストは「英語」） */
+  subjectName: string
+  subjectOrder: number
   createdByName: string | null
   overdue: boolean
 }
