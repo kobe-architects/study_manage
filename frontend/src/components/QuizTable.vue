@@ -191,7 +191,7 @@ function dueClass(q: QuizSummary): string {
     </div>
 
     <div v-for="g in groups" :key="g.name" class="tbl-wrap">
-      <div class="subj" :style="{ background: g.color, color: textOn(g.color) }">{{ g.name }}<span class="subj-n">{{ g.rows.length }}件</span></div>
+      <div class="subj"><span class="subj-badge" :style="{ background: g.color, color: textOn(g.color) }">{{ g.name }}</span><span class="subj-n">{{ g.rows.length }}件</span></div>
       <table class="tbl">
         <thead>
           <tr>
@@ -372,19 +372,24 @@ function dueClass(q: QuizSummary): string {
 }
 .subj {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-  padding: 9px 14px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
+  padding: 8px 12px;
   background: #fff;
   border-bottom: 1px solid var(--line);
+}
+.subj-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 .subj-n {
   font-size: 11px;
   font-weight: 600;
-  opacity: 0.8;
+  color: var(--faint);
 }
 .tbl {
   width: 100%;
