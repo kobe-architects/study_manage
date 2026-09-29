@@ -261,9 +261,9 @@ input::-webkit-date-and-time-value {
   }
 }
 
-/* モーダル・全画面表示が開いている間は、後ろの画面がタッチでスクロールしないようにする */
+/* モーダル・全画面表示・メニューが開いている間は、後ろの画面がタッチでスクロールしないようにする */
 @media (pointer: coarse) {
-  html:has(.ui-overlay, .ui-fullscreen) .app-scroll {
+  html:has(.ui-overlay, .ui-fullscreen, .ui-lock) .app-scroll {
     overflow: hidden;
   }
 }
@@ -283,7 +283,7 @@ input::-webkit-date-and-time-value {
 
 /* ===== グローバルトースト（App.vue） ===== */
 .v-snackbar.app-toast {
-  margin-bottom: calc(10px + var(--app-bottom-inset, 0px));
+  margin-bottom: calc(10px + env(safe-area-inset-bottom));
 }
 .v-snackbar.app-toast .v-snackbar__wrapper {
   min-width: 0;

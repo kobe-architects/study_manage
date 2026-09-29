@@ -9,8 +9,8 @@ import { haptic, isIOS, isStandalone, isTouch } from '@/lib/native'
 
 const depthOf = (r: RouteLocationNormalized) => Number(r.meta.depth ?? 1)
 
-/** モーダル・全画面表示が開いているか（開いている間はジェスチャーを無効にする） */
-const overlayOpen = () => !!document.querySelector('.ui-overlay, .ui-fullscreen')
+/** モーダル・全画面表示・メニューが開いているか（開いている間はジェスチャーを無効にする） */
+const overlayOpen = () => !!document.querySelector('.ui-overlay, .ui-fullscreen, .ui-lock')
 
 /** 画面共通のジェスチャーを起こさない場所（入力欄・キャンバス・添削エディタなど）か。Apple Pencil の操作も対象外 */
 function gestureBlocked(e: TouchEvent) {

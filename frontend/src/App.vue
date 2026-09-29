@@ -8,7 +8,7 @@ const ui = useUiStore()
 <template>
   <v-app>
     <router-view />
-    <!-- グローバルトースト（スマホではタブバーの上に出す: --app-bottom-inset はレイアウトが設定） -->
+    <!-- グローバルトースト（iPhone のホームバーに重ならない位置に出す） -->
     <v-snackbar v-model="ui.toastShow" class="app-toast" location="bottom" timeout="-1" color="secondary" rounded="pill">
       <div style="display: flex; align-items: center; gap: 9px">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7dd88f" stroke-width="2.2">

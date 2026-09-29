@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import MobileMenu from '@/components/MobileMenu.vue'
 import NavIcon from '@/components/NavIcon.vue'
 import PullIndicator from '@/components/PullIndicator.vue'
 import SplashScreen from '@/components/SplashScreen.vue'
@@ -30,7 +31,7 @@ onMounted(async () => {
   }
 })
 
-/** スマホ・iPad 縦: 上部バー＋下部タブバー */
+/** スマホ・iPad 縦: 上部バー＋右上のハンバーガーメニュー */
 const isMobile = computed(() => viewportWidth.value < 860)
 
 // ---- 画面遷移（アニメーション・スクロール位置・引っ張って更新） ----
@@ -39,15 +40,6 @@ const contentEl = ref<HTMLElement | null>(null)
 const { pageAnim, refreshKey, pull, refreshing, pullTrigger, scrollToTop, onPullRefresh, bind } = usePageNav(scrollEl, contentEl)
 watch(scrollEl, (el) => bind(el))
 onPullRefresh(() => Promise.all([auth.fetchMe(), study.fetchAssignments()]))
-
-// トースト等をタブバーの上に出すための高さ
-watchEffect(() => {
-  document.documentElement.style.setProperty(
-    '--app-bottom-inset',
-    ready.value && isMobile.value ? 'calc(60px + env(safe-area-inset-bottom))' : '0px',
-  )
-})
-onUnmounted(() => document.documentElement.style.removeProperty('--app-bottom-inset'))
 
 const studentName = computed(() => auth.user?.student?.name ?? '生徒')
 const tutorName = computed(() => auth.user?.name ?? '先生')
@@ -155,7 +147,7 @@ async function logout() {
       </div>
     </header>
 
-    <!-- スマホ・iPad 縦: 左=ロゴ or 戻る / 中央=画面名 / 右=アカウント -->
+    <!-- スマホ・iPad 縦: 左=ロゴ or 戻る / 中央=画面名 / 右=メニュー -->
     <header v-else class="mobile-top">
       <div class="mt-side">
         <button v-if="parentRoute" class="mt-back" @click="goBack">
@@ -167,11 +159,17 @@ async function logout() {
       <Transition name="mt-title" mode="out-in">
         <div :key="pageTitle" class="mt-title">{{ pageTitle }}</div>
       </Transition>
+      <!-- 右上のハンバーガーメニュー -->
       <div class="mt-side">
-        <div class="avatar" style="width: 30px; height: 30px; font-size: 12px">{{ tutorInitial }}</div>
-        <button class="logout-btn" title="ログアウト" @click="logout">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
-        </button>
+        <MobileMenu
+          :items="navItems.map((n) => ({ ...n, active: activeKey === n.key }))"
+          :name="tutorName"
+          :initial="tutorInitial"
+          :sub="`担当: ${studentName}` + (daysToExam !== null ? `・受験まで${daysToExam}日` : '')"
+          tutor
+          @navigate="go"
+          @logout="logout"
+        />
       </div>
     </header>
 
@@ -190,13 +188,6 @@ async function logout() {
       </div>
     </main>
 
-    <!-- スマホ・iPad 縦: 下部タブ -->
-    <nav v-if="isMobile" class="mobile-nav">
-      <button v-for="n in navItems" :key="n.key" class="mnav-btn" :class="{ active: activeKey === n.key }" @click="go(n.route)">
-        <span class="mnav-ic"><NavIcon :paths="n.icon" :size="22" /></span>
-        <span class="mnav-lb">{{ n.short }}</span>
-      </button>
-    </nav>
   </div>
 </template>
 
@@ -328,7 +319,7 @@ async function logout() {
   padding: 24px 22px 40px;
 }
 .content.m {
-  padding: 14px max(16px, env(safe-area-inset-right)) 26px max(16px, env(safe-area-inset-left));
+  padding: 14px max(16px, env(safe-area-inset-right)) calc(26px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
 .m-student {
   font-size: 11.5px;
@@ -394,69 +385,5 @@ async function logout() {
 }
 .mt-title-leave-to {
   opacity: 0;
-}
-.mobile-nav {
-  display: flex;
-  background: #fff;
-  border-top: 1px solid #e9ebee;
-  flex-shrink: 0;
-  padding: 5px max(4px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left));
-  -webkit-user-select: none;
-  user-select: none;
-}
-.mnav-btn {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 0 3px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: #9ba2ac;
-  transition: color 0.2s ease;
-}
-.mnav-btn.active {
-  color: #2e4a8f;
-}
-.mnav-btn:active {
-  opacity: 1;
-}
-.mnav-btn:active .mnav-ic svg {
-  transform: scale(0.86);
-}
-.mnav-ic {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: min(52px, 100%);
-  height: 30px;
-  border-radius: 15px;
-}
-.mnav-ic svg {
-  position: relative;
-  transition: transform 0.18s ease;
-}
-.mnav-ic::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: #e8eefb;
-  opacity: 0;
-  transform: scaleX(0.4);
-  transition: transform 0.32s cubic-bezier(0.2, 0.9, 0.25, 1), opacity 0.2s ease;
-}
-.mnav-btn.active .mnav-ic::before {
-  opacity: 1;
-  transform: none;
-}
-.mnav-lb {
-  font-size: 10px;
-  font-weight: 600;
-  white-space: nowrap;
 }
 </style>

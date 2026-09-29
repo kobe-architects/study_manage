@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import MobileMenu from '@/components/MobileMenu.vue'
 import NavIcon from '@/components/NavIcon.vue'
 import PullIndicator from '@/components/PullIndicator.vue'
 import SplashScreen from '@/components/SplashScreen.vue'
@@ -57,15 +58,6 @@ const { pageAnim, refreshKey, pull, refreshing, pullTrigger, scrollToTop, onPull
 watch(scrollEl, (el) => bind(el))
 onPullRefresh(() => Promise.all([auth.fetchMe(), study.fetchAll(), fetchVocab()]))
 
-// トースト等をタブバーの上に出すための高さ
-watchEffect(() => {
-  document.documentElement.style.setProperty(
-    '--app-bottom-inset',
-    ready.value && isMobile.value ? 'calc(60px + env(safe-area-inset-bottom))' : '0px',
-  )
-})
-onUnmounted(() => document.documentElement.style.removeProperty('--app-bottom-inset'))
-
 const settings = computed(() => auth.settings)
 const userName = computed(() => settings.value?.name ?? '学習者')
 const userInitial = computed(() => (userName.value || '学')[0])
@@ -105,8 +97,6 @@ const navItems = computed(() =>
   NAV.map((n) => ({ ...n, icon: ICONS[n.key], active: activeKey.value === n.key })),
 )
 
-// スマホのフッターには「学習項目データ」を表示しない
-const mobileNavItems = computed(() => navItems.value.filter((n) => n.key !== 'data'))
 
 // スマホ上部バー: 画面名と、下の階層の画面では「‹ 戻る」
 const pageTitle = computed(
@@ -200,7 +190,7 @@ async function logout() {
       </aside>
 
       <main class="main">
-        <!-- Mobile top bar: 左=ロゴ or 戻る / 中央=画面名 / 右=アカウント -->
+        <!-- Mobile top bar: 左=ロゴ or 戻る / 中央=画面名 / 右=メニュー -->
         <header v-if="isMobile" class="mobile-top">
           <div class="mt-side">
             <button v-if="parentRoute" class="mt-back" @click="goBack">
@@ -212,11 +202,9 @@ async function logout() {
           <Transition name="mt-title" mode="out-in">
             <div :key="pageTitle" class="mt-title">{{ pageTitle }}</div>
           </Transition>
+          <!-- 右上のハンバーガーメニュー -->
           <div class="mt-side">
-            <div class="avatar" style="width: 30px; height: 30px; font-size: 12px">{{ userInitial }}</div>
-            <button class="logout-btn" title="ログアウト" @click="logout">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
-            </button>
+            <MobileMenu :items="navItems" :name="userName" :initial="userInitial" :sub="settings?.examDate ? `受験まで ${daysToExam}日（${examDateLabel}）` : undefined" @navigate="go" @logout="logout" />
           </div>
         </header>
 
@@ -231,13 +219,6 @@ async function logout() {
       </main>
     </div>
 
-    <!-- Mobile bottom tabs -->
-    <nav v-if="isMobile" class="mobile-nav">
-      <button v-for="n in mobileNavItems" :key="n.key" class="mnav-btn" :class="{ active: n.active }" @click="go(n.route)">
-        <span class="mnav-ic"><NavIcon :paths="n.icon" :size="22" /></span>
-        <span class="mnav-lb">{{ n.short }}</span>
-      </button>
-    </nav>
   </div>
 </template>
 
@@ -473,72 +454,6 @@ async function logout() {
   padding: 28px 30px 40px;
 }
 .content.m {
-  padding: 18px max(16px, env(safe-area-inset-right)) 26px max(16px, env(safe-area-inset-left));
-}
-.mobile-nav {
-  display: flex;
-  background: #fff;
-  border-top: 1px solid #e9ebee;
-  flex-shrink: 0;
-  padding: 5px max(4px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left));
-  -webkit-user-select: none;
-  user-select: none;
-}
-.mnav-btn {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 0 3px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: #9ba2ac;
-  transition: color 0.2s ease;
-}
-.mnav-btn.active {
-  color: var(--ink);
-}
-/* 押したときは薄くせず、アイコンを少し縮める */
-.mnav-btn:active {
-  opacity: 1;
-}
-.mnav-btn:active .mnav-ic svg {
-  transform: scale(0.86);
-}
-.mnav-ic {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: min(46px, 100%);
-  height: 30px;
-  border-radius: 15px;
-}
-.mnav-ic svg {
-  position: relative;
-  transition: transform 0.18s ease;
-}
-/* 選択中のタブはアイコンの後ろに丸いハイライトが広がる */
-.mnav-ic::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: #e9ecf3;
-  opacity: 0;
-  transform: scaleX(0.4);
-  transition: transform 0.32s cubic-bezier(0.2, 0.9, 0.25, 1), opacity 0.2s ease;
-}
-.mnav-btn.active .mnav-ic::before {
-  opacity: 1;
-  transform: none;
-}
-.mnav-lb {
-  font-size: 10px;
-  font-weight: 600;
-  white-space: nowrap;
+  padding: 18px max(16px, env(safe-area-inset-right)) calc(26px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
 </style>
