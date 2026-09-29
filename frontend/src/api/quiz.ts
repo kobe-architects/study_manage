@@ -200,6 +200,31 @@ export const quizApi = {
     return `${p()}/quizzes/${quizId}/pages/${pageId}/annotated-image?v=${version ?? 0}`
   },
 
+  // ===== 生徒が自分で問題 PDF を作って出力（記録なし） =====
+  /** 選んだページの PDF を生成して別タブで表示、または保存する */
+  async printPdf(pages: { pdfId: number; page: number }[], title: string, mode: 'preview' | 'download'): Promise<void> {
+    const w = mode === 'preview' ? window.open('', '_blank') : null
+    try {
+      const res = await client.post('/quizzes/print-pdf', { pages, title }, { responseType: 'blob' })
+      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      if (mode === 'preview') {
+        if (w) w.location.replace(blobUrl)
+        else window.open(blobUrl, '_blank')
+      } else {
+        const a = document.createElement('a')
+        a.href = blobUrl
+        a.download = `${title || '小テスト'}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+    } catch (e) {
+      w?.close()
+      throw e
+    }
+  },
+
   // ===== 提出（生徒） =====
   async uploadAnswer(quizId: number, pageId: number, image: Blob): Promise<void> {
     const fd = new FormData()

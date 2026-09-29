@@ -119,6 +119,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/invoices/{invoice}/pdf', [App\Http\Controllers\TutorInvoiceController::class, 'pdf']);
 
         // ===== 小テスト（生徒: ダウンロード・写真提出・結果閲覧・分析） =====
+        // 生徒が自分で問題 PDF を作って出力する（記録なし）。教材・行の一覧は講師の出題用と同じ
+        Route::get('/quiz-books', [QuizController::class, 'books']);
+        Route::get('/resource-books/{resourceBook}/quiz-rows', [QuizController::class, 'bookRows']);
+        Route::post('/quizzes/print-pdf', [QuizController::class, 'printPdf']);
         Route::get('/quizzes', [QuizController::class, 'index']);
         Route::get('/quizzes/stats', [QuizController::class, 'stats']);
         Route::get('/quizzes/{quiz}', [QuizController::class, 'show']);

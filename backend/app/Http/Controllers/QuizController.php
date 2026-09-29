@@ -152,6 +152,37 @@ class QuizController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    /**
+     * 生徒用: 選んだページだけの問題 PDF をその場で作って返す（小テストとしては登録せず、履歴も残さない）。
+     * pages: [{pdfId, page}, ...]（最大 40 ページ）
+     */
+    public function printPdf(Request $request): BinaryFileResponse
+    {
+        $userId = $this->targetUserId($request);
+        $data = $request->validate([
+            'pages' => ['required', 'array', 'min:1', 'max:40'],
+            'pages.*.pdfId' => ['required', 'integer'],
+            'pages.*.page' => ['required', 'integer', 'min:1'],
+            'title' => ['nullable', 'string', 'max:100'],
+        ]);
+        $pdfs = ResourceBookPdf::whereHas('book', fn ($q) => $q->where('user_id', $userId))->get()->keyBy('id');
+        $sources = [];
+        foreach ($data['pages'] as $p) {
+            $pdf = $pdfs->get((int) $p['pdfId']);
+            abort_if($pdf === null, 422, 'PDF が見つかりません。');
+            abort_if((int) $p['page'] > $pdf->page_count, 422, 'ページ番号が PDF の範囲外です。');
+            $sources[] = ['path' => $pdf->absolutePath(), 'page' => (int) $p['page']];
+        }
+        $out = tempnam(sys_get_temp_dir(), 'quizprint').'.pdf';
+        PdfTools::extractPages($sources, $out);
+        $name = $this->safeName(trim((string) ($data['title'] ?? '')) ?: '小テスト_'.now()->format('Ymd'));
+
+        return response()->file($out, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => HeaderUtils::makeDisposition('inline', $name.'.pdf', 'quiz-print.pdf'),
+        ])->deleteFileAfterSend(true);
+    }
+
     // ====================== 小テスト CRUD ======================
 
     public function index(Request $request): JsonResponse

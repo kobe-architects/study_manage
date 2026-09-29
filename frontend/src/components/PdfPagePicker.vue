@@ -33,6 +33,23 @@ watch(activePdfId, () => {
 const search = ref('')
 const chapter = ref('')
 const onlyUnstudied = ref(false)
+/** check マークのある行のみ（Focus Gold などチェック欄のある教材） */
+const onlyChecked = ref(false)
+/** 難易度（星の数）で絞る。選択なし＝すべて */
+const difficulties = ref<string[]>([])
+const hasCheck = computed(() => props.rows.some((r) => !!r.checkFlag))
+const difficultyOptions = computed(() =>
+  Array.from(new Set(props.rows.map((r) => r.difficulty ?? '').filter(Boolean))).sort((a, b) => a.length - b.length || a.localeCompare(b)),
+)
+/** 難易度の表示（「**」→「★2」） */
+function diffLabel(d: string): string {
+  return /^\*+$/.test(d) ? `★${d.length}` : d
+}
+function toggleDifficulty(d: string) {
+  const i = difficulties.value.indexOf(d)
+  if (i >= 0) difficulties.value.splice(i, 1)
+  else difficulties.value.push(d)
+}
 const preview = ref<{ pdfId: number; page: number } | null>(null)
 /** 解答参照ページを設定中のカート項目 */
 const refTarget = ref<string | null>(null)
@@ -44,6 +61,8 @@ const filteredRows = computed(() => {
   return props.rows.filter((r) => {
     if (chapter.value && (r.chapter ?? '') !== chapter.value) return false
     if (onlyUnstudied.value && r.recordCount > 0) return false
+    if (onlyChecked.value && !r.checkFlag) return false
+    if (difficulties.value.length && !difficulties.value.includes(r.difficulty ?? '')) return false
     if (!q) return true
     return `${r.seqNo ?? ''} ${r.title ?? ''} ${r.chapter ?? ''}`.toLowerCase().includes(q)
   })
@@ -228,6 +247,10 @@ function showPreview(pdfId: number, page: number | null) {
             <option v-for="c in chapters" :key="c" :value="c">{{ c }}</option>
           </select>
           <label class="chk"><input v-model="onlyUnstudied" type="checkbox" /> 未学習のみ</label>
+          <label v-if="hasCheck" class="chk"><input v-model="onlyChecked" type="checkbox" /> checkのみ</label>
+          <div v-if="difficultyOptions.length" class="diffs">
+            <button v-for="d in difficultyOptions" :key="d" class="dchip" :class="{ on: difficulties.includes(d) }" @click="toggleDifficulty(d)">{{ diffLabel(d) }}</button>
+          </div>
         </div>
         <div class="rows">
           <template v-for="g in groupedRows" :key="g.chapter">
@@ -454,6 +477,26 @@ function showPreview(pdfId: number, page: number | null) {
   border: 1px solid #f5d98a;
   border-radius: 8px;
   padding: 5px 10px;
+}
+.diffs {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.dchip {
+  padding: 4px 9px;
+  border: 1px solid #e3e6ea;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #b7681a;
+  cursor: pointer;
+}
+.dchip.on {
+  background: #b7681a;
+  border-color: #b7681a;
+  color: #fff;
 }
 .filters {
   display: flex;

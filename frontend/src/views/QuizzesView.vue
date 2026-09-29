@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue'
 import CameraCapture from '@/components/CameraCapture.vue'
 import HelpTip from '@/components/HelpTip.vue'
 import QuizTable from '@/components/QuizTable.vue'
+import QuizPrintDialog from '@/components/QuizPrintDialog.vue'
 import QuizResultModal from '@/components/QuizResultModal.vue'
 import QuizStats from '@/components/QuizStats.vue'
 import { quizApi } from '@/api/quiz'
@@ -13,6 +14,8 @@ import type { QuizStats as QuizStatsT, QuizSummary } from '@/types'
 /** 生徒用: 小テスト一覧（ダウンロード・撮影して提出・結果閲覧）と分析 */
 const ui = useUiStore()
 const tab = ref<'list' | 'stats'>('list')
+/** 自分で問題 PDF を作って出力するダイアログ（小テストとしては登録しない） */
+const printOpen = ref(false)
 const quizzes = ref<QuizSummary[]>([])
 const loading = ref(true)
 const stats = ref<QuizStatsT | null>(null)
@@ -54,9 +57,15 @@ const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(
           text="先生が出題した小テストに回答して提出します。複数の教材から出題されている場合、問題PDFや提出は教材ごとに行います。&#10;流れ: 問題PDFを開いて印刷 → 用紙に回答 → 「撮影して提出」でページごとに撮影 → 先生が採点・添削 → 結果と分析を確認"
         />
       </div>
-      <div class="seg">
-        <button :class="{ on: tab === 'list' }" @click="tab = 'list'">一覧</button>
-        <button :class="{ on: tab === 'stats' }" @click="tab = 'stats'">分析</button>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button class="btn-print" @click="printOpen = true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6" /><rect x="4" y="9" width="16" height="8" rx="2" /><path d="M6 14h12v7H6z" /></svg>
+          問題PDFを作る
+        </button>
+        <div class="seg">
+          <button :class="{ on: tab === 'list' }" @click="tab = 'list'">一覧</button>
+          <button :class="{ on: tab === 'stats' }" @click="tab = 'stats'">分析</button>
+        </div>
       </div>
     </div>
 
@@ -75,10 +84,24 @@ const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(
 
     <CameraCapture v-if="state.capture" :quiz="state.capture" @close="state.capture = null" @submitted="onSubmitted" />
     <QuizResultModal v-if="state.resultId !== null" :quiz-id="state.resultId" @close="state.resultId = null" />
+    <QuizPrintDialog v-if="printOpen" @close="printOpen = false" />
   </div>
 </template>
 
 <style scoped>
+.btn-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid #e3e6ea;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+}
 .seg {
   display: inline-flex;
   border: 1px solid #e3e6ea;
