@@ -154,23 +154,43 @@ class QuizController extends Controller
 
     /**
      * 生徒用: 選んだページだけの問題 PDF をその場で作って返す（小テストとしては登録せず、履歴も残さない）。
-     * pages: [{pdfId, page}, ...]（最大 200 ページ。本番実測: 40 ページで peak 23MB・1 秒未満）
+     * pages: [{type:'pdf', pdfId, page} | {type:'image', index}（images.{index} の表紙画像） | {type:'blank'}, ...]
+     * （最大 200 ページ。本番実測: 40 ページで peak 23MB・1 秒未満）。multipart のため pages は JSON 文字列でも受ける。
      */
     public function printPdf(Request $request): BinaryFileResponse
     {
         $userId = $this->targetUserId($request);
-        $data = $request->validate([
+        $input = $request->all();
+        if (is_string($input['pages'] ?? null)) {
+            $input['pages'] = json_decode($input['pages'], true);
+        }
+        $data = Validator::make($input, [
             'pages' => ['required', 'array', 'min:1', 'max:200'],
-            'pages.*.pdfId' => ['required', 'integer'],
-            'pages.*.page' => ['required', 'integer', 'min:1'],
+            'pages.*.type' => ['nullable', 'in:pdf,image,blank'],
+            'pages.*.pdfId' => ['nullable', 'integer'],
+            'pages.*.page' => ['nullable', 'integer', 'min:1'],
+            'pages.*.index' => ['nullable', 'integer', 'min:0'],
             'title' => ['nullable', 'string', 'max:100'],
-        ]);
+        ])->validate();
         $pdfs = ResourceBookPdf::whereHas('book', fn ($q) => $q->where('user_id', $userId))->get()->keyBy('id');
         $sources = [];
         foreach ($data['pages'] as $p) {
-            $pdf = $pdfs->get((int) $p['pdfId']);
+            $type = $p['type'] ?? 'pdf';
+            if ($type === 'blank') {
+                $sources[] = ['blank' => true];
+
+                continue;
+            }
+            if ($type === 'image') {
+                $file = $request->file('images.'.(int) ($p['index'] ?? -1));
+                abort_if($file === null, 422, '表紙画像がありません。');
+                $sources[] = ['image' => $file->getRealPath()];
+
+                continue;
+            }
+            $pdf = $pdfs->get((int) ($p['pdfId'] ?? 0));
             abort_if($pdf === null, 422, 'PDF が見つかりません。');
-            abort_if((int) $p['page'] > $pdf->page_count, 422, 'ページ番号が PDF の範囲外です。');
+            abort_if((int) ($p['page'] ?? 0) > $pdf->page_count || (int) ($p['page'] ?? 0) < 1, 422, 'ページ番号が PDF の範囲外です。');
             $sources[] = ['path' => $pdf->absolutePath(), 'page' => (int) $p['page']];
         }
         $out = tempnam(sys_get_temp_dir(), 'quizprint').'.pdf';
@@ -240,6 +260,7 @@ class QuizController extends Controller
 
             return $quiz;
         });
+        $this->saveCover($quiz, $request);
         $this->generatePdf($quiz);
 
         // 生徒へ LINE 通知（複数教材をまとめて出題した場合は最初のパートのみ）
@@ -286,6 +307,11 @@ class QuizController extends Controller
                 $quiz->pages()->delete();
                 $this->createPages($quiz, $pages, $request);
             });
+            $this->saveCover($quiz, $request);
+            $this->generatePdf($quiz);
+        } elseif ($request->hasFile('cover')) {
+            // タイトルなどの変更だけでも表紙は作り直す
+            $this->saveCover($quiz, $request);
             $this->generatePdf($quiz);
         }
 
@@ -1001,11 +1027,26 @@ class QuizController extends Controller
         }
     }
 
-    /** 出題 PDF を生成する（教材ページは抽出、英単語テストは画像を A4 に配置） */
+    /** 小テストの表紙画像（フロントで描画）を保存する。送られてこなければ変更しない */
+    private function saveCover(Quiz $quiz, Request $request): void
+    {
+        if (! $request->hasFile('cover')) {
+            return;
+        }
+        Storage::disk('local')->put(
+            $quiz->dir().'/cover.jpg',
+            ImageTools::normalizeJpeg((string) file_get_contents($request->file('cover')->getRealPath()), 2000, 88),
+        );
+    }
+
+    /** 出題 PDF を生成する（表紙画像があれば先頭に付け、教材ページは抽出、英単語テストは画像を A4 に配置） */
     private function generatePdf(Quiz $quiz): void
     {
         $disk = Storage::disk('local');
         $sources = [];
+        if ($disk->exists($quiz->dir().'/cover.jpg')) {
+            $sources[] = ['image' => $disk->path($quiz->dir().'/cover.jpg')];
+        }
         foreach ($quiz->pages()->with('pdf')->get() as $p) {
             if ($p->isVocab()) {
                 abort_if($p->render_path === null, 422, '英単語テストの問題用紙がありません。');

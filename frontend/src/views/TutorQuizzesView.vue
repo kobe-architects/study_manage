@@ -7,6 +7,7 @@ import QuizStats from '@/components/QuizStats.vue'
 import QuizTable from '@/components/QuizTable.vue'
 import PdfPagePicker, { type SelectedPage } from '@/components/PdfPagePicker.vue'
 import VocabTestDialog from '@/components/VocabTestDialog.vue'
+import { renderQuizCover } from '@/lib/pdfCover'
 import { renderVocabSheet, TEST_FORMAT_LABEL, TEST_TYPE_LABEL } from '@/lib/vocabTest'
 import { quizApi } from '@/api/quiz'
 import { iso } from '@/lib/design'
@@ -286,7 +287,8 @@ async function save() {
         maxScore: Math.max(1, Number(wiz.maxScore) || 10),
         pages: wiz.pages.map(toPageSpec),
       }
-      await quizApi.update(wiz.id, payload, await buildRenders(wiz.pages, baseTitle))
+      const part0 = parts.value[0]
+      await quizApi.update(wiz.id, payload, await buildRenders(wiz.pages, baseTitle), await buildCover(baseTitle, part0?.bookId ?? null, part0?.label ?? ''))
       ui.notify('小テストを更新しました')
     } else {
       // 新規: 教材ごとに別パート（別の小テスト行）として出題し、同じ groupKey でまとめる
@@ -303,7 +305,7 @@ async function save() {
           groupKey,
           pages: part.pages.map(toPageSpec),
         }
-        await quizApi.create(payload, await buildRenders(part.pages, printTitle))
+        await quizApi.create(payload, await buildRenders(part.pages, printTitle), await buildCover(printTitle, part.bookId, part.label))
         created++
       }
       ui.notify(
@@ -322,6 +324,13 @@ async function save() {
   } finally {
     wiz.saving = false
   }
+}
+
+/** 小テストの表紙（科目バッジ・「小テスト」・小テスト名・教材名・氏名／解答日欄）。英単語テストは「英語」の科目色を使う */
+async function buildCover(quizTitle: string, bookId: number | null, bookTitle: string): Promise<Blob> {
+  const book = bookId !== null ? wiz.books.find((b) => b.id === bookId) : wiz.books.find((b) => b.subjectName === '英語')
+  const subject = bookId !== null ? (book?.subjectName ?? '') : '英語'
+  return renderQuizCover({ subject: subject || '－', color: book?.colorVivid ?? '#475569', quizTitle, bookTitle })
 }
 
 function toPageSpec(p: SelectedPage): QuizPageSpec {

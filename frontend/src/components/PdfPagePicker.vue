@@ -38,6 +38,14 @@ const onlyChecked = ref(false)
 /** 難易度（星の数）で絞る。選択なし＝すべて */
 const difficulties = ref<string[]>([])
 const hasCheck = computed(() => props.rows.some((r) => !!r.checkFlag))
+/** STEP①／STEP② で絞る（高校リード問題集など、行のタイトルが STEP で始まる教材）。選択なし＝すべて */
+const steps = ref<string[]>([])
+const stepOptions = computed(() => Array.from(new Set(props.rows.map((r) => r.title ?? '').filter((t) => /^STEP/.test(t)))).sort())
+function toggleStep(t: string) {
+  const i = steps.value.indexOf(t)
+  if (i >= 0) steps.value.splice(i, 1)
+  else steps.value.push(t)
+}
 const difficultyOptions = computed(() =>
   Array.from(new Set(props.rows.map((r) => r.difficulty ?? '').filter(Boolean))).sort((a, b) => a.length - b.length || a.localeCompare(b)),
 )
@@ -62,6 +70,7 @@ const filteredRows = computed(() => {
     if (chapter.value && (r.chapter ?? '') !== chapter.value) return false
     if (onlyUnstudied.value && r.recordCount > 0) return false
     if (onlyChecked.value && !r.checkFlag) return false
+    if (steps.value.length && !steps.value.includes(r.title ?? '')) return false
     if (difficulties.value.length && !difficulties.value.includes(r.difficulty ?? '')) return false
     if (!q) return true
     return `${r.seqNo ?? ''} ${r.title ?? ''} ${r.chapter ?? ''}`.toLowerCase().includes(q)
@@ -168,10 +177,34 @@ function toggleChapter(rows: QuizRow[]) {
   emit('update:modelValue', list)
 }
 
-function toggleRow(r: QuizRow) {
+/** 直前にクリックした行（Shift+クリックの範囲選択の起点） */
+let lastClickedKey: string | null = null
+function toggleRow(r: QuizRow, e?: MouseEvent) {
   const pdf = activePdf.value
   const page = pageOfRow(r)
   if (!pdf || page === null) return
+  if (e?.shiftKey && lastClickedKey && lastClickedKey !== r.key && !refTarget.value) {
+    // 表示中の一覧で起点〜この行までをまとめて選択する（すでに選択済みの行はそのまま）
+    const list = filteredRows.value
+    const a = list.findIndex((x) => x.key === lastClickedKey)
+    const b = list.findIndex((x) => x.key === r.key)
+    if (a >= 0 && b >= 0) {
+      const [from, to] = a < b ? [a, b] : [b, a]
+      let next = [...props.modelValue]
+      for (const x of list.slice(from, to + 1)) {
+        const pg = pageOfRow(x)
+        if (pg === null) continue
+        const key = keyOf(pdf.id, pg)
+        if (next.some((s) => s.key === key)) continue
+        next.push({ key, kind: 'pdf', pdfId: pdf.id, page: pg, itemId: x.id, label: rowLabel(x), pdfTitle: pdf.title, bookId: props.bookId ?? null, bookTitle: props.bookTitle ?? '' })
+      }
+      emit('update:modelValue', next)
+      lastClickedKey = r.key
+      window.getSelection()?.removeAllRanges()
+      return
+    }
+  }
+  lastClickedKey = r.key
   toggle(pdf, page, r)
 }
 
@@ -284,6 +317,9 @@ function showPreview(pdfId: number, page: number | null) {
           </select>
           <label class="chk"><input v-model="onlyUnstudied" type="checkbox" /> 未学習のみ</label>
           <label v-if="hasCheck" class="chk"><input v-model="onlyChecked" type="checkbox" /> checkのみ</label>
+          <div v-if="stepOptions.length" class="diffs">
+            <button v-for="t in stepOptions" :key="t" class="dchip step" :class="{ on: steps.includes(t) }" @click="toggleStep(t)">{{ t }}</button>
+          </div>
           <div v-if="difficultyOptions.length" class="diffs">
             <button v-for="d in difficultyOptions" :key="d" class="dchip" :class="{ on: difficulties.includes(d) }" @click="toggleDifficulty(d)">{{ diffLabel(d) }}</button>
           </div>
@@ -303,7 +339,7 @@ function showPreview(pdfId: number, page: number | null) {
               :key="r.key"
               class="row"
               :class="{ on: pageOfRow(r) !== null && selectedKeys.has(keyOf(activePdfId, pageOfRow(r)!)), off: pageOfRow(r) === null }"
-              @click="toggleRow(r)"
+              @click="toggleRow(r, $event)"
               @mouseenter="showPreview(activePdfId, pageOfRow(r))"
             >
               <span class="box">
@@ -541,6 +577,14 @@ function showPreview(pdfId: number, page: number | null) {
   border-color: #b7681a;
   color: #fff;
 }
+.dchip.step {
+  color: #2e4a8f;
+}
+.dchip.step.on {
+  background: #2e4a8f;
+  border-color: #2e4a8f;
+  color: #fff;
+}
 .filters {
   display: flex;
   gap: 8px;
@@ -621,6 +665,7 @@ function showPreview(pdfId: number, page: number | null) {
   display: flex;
   align-items: center;
   gap: 8px;
+  user-select: none;
   padding: 7px 12px;
   border-bottom: 1px solid #f1f2f4;
   cursor: pointer;

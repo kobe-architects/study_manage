@@ -49,15 +49,20 @@ export async function downloadFile(url: string, filename: string): Promise<void>
   setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
 }
 
-function toForm(payload: object, renders: Record<number, { question: Blob; answer: Blob }>): FormData {
+function toForm(payload: object, renders: Record<number, { question: Blob; answer: Blob }>, cover?: Blob | null): FormData {
   const fd = new FormData()
   fd.append('payload', JSON.stringify(payload))
   for (const [idx, r] of Object.entries(renders)) {
     fd.append(`renders[${idx}]`, r.question, `q${idx}.jpg`)
     fd.append(`answerRenders[${idx}]`, r.answer, `a${idx}.jpg`)
   }
+  // 小テストの表紙（フロントで描画した画像。出題 PDF の先頭に付く）
+  if (cover) fd.append('cover', cover, 'cover.jpg')
   return fd
 }
+
+/** 生徒の問題 PDF 出力のページ指定（教材ページ／表紙画像／白紙） */
+export type PrintSource = { type: 'pdf'; pdfId: number; page: number } | { type: 'image'; index: number } | { type: 'blank' }
 
 export const quizApi = {
   prefix: p,
@@ -139,8 +144,9 @@ export const quizApi = {
   async create(
     payload: { title: string | null; note: string | null; dueOn: string | null; maxScore: number; bookId: number | null; pages: QuizPageSpec[] },
     renders: Record<number, { question: Blob; answer: Blob }> = {},
+    cover?: Blob | null,
   ): Promise<number> {
-    const { data } = await client.post(`${p()}/quizzes`, toForm(payload, renders))
+    const { data } = await client.post(`${p()}/quizzes`, toForm(payload, renders, cover))
     return data.data.id
   },
 
@@ -148,9 +154,10 @@ export const quizApi = {
     id: number,
     payload: { title?: string | null; note?: string | null; dueOn?: string | null; maxScore?: number; pages?: QuizPageSpec[] },
     renders: Record<number, { question: Blob; answer: Blob }> = {},
+    cover?: Blob | null,
   ): Promise<void> {
     // multipart は PUT で解析されないため POST + _method
-    const fd = toForm(payload, renders)
+    const fd = toForm(payload, renders, cover)
     fd.append('_method', 'PUT')
     await client.post(`${p()}/quizzes/${id}`, fd)
   },
@@ -201,11 +208,15 @@ export const quizApi = {
   },
 
   // ===== 生徒が自分で問題 PDF を作って出力（記録なし） =====
-  /** 選んだページの PDF を生成して別タブで表示、または保存する */
-  async printPdf(pages: { pdfId: number; page: number }[], title: string, mode: 'preview' | 'download'): Promise<void> {
+  /** 選んだページ（＋章の表紙画像・白紙）の PDF を生成して別タブで表示、または保存する */
+  async printPdf(sources: PrintSource[], images: Blob[], title: string, mode: 'preview' | 'download'): Promise<void> {
     const w = mode === 'preview' ? window.open('', '_blank') : null
     try {
-      const res = await client.post('/quizzes/print-pdf', { pages, title }, { responseType: 'blob' })
+      const fd = new FormData()
+      fd.append('pages', JSON.stringify(sources))
+      fd.append('title', title)
+      images.forEach((b, i) => fd.append(`images[${i}]`, b, `cover${i}.jpg`))
+      const res = await client.post('/quizzes/print-pdf', fd, { responseType: 'blob' })
       const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
       if (mode === 'preview') {
         if (w) w.location.replace(blobUrl)

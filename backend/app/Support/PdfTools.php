@@ -13,7 +13,7 @@ class PdfTools
     /** PDF のページ数を返す（対応していない形式は例外） */
     public static function pageCount(string $absPath): int
     {
-        $pdf = new Fpdi();
+        $pdf = new Fpdi;
 
         return $pdf->setSourceFile($absPath);
     }
@@ -21,13 +21,20 @@ class PdfTools
     /**
      * 複数 PDF の指定ページ、または画像（英単語テストの問題用紙など）を1つの PDF にまとめる（小テストの出題 PDF）。
      *
-     * @param  array<int, array{path?: string, page?: int, image?: string}>  $pages
+     * blank: true のページは白紙（両面印刷で章の表紙を必ず表面から始めるための調整用）。
+     *
+     * @param  array<int, array{path?: string, page?: int, image?: string, blank?: bool}>  $pages
      */
     public static function extractPages(array $pages, string $outAbsPath): void
     {
-        $pdf = new Fpdi();
+        $pdf = new Fpdi;
         $counts = [];
         foreach ($pages as $p) {
+            if (! empty($p['blank'])) {
+                $pdf->AddPage('P', 'A4');
+
+                continue;
+            }
             if (! empty($p['image'])) {
                 self::addImagePage($pdf, $p['image']);
 
@@ -60,7 +67,13 @@ class PdfTools
         $scale = min(($pw - 2 * $margin) / $w, ($ph - 2 * $margin) / $h);
         $dw = $w * $scale;
         $dh = $h * $scale;
-        $pdf->Image($imagePath, ($pw - $dw) / 2, ($ph - $dh) / 2, $dw, $dh);
+        // アップロードされた一時ファイルは拡張子が .tmp なので、種類は中身から判定して渡す
+        $type = match ($info[2] ?? null) {
+            IMAGETYPE_PNG => 'PNG',
+            IMAGETYPE_GIF => 'GIF',
+            default => 'JPG',
+        };
+        $pdf->Image($imagePath, ($pw - $dw) / 2, ($ph - $dh) / 2, $dw, $dh, $type);
     }
 
     /**
