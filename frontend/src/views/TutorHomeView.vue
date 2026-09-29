@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import EventModal from '@/components/EventModal.vue'
 import MonthCalendar from '@/components/MonthCalendar.vue'
-import { assignmentTitle, daysBetween, iso, parseDate, TYPE_BADGE } from '@/lib/design'
+import { daysBetween, iso, parseDate, TYPE_BADGE } from '@/lib/design'
 import { useAuthStore } from '@/stores/auth'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
@@ -13,7 +12,6 @@ import { appConfirm } from '@/lib/dialog'
 const auth = useAuthStore()
 const study = useStudyStore()
 const ui = useUiStore()
-const router = useRouter()
 
 const today = new Date()
 today.setHours(0, 0, 0, 0)
@@ -70,7 +68,6 @@ function selectPeriod(key: PeriodKey) {
 
 onMounted(() => {
   fetchRecords()
-  study.fetchAssignments().catch(() => {})
   study.fetchEvents().catch(() => {})
 })
 
@@ -102,18 +99,6 @@ function parentLabel(r: RecordListItem): string {
   const parent = r.chapter ?? (r.major ? `${r.major}›${r.mid}` : '')
   return parent || (r.rowTitle ?? r.sub ?? '（無題）')
 }
-
-// ---- 課題サマリ（未記録のみ・期限昇順で3件） ----
-const pendingAssignments = computed(() =>
-  study.assignments
-    .filter((a) => a.achieved === null)
-    .slice(0, 3)
-    .map((a) => ({
-      ...a,
-      displayTitle: assignmentTitle(a.title, a.dueOn),
-      daysLeft: daysBetween(today, parseDate(a.dueOn)),
-    })),
-)
 
 // ---- カレンダー（生徒と同じ: 模試予定などの登録・削除、受験本番までの日数、今後の予定） ----
 const examDate = computed(() => auth.user?.student?.examDate ?? null)
@@ -188,27 +173,8 @@ function recordColorHex(c: string | null): string {
 <template>
   <div>
     <div class="grid">
-      <!-- LEFT: 課題 + カレンダー + ヒートマップ -->
+      <!-- LEFT: カレンダー + 受験本番までの日数 + 今後の予定 -->
       <div style="display: flex; flex-direction: column; gap: 14px">
-        <div class="card" style="padding: 16px 18px">
-          <div class="row-between" style="margin-bottom: 10px">
-            <span style="font-size: 13px; font-weight: 700">進行中の課題</span>
-            <button class="link-btn" @click="router.push({ name: 'tutor-assignments' })">課題設定へ →</button>
-          </div>
-          <div v-if="pendingAssignments.length" style="display: flex; flex-direction: column; gap: 10px">
-            <div v-for="a in pendingAssignments" :key="a.id" style="display: flex; align-items: center; gap: 10px">
-              <div style="flex: 1; min-width: 0">
-                <div style="font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ a.displayTitle }}</div>
-                <div style="font-size: 11px; color: var(--faint)">{{ a.done }} / {{ a.target }} 項目</div>
-              </div>
-              <span :style="{ fontSize: '11px', fontWeight: 700, flexShrink: 0, color: a.daysLeft <= 3 ? '#e0533d' : '#9aa1ab' }">
-                {{ a.daysLeft < 0 ? `${-a.daysLeft}日超過` : a.daysLeft === 0 ? '本日期限' : `あと${a.daysLeft}日` }}
-              </span>
-            </div>
-          </div>
-          <div v-else style="font-size: 12px; color: var(--faint)">進行中の課題はありません</div>
-        </div>
-
         <MonthCalendar :events="study.events" :exam-date="examDate" @day-click="openEvent" />
 
         <div style="background: #1c2024; border-radius: 16px; padding: 15px 18px; color: #fff">
@@ -398,7 +364,14 @@ function recordColorHex(c: string | null): string {
   gap: 16px;
   align-items: start;
 }
+/* 1 列にするのはスマホ幅だけ。iPad 縦（〜860px）も 2 列にして、カレンダーが横長に引き伸ばされないようにする */
 @media (max-width: 860px) {
+  .grid {
+    grid-template-columns: minmax(270px, 310px) minmax(0, 1fr);
+    gap: 14px;
+  }
+}
+@media (max-width: 640px) {
   .grid {
     grid-template-columns: 1fr;
   }
@@ -407,15 +380,6 @@ function recordColorHex(c: string | null): string {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-.link-btn {
-  border: none;
-  background: none;
-  color: #3b50cc;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
 }
 .period-bar {
   display: flex;
