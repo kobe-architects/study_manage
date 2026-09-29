@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { rateColor } from '@/api/quiz'
-import type { QuizStatBook, QuizStats } from '@/types'
+import type { QuizStats } from '@/types'
 
 /**
  * 小テストの分析（生徒・講師共用）。採点は小テスト全体の得点／満点。
- * 要約タイルのあと、科目ごと → 教材ごとに採点済みの小テスト（得点・得点率・採点日）と
- * 教材内の章別の得点率（小テストの得点率をページ満点で按分）を表示する。
+ * 要約タイルのあと、科目ごと → 教材ごとに採点済みの小テスト（得点・得点率・採点日）を表示する。
  */
 const props = defineProps<{ stats: QuizStats }>()
 
@@ -24,10 +23,6 @@ function textOn(bg: string): string {
 }
 function ymd(d: string | null): string {
   return d ? d.replace(/-/g, '/') : ''
-}
-/** 章別は得点率の低い順 */
-function chapters(b: QuizStatBook) {
-  return [...b.chapters].sort((a, c) => (a.rate ?? 0) - (c.rate ?? 0))
 }
 </script>
 
@@ -104,18 +99,6 @@ function chapters(b: QuizStatBook) {
             </tbody>
           </table>
 
-          <div v-if="b.chapters.length > 1" class="chapters">
-            <div class="ch-title">章別の得点率<span class="sec-note">得点率の低い順（小テストの得点率をページ数で按分）</span></div>
-            <div class="bars">
-              <div v-for="g in chapters(b)" :key="g.key" class="bar-row" :title="`${g.label}: ${g.score} / ${g.max}点`">
-                <div class="bar-label">
-                  <div class="bl-main">{{ g.label }}</div>
-                </div>
-                <div class="bar-track"><span :style="{ width: (g.rate ?? 0) + '%', background: rateColor(g.rate) }"></span></div>
-                <div class="bar-val"><b :style="{ color: rateColor(g.rate) }">{{ g.rate ?? '–' }}%</b><span>{{ g.quizCount }}回・{{ g.pages }}ページ</span></div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </template>
@@ -231,12 +214,6 @@ function chapters(b: QuizStatBook) {
 .book-sub {
   color: var(--faint);
 }
-.sec-note {
-  font-size: 11px;
-  color: var(--faint);
-  font-weight: 400;
-  margin-left: 8px;
-}
 .tbl {
   width: 100%;
   border-collapse: collapse;
@@ -292,42 +269,10 @@ function chapters(b: QuizStatBook) {
   border-radius: 99px;
   min-width: 2px;
 }
-.chapters {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--line);
-}
-.ch-title {
-  font-size: 12px;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-.bars {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.bar-row {
-  display: grid;
-  grid-template-columns: minmax(120px, 220px) 1fr 150px;
-  align-items: center;
-  gap: 10px;
-}
 @media (max-width: 640px) {
-  .bar-row {
-    grid-template-columns: 1fr;
-    gap: 3px;
-  }
   .mini-track {
     display: none;
   }
-}
-.bl-main {
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .bar-track {
   display: block;
@@ -341,16 +286,5 @@ function chapters(b: QuizStatBook) {
   height: 100%;
   border-radius: 99px;
   min-width: 2px;
-}
-.bar-val {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--faint);
-  white-space: nowrap;
-}
-.bar-val b {
-  font-size: 13px;
 }
 </style>
