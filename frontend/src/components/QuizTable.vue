@@ -221,7 +221,10 @@ function dueClass(q: QuizSummary): string {
                 </template>
                 <template v-else>
                   <button v-if="q.status === 'submitted'" class="btn primary" @click="emit('grade', q)">採点・添削する</button>
-                  <button v-else-if="q.status === 'graded'" class="btn primary" @click="emit('grade', q)">結果</button>
+                  <template v-else-if="q.status === 'graded'">
+                    <button class="btn primary" @click="emit('result', q)">結果を見る</button>
+                    <button class="btn" title="採点・添削画面を開く（やり直し・PDF）" @click="emit('grade', q)">採点・添削</button>
+                  </template>
                   <button v-else class="btn" @click="emit('edit', q)">編集</button>
                   <button class="btn" title="問題 PDF を別タブでプレビュー" @click="emit('pdf', q)">問題PDF</button>
                   <button class="btn danger" @click="emit('remove', q)">削除</button>

@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import HelpTip from '@/components/HelpTip.vue'
+import QuizResultModal from '@/components/QuizResultModal.vue'
 import QuizTable from '@/components/QuizTable.vue'
 import PdfPagePicker, { type SelectedPage } from '@/components/PdfPagePicker.vue'
 import VocabTestDialog from '@/components/VocabTestDialog.vue'
@@ -94,6 +95,8 @@ async function remove(q: QuizSummary) {
 function grade(q: QuizSummary) {
   router.push({ name: 'tutor-quiz-grade', params: { id: q.id } })
 }
+/** 結果を全画面ビューアで見る（生徒側と同じ画面。添削のやり直しは採点・添削画面から） */
+const resultId = ref<number | null>(null)
 
 // ---------- 出題ウィザード ----------
 const wiz = reactive<{
@@ -396,7 +399,8 @@ function setDueIn(days: number) {
       <div v-else-if="!quizzes.length" class="hint" style="text-align: center">
         小テストはまだありません。「小テストを出題」から、PDF を紐づけた教材や英単語テストを選んで出題してください。
       </div>
-      <QuizTable v-else :quizzes="quizzes" role="tutor" @pdf="openPdf($event)" @grade="grade($event)" @edit="openWizard($event)" @remove="remove($event)" />
+      <QuizTable v-else :quizzes="quizzes" role="tutor" @pdf="openPdf($event)" @grade="grade($event)" @result="resultId = $event.id" @edit="openWizard($event)" @remove="remove($event)" />
+      <QuizResultModal v-if="resultId !== null" :quiz-id="resultId" @close="resultId = null" />
     </template>
 
     <!-- 分析: 実施済み小テストの結果を累積表示 -->
