@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import HelpTip from '@/components/HelpTip.vue'
 import QuizResultModal from '@/components/QuizResultModal.vue'
+import QuizStats from '@/components/QuizStats.vue'
 import QuizTable from '@/components/QuizTable.vue'
 import PdfPagePicker, { type SelectedPage } from '@/components/PdfPagePicker.vue'
 import VocabTestDialog from '@/components/VocabTestDialog.vue'
@@ -11,7 +12,7 @@ import { quizApi, rateColor } from '@/api/quiz'
 import { iso } from '@/lib/design'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
-import type { BookPdf, QuizBook, QuizPageSpec, QuizRow, QuizSummary } from '@/types'
+import type { BookPdf, QuizBook, QuizPageSpec, QuizRow, QuizStats as QuizStatsT, QuizSummary } from '@/types'
 
 /**
  * 講師用: 小テストの出題・一覧（リスト表示）・分析（実施済み結果の累積表示）。
@@ -45,32 +46,18 @@ onMounted(() => {
   load()
 })
 
-function partLabel(q: QuizSummary): string {
-  return q.bookTitle ?? '英単語テスト'
-}
-function fmt(d: string | null): string {
-  if (!d) return ''
-  const [y, m, dd] = d.split(/[- :]/)
-  return `${y}/${Number(m)}/${Number(dd)}`
-}
 
-// ---------- 分析: 採点・添削済みの結果（得点）を累積表示 ----------
-const gradedList = computed(() =>
-  quizzes.value
-    .filter((q) => q.status === 'graded')
-    .sort((a, b) => (b.gradedAt ?? '').localeCompare(a.gradedAt ?? '') || b.id - a.id),
-)
-/** 採点済み小テストの合計得点・満点・合計得点率 */
-const gradedTotal = computed(() => {
-  let s = 0
-  let m = 0
-  for (const q of gradedList.value) {
-    if (q.score !== null) {
-      s += q.score
-      m += q.maxScore
-    }
+// ---------- 分析: 科目ごと → 教材ごとの採点済みデータ（生徒側と同じ QuizStats） ----------
+const stats = ref<QuizStatsT | null>(null)
+async function loadStats() {
+  try {
+    stats.value = await quizApi.stats()
+  } catch {
+    ui.notify('分析データの取得に失敗しました')
   }
-  return { s, m, rate: m > 0 ? Math.round((s / m) * 100) : null }
+}
+watch(tab, (t) => {
+  if (t === 'stats') loadStats()
 })
 
 async function openPdf(q: QuizSummary) {
@@ -403,38 +390,10 @@ function setDueIn(days: number) {
       <QuizResultModal v-if="resultId !== null" :quiz-id="resultId" @close="resultId = null" />
     </template>
 
-    <!-- 分析: 実施済み小テストの結果を累積表示 -->
+    <!-- 分析: 科目ごと → 教材ごとの採点済みデータ -->
     <template v-else>
-      <div v-if="loading" class="hint">読み込み中…</div>
-      <div v-else-if="!gradedList.length" class="hint">
-        採点・添削済みの小テストがまだありません。採点・添削が完了すると、ここに結果が積み上がっていきます。
-      </div>
-      <template v-else>
-        <div class="st-sum">
-          実施 <b>{{ gradedList.length }}</b> 回・合計 <b>{{ gradedTotal.s }}</b> / {{ gradedTotal.m }}点・得点率 <b :style="{ color: rateColor(gradedTotal.rate) }">{{ gradedTotal.rate ?? '–' }}%</b>
-        </div>
-        <div class="st-table-wrap">
-          <table class="st-table">
-            <thead>
-              <tr><th>採点・添削日</th><th>タイトル</th><th>教材</th><th class="r">ページ</th><th class="r">得点</th><th class="r">得点率</th><th></th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="q in gradedList" :key="q.id">
-                <td class="nowrap">{{ q.gradedAt ? fmt(q.gradedAt) : '–' }}</td>
-                <td class="ttl-cell">{{ q.title }}</td>
-                <td>{{ partLabel(q) }}</td>
-                <td class="r">{{ q.pageCount }}</td>
-                <td class="r nowrap"><b>{{ q.score ?? '–' }}</b> / {{ q.maxScore }}</td>
-                <td class="r rate-cell">
-                  <span class="rate-bar"><span :style="{ width: (q.rate ?? 0) + '%', background: rateColor(q.rate) }"></span></span>
-                  <span class="nowrap" :style="{ color: rateColor(q.rate), fontWeight: 700 }">{{ q.rate ?? '–' }}%</span>
-                </td>
-                <td class="r"><button class="btn" style="padding: 5px 10px" @click="grade(q)">結果</button></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
+      <QuizStats v-if="stats" :stats="stats" />
+      <div v-else class="hint">読み込み中…</div>
     </template>
 
     <!-- 出題ウィザード -->
@@ -779,313 +738,5 @@ function setDueIn(days: number) {
 .btn.danger {
   color: #c0444f;
   border-color: #f0b8be;
-}
-/* ---------- 分析（累積結果） ---------- */
-.st-sum {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 12px 16px;
-  font-size: 12.5px;
-  color: var(--mut);
-  margin-bottom: 12px;
-}
-.st-sum b {
-  font-size: 16px;
-  color: var(--ink);
-}
-.st-table-wrap {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  overflow-x: auto;
-}
-.st-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12.5px;
-}
-.st-table th {
-  text-align: left;
-  font-size: 11px;
-  color: var(--faint);
-  font-weight: 600;
-  padding: 9px 12px;
-  border-bottom: 1px solid var(--line);
-  background: #f8f9fb;
-  white-space: nowrap;
-}
-.st-table td {
-  padding: 9px 12px;
-  border-bottom: 1px solid #f1f2f4;
-  vertical-align: middle;
-}
-.st-table tr:last-child td {
-  border-bottom: none;
-}
-.st-table .r {
-  text-align: right;
-}
-.st-table .nowrap {
-  white-space: nowrap;
-}
-.st-table .ttl-cell {
-  max-width: 280px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.rate-cell {
-  min-width: 140px;
-}
-.rate-bar {
-  display: inline-block;
-  vertical-align: middle;
-  width: 80px;
-  height: 7px;
-  border-radius: 99px;
-  background: #e8ebf5;
-  overflow: hidden;
-  margin-right: 8px;
-}
-.rate-bar span {
-  display: block;
-  height: 100%;
-  background: #3b50cc;
-  border-radius: 99px;
-}
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(20, 24, 32, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 14px;
-}
-.wizard {
-  background: #f6f7f9;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 1280px;
-  height: 94vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
-}
-.wiz-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 14px 18px;
-  background: #fff;
-  border-bottom: 1px solid var(--line);
-}
-.steps {
-  display: flex;
-  gap: 4px;
-}
-.steps span {
-  font-size: 11.5px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #f1f2f4;
-  color: var(--faint);
-  white-space: nowrap;
-}
-.steps span.on {
-  background: #1c2024;
-  color: #fff;
-}
-.steps span.done {
-  background: #e6f5ec;
-  color: #2f7a4f;
-}
-.x {
-  border: none;
-  background: transparent;
-  font-size: 24px;
-  color: #9aa1ab;
-  cursor: pointer;
-  line-height: 1;
-}
-.wiz-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 14px 18px;
-}
-.wiz-foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
-  background: #fff;
-  border-top: 1px solid var(--line);
-}
-.filter-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 10px;
-  flex-wrap: wrap;
-}
-.frow {
-  display: flex;
-  align-items: center;
-  gap: 4px 12px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-.flab {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--mut);
-  width: 34px;
-}
-.radio {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--mut);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.radio input {
-  accent-color: #1c2024;
-  cursor: pointer;
-}
-.books {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 10px;
-}
-.book {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 12px 14px;
-  cursor: pointer;
-}
-.book.ok:hover {
-  border-color: #3b50cc;
-}
-.book.cur {
-  border-color: #3b50cc;
-  background: #eef1fc;
-}
-.book-top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.type {
-  font-size: 10px;
-  font-weight: 700;
-  color: #2e4a8f;
-  background: #e8eefb;
-  padding: 1px 7px;
-  border-radius: 999px;
-}
-.book-title {
-  font-size: 13px;
-  font-weight: 700;
-  margin: 6px 0;
-  line-height: 1.4;
-}
-.book-foot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-}
-.pdf-ok {
-  color: #2f7a4f;
-  font-weight: 600;
-}
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-  max-width: 640px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 18px;
-}
-.two {
-  display: grid;
-  grid-template-columns: 1fr 160px;
-  gap: 12px;
-}
-.fld span,
-.fld-label {
-  font-size: 12px;
-  color: var(--mut);
-  font-weight: 500;
-  display: block;
-  margin-bottom: 5px;
-}
-.fld input,
-.fld textarea {
-  width: 100%;
-  padding: 9px 11px;
-  border: 1px solid #e3e6ea;
-  border-radius: 9px;
-  font-size: 13px;
-  outline: none;
-  background: #fff;
-  font-family: inherit;
-  resize: vertical;
-}
-.book.vocab-only {
-  border-style: dashed;
-}
-.part-box {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
-}
-.part-head {
-  font-size: 12.5px;
-  font-weight: 700;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.part-head span {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--faint);
-}
-.vrow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border-top: 1px solid #f1f2f4;
-  padding: 7px 0;
-}
-.vrow .num {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #1c2024;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.vrow .num.vocab {
-  background: #2e7d5b;
 }
 </style>

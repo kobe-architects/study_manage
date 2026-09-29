@@ -600,7 +600,9 @@ class QuizController extends Controller
     public function stats(Request $request): JsonResponse
     {
         $userId = $this->targetUserId($request);
-        $all = Quiz::where('user_id', $userId)->get(['id', 'title', 'status', 'graded_at', 'max_score_per_page', 'score', 'max_score']);
+        $all = Quiz::with(['book:id,title,subject_id', 'book.subject:id,name,sort_order,color_vivid'])
+            ->where('user_id', $userId)
+            ->get(['id', 'title', 'status', 'graded_at', 'max_score_per_page', 'score', 'max_score', 'self_graded', 'resource_book_id']);
         $graded = $all->where('status', Quiz::STATUS_GRADED)
             ->filter(fn (Quiz $q) => $q->score !== null && $q->max_score !== null && $q->max_score > 0)
             ->sortBy(fn (Quiz $q) => ($q->graded_at?->timestamp ?? 0) * 100000 + $q->id)
@@ -686,6 +688,60 @@ class QuizController extends Controller
             return ['d:'.$d, $d, null];
         })->sortBy(fn (array $x) => mb_strlen($x['label']))->values();
 
+        // 科目ごと → 教材ごとの採点済みデータ（教材のない英単語テストは「英語」の「英単語テスト」）
+        $subjects = [];
+        foreach ($graded as $q) {
+            $subj = $q->book ? $q->book->subject : $this->englishSubject($userId);
+            $sName = $q->book ? ($subj?->name ?? 'その他') : '英語';
+            $bKey = $q->book ? 'b'.$q->book->id : 'vocab';
+            $subjects[$sName] ??= [
+                'name' => $sName, 'order' => (int) ($subj?->sort_order ?? 999), 'color' => $subj?->color_vivid ?? '#475569',
+                's' => 0, 'm' => 0, 'books' => [],
+            ];
+            $subjects[$sName]['books'][$bKey] ??= [
+                'bookId' => $q->book?->id, 'title' => $q->book?->title ?? '英単語テスト', 's' => 0, 'm' => 0, 'quizzes' => [],
+            ];
+            $subjects[$sName]['s'] += (int) $q->score;
+            $subjects[$sName]['m'] += (int) $q->max_score;
+            $subjects[$sName]['books'][$bKey]['s'] += (int) $q->score;
+            $subjects[$sName]['books'][$bKey]['m'] += (int) $q->max_score;
+            $subjects[$sName]['books'][$bKey]['quizzes'][] = [
+                'id' => $q->id,
+                'title' => $q->title,
+                'gradedOn' => $q->graded_at?->toDateString(),
+                'score' => (int) $q->score,
+                'max' => (int) $q->max_score,
+                'rate' => (int) round($rateOf($q) * 100),
+                'selfGraded' => (bool) $q->self_graded,
+            ];
+        }
+        $rateOfSum = fn (array $x) => $x['m'] > 0 ? (int) round($x['s'] / $x['m'] * 100) : null;
+        $bySubject = collect(array_values($subjects))
+            ->sortBy(fn (array $x) => sprintf('%05d%s', $x['order'], $x['name']))
+            ->map(function (array $x) use ($rateOfSum, $byChapter) {
+                $books = collect(array_values($x['books']))->map(function (array $b) use ($rateOfSum, $byChapter) {
+                    $prefix = $b['bookId'] ? $b['bookId'].':' : 'vocab:';
+                    // 新しい順
+                    $b['quizzes'] = array_reverse($b['quizzes']);
+                    $b['quizCount'] = count($b['quizzes']);
+                    $b['score'] = $b['s'];
+                    $b['max'] = $b['m'];
+                    $b['rate'] = $rateOfSum($b);
+                    // この教材の章別（英単語テストは単語帳別）
+                    $b['chapters'] = $byChapter->filter(fn (array $c) => str_starts_with($c['key'], $prefix))->values()->all();
+                    unset($b['s'], $b['m']);
+
+                    return $b;
+                })->sortByDesc('quizCount')->values()->all();
+
+                return [
+                    'name' => $x['name'], 'color' => $x['color'],
+                    'quizCount' => array_sum(array_map(fn (array $b) => $b['quizCount'], $books)),
+                    'score' => $x['s'], 'max' => $x['m'], 'rate' => $rateOfSum($x),
+                    'books' => $books,
+                ];
+            })->values();
+
         // 弱点: 例題ごと（出題された小テストの得点率の平均）が 60% 未満（英単語テストは除く）
         $items = [];
         foreach ($pages as $p) {
@@ -739,6 +795,7 @@ class QuizController extends Controller
                 'lastRate' => $graded->count() ? (int) round($rateOf($graded->last()) * 100) : null,
             ],
             'timeline' => $timeline,
+            'bySubject' => $bySubject,
             'byChapter' => $byChapter,
             'byMid' => $byMid,
             'byDifficulty' => $byDifficulty,

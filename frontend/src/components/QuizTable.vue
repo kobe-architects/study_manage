@@ -22,8 +22,9 @@ type StatusKey = 'all' | 'assigned' | 'overdue' | 'submitted' | 'graded'
 type PeriodKey = 'all' | 'week' | 'month' | 'quarter'
 type SortKey = 'created' | 'due' | 'rateAsc' | 'rateDesc'
 
-const filter = reactive<{ status: StatusKey; book: string; period: PeriodKey; q: string; sort: SortKey }>({
-  status: 'all',
+const DEFAULT_STATUS: Exclude<StatusKey, 'all'>[] = props.role === 'tutor' ? ['submitted', 'assigned', 'overdue'] : ['assigned', 'overdue']
+const filter = reactive<{ status: Exclude<StatusKey, 'all'>[]; book: string; period: PeriodKey; q: string; sort: SortKey }>({
+  status: [...DEFAULT_STATUS],
   book: '',
   period: 'all',
   q: '',
@@ -42,7 +43,13 @@ const STATUS_LABEL = computed<Record<Exclude<StatusKey, 'all'>, string>>(() => (
   submitted: props.role === 'tutor' ? '採点・添削待ち' : '提出済み',
   graded: '採点・添削済み',
 }))
-const STATUS_ORDER: Exclude<StatusKey, 'all'>[] = ['submitted', 'assigned', 'overdue', 'graded']
+/** 絞り込みチップの並び（生徒側は「提出済み」の絞りは出さない） */
+const STATUS_ORDER = computed<Exclude<StatusKey, 'all'>[]>(() => (props.role === 'tutor' ? ['submitted', 'assigned', 'overdue', 'graded'] : ['assigned', 'overdue', 'graded']))
+function toggleStatus(k: Exclude<StatusKey, 'all'>) {
+  const i = filter.status.indexOf(k)
+  if (i >= 0) filter.status.splice(i, 1)
+  else filter.status.push(k)
+}
 
 function partLabel(q: QuizSummary): string {
   return q.bookTitle ?? '英単語テスト'
@@ -84,7 +91,7 @@ const rows = computed(() => {
   const term = filter.q.trim().toLowerCase()
   const from = periodFrom()
   let list = props.quizzes.filter((q) => {
-    if (filter.status !== 'all' && statusOf(q) !== filter.status) return false
+    if (filter.status.length && !filter.status.includes(statusOf(q))) return false
     if (filter.book && partLabel(q) !== filter.book) return false
     if (from && q.createdOn < from) return false
     if (term && !`${q.title} ${q.note ?? ''} ${partLabel(q)} ${q.createdByName ?? ''}`.toLowerCase().includes(term)) return false
@@ -134,9 +141,9 @@ function textOn(bg: string): string {
 function surname(q: QuizSummary): string {
   return (q.studentName ?? '').trim().split(/[\s　]+/)[0] ?? ''
 }
-const filtered = computed(() => filter.status !== 'all' || !!filter.book || filter.period !== 'all' || !!filter.q.trim())
+const filtered = computed(() => filter.status.length > 0 || !!filter.book || filter.period !== 'all' || !!filter.q.trim())
 function clearFilters() {
-  filter.status = 'all'
+  filter.status = []
   filter.book = ''
   filter.period = 'all'
   filter.q = ''
@@ -162,8 +169,8 @@ function dueClass(q: QuizSummary): string {
     <!-- 絞り込み: ステータス（件数つきバッジ）・教材・出題日・キーワード・並び順 -->
     <div class="filters">
       <div class="status-tabs">
-        <button class="st all" :class="{ on: filter.status === 'all' }" @click="filter.status = 'all'">すべて<span class="n">{{ quizzes.length }}</span></button>
-        <button v-for="k in STATUS_ORDER" :key="k" class="st" :class="[k, { on: filter.status === k }]" @click="filter.status = filter.status === k ? 'all' : k">
+        <button class="st all" :class="{ on: !filter.status.length }" @click="filter.status = []">すべて<span class="n">{{ quizzes.length }}</span></button>
+        <button v-for="k in STATUS_ORDER" :key="k" class="st" :class="[k, { on: filter.status.includes(k) }]" @click="toggleStatus(k)">
           {{ STATUS_LABEL[k] }}<span class="n">{{ counts[k] }}</span>
         </button>
       </div>
@@ -232,11 +239,11 @@ function dueClass(q: QuizSummary): string {
               </div>
             </td>
             <td class="c-status">
-              <span class="badge" :class="statusOf(q)">{{ STATUS_LABEL[statusOf(q)] }}</span>
-              <span v-if="q.status === 'graded' && q.selfGraded" class="badge self">自己採点</span>
-              <span v-if="q.status === 'assigned' && q.answeredCount" class="badge sub">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</span>
-              <span v-if="q.status === 'submitted' && q.submittedAt" class="sub-date">提出 {{ fmt(q.submittedAt) }}</span>
-              <span v-else-if="q.status === 'graded' && q.gradedAt" class="sub-date">採点 {{ fmt(q.gradedAt) }}</span>
+              <div class="badges">
+                <span class="badge" :class="statusOf(q)">{{ STATUS_LABEL[statusOf(q)] }}</span>
+                <span v-if="q.status === 'graded' && q.selfGraded" class="badge self">自己採点</span>
+                <span v-if="q.status === 'assigned' && q.answeredCount" class="badge sub">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</span>
+              </div>
             </td>
             <td class="c-date nowrap">{{ fmt(q.createdOn) }}</td>
             <td class="c-book">
@@ -424,7 +431,7 @@ function dueClass(q: QuizSummary): string {
 }
 /* 行の背景は交互に */
 .tbl tbody tr:nth-child(even) {
-  background: #f6f7f9;
+  background: #eef2f9;
 }
 .tbl tr:last-child td {
   border-bottom: none;
@@ -436,7 +443,7 @@ function dueClass(q: QuizSummary): string {
   white-space: nowrap;
 }
 .tbl tbody tr:hover {
-  background: #eef2fb;
+  background: #e3e9f6;
 }
 .c-date,
 .c-due {
@@ -447,8 +454,21 @@ function dueClass(q: QuizSummary): string {
   width: 56px;
 }
 .c-status {
-  width: 190px;
+  width: 130px;
   white-space: nowrap;
+}
+/* ステータスは縦に並べ、幅をそろえる */
+.badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+.badges .badge {
+  width: 112px;
+  text-align: center;
+  margin-left: 0;
+  box-sizing: border-box;
 }
 .c-actions {
   width: 1%;
@@ -589,6 +609,8 @@ function dueClass(q: QuizSummary): string {
   background: #1c2024;
   border-color: #1c2024;
   color: #fff;
+  min-width: 118px;
+  text-align: center;
 }
 .btn.danger {
   color: #c0444f;

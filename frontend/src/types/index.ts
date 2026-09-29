@@ -657,6 +657,36 @@ export interface QuizStatGroup {
   score: number
   max: number
 }
+export interface QuizStatQuiz {
+  id: number
+  title: string
+  gradedOn: string | null
+  score: number
+  max: number
+  rate: number
+  selfGraded: boolean
+}
+export interface QuizStatBook {
+  bookId: number | null
+  title: string
+  quizCount: number
+  score: number
+  max: number
+  rate: number | null
+  /** 新しい順 */
+  quizzes: QuizStatQuiz[]
+  /** この教材の章別（英単語テストは単語帳別）の得点率 */
+  chapters: QuizStatGroup[]
+}
+export interface QuizStatSubject {
+  name: string
+  color: string
+  quizCount: number
+  score: number
+  max: number
+  rate: number | null
+  books: QuizStatBook[]
+}
 export interface QuizWeakItem {
   itemId: number | null
   label: string | null
@@ -689,6 +719,8 @@ export interface QuizStats {
     lastRate: number | null
   }
   timeline: { id: number; title: string; gradedOn: string | null; score: number; max: number; rate: number }[]
+  /** 科目ごと → 教材ごとの採点済みデータ */
+  bySubject: QuizStatSubject[]
   byChapter: QuizStatGroup[]
   byMid: QuizStatGroup[]
   byDifficulty: QuizStatGroup[]
