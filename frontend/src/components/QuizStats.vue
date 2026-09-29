@@ -5,7 +5,7 @@ import type { QuizStats } from '@/types'
 
 /**
  * 小テストの分析（生徒・講師共用）。採点は小テスト全体の得点／満点。
- * 要約タイルのあと、科目ごと → 教材ごとに採点済みの小テスト（得点・得点率・採点日）を表示する。
+ * 科目ごと → 教材ごとに採点済みの小テスト（得点・得点率・採点日）を表示する。
  */
 const props = defineProps<{ stats: QuizStats }>()
 
@@ -36,30 +36,6 @@ function ymd(d: string | null): string {
     </div>
 
     <template v-else>
-      <!-- 要約 -->
-      <div class="tiles">
-        <div class="tile">
-          <div class="t-label">合計得点率</div>
-          <div class="t-val"><b :style="{ color: rateColor(s.avgRate) }">{{ s.avgRate ?? '–' }}</b><span>%</span></div>
-          <div class="t-sub">合計 {{ s.score }} / {{ s.max }}点</div>
-        </div>
-        <div class="tile">
-          <div class="t-label">1回あたりの平均得点率</div>
-          <div class="t-val"><b :style="{ color: rateColor(s.avgQuizRate) }">{{ s.avgQuizRate ?? '–' }}</b><span>%</span></div>
-          <div class="t-sub">最高 {{ s.bestRate ?? '–' }}%・直近 {{ s.lastRate ?? '–' }}%</div>
-        </div>
-        <div class="tile">
-          <div class="t-label">採点・添削済み</div>
-          <div class="t-val"><b>{{ s.gradedCount }}</b><span>回</span></div>
-          <div class="t-sub">{{ s.pageCount }}ページ分</div>
-        </div>
-        <div class="tile">
-          <div class="t-label">進行中</div>
-          <div class="t-val"><b>{{ s.assignedCount + s.submittedCount }}</b><span>件</span></div>
-          <div class="t-sub">未提出 {{ s.assignedCount }}・採点・添削待ち {{ s.submittedCount }}</div>
-        </div>
-      </div>
-
       <!-- 科目ごと → 教材ごと -->
       <div v-for="sub in subjects" :key="sub.name" class="subject">
         <div class="subj-head">
@@ -119,39 +95,6 @@ function ymd(d: string | null): string {
   border-radius: 14px;
   text-align: center;
   line-height: 1.7;
-}
-.tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
-}
-.tile {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 12px 14px;
-}
-.t-label {
-  font-size: 11px;
-  color: var(--mut);
-  font-weight: 600;
-}
-.t-val {
-  margin-top: 2px;
-}
-.t-val b {
-  font-size: 26px;
-  font-weight: 700;
-}
-.t-val span {
-  font-size: 12px;
-  color: var(--mut);
-  margin-left: 2px;
-}
-.t-sub {
-  font-size: 11px;
-  color: var(--faint);
-  margin-top: 2px;
 }
 .subject {
   display: flex;

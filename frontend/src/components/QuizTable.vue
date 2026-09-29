@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { rateColor } from '@/api/quiz'
 import type { QuizSummary } from '@/types'
 
@@ -141,6 +141,16 @@ function textOn(bg: string): string {
 function surname(q: QuizSummary): string {
   return (q.studentName ?? '').trim().split(/[\s　]+/)[0] ?? ''
 }
+/** 絞り込み欄は既定で折りたたみ。折りたたみ中は現在の条件を要約して表示する */
+const filtersOpen = ref(false)
+const filterSummary = computed(() => {
+  const parts: string[] = []
+  parts.push(filter.status.length ? filter.status.map((k) => STATUS_LABEL.value[k]).join('・') : 'すべてのステータス')
+  if (filter.book) parts.push(filter.book)
+  if (filter.period !== 'all') parts.push({ week: '直近1週間', month: '直近1ヶ月', quarter: '直近3ヶ月' }[filter.period])
+  if (filter.q.trim()) parts.push(`「${filter.q.trim()}」`)
+  return parts.join(' / ')
+})
 const filtered = computed(() => filter.status.length > 0 || !!filter.book || filter.period !== 'all' || !!filter.q.trim())
 function clearFilters() {
   filter.status = []
@@ -166,15 +176,25 @@ function dueClass(q: QuizSummary): string {
 
 <template>
   <div class="qt">
-    <!-- 絞り込み: ステータス（件数つきバッジ）・教材・出題日・キーワード・並び順 -->
+    <!-- 絞り込み: 既定は折りたたみ。ステータス（複数選択）・教材・出題日・キーワード・並び順 -->
     <div class="filters">
-      <div class="status-tabs">
+      <div class="filter-head">
+        <button class="ftoggle" :class="{ on: filtersOpen }" @click="filtersOpen = !filtersOpen">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z" /></svg>
+          絞り込み
+          <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+        <span class="fsum">{{ filterSummary }}</span>
+        <button v-if="filtered" class="clear" @click="clearFilters">解除</button>
+        <span class="cnt">{{ rows.length }} / {{ quizzes.length }}件</span>
+      </div>
+      <div v-if="filtersOpen" class="status-tabs">
         <button class="st all" :class="{ on: !filter.status.length }" @click="filter.status = []">すべて<span class="n">{{ quizzes.length }}</span></button>
         <button v-for="k in STATUS_ORDER" :key="k" class="st" :class="[k, { on: filter.status.includes(k) }]" @click="toggleStatus(k)">
           {{ STATUS_LABEL[k] }}<span class="n">{{ counts[k] }}</span>
         </button>
       </div>
-      <div class="filter-row">
+      <div v-if="filtersOpen" class="filter-row">
         <select v-model="filter.book" class="sel">
           <option value="">すべての教材</option>
           <option v-for="b in books" :key="b" :value="b">{{ b }}</option>
@@ -192,8 +212,6 @@ function dueClass(q: QuizSummary): string {
           <option value="rateDesc">並び: 得点率が高い順</option>
         </select>
         <input v-model="filter.q" class="search" type="search" placeholder="タイトル・メモ・教材で検索" />
-        <button v-if="filtered" class="clear" @click="clearFilters">絞り込みを解除</button>
-        <span class="cnt">{{ rows.length }} / {{ quizzes.length }}件</span>
       </div>
     </div>
 
@@ -285,6 +303,45 @@ function dueClass(q: QuizSummary): string {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+.filter-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.ftoggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #e3e6ea;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mut);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ftoggle.on {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
+}
+.ftoggle .chev {
+  transition: transform 0.15s;
+}
+.ftoggle.on .chev {
+  transform: rotate(180deg);
+}
+.fsum {
+  font-size: 11.5px;
+  color: var(--faint);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .status-tabs {
   display: flex;
