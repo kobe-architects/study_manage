@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import AnnotationEditor from '@/components/AnnotationEditor.vue'
 import AuthImage from '@/components/AuthImage.vue'
 import PdfThumb from '@/components/PdfThumb.vue'
@@ -125,6 +125,8 @@ function onDocTouchMove(e: TouchEvent) {
 }
 async function openFs() {
   if (!page.value?.hasAnswer) return
+  // PC のエディタで自動保存待ちの変更があれば先に保存してから全画面のエディタに切り替える（切替で失われないように）
+  if (!(await flushAnnotations())) return
   fsOpen.value = true
   fsReady.value = false
   lockPage()
@@ -137,13 +139,14 @@ async function closeFs() {
   if (closing.value) return
   if (dirty.value && editor.value) {
     closing.value = true
-    saving.value = true
+    let ok = false
     try {
-      await flushAnnotations()
+      ok = await flushAnnotations()
     } finally {
-      saving.value = false
       closing.value = false
     }
+    // 保存に失敗したときは添削を捨てずに全画面のまま残す
+    if (!ok && !confirm('添削の保存に失敗しました。保存せずに閉じますか？（描いた内容は失われます）')) return
   }
   fsOpen.value = false
   fsReady.value = false
@@ -151,7 +154,7 @@ async function closeFs() {
 }
 /** 全画面中に未保存の添削があるままページを閉じようとしたら確認する */
 function onBeforeUnload(e: BeforeUnloadEvent) {
-  if (fsOpen.value && dirty.value) {
+  if (dirty.value || pending.size > 0) {
     e.preventDefault()
     e.returnValue = ''
   }
@@ -240,47 +243,90 @@ watch(pageIdx, async () => {
   syncForm()
 })
 
-/** 未保存の添削があれば保存を完了させる（自動保存の flush） */
-let saveTask: Promise<void> | null = null
-async function flushAnnotations() {
-  if (!dirty.value || !editor.value) return
-  await editor.value.save()
-  if (saveTask) await saveTask
+/**
+ * 未保存の添削があれば保存を完了させる（自動保存の flush）。成功したら true。
+ * 保存のアップロード中にさらに描かれた分は markSaved() で dirty のまま残るので、きれいになるまで繰り返す。
+ */
+async function flushAnnotations(): Promise<boolean> {
+  for (let i = 0; i < 5 && dirty.value && editor.value; i++) {
+    await editor.value.save()
+    await settle()
+  }
+  await settle()
+  return !lastSaveFailed
+}
+/** 進行中の保存がすべて終わるまで待つ */
+async function settle() {
+  while (pending.size > 0) await Promise.allSettled([...pending])
 }
 
 async function gotoPage(i: number) {
   if (i === pageIdx.value || !quiz.value || i < 0 || i >= quiz.value.pages.length) return
-  await flushAnnotations()
-  dirty.value = false
-  pageIdx.value = i
+  if (switching.value) return
+  switching.value = true
+  try {
+    // 保存できなかった添削を捨ててページを変えない
+    if (!(await flushAnnotations())) return
+    dirty.value = false
+    pageIdx.value = i
+  } finally {
+    switching.value = false
+  }
 }
+/** ページ切替中（全画面では保存中のモーダルを出して描き足せないようにする） */
+const switching = ref(false)
 
-// ---- 添削の保存（エディタから自動保存で呼ばれる） ----
-async function onSave(doc: AnnotationDoc, blob: Blob) {
-  if (!quiz.value || !page.value) return
-  const task = (async () => {
+// ---- 添削の保存（エディタの自動保存・flush から呼ばれる） ----
+/** 進行中の保存タスク。ページごとに直列化し、flush はこれが空になるのを待つ */
+const pending = new Set<Promise<void>>()
+let chain: Promise<void> = Promise.resolve()
+let lastSaveFailed = false
+async function onSave(doc: AnnotationDoc, blob: Blob, pageKey: number | undefined) {
+  const q = quiz.value
+  // エディタが属するページ（切替直後に古いエディタから届いた保存も正しいページへ書く）
+  const pageId = pageKey ?? page.value?.id
+  if (!q || pageId === undefined) return
+  const run = async () => {
     saving.value = true
     try {
-      await quizApi.saveAnnotations(quiz.value!.id, page.value!.id, doc, blob)
-      const fresh = await quizApi.show(quiz.value!.id)
-      // 現在ページの注釈だけ差し替える（エディタの再読込を避ける）
-      const updated = fresh.pages[pageIdx.value]
-      if (updated && quiz.value!.pages[pageIdx.value]) {
-        quiz.value!.pages[pageIdx.value]!.hasAnnotated = updated.hasAnnotated
-        quiz.value!.pages[pageIdx.value]!.annotatedVersion = updated.annotatedVersion
-        quiz.value!.pages[pageIdx.value]!.annotations = doc
+      const updated = await quizApi.saveAnnotations(q.id, pageId, doc, blob)
+      const local = q.pages.find((x) => x.id === pageId)
+      if (local) {
+        local.hasAnnotated = updated.hasAnnotated
+        local.annotatedVersion = updated.annotatedVersion
+        // 保存した内容をローカルにも反映（同じ内容ならエディタは再読込しない）
+        local.annotations = doc
       }
-      editor.value?.markSaved()
-      dirty.value = editor.value?.isDirty() ?? false
+      lastSaveFailed = false
+      // 表示中のエディタがこのページのものなら保存済みにする（切替後の別ページのエディタには触らない）
+      if (page.value?.id === pageId && editor.value) {
+        editor.value.markSaved()
+        dirty.value = editor.value.isDirty()
+      }
     } catch {
+      lastSaveFailed = true
       ui.notify('添削の保存に失敗しました')
-    } finally {
-      saving.value = false
     }
-  })()
-  saveTask = task
-  await task
+  }
+  // 同じページへの保存が前後しないよう直列に実行する
+  const task = chain.then(run, run)
+  chain = task
+  pending.add(task)
+  try {
+    await task
+  } finally {
+    pending.delete(task)
+    saving.value = pending.size > 0
+  }
 }
+
+// ページ離脱時（一覧へ戻る等）も未保存の添削を保存してから移動する
+onBeforeRouteLeave(async () => {
+  if (fsOpen.value) unlockPage()
+  if (!dirty.value && pending.size === 0) return true
+  const ok = await flushAnnotations()
+  return ok || confirm('添削の保存に失敗しました。保存せずに移動しますか？（描いた内容は失われます）')
+})
 
 // ---- 採点（○△× のみ。点数はサーバー側でマークから自動設定される） ----
 const hasVocab = computed(() => quiz.value?.pages.some((p) => p.kind === 'vocab') ?? false)
@@ -315,7 +361,7 @@ async function saveGrade() {
 
 async function finish() {
   if (!quiz.value) return
-  await flushAnnotations()
+  if (!(await flushAnnotations())) return
   if (!scoreEntered.value || !quiz.value.scoreEntered) {
     // 採点が未入力ならモーダルで警告する
     warnOpen.value = true
@@ -416,6 +462,7 @@ async function downloadResult() {
           :key="page.id"
           :image-url="answerUrl"
           :model-value="page.annotations"
+          :page-key="page.id"
           :saving="saving"
           toolbar-target="#grade-tools"
           @save="onSave"
@@ -520,7 +567,7 @@ async function downloadResult() {
       <button v-if="hasAnsPane" class="fs-ans-btn" :class="{ on: showAns }" @click="showAns = !showAns">{{ showAns ? '解答を閉じる' : '解答を表示' }}</button>
     </div>
     <!-- 閉じるときの保存中モーダル -->
-    <div v-if="closing" class="fs-saving">
+    <div v-if="closing || (switching && dirty)" class="fs-saving">
       <div class="fs-saving-box">
         <span class="spinner"></span>
         添削を保存しています…
@@ -536,6 +583,7 @@ async function downloadResult() {
             :key="'fs' + page.id"
             :image-url="answerUrl"
             :model-value="page.annotations"
+            :page-key="page.id"
             :saving="saving"
             toolbar-target="#fs-tools"
             compact

@@ -16,18 +16,24 @@ import type { AnnotationDoc, AnnotationItem, AnnotationShape } from '@/types'
  */
 type Tool = 'select' | 'pen' | 'eraser' | AnnotationShape | 'text'
 
-const props = defineProps<{
-  imageUrl: string
-  modelValue: AnnotationDoc | null
-  saving?: boolean
-  readonly?: boolean
-  toolbarTarget?: string
-  compact?: boolean
-  fitToContainer?: boolean
-  /** false にすると変更のたびの自動保存をせず、親が save() を呼んだとき（全画面終了時など）だけ保存する */
-  autoSave?: boolean
-}>()
-const emit = defineEmits<{ save: [doc: AnnotationDoc, blob: Blob]; dirty: [boolean] }>()
+// autoSave は Boolean キャストで未指定が false になるため既定値を明示する（PC の自動保存が止まらないように）
+const props = withDefaults(
+  defineProps<{
+    imageUrl: string
+    modelValue: AnnotationDoc | null
+    saving?: boolean
+    readonly?: boolean
+    toolbarTarget?: string
+    compact?: boolean
+    fitToContainer?: boolean
+    /** false にすると変更のたびの自動保存をせず、親が save() を呼んだとき（全画面終了時など）だけ保存する */
+    autoSave?: boolean
+    /** 保存イベントに付けて返す識別子（ページ ID など）。保存完了前にページを切り替えても親が正しいページへ保存できる */
+    pageKey?: number
+  }>(),
+  { autoSave: true },
+)
+const emit = defineEmits<{ save: [doc: AnnotationDoc, blob: Blob, pageKey: number | undefined]; dirty: [boolean] }>()
 
 const TOOLS: { key: Tool; label: string; icon: string }[] = [
   { key: 'select', label: '選択', icon: 'M5 3l14 8-6 2-3 6z' },
@@ -117,7 +123,11 @@ watch(
   (v) => {
     // 自動保存した内容が親から戻ってきただけ（中身が同じ）なら再読込しない
     // （再読込すると履歴が消えて「元に戻す」が効かなくなる）
-    if (JSON.stringify(v?.items ?? []) === JSON.stringify(items.value)) return
+    const incoming = JSON.stringify(v?.items ?? [])
+    if (incoming === JSON.stringify(items.value)) return
+    // 保存中にさらに描いた場合、保存した時点の内容が戻ってくる（中身は古い）。
+    // それで再読込すると保存後に描いた分が消えてしまうので無視する（差分は markSaved() で再保存される）
+    if (incoming === lastSavedSnapshot) return
     loadItems()
   },
 )
@@ -798,6 +808,8 @@ function onDblClick(e: MouseEvent) {
 let lastSavedSnapshot = ''
 async function save() {
   if (!img.value) return
+  // 同じ内容の保存が進行中なら二重に送らない（ページ切替時の flush など）
+  if (props.saving && JSON.stringify(items.value) === lastSavedSnapshot) return
   const c = document.createElement('canvas')
   c.width = W.value
   c.height = H.value
@@ -807,12 +819,15 @@ async function save() {
   const blob = await new Promise<Blob>((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error('export'))), 'image/jpeg', 0.86))
   const doc: AnnotationDoc = { version: 1, width: W.value, height: H.value, items: JSON.parse(JSON.stringify(items.value)) }
   lastSavedSnapshot = JSON.stringify(items.value)
-  emit('save', doc, blob)
+  emit('save', doc, blob, props.pageKey)
 }
-/** 保存完了通知。保存後にさらに変更されていた場合は dirty のままにして再保存を予約する */
+/**
+ * 保存完了通知。保存後にさらに変更されていた場合は dirty のままにする
+ * （自動保存なら再保存を予約、全画面（autoSave=false）なら親の flush が dirty を見て再保存する）
+ */
 function markSaved() {
   if (JSON.stringify(items.value) === lastSavedSnapshot) setDirty(false)
-  else scheduleSave()
+  else if (props.autoSave !== false) scheduleSave()
 }
 defineExpose({ save, markSaved, isDirty: () => dirty.value, zoomBy, fit, zoom })
 

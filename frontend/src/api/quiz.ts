@@ -1,5 +1,5 @@
 import client from '@/api/client'
-import type { AnnotationDoc, BookPdf, PdfPageMap, QuizBook, QuizDetail, QuizPageSpec, QuizRow, QuizStats, QuizSummary, StudyResource, Vocabulary } from '@/types'
+import type { AnnotationDoc, BookPdf, PdfPageMap, QuizBook, QuizDetail, QuizPageDetail, QuizPageSpec, QuizRow, QuizStats, QuizSummary, StudyResource, Vocabulary } from '@/types'
 
 /** API プレフィックス。家庭教師ログイン時は /tutor 配下の生徒スコープ API を使う */
 function p(): string {
@@ -216,11 +216,13 @@ export const quizApi = {
   },
 
   // ===== 添削・採点（講師） =====
-  async saveAnnotations(quizId: number, pageId: number, annotations: AnnotationDoc | null, image: Blob | null): Promise<void> {
+  /** 保存後のページ情報（hasAnnotated / annotatedVersion など）を返す */
+  async saveAnnotations(quizId: number, pageId: number, annotations: AnnotationDoc | null, image: Blob | null): Promise<QuizPageDetail> {
     const fd = new FormData()
     fd.append('annotations', annotations ? JSON.stringify(annotations) : '')
     if (image) fd.append('image', image, 'annotated.jpg')
-    await client.post(`${p()}/quizzes/${quizId}/pages/${pageId}/annotations`, fd)
+    const { data } = await client.post(`${p()}/quizzes/${quizId}/pages/${pageId}/annotations`, fd)
+    return data.data
   },
 
   /** ページごとのコメント（生徒に表示） */
