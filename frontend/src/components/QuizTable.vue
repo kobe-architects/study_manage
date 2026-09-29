@@ -191,11 +191,14 @@ function dueClass(q: QuizSummary): string {
     </div>
 
     <div v-for="g in groups" :key="g.name" class="tbl-wrap">
-      <div class="subj"><span class="subj-badge" :style="{ background: g.color, color: textOn(g.color) }">{{ g.name }}</span><span class="subj-n">{{ g.rows.length }}件</span></div>
       <table class="tbl">
         <thead>
           <tr>
-            <th class="c-actions"></th>
+            <!-- 科目はテーブル左上（操作列の見出し位置）にバッジで表示 -->
+            <th class="c-actions subj">
+              <span class="subj-badge" :style="{ background: g.color, color: textOn(g.color) }">{{ g.name }}</span>
+              <span class="subj-n">{{ g.rows.length }}件</span>
+            </th>
             <th class="c-status">ステータス</th>
             <th class="c-date">出題日</th>
             <th class="c-book">教材</th>
@@ -370,13 +373,12 @@ function dueClass(q: QuizSummary): string {
   border-radius: 14px;
   overflow-x: auto;
 }
-.subj {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #fff;
-  border-bottom: 1px solid var(--line);
+.tbl th.subj {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.subj-badge + .subj-n {
+  margin-left: 8px;
 }
 .subj-badge {
   display: inline-block;
