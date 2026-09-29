@@ -1,5 +1,6 @@
 // 個別学習データ／関連問題の「画面出力＋PDF印刷」共通ヘルパー。
 // 新規ウィンドウに一覧を表示し、印刷ボタン（→ ブラウザのPDF保存）を備える。
+import { showHtml, useInAppViewer } from '@/lib/docViewer'
 
 export interface PrintColumn {
   label: string
@@ -97,6 +98,11 @@ function buildHtml(o: PrintListOptions): string {
 
 /** 一覧を新規ウィンドウで画面表示する（印刷ボタンでPDF保存可能）。成功時 true。 */
 export function openListPrint(o: PrintListOptions): boolean {
+  // ホーム画面から起動したアプリでは別ウィンドウが使えないため、アプリ内のビューアで表示する
+  if (useInAppViewer) {
+    showHtml(buildHtml(o), o.title)
+    return true
+  }
   const win = window.open('', '_blank')
   if (!win) return false
   win.document.write(buildHtml(o))

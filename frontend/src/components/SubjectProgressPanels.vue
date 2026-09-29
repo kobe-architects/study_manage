@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { hexA, parseDate, pct } from '@/lib/design'
+import { isTouch } from '@/lib/native'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
 import { STUDY_TYPES, type StudyItemRow, type StudyType } from '@/types'
@@ -15,6 +16,13 @@ const props = defineProps<{
 
 const study = useStudyStore()
 const ui = useUiStore()
+
+/** タッチ端末: 大分類の行をタップすると中分類の内訳をその場に開く（マウスではホバーで表示） */
+const openMajor = ref<string | null>(null)
+function toggleMajor(key: string) {
+  if (!isTouch) return
+  openMajor.value = openMajor.value === key ? null : key
+}
 
 interface TypeAgg {
   done: number
@@ -209,15 +217,24 @@ function fmtMd(isoDate: string) {
         </div>
 
         <div class="majors">
-          <div v-for="m in s.majors" :key="m.name" class="major-row">
-            <span class="m-name">{{ m.name }}</span>
+          <div
+            v-for="m in s.majors"
+            :key="m.name"
+            class="major-row"
+            :class="{ open: openMajor === s.id + ':' + m.name, tappable: isTouch && m.mids.length }"
+            @click="m.mids.length && toggleMajor(s.id + ':' + m.name)"
+          >
+            <span class="m-name">
+              <svg v-if="isTouch && m.mids.length" class="m-chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+              {{ m.name }}
+            </span>
             <div class="m-bar track">
               <div :style="{ height: '100%', width: m.pct + '%', background: s.color, borderRadius: '99px' }"></div>
             </div>
             <span class="m-num dm">{{ m.pct }}%</span>
             <span class="m-cnt">{{ m.done }}/{{ m.totalBoth }}</span>
 
-            <!-- ホバーで中分類別の内訳を表示 -->
+            <!-- ホバー（タッチ端末ではタップ）で中分類別の内訳を表示 -->
             <div v-if="m.mids.length" class="mid-pop">
               <div class="mid-pop-title">{{ m.name }} の内訳（中分類別）</div>
               <div class="mid-pop-rows">
@@ -373,6 +390,37 @@ function fmtMd(isoDate: string) {
 }
 .major-row:hover .mid-pop {
   display: block;
+}
+/* タッチ端末: タップした行の下にその場で開く（ポップアップだと指で隠れ、閉じにくいため） */
+.major-row.tappable {
+  cursor: pointer;
+}
+.major-row.open {
+  flex-wrap: wrap;
+  background: #f6f8fb;
+}
+.major-row.open .mid-pop {
+  display: block;
+  position: static;
+  flex-basis: 100%;
+  margin: 4px 0 2px;
+  box-shadow: none;
+  animation: midOpen 0.22s ease;
+}
+@keyframes midOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.m-chev {
+  vertical-align: -1px;
+  margin-right: 2px;
+  color: var(--faint);
+  transition: transform 0.2s ease;
+}
+.major-row.open .m-chev {
+  transform: rotate(90deg);
 }
 .mid-pop-title {
   font-size: 11px;

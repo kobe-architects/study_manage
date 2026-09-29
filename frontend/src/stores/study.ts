@@ -1,6 +1,7 @@
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import client from '@/api/client'
 import type { Assignment, CalendarEvent, Goal, GoalItemDetail, GoalLinkBook, RecordListItem, RecordStats, ReviewItem, StudyItemRow, StudyType } from '@/types'
+import { saveFile } from '@/lib/native'
 
 /**
  * API プレフィックス。家庭教師ログイン時は /tutor 配下の生徒スコープ API を使う。
@@ -102,12 +103,7 @@ export const useStudyStore = defineStore('study', {
     /** 学習記録（期間指定）を Excel でダウンロード */
     async downloadRecordExport(from: string, to: string, filename: string) {
       const res = await client.get('/records/export', { params: { from, to }, responseType: 'blob' })
-      const blobUrl = URL.createObjectURL(res.data)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = filename
-      a.click()
-      URL.revokeObjectURL(blobUrl)
+      await saveFile(res.data, filename)
     },
 
     async deleteRecord(id: number) {

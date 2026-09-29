@@ -1,6 +1,7 @@
 import { acceptHMRUpdate, defineStore } from 'pinia'
 import client from '@/api/client'
 import type { RecordColor, RelatedProblemRow, ResourceBook, ResourceBookRow, StudyType } from '@/types'
+import { saveFile } from '@/lib/native'
 
 interface State {
   activeType: StudyType
@@ -194,12 +195,7 @@ export const useResourceStore = defineStore('resource', {
     /** Excel テンプレート / エクスポートのダウンロード */
     async download(path: string, filename: string) {
       const res = await client.get(path, { responseType: 'blob' })
-      const blobUrl = URL.createObjectURL(res.data)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = filename
-      a.click()
-      URL.revokeObjectURL(blobUrl)
+      await saveFile(res.data, filename)
     },
   },
 })

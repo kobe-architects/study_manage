@@ -8,6 +8,7 @@ import { useResourceStore } from '@/stores/resource'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
 import { STUDY_TYPES, type RecordColor, type RelatedProblemRow, type ResourceBook, type ResourceBookRow, type StudyDate, type StudyType } from '@/types'
+import { appConfirm } from '@/lib/dialog'
 
 const resource = useResourceStore()
 const study = useStudyStore()
@@ -76,7 +77,7 @@ async function saveBook() {
   bookModal.open = false
 }
 async function delBook(b: ResourceBook) {
-  if (!confirm(`「${b.title}」を削除しますか？（含まれる行・学習記録も削除されます）`)) return
+  if (!(await appConfirm(`「${b.title}」を削除しますか？\n（含まれる行・学習記録も削除されます）`, { danger: true, okText: '削除' }))) return
   await resource.deleteBook(b.id)
   ui.notify('削除しました')
 }
@@ -406,7 +407,7 @@ async function printRelatedProblems() {
 }
 
 async function delRow(r: ResourceBookRow) {
-  if (!confirm('この行を削除しますか？')) return
+  if (!(await appConfirm('この行を削除しますか？', { danger: true, okText: '削除' }))) return
   await resource.deleteRow(r.id)
   ui.notify('行を削除しました')
 }
@@ -635,7 +636,7 @@ async function saveRow() {
 <template>
   <div class="resource-view">
     <!-- タブ -->
-    <div class="seg" style="margin-bottom: 16px">
+    <div v-seg class="seg" style="margin-bottom: 16px">
       <button v-for="t in STUDY_TYPES" :key="t" class="seg-btn" :class="{ on: resource.activeType === t }" @click="switchTab(t)">
         {{ TAB_LABEL[t] }}
       </button>
@@ -717,7 +718,7 @@ async function saveRow() {
     <!-- 行テーブル / 進捗対象の設定 -->
     <div v-if="resource.activeBookId" class="card" style="overflow: hidden">
       <div class="tbl-toolbar">
-        <div class="seg seg-sm">
+        <div v-seg class="seg seg-sm">
           <button class="seg-btn" :class="{ on: rowView === 'list' }" @click="rowView = 'list'">一覧</button>
           <button class="seg-btn" :class="{ on: rowView === 'target' }" @click="rowView = 'target'">進捗対象の設定</button>
         </div>
@@ -876,129 +877,137 @@ async function saveRow() {
     </div>
 
     <!-- PDF 紐づけモーダル -->
-    <BookPdfManager v-if="pdfMgr.open" :book-id="pdfMgr.bookId" :book-title="pdfMgr.bookTitle" @close="pdfMgr.open = false" />
+    <Transition name="ui-modal">
+      <BookPdfManager v-if="pdfMgr.open" :book-id="pdfMgr.bookId" :book-title="pdfMgr.bookTitle" @close="pdfMgr.open = false" />
+    </Transition>
 
     <!-- 教材モーダル -->
     <Teleport to="body">
-    <div v-if="bookModal.open" class="modal-bg" @click.self="bookModal.open = false">
-      <div class="modal">
-        <div class="modal-title">{{ bookModal.id ? '一覧を編集' : `新規${TAB_LABEL[resource.activeType]}` }}</div>
-        <label class="fld"><span>タイトル</span><input v-model="bookModal.title" placeholder="例: Focus Gold 数学I+数学A" /></label>
-        <label class="fld"><span>科目</span>
-          <select v-model="bookModal.subjectId">
-            <option :value="null">未設定</option>
-            <option v-for="s in subjectOptions" :key="s.id" :value="s.id">{{ s.name }}</option>
-          </select>
-        </label>
-        <div class="modal-actions">
-          <button class="btn-out" @click="bookModal.open = false">キャンセル</button>
-          <button class="btn-dark" @click="saveBook">保存</button>
+    <Transition name="ui-modal">
+      <div v-if="bookModal.open" class="modal-bg ui-overlay ui-sheet ui-swipe" @click.self="bookModal.open = false">
+        <div class="modal ui-panel">
+          <div class="modal-title">{{ bookModal.id ? '一覧を編集' : `新規${TAB_LABEL[resource.activeType]}` }}</div>
+          <label class="fld"><span>タイトル</span><input v-model="bookModal.title" placeholder="例: Focus Gold 数学I+数学A" /></label>
+          <label class="fld"><span>科目</span>
+            <select v-model="bookModal.subjectId">
+              <option :value="null">未設定</option>
+              <option v-for="s in subjectOptions" :key="s.id" :value="s.id">{{ s.name }}</option>
+            </select>
+          </label>
+          <div class="modal-actions">
+            <button class="btn-out" @click="bookModal.open = false">キャンセル</button>
+            <button class="btn-dark" @click="saveBook">保存</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
     </Teleport>
 
     <!-- 学習記録 管理モーダル -->
     <Teleport to="body">
-    <div v-if="recModal.open" class="modal-bg" @click.self="recModal.open = false">
-      <div class="modal rec-modal">
-        <div class="modal-title">学習記録の管理</div>
-        <div style="font-size: 12.5px; color: var(--mut); margin-top: -4px">
-          {{ recModal.row?.title ?? recModal.row?.sub ?? '' }}
-          <span v-if="recModal.row?.sub" style="color: var(--faint)"> ｜ {{ recModal.row?.subjectName }}›{{ recModal.row?.major }}›{{ recModal.row?.mid }}›{{ recModal.row?.sub }}</span>
-        </div>
-        <div style="max-height: 220px; overflow-y: auto; border: 1px solid #eceef0; border-radius: 10px">
-          <div v-if="recModal.loading" style="padding: 20px; text-align: center; color: var(--faint); font-size: 13px">読み込み中…</div>
-          <div v-else-if="!recModal.records.length" style="padding: 20px; text-align: center; color: var(--faint); font-size: 13px">学習記録はありません</div>
-          <div v-for="rec in recModal.records" v-else :key="rec.id" class="rec-row">
-            <span style="font-size: 13px; display: inline-flex; align-items: center; gap: 9px">
-              <span class="rec-dot-static" :style="{ background: dateColorHex(rec.color) }"></span>
-              <span :style="{ color: dateColorHex(rec.color), fontWeight: rec.color ? 600 : 400 }">{{ rec.studiedOn }}</span>
-              <span v-if="rec.reviewOn" class="review-pill">復習 {{ fmtMd(rec.reviewOn) }}</span>
-            </span>
-            <button class="mini danger" @click="deleteRecordInModal(rec.id)">削除</button>
+    <Transition name="ui-modal">
+      <div v-if="recModal.open" class="modal-bg ui-overlay ui-sheet ui-swipe" @click.self="recModal.open = false">
+        <div class="modal rec-modal ui-panel">
+          <div class="modal-title">学習記録の管理</div>
+          <div style="font-size: 12.5px; color: var(--mut); margin-top: -4px">
+            {{ recModal.row?.title ?? recModal.row?.sub ?? '' }}
+            <span v-if="recModal.row?.sub" style="color: var(--faint)"> ｜ {{ recModal.row?.subjectName }}›{{ recModal.row?.major }}›{{ recModal.row?.mid }}›{{ recModal.row?.sub }}</span>
           </div>
-        </div>
-
-        <!-- 記録の追加（学習日・色・復習期限を設定） -->
-        <div class="rec-form-head">記録を追加</div>
-        <div class="rec-form">
-          <div class="rec-form-row">
-            <label class="fld" style="flex: 1"><span>学習日</span><input v-model="recModal.date" type="date" /></label>
-            <div class="fld" style="flex: 0 0 auto">
-              <span>色</span>
-              <div style="display: flex; align-items: center; gap: 8px; height: 37px">
-                <button
-                  class="rec-dot none"
-                  :class="{ sel: recModal.color === null }"
-                  title="色なし"
-                  @click="recModal.color = null"
-                ></button>
-                <button
-                  v-for="c in RECORD_COLOR_KEYS"
-                  :key="c"
-                  class="rec-dot"
-                  :class="{ sel: recModal.color === c }"
-                  :style="{ background: DATE_COLORS[c] }"
-                  :title="COLOR_LABEL[c]"
-                  @click="recModal.color = c"
-                ></button>
+          <div style="max-height: 220px; overflow-y: auto; border: 1px solid #eceef0; border-radius: 10px">
+            <div v-if="recModal.loading" style="padding: 20px; text-align: center; color: var(--faint); font-size: 13px">読み込み中…</div>
+            <div v-else-if="!recModal.records.length" style="padding: 20px; text-align: center; color: var(--faint); font-size: 13px">学習記録はありません</div>
+            <div v-for="rec in recModal.records" v-else :key="rec.id" class="rec-row">
+              <span style="font-size: 13px; display: inline-flex; align-items: center; gap: 9px">
+                <span class="rec-dot-static" :style="{ background: dateColorHex(rec.color) }"></span>
+                <span :style="{ color: dateColorHex(rec.color), fontWeight: rec.color ? 600 : 400 }">{{ rec.studiedOn }}</span>
+                <span v-if="rec.reviewOn" class="review-pill">復習 {{ fmtMd(rec.reviewOn) }}</span>
+              </span>
+              <button class="mini danger" @click="deleteRecordInModal(rec.id)">削除</button>
+            </div>
+          </div>
+  
+          <!-- 記録の追加（学習日・色・復習期限を設定） -->
+          <div class="rec-form-head">記録を追加</div>
+          <div class="rec-form">
+            <div class="rec-form-row">
+              <label class="fld" style="flex: 1"><span>学習日</span><input v-model="recModal.date" type="date" /></label>
+              <div class="fld" style="flex: 0 0 auto">
+                <span>色</span>
+                <div style="display: flex; align-items: center; gap: 8px; height: 37px">
+                  <button
+                    class="rec-dot none"
+                    :class="{ sel: recModal.color === null }"
+                    title="色なし"
+                    @click="recModal.color = null"
+                  ></button>
+                  <button
+                    v-for="c in RECORD_COLOR_KEYS"
+                    :key="c"
+                    class="rec-dot"
+                    :class="{ sel: recModal.color === c }"
+                    :style="{ background: DATE_COLORS[c] }"
+                    :title="COLOR_LABEL[c]"
+                    @click="recModal.color = c"
+                  ></button>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="fld">
-            <span>復習期限</span>
-            <div class="review-opts">
-              <button
-                v-for="(opt, i) in REVIEW_OPTIONS"
-                :key="opt.label"
-                class="review-chip"
-                :class="{ on: recModal.reviewIdx === i }"
-                @click="recModal.reviewIdx = i"
-              >{{ opt.label }}</button>
-              <input
-                v-if="REVIEW_OPTIONS[recModal.reviewIdx].kind === 'custom'"
-                v-model.number="recModal.customDays"
-                type="number"
-                min="1"
-                class="review-custom"
-                placeholder="日数"
-              />
+            <div class="fld">
+              <span>復習期限</span>
+              <div class="review-opts">
+                <button
+                  v-for="(opt, i) in REVIEW_OPTIONS"
+                  :key="opt.label"
+                  class="review-chip"
+                  :class="{ on: recModal.reviewIdx === i }"
+                  @click="recModal.reviewIdx = i"
+                >{{ opt.label }}</button>
+                <input
+                  v-if="REVIEW_OPTIONS[recModal.reviewIdx].kind === 'custom'"
+                  v-model.number="recModal.customDays"
+                  type="number" inputmode="numeric"
+                  min="1"
+                  class="review-custom"
+                  placeholder="日数"
+                />
+              </div>
+              <span style="font-size: 11px; color: var(--faint); font-weight: 400; margin-top: 4px">
+                {{ reviewPreview }}
+              </span>
             </div>
-            <span style="font-size: 11px; color: var(--faint); font-weight: 400; margin-top: 4px">
-              {{ reviewPreview }}
-            </span>
           </div>
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn-out" @click="recModal.open = false">閉じる</button>
-          <button class="btn-dark" @click="addRecordInModal">＋ 記録を追加</button>
+  
+          <div class="modal-actions">
+            <button class="btn-out" @click="recModal.open = false">閉じる</button>
+            <button class="btn-dark" @click="addRecordInModal">＋ 記録を追加</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
     </Teleport>
 
     <!-- 行モーダル -->
     <Teleport to="body">
-    <div v-if="rowModal.open" class="modal-bg" @click.self="rowModal.open = false">
-      <div class="modal">
-        <div class="modal-title">{{ rowModal.id ? '行を編集' : '行を追加' }}</div>
-        <label class="fld"><span>タイトル</span><input v-model="rowModal.title" placeholder="例: 整式の整理" /></label>
-        <label class="fld"><span>小分類名（紐づけ先）</span><input v-model="rowModal.sub" placeholder="例: 整式の計算・因数分解" /></label>
-        <div style="display: flex; gap: 10px">
-          <label class="fld" style="flex: 1"><span>章</span><input v-model="rowModal.chapter" /></label>
-          <label class="fld" style="width: 90px"><span>番号</span><input v-model="rowModal.seqNo" /></label>
-          <label class="fld" style="width: 90px"><span>難易度</span><input v-model="rowModal.difficulty" placeholder="*" /></label>
-          <label v-if="visibleCols.check" class="fld" style="width: 90px"><span>Check</span><input v-model="rowModal.checkFlag" /></label>
-        </div>
-        <div style="font-size: 11px; color: var(--faint); margin-top: 4px">科目は教材の科目「{{ resource.activeBook?.subjectName ?? '未設定' }}」を使います。</div>
-        <div class="modal-actions">
-          <button class="btn-out" @click="rowModal.open = false">キャンセル</button>
-          <button class="btn-dark" @click="saveRow">{{ rowModal.id ? '保存' : '追加' }}</button>
+    <Transition name="ui-modal">
+      <div v-if="rowModal.open" class="modal-bg ui-overlay ui-sheet ui-swipe" @click.self="rowModal.open = false">
+        <div class="modal ui-panel">
+          <div class="modal-title">{{ rowModal.id ? '行を編集' : '行を追加' }}</div>
+          <label class="fld"><span>タイトル</span><input v-model="rowModal.title" placeholder="例: 整式の整理" /></label>
+          <label class="fld"><span>小分類名（紐づけ先）</span><input v-model="rowModal.sub" placeholder="例: 整式の計算・因数分解" /></label>
+          <div style="display: flex; gap: 10px">
+            <label class="fld" style="flex: 1"><span>章</span><input v-model="rowModal.chapter" /></label>
+            <label class="fld" style="width: 90px"><span>番号</span><input v-model="rowModal.seqNo" /></label>
+            <label class="fld" style="width: 90px"><span>難易度</span><input v-model="rowModal.difficulty" placeholder="*" /></label>
+            <label v-if="visibleCols.check" class="fld" style="width: 90px"><span>Check</span><input v-model="rowModal.checkFlag" /></label>
+          </div>
+          <div style="font-size: 11px; color: var(--faint); margin-top: 4px">科目は教材の科目「{{ resource.activeBook?.subjectName ?? '未設定' }}」を使います。</div>
+          <div class="modal-actions">
+            <button class="btn-out" @click="rowModal.open = false">キャンセル</button>
+            <button class="btn-dark" @click="saveRow">{{ rowModal.id ? '保存' : '追加' }}</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
     </Teleport>
   </div>
 </template>
@@ -1178,9 +1187,18 @@ async function saveRow() {
     max-height: none;
     overflow-x: auto;
     overflow-y: hidden;
+    /* 教材カードは 1 枚ずつ吸い付くように横スクロール */
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 2px;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .book-list::-webkit-scrollbar {
+    display: none;
   }
   .book-card {
-    flex: 0 0 300px;
+    flex: 0 0 min(300px, 84vw);
+    scroll-snap-align: start;
   }
 }
 .book-card.active {

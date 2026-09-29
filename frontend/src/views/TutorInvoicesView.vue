@@ -5,6 +5,7 @@ import { INVOICE_STATUS, hoursLabel, invoiceApi, minToTime, workDateLabel, yen }
 import { renderInvoiceSheet } from '@/lib/invoiceSheet'
 import { useUiStore } from '@/stores/ui'
 import type { InvoiceDetail, InvoiceSummary } from '@/types'
+import { appConfirm } from '@/lib/dialog'
 
 /**
  * 講師用: 請求書管理。
@@ -64,7 +65,7 @@ function applyDetail(d: InvoiceDetail) {
 }
 
 async function doAction(act: 'confirm' | 'confirm-payment', confirmText: string) {
-  if (!cur.value || !confirm(confirmText)) return
+  if (!cur.value || !(await appConfirm(confirmText))) return
   busy.value = true
   try {
     applyDetail(await invoiceApi.action(cur.value.id, act))

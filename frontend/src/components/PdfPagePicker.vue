@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import PdfThumb from '@/components/PdfThumb.vue'
 import { rateColor } from '@/api/quiz'
 import type { BookPdf, QuizPageSpec, QuizRow } from '@/types'
+import { isTouch } from '@/lib/native'
 
 /**
  * 出題ページの選択 UI。
@@ -297,7 +298,7 @@ function showPreview(pdfId: number, page: number | null) {
         </button>
       </div>
       <div class="mode-row">
-        <div class="seg">
+        <div v-seg class="seg">
           <button :class="{ on: mode === 'rows' }" :disabled="!canUseRows" :title="canUseRows ? '' : 'この PDF は番号=ページ対応ではありません'" @click="mode = 'rows'">一覧から選ぶ</button>
           <button :class="{ on: mode === 'pages' }" @click="mode = 'pages'">ページから選ぶ</button>
         </div>
@@ -340,7 +341,7 @@ function showPreview(pdfId: number, page: number | null) {
               class="row"
               :class="{ on: pageOfRow(r) !== null && selectedKeys.has(keyOf(activePdfId, pageOfRow(r)!)), off: pageOfRow(r) === null }"
               @click="toggleRow(r, $event)"
-              @mouseenter="showPreview(activePdfId, pageOfRow(r))"
+              @pointerenter="$event.pointerType === 'mouse' && showPreview(activePdfId, pageOfRow(r))"
             >
               <span class="box">
                 <svg v-if="pageOfRow(r) !== null && selectedKeys.has(keyOf(activePdfId, pageOfRow(r)!))" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7" /></svg>
@@ -370,7 +371,7 @@ function showPreview(pdfId: number, page: number | null) {
             </button>
           </div>
           <div style="display: flex; gap: 6px; align-items: center; margin-left: auto">
-            <input v-model.number="pageJump" class="inp" type="number" min="1" :max="pageCount" placeholder="ページ" style="width: 90px" @keyup.enter="jump" />
+            <input v-model.number="pageJump" class="inp" type="number" inputmode="numeric" min="1" :max="pageCount" placeholder="ページ" style="width: 90px" @keyup.enter="jump" />
             <button class="mini" @click="jump">移動</button>
           </div>
         </div>
@@ -382,7 +383,7 @@ function showPreview(pdfId: number, page: number | null) {
             :class="{ on: selectedKeys.has(keyOf(activePdfId, pg)), hi: preview?.pdfId === activePdfId && preview?.page === pg }"
             :data-page="pg"
             @click="togglePage(pg)"
-            @mouseenter="showPreview(activePdfId, pg)"
+            @pointerenter="$event.pointerType === 'mouse' && showPreview(activePdfId, pg)"
           >
             <PdfThumb v-if="activePdf" :pdf-id="activePdf.id" :page="pg" :width="120" />
             <div class="cell-cap">
@@ -399,7 +400,7 @@ function showPreview(pdfId: number, page: number | null) {
       <!-- プレビュー -->
       <div class="prev card">
         <div class="prev-cap">
-          <span>{{ preview ? previewLabel : 'ページにカーソルを合わせるとプレビューします' }}</span>
+          <span>{{ preview ? previewLabel : isTouch ? 'ページをタップするとプレビューします' : 'ページにカーソルを合わせるとプレビューします' }}</span>
           <button v-if="preview" class="link" style="flex-shrink: 0" @click="zoom = true">拡大</button>
         </div>
         <div class="prev-body" :class="{ clickable: preview }" title="クリックで拡大表示" @click="preview && (zoom = true)">
@@ -414,7 +415,7 @@ function showPreview(pdfId: number, page: number | null) {
           <button v-if="modelValue.length" class="link" @click="emit('update:modelValue', [])">すべて解除</button>
         </div>
         <div v-if="!modelValue.length" class="empty">左の一覧やページをクリックして追加します</div>
-        <div v-for="(s, i) in modelValue" :key="s.key" class="cart-row" :class="{ ref: refTarget === s.key, vocab: isVocab(s) }" @mouseenter="!isVocab(s) && showPreview(s.pdfId ?? 0, s.page ?? null)">
+        <div v-for="(s, i) in modelValue" :key="s.key" class="cart-row" :class="{ ref: refTarget === s.key, vocab: isVocab(s) }" @pointerenter="$event.pointerType === 'mouse' && !isVocab(s) && showPreview(s.pdfId ?? 0, s.page ?? null)" @click="!isVocab(s) && showPreview(s.pdfId ?? 0, s.page ?? null)">
           <span class="num">{{ i + 1 }}</span>
           <div style="flex: 1; min-width: 0">
             <div class="cart-label">{{ s.label }}</div>
@@ -438,10 +439,12 @@ function showPreview(pdfId: number, page: number | null) {
     </div>
 
     <!-- プレビューの拡大表示 -->
-    <div v-if="zoom && preview" class="zoom-overlay" @click="zoom = false">
-      <div class="zoom-cap">{{ previewLabel }}（クリックで閉じる）</div>
-      <PdfThumb :key="'zoom:' + preview.pdfId + ':' + preview.page" class="zoom-thumb" :pdf-id="preview.pdfId" :page="preview.page" :width="1200" eager />
-    </div>
+    <Transition name="ui-modal">
+      <div v-if="zoom && preview" class="zoom-overlay ui-overlay" @click="zoom = false">
+        <div class="zoom-cap">{{ previewLabel }}（クリックで閉じる）</div>
+        <PdfThumb :key="'zoom:' + preview.pdfId + ':' + preview.page" class="zoom-thumb" :pdf-id="preview.pdfId" :page="preview.page" :width="1200" eager />
+      </div>
+    </Transition>
   </div>
 </template>
 

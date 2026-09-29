@@ -106,7 +106,7 @@ function openPrint() {
       </div>
 
       <div style="font-size: 12px; color: var(--mut); font-weight: 600; margin-bottom: 8px">クイズタイプ</div>
-      <div class="seg2" style="max-width: 240px; margin-bottom: 16px">
+      <div v-seg class="seg2" style="max-width: 240px; margin-bottom: 16px">
         <button :class="{ on: quizType === 'choice' }" @click="quizType = 'choice'">4択</button>
         <button :class="{ on: quizType === 'input' }" @click="quizType = 'input'">入力</button>
       </div>
@@ -136,15 +136,17 @@ function openPrint() {
       </div>
     </div>
 
-    <TestSheetPrint
-      v-if="printOpen"
-      :words="words"
-      :all-words="vocab.items"
-      :resource-name="vocab.resource?.name ?? ''"
-      v-model:test-type="printType"
-      v-model:test-format="printFormat"
-      @close="printOpen = false"
-    />
+    <Transition name="ui-modal">
+      <TestSheetPrint
+        v-if="printOpen"
+        :words="words"
+        :all-words="vocab.items"
+        :resource-name="vocab.resource?.name ?? ''"
+        v-model:test-type="printType"
+        v-model:test-format="printFormat"
+        @close="printOpen = false"
+      />
+    </Transition>
   </div>
 </template>
 

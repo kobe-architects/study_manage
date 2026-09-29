@@ -49,8 +49,8 @@ watch(
 </script>
 
 <template>
-  <div class="overlay">
-    <div class="modal">
+  <div class="overlay ui-overlay ui-sheet">
+    <div class="modal ui-panel">
       <div class="head">
         <div>
           <div style="font-size: 16px; font-weight: 700">予定</div>

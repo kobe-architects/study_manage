@@ -14,6 +14,7 @@ import { iso } from '@/lib/design'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import type { BookPdf, QuizBook, QuizPageSpec, QuizRow, QuizStats as QuizStatsT, QuizSummary } from '@/types'
+import { appConfirm } from '@/lib/dialog'
 
 /**
  * 講師用: 小テストの出題・一覧（リスト表示）・分析（実施済み結果の累積表示）。
@@ -71,7 +72,7 @@ async function openPdf(q: QuizSummary) {
 }
 async function remove(q: QuizSummary) {
   const part = q.bookTitle ?? '英単語テスト'
-  if (!confirm(`小テスト「${q.title}」（${part}）を削除しますか？\n提出された回答・採点・添削も削除されます。`)) return
+  if (!(await appConfirm(`小テスト「${q.title}」（${part}）を削除しますか？\n提出された回答・採点・添削も削除されます。`, { danger: true, okText: '削除' }))) return
   try {
     await quizApi.remove(q.id)
     ui.notify('削除しました')
@@ -380,7 +381,7 @@ function setDueIn(days: number) {
             text="出題した小テストは生徒のトップページに表示され、生徒は問題PDFを印刷して回答し、スマホで撮影して提出します。&#10;提出されると「採点・添削待ち」に表示され、「採点・添削する」から画面上で採点・添削できます。&#10;1回の出題に複数の教材・英単語テストを組み合わせた場合、問題PDF・提出・採点は教材ごとに行われます。"
           />
         </div>
-        <div class="seg">
+        <div v-seg class="seg">
           <button :class="{ on: tab === 'list' }" @click="tab = 'list'">一覧</button>
           <button :class="{ on: tab === 'stats' }" @click="tab = 'stats'">分析</button>
         </div>
@@ -396,7 +397,9 @@ function setDueIn(days: number) {
         小テストはまだありません。「小テストを出題」から、PDF を紐づけた教材や英単語テストを選んで出題してください。
       </div>
       <QuizTable v-else :quizzes="quizzes" role="tutor" @pdf="openPdf($event)" @grade="grade($event)" @result="resultId = $event.id" @edit="openWizard($event)" @remove="remove($event)" />
-      <QuizResultModal v-if="resultId !== null" :quiz-id="resultId" @close="resultId = null" />
+      <Transition name="ui-modal">
+        <QuizResultModal v-if="resultId !== null" :quiz-id="resultId" @close="resultId = null" />
+      </Transition>
     </template>
 
     <!-- 分析: 科目ごと → 教材ごとの採点済みデータ -->
@@ -406,127 +409,131 @@ function setDueIn(days: number) {
     </template>
 
     <!-- 出題ウィザード -->
-    <div v-if="wiz.open" class="overlay">
-      <div class="wizard">
-        <div class="wiz-head">
-          <div style="display: flex; align-items: center; gap: 14px; min-width: 0">
-            <div style="font-size: 15px; font-weight: 700; white-space: nowrap">{{ wiz.id === null ? '小テストを出題' : '小テストを編集' }}</div>
-            <div class="steps">
-              <span :class="{ on: wiz.step === 1, done: wiz.step > 1 }">1 設定</span>
-              <span :class="{ on: wiz.step === 2, done: wiz.step > 2 }">2 教材選択</span>
-              <span :class="{ on: wiz.step === 3 }">3 ページ選択</span>
+    <Transition name="ui-modal">
+      <div v-if="wiz.open" class="overlay ui-overlay">
+        <div class="wizard ui-panel">
+          <div class="wiz-head">
+            <div style="display: flex; align-items: center; gap: 14px; min-width: 0">
+              <div style="font-size: 15px; font-weight: 700; white-space: nowrap">{{ wiz.id === null ? '小テストを出題' : '小テストを編集' }}</div>
+              <div class="steps">
+                <span :class="{ on: wiz.step === 1, done: wiz.step > 1 }">1 設定</span>
+                <span :class="{ on: wiz.step === 2, done: wiz.step > 2 }">2 教材選択</span>
+                <span :class="{ on: wiz.step === 3 }">3 ページ選択</span>
+              </div>
             </div>
+            <button class="x" @click="wiz.open = false">×</button>
           </div>
-          <button class="x" @click="wiz.open = false">×</button>
-        </div>
-
-        <div class="wiz-body">
-          <div v-if="wiz.loading" class="hint">読み込み中…</div>
-
-          <!-- Step 1: 設定 -->
-          <template v-else-if="wiz.step === 1">
-            <div class="form">
-              <div style="display: flex; align-items: center; gap: 6px">
-                <span style="font-size: 13px; font-weight: 700">小テストの設定</span>
-                <HelpTip
-                  text="先にタイトルや期限などを設定し、次のステップで出題する教材・ページを選びます。&#10;複数の教材や英単語テストを組み合わせた場合も1つの小テストとしてまとまり、問題PDFのダウンロードや回答の提出は教材ごとに行えます。"
-                />
-              </div>
-              <label class="fld"><span>タイトル（未入力の場合は「{{ defaultTitle }}」）</span><input v-model="wiz.title" :placeholder="defaultTitle" /></label>
-              <label class="fld"><span>期限（任意）</span>
-                <div style="display: flex; gap: 6px; align-items: center">
-                  <input v-model="wiz.dueOn" type="date" style="flex: 1" />
-                  <button class="mini" @click="setDueIn(3)">3日後</button>
-                  <button class="mini" @click="setDueIn(7)">1週間後</button>
+  
+          <div class="wiz-body">
+            <div v-if="wiz.loading" class="hint">読み込み中…</div>
+  
+            <!-- Step 1: 設定 -->
+            <template v-else-if="wiz.step === 1">
+              <div class="form">
+                <div style="display: flex; align-items: center; gap: 6px">
+                  <span style="font-size: 13px; font-weight: 700">小テストの設定</span>
+                  <HelpTip
+                    text="先にタイトルや期限などを設定し、次のステップで出題する教材・ページを選びます。&#10;複数の教材や英単語テストを組み合わせた場合も1つの小テストとしてまとまり、問題PDFのダウンロードや回答の提出は教材ごとに行えます。"
+                  />
                 </div>
-              </label>
-              <label class="fld"><span>生徒へのメモ（任意）</span><textarea v-model="wiz.note" rows="2" placeholder="例: 途中式も書くこと"></textarea></label>
-            </div>
-          </template>
-
-          <!-- Step 2: 教材選択 -->
-          <template v-else-if="wiz.step === 2">
-            <div class="filter-row">
-              <span style="font-size: 12.5px; font-weight: 700">出題する教材を選択</span>
-              <HelpTip text="PDF を紐づけ済みの教材から出題できます（PDF の紐づけは教材データ画面で行います）。教材は複数選べ、教材ごとに別の問題PDF・提出になります。「英単語テスト」も追加できます。" />
-            </div>
-            <div class="frow">
-              <span class="flab">科目</span>
-              <label class="radio"><input v-model="bookFilter.subject" type="radio" value="" />すべて</label>
-              <label v-for="s in bookSubjects" :key="s" class="radio"><input v-model="bookFilter.subject" type="radio" :value="s" />{{ s }}</label>
-            </div>
-            <div class="frow" style="margin-bottom: 12px">
-              <span class="flab">種別</span>
-              <label class="radio"><input v-model="bookFilter.type" type="radio" value="" />すべて</label>
-              <label v-for="t in bookTypes" :key="t" class="radio"><input v-model="bookFilter.type" type="radio" :value="t" />{{ t }}</label>
-            </div>
-            <div class="books">
-              <div v-if="showVocabCard" class="book ok vocab-only" @click="vocabOpen = true">
-                <div class="book-top"><span class="type" style="background: #e6f5ec; color: #2f7a4f">英単語</span></div>
-                <div class="book-title">英単語テストを追加</div>
-                <div class="book-foot"><span class="pdf-ok">LEAP basic などの単語帳から出題</span></div>
-              </div>
-              <div v-for="b in filteredBooks" :key="b.id" class="book ok" :class="{ cur: b.id === wiz.bookId }" @click="chooseBook(b)">
-                <div class="book-top">
-                  <span class="type">{{ b.type }}</span>
-                  <span :style="{ width: '8px', height: '8px', borderRadius: '50%', background: b.colorVivid }"></span>
-                  <span style="font-size: 11px; color: var(--faint)">{{ b.subjectName ?? '科目未設定' }}</span>
-                </div>
-                <div class="book-title">{{ b.title }}</div>
-                <div class="book-foot">
-                  <span class="pdf-ok">PDF {{ b.pdfCount }}件・出題可能</span>
-                  <span style="color: var(--faint)">{{ b.rowCount }}行</span>
-                </div>
-              </div>
-            </div>
-            <div v-if="!filteredBooks.length && !showVocabCard" class="hint" style="margin-top: 10px">絞り込み条件に一致する教材がありません（PDF 紐づけ済みの教材のみ表示されます）。</div>
-
-            <!-- 選択中の出題内容（パートごと） -->
-            <div v-if="wiz.pages.length" style="margin-top: 16px; max-width: 680px">
-              <div class="fld-label">選択中の出題内容（{{ wiz.pages.length }}ページ<template v-if="parts.length > 1">・{{ parts.length }}パート</template>）</div>
-              <div v-for="pt in parts" :key="pt.key" class="part-box">
-                <div class="part-head">{{ pt.label }}<span>{{ pt.pages.length }}ページ</span></div>
-                <div v-for="(p, i) in pt.pages" :key="p.key" class="vrow">
-                  <span class="num" :class="{ vocab: p.kind === 'vocab' }">{{ i + 1 }}</span>
-                  <div style="flex: 1; min-width: 0">
-                    <div style="font-size: 12.5px; font-weight: 600">{{ p.label }}</div>
-                    <div style="font-size: 11px; color: var(--faint)">
-                      <template v-if="p.kind === 'vocab'">{{ p.vocab?.words.length }}問・{{ p.vocab ? TEST_TYPE_LABEL[p.vocab.testType] : '' }}</template>
-                      <template v-else>{{ p.pdfTitle }} p.{{ p.page }}</template>
-                    </div>
+                <label class="fld"><span>タイトル（未入力の場合は「{{ defaultTitle }}」）</span><input v-model="wiz.title" :placeholder="defaultTitle" /></label>
+                <label class="fld"><span>期限（任意）</span>
+                  <div style="display: flex; gap: 6px; align-items: center">
+                    <input v-model="wiz.dueOn" type="date" style="flex: 1" />
+                    <button class="mini" @click="setDueIn(3)">3日後</button>
+                    <button class="mini" @click="setDueIn(7)">1週間後</button>
                   </div>
-                  <button class="mini" @click="removePage(p.key)">削除</button>
+                </label>
+                <label class="fld"><span>生徒へのメモ（任意）</span><textarea v-model="wiz.note" rows="2" placeholder="例: 途中式も書くこと"></textarea></label>
+              </div>
+            </template>
+  
+            <!-- Step 2: 教材選択 -->
+            <template v-else-if="wiz.step === 2">
+              <div class="filter-row">
+                <span style="font-size: 12.5px; font-weight: 700">出題する教材を選択</span>
+                <HelpTip text="PDF を紐づけ済みの教材から出題できます（PDF の紐づけは教材データ画面で行います）。教材は複数選べ、教材ごとに別の問題PDF・提出になります。「英単語テスト」も追加できます。" />
+              </div>
+              <div class="frow">
+                <span class="flab">科目</span>
+                <label class="radio"><input v-model="bookFilter.subject" type="radio" value="" />すべて</label>
+                <label v-for="s in bookSubjects" :key="s" class="radio"><input v-model="bookFilter.subject" type="radio" :value="s" />{{ s }}</label>
+              </div>
+              <div class="frow" style="margin-bottom: 12px">
+                <span class="flab">種別</span>
+                <label class="radio"><input v-model="bookFilter.type" type="radio" value="" />すべて</label>
+                <label v-for="t in bookTypes" :key="t" class="radio"><input v-model="bookFilter.type" type="radio" :value="t" />{{ t }}</label>
+              </div>
+              <div class="books">
+                <div v-if="showVocabCard" class="book ok vocab-only" @click="vocabOpen = true">
+                  <div class="book-top"><span class="type" style="background: #e6f5ec; color: #2f7a4f">英単語</span></div>
+                  <div class="book-title">英単語テストを追加</div>
+                  <div class="book-foot"><span class="pdf-ok">LEAP basic などの単語帳から出題</span></div>
+                </div>
+                <div v-for="b in filteredBooks" :key="b.id" class="book ok" :class="{ cur: b.id === wiz.bookId }" @click="chooseBook(b)">
+                  <div class="book-top">
+                    <span class="type">{{ b.type }}</span>
+                    <span :style="{ width: '8px', height: '8px', borderRadius: '50%', background: b.colorVivid }"></span>
+                    <span style="font-size: 11px; color: var(--faint)">{{ b.subjectName ?? '科目未設定' }}</span>
+                  </div>
+                  <div class="book-title">{{ b.title }}</div>
+                  <div class="book-foot">
+                    <span class="pdf-ok">PDF {{ b.pdfCount }}件・出題可能</span>
+                    <span style="color: var(--faint)">{{ b.rowCount }}行</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </template>
-
-          <!-- Step 3: ページ選択 -->
-          <template v-else>
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap">
-              <span style="font-size: 13px; font-weight: 700">{{ wiz.bookTitle }}</span>
-              <button class="mini" @click="wiz.step = 2">別の教材を追加・変更</button>
-            </div>
-            <PdfPagePicker v-if="wiz.pdfs.length" v-model="wiz.pages" :pdfs="wiz.pdfs" :rows="wiz.rows" :book-id="wiz.bookId" :book-title="wiz.bookTitle" />
-            <div v-else class="hint">教材が選択されていません。「別の教材を追加・変更」から教材を選んでください。</div>
-          </template>
-        </div>
-
-        <div class="wiz-foot">
-          <button v-if="wiz.step > 1" class="btn-ghost" @click="wiz.step = (wiz.step - 1) as 1 | 2">戻る</button>
-          <span style="flex: 1"></span>
-          <span v-if="wiz.step > 1" style="font-size: 12px; color: var(--mut)">
-            {{ wiz.pages.length }} ページ選択中<template v-if="parts.length > 1">（{{ parts.length }}パート）</template>
-          </span>
-          <button v-if="wiz.step === 1" class="btn-dark" @click="wiz.step = 2">次へ</button>
-          <button v-else class="btn-dark" :disabled="!wiz.pages.length || wiz.saving" @click="save">
-            {{ wiz.saving ? '保存中…' : wiz.id === null ? '出題する' : '保存する' }}
-          </button>
+              <div v-if="!filteredBooks.length && !showVocabCard" class="hint" style="margin-top: 10px">絞り込み条件に一致する教材がありません（PDF 紐づけ済みの教材のみ表示されます）。</div>
+  
+              <!-- 選択中の出題内容（パートごと） -->
+              <div v-if="wiz.pages.length" style="margin-top: 16px; max-width: 680px">
+                <div class="fld-label">選択中の出題内容（{{ wiz.pages.length }}ページ<template v-if="parts.length > 1">・{{ parts.length }}パート</template>）</div>
+                <div v-for="pt in parts" :key="pt.key" class="part-box">
+                  <div class="part-head">{{ pt.label }}<span>{{ pt.pages.length }}ページ</span></div>
+                  <div v-for="(p, i) in pt.pages" :key="p.key" class="vrow">
+                    <span class="num" :class="{ vocab: p.kind === 'vocab' }">{{ i + 1 }}</span>
+                    <div style="flex: 1; min-width: 0">
+                      <div style="font-size: 12.5px; font-weight: 600">{{ p.label }}</div>
+                      <div style="font-size: 11px; color: var(--faint)">
+                        <template v-if="p.kind === 'vocab'">{{ p.vocab?.words.length }}問・{{ p.vocab ? TEST_TYPE_LABEL[p.vocab.testType] : '' }}</template>
+                        <template v-else>{{ p.pdfTitle }} p.{{ p.page }}</template>
+                      </div>
+                    </div>
+                    <button class="mini" @click="removePage(p.key)">削除</button>
+                  </div>
+                </div>
+              </div>
+            </template>
+  
+            <!-- Step 3: ページ選択 -->
+            <template v-else>
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap">
+                <span style="font-size: 13px; font-weight: 700">{{ wiz.bookTitle }}</span>
+                <button class="mini" @click="wiz.step = 2">別の教材を追加・変更</button>
+              </div>
+              <PdfPagePicker v-if="wiz.pdfs.length" v-model="wiz.pages" :pdfs="wiz.pdfs" :rows="wiz.rows" :book-id="wiz.bookId" :book-title="wiz.bookTitle" />
+              <div v-else class="hint">教材が選択されていません。「別の教材を追加・変更」から教材を選んでください。</div>
+            </template>
+          </div>
+  
+          <div class="wiz-foot">
+            <button v-if="wiz.step > 1" class="btn-ghost" @click="wiz.step = (wiz.step - 1) as 1 | 2">戻る</button>
+            <span style="flex: 1"></span>
+            <span v-if="wiz.step > 1" style="font-size: 12px; color: var(--mut)">
+              {{ wiz.pages.length }} ページ選択中<template v-if="parts.length > 1">（{{ parts.length }}パート）</template>
+            </span>
+            <button v-if="wiz.step === 1" class="btn-dark" @click="wiz.step = 2">次へ</button>
+            <button v-else class="btn-dark" :disabled="!wiz.pages.length || wiz.saving" @click="save">
+              {{ wiz.saving ? '保存中…' : wiz.id === null ? '出題する' : '保存する' }}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
-    <VocabTestDialog v-if="vocabOpen" @close="vocabOpen = false" @add="addVocabPages" />
+    <Transition name="ui-modal">
+      <VocabTestDialog v-if="vocabOpen" @close="vocabOpen = false" @add="addVocabPages" />
+    </Transition>
   </div>
 </template>
 
@@ -747,5 +754,276 @@ function setDueIn(days: number) {
 .btn.danger {
   color: #c0444f;
   border-color: #f0b8be;
+}
+/* ---------- 出題ウィザード ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 24, 32, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 14px;
+}
+.wizard {
+  background: #f6f7f9;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 1280px;
+  height: 94vh;
+  height: 94dvh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+.wiz-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 18px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.steps {
+  display: flex;
+  gap: 4px;
+}
+.steps span {
+  font-size: 11.5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1f2f4;
+  color: var(--faint);
+  white-space: nowrap;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.steps span.on {
+  background: #1c2024;
+  color: #fff;
+}
+.steps span.done {
+  background: #e6f5ec;
+  color: #2f7a4f;
+}
+.x {
+  border: none;
+  background: #f2f3f5;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 20px;
+  color: #6b7280;
+  cursor: pointer;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.wiz-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 18px;
+}
+.wiz-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: #fff;
+  border-top: 1px solid var(--line);
+}
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  flex-wrap: wrap;
+}
+.frow {
+  display: flex;
+  align-items: center;
+  gap: 4px 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.flab {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--mut);
+  width: 34px;
+}
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--mut);
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 30px;
+}
+.radio input {
+  accent-color: #1c2024;
+  cursor: pointer;
+}
+.books {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+}
+.book {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.book.ok:hover {
+  border-color: #3b50cc;
+}
+.book:active {
+  transform: scale(0.985);
+}
+.book.cur {
+  border-color: #3b50cc;
+  background: #eef1fc;
+}
+.book-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.type {
+  font-size: 10px;
+  font-weight: 700;
+  color: #2e4a8f;
+  background: #e8eefb;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.book-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 6px 0;
+  line-height: 1.4;
+}
+.book-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.pdf-ok {
+  color: #2f7a4f;
+  font-weight: 600;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  max-width: 640px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+}
+.fld span,
+.fld-label {
+  font-size: 12px;
+  color: var(--mut);
+  font-weight: 500;
+  display: block;
+  margin-bottom: 5px;
+}
+.fld input,
+.fld textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+  font-family: inherit;
+  resize: vertical;
+}
+.book.vocab-only {
+  border-style: dashed;
+}
+.part-box {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.part-head {
+  font-size: 12.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.part-head span {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--faint);
+}
+.vrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid #f1f2f4;
+  padding: 7px 0;
+}
+.vrow .num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #1c2024;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.vrow .num.vocab {
+  background: #2e7d5b;
+}
+/* スマホ・iPad 縦: ウィザードは全画面で表示する */
+@media (max-width: 860px) {
+  .overlay {
+    padding: 0;
+  }
+  .wizard {
+    height: 100%;
+    max-width: none;
+    border-radius: 0;
+    padding-top: env(safe-area-inset-top);
+  }
+  .wiz-head {
+    padding: 10px 14px;
+  }
+  /* タイトルとステップを 2 段にする（1 行だとステップが見切れる） */
+  .wiz-head > div:first-child {
+    flex-wrap: wrap;
+    row-gap: 6px !important;
+  }
+  .wiz-body {
+    padding: 12px 14px;
+  }
+  .wiz-foot {
+    padding: 10px 14px max(10px, env(safe-area-inset-bottom));
+  }
+  .books {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

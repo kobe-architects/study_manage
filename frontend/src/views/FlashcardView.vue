@@ -188,7 +188,7 @@ function clearSec() {
 
         <div class="row-between" style="margin-bottom: 18px">
           <span style="font-size: 12px; color: var(--mut); font-weight: 500">出題順</span>
-          <div class="seg2">
+          <div v-seg class="seg2">
             <button :class="{ on: !ordered }" @click="ordered = false">ランダム</button>
             <button :class="{ on: ordered }" @click="ordered = true">順番</button>
           </div>

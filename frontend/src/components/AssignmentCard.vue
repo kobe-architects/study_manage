@@ -190,52 +190,54 @@ async function setAchieved(value: boolean) {
     </div>
 
     <!-- 学習記録モーダル（生徒のみ） -->
-    <div v-if="recModal.open" class="overlay" @click="recModal.open = false">
-      <div class="modal" @click.stop>
-        <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px">学習を記録</div>
-        <div style="font-size: 12px; color: var(--faint); margin-bottom: 14px">
-          <span v-if="recModal.item?.seqNo">{{ recModal.item.seqNo }}. </span>{{ recModal.item?.title ?? recModal.item?.sub ?? '' }}
-          <span v-if="recModal.item?.bookTitle">（{{ recModal.item.bookTitle }}）</span>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 13px">
-          <label class="fld"><span>学習日</span><input v-model="recModal.date" type="date" /></label>
-          <div>
-            <span class="fld-label">色分け</span>
-            <div style="display: flex; gap: 7px">
-              <button
-                v-for="c in RECORD_COLORS"
-                :key="c.label"
-                class="color-chip"
-                :class="{ on: recModal.color === c.value }"
-                :style="recModal.color === c.value ? { borderColor: c.hex, color: c.hex } : {}"
-                @click="recModal.color = c.value"
-              >{{ c.label }}</button>
+    <Transition name="ui-modal">
+      <div v-if="recModal.open" class="overlay ui-overlay ui-sheet ui-swipe" @click="recModal.open = false">
+        <div class="modal ui-panel" @click.stop>
+          <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px">学習を記録</div>
+          <div style="font-size: 12px; color: var(--faint); margin-bottom: 14px">
+            <span v-if="recModal.item?.seqNo">{{ recModal.item.seqNo }}. </span>{{ recModal.item?.title ?? recModal.item?.sub ?? '' }}
+            <span v-if="recModal.item?.bookTitle">（{{ recModal.item.bookTitle }}）</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 13px">
+            <label class="fld"><span>学習日</span><input v-model="recModal.date" type="date" /></label>
+            <div>
+              <span class="fld-label">色分け</span>
+              <div style="display: flex; gap: 7px">
+                <button
+                  v-for="c in RECORD_COLORS"
+                  :key="c.label"
+                  class="color-chip"
+                  :class="{ on: recModal.color === c.value }"
+                  :style="recModal.color === c.value ? { borderColor: c.hex, color: c.hex } : {}"
+                  @click="recModal.color = c.value"
+                >{{ c.label }}</button>
+              </div>
+            </div>
+            <div>
+              <span class="fld-label">復習期限</span>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+                <select v-model.number="recModal.reviewIdx" class="sel">
+                  <option v-for="(o, i) in REVIEW_OPTIONS" :key="o.label" :value="i">{{ o.label }}</option>
+                </select>
+                <input
+                  v-if="REVIEW_OPTIONS[recModal.reviewIdx].kind === 'custom'"
+                  v-model.number="recModal.customDays"
+                  type="number" inputmode="numeric"
+                  min="1"
+                  class="sel"
+                  style="width: 76px"
+                />
+                <span style="font-size: 11.5px; color: var(--faint)">{{ recPreview }}</span>
+              </div>
             </div>
           </div>
-          <div>
-            <span class="fld-label">復習期限</span>
-            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
-              <select v-model.number="recModal.reviewIdx" class="sel">
-                <option v-for="(o, i) in REVIEW_OPTIONS" :key="o.label" :value="i">{{ o.label }}</option>
-              </select>
-              <input
-                v-if="REVIEW_OPTIONS[recModal.reviewIdx].kind === 'custom'"
-                v-model.number="recModal.customDays"
-                type="number"
-                min="1"
-                class="sel"
-                style="width: 76px"
-              />
-              <span style="font-size: 11.5px; color: var(--faint)">{{ recPreview }}</span>
-            </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px">
+            <button class="btn-ghost" @click="recModal.open = false">キャンセル</button>
+            <button class="btn-dark" :disabled="recModal.saving" @click="submitRecord">記録する</button>
           </div>
-        </div>
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px">
-          <button class="btn-ghost" @click="recModal.open = false">キャンセル</button>
-          <button class="btn-dark" :disabled="recModal.saving" @click="submitRecord">記録する</button>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- 操作（tutor のみ） -->
     <div v-if="!readonly" class="actions">

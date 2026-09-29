@@ -9,6 +9,8 @@ import { speak } from '@/lib/design'
 import { useVocabularyStore } from '@/stores/vocabulary'
 import { useUiStore } from '@/stores/ui'
 import type { Vocabulary, VocabularyLabel, VocabularyProficiency } from '@/types'
+import { appConfirm } from '@/lib/dialog'
+import { saveFile } from '@/lib/native'
 
 const router = useRouter()
 const vocab = useVocabularyStore()
@@ -226,7 +228,7 @@ async function save() {
 }
 
 async function remove(w: Vocabulary) {
-  if (!window.confirm(`「${w.word}」を削除しますか？`)) return
+  if (!(await appConfirm(`「${w.word}」を削除しますか？`, { danger: true, okText: '削除' }))) return
   await vocab.remove(w.id)
   ui.notify('削除しました')
 }
@@ -263,12 +265,7 @@ async function removeImage() {
 // ---- Excel 入出力 ----
 async function download(url: string, filename: string) {
   const res = await client.get(url, { responseType: 'blob' })
-  const blobUrl = URL.createObjectURL(res.data)
-  const a = document.createElement('a')
-  a.href = blobUrl
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(blobUrl)
+  await saveFile(res.data, filename)
 }
 function exportExcel() {
   download(`/study-resources/${resourceId.value}/vocabularies/export`, 'vocabulary_export.xlsx')
@@ -303,7 +300,7 @@ async function onImportSelected(e: Event) {
 }
 
 async function deleteAll() {
-  if (!window.confirm('教材内の全単語とセクションを削除します。よろしいですか？')) return
+  if (!(await appConfirm('教材内の全単語とセクションを削除します。よろしいですか？', { danger: true, okText: 'すべて削除' }))) return
   await client.delete(`/study-resources/${resourceId.value}/vocabularies`)
   // セクションも削除されるため、単語一覧と教材（セクション一覧）の両方を再取得する
   await Promise.all([vocab.fetchByResource(resourceId.value), vocab.fetchResources()])
@@ -404,60 +401,64 @@ async function deleteAll() {
     </div>
 
     <!-- インポート中モーダル -->
-    <div v-if="importing" class="overlay" style="z-index: 60">
-      <div class="import-modal">
-        <span class="spinner"></span>
-        <div style="font-size: 14px; font-weight: 700">インポート中…</div>
-        <div style="font-size: 12px; color: var(--faint); margin-top: 4px">件数が多い場合は時間がかかります</div>
+    <Transition name="ui-modal">
+      <div v-if="importing" class="overlay ui-overlay" style="z-index: 60">
+        <div class="import-modal ui-panel">
+          <span class="spinner"></span>
+          <div style="font-size: 14px; font-weight: 700">インポート中…</div>
+          <div style="font-size: 12px; color: var(--faint); margin-top: 4px">件数が多い場合は時間がかかります</div>
+        </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- form dialog -->
-    <div v-if="dialog" class="overlay" @click="dialog = false">
-      <div class="modal" @click.stop>
-        <div style="font-size: 16px; font-weight: 700; margin-bottom: 16px">{{ editingId ? '単語を編集' : '単語を追加' }}</div>
-        <div class="grid2">
-          <label class="fld" style="grid-column: span 2" v-if="!editingId"><span>セクション</span>
-            <select v-model.number="form.sectionId"><option v-for="s in sections" :key="s.id" :value="s.id">{{ s.name }}</option></select>
-          </label>
-          <label class="fld"><span>語 *</span><input v-model="form.word" /></label>
-          <label class="fld"><span>意味 *</span><input v-model="form.meaning" /></label>
-          <label class="fld" style="grid-column: span 2"><span>意味の補足</span><input v-model="form.meaningSupplement" placeholder="意味の補足説明" /></label>
-          <label class="fld"><span>品詞</span><input v-model="form.partOfSpeech" placeholder="名/動/形/副" /></label>
-          <label class="fld"><span>重要度</span><select v-model.number="form.importance"><option :value="0">無印</option><option :value="1">★</option><option :value="2">★★</option></select></label>
-          <label class="fld"><span>ラベル</span><select v-model="form.label"><option value="easy">易</option><option value="normal">普</option><option value="hard">難</option></select></label>
-          <label class="fld"><span>習熟度</span><select v-model="form.proficiency"><option value="high">高</option><option value="medium">中</option><option value="low">低</option></select></label>
-          <div class="fld" style="grid-column: span 2">
-            <span>例文（複数可。①②は意味の番号）</span>
-            <div v-for="(e, i) in form.examples" :key="i" class="ex-row">
-              <input v-model="e.label" placeholder="①" class="ex-lab" />
-              <input v-model="e.sentence" placeholder="例文" />
-              <input v-model="e.translation" placeholder="和訳" />
-              <button class="bare" type="button" title="この例文を削除" style="color: #cf5563; font-size: 16px" @click="form.examples.splice(i, 1)">×</button>
+    <Transition name="ui-modal">
+      <div v-if="dialog" class="overlay ui-overlay ui-sheet ui-swipe" @click="dialog = false">
+        <div class="modal ui-panel" @click.stop>
+          <div style="font-size: 16px; font-weight: 700; margin-bottom: 16px">{{ editingId ? '単語を編集' : '単語を追加' }}</div>
+          <div class="grid2">
+            <label class="fld" style="grid-column: span 2" v-if="!editingId"><span>セクション</span>
+              <select v-model.number="form.sectionId"><option v-for="s in sections" :key="s.id" :value="s.id">{{ s.name }}</option></select>
+            </label>
+            <label class="fld"><span>語 *</span><input v-model="form.word" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" /></label>
+            <label class="fld"><span>意味 *</span><input v-model="form.meaning" /></label>
+            <label class="fld" style="grid-column: span 2"><span>意味の補足</span><input v-model="form.meaningSupplement" placeholder="意味の補足説明" /></label>
+            <label class="fld"><span>品詞</span><input v-model="form.partOfSpeech" placeholder="名/動/形/副" /></label>
+            <label class="fld"><span>重要度</span><select v-model.number="form.importance"><option :value="0">無印</option><option :value="1">★</option><option :value="2">★★</option></select></label>
+            <label class="fld"><span>ラベル</span><select v-model="form.label"><option value="easy">易</option><option value="normal">普</option><option value="hard">難</option></select></label>
+            <label class="fld"><span>習熟度</span><select v-model="form.proficiency"><option value="high">高</option><option value="medium">中</option><option value="low">低</option></select></label>
+            <div class="fld" style="grid-column: span 2">
+              <span>例文（複数可。①②は意味の番号）</span>
+              <div v-for="(e, i) in form.examples" :key="i" class="ex-row">
+                <input v-model="e.label" placeholder="①" class="ex-lab" />
+                <input v-model="e.sentence" placeholder="例文" />
+                <input v-model="e.translation" placeholder="和訳" />
+                <button class="bare" type="button" title="この例文を削除" style="color: #cf5563; font-size: 16px" @click="form.examples.splice(i, 1)">×</button>
+              </div>
+              <button class="btn-out" type="button" style="align-self: flex-start" @click="form.examples.push({ label: '', sentence: '', translation: '' })">＋ 例文を追加</button>
             </div>
-            <button class="btn-out" type="button" style="align-self: flex-start" @click="form.examples.push({ label: '', sentence: '', translation: '' })">＋ 例文を追加</button>
-          </div>
-          <label class="fld" style="grid-column: span 2"><span>例文説明</span><input v-model="form.exampleExplanation" /></label>
-          <label class="fld" style="grid-column: span 2"><span>参考（語源・関連語など教材由来の情報）</span><textarea v-model="form.referenceNote" rows="2"></textarea></label>
-          <label class="fld" style="grid-column: span 2"><span>メモ（自分の覚え方のコツなど）</span><textarea v-model="form.memo" rows="2"></textarea></label>
-          <div class="fld" style="grid-column: span 2">
-            <span>画像</span>
-            <div style="display: flex; align-items: center; gap: 12px">
-              <img v-if="imageUrl && imageUrl.startsWith('blob:')" :src="imageUrl" style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #e3e6ea" />
-              <AuthImage v-else-if="imageUrl" :src="imageUrl" style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #e3e6ea" />
-              <button class="btn-out" type="button" @click="pickImage">{{ imageUrl ? '差し替え' : 'アップロード' }}</button>
-              <button v-if="imageUrl" class="btn-out" type="button" style="color: #cf5563" @click="removeImage">削除</button>
-              <span v-if="!editingId" style="font-size: 11px; color: #9aa1ab">保存時に一緒に登録されます</span>
-              <input ref="fileInput" type="file" accept="image/*" style="display: none" @change="onImageSelected" />
+            <label class="fld" style="grid-column: span 2"><span>例文説明</span><input v-model="form.exampleExplanation" /></label>
+            <label class="fld" style="grid-column: span 2"><span>参考（語源・関連語など教材由来の情報）</span><textarea v-model="form.referenceNote" rows="2"></textarea></label>
+            <label class="fld" style="grid-column: span 2"><span>メモ（自分の覚え方のコツなど）</span><textarea v-model="form.memo" rows="2"></textarea></label>
+            <div class="fld" style="grid-column: span 2">
+              <span>画像</span>
+              <div style="display: flex; align-items: center; gap: 12px">
+                <img v-if="imageUrl && imageUrl.startsWith('blob:')" :src="imageUrl" style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #e3e6ea" />
+                <AuthImage v-else-if="imageUrl" :src="imageUrl" style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid #e3e6ea" />
+                <button class="btn-out" type="button" @click="pickImage">{{ imageUrl ? '差し替え' : 'アップロード' }}</button>
+                <button v-if="imageUrl" class="btn-out" type="button" style="color: #cf5563" @click="removeImage">削除</button>
+                <span v-if="!editingId" style="font-size: 11px; color: #9aa1ab">保存時に一緒に登録されます</span>
+                <input ref="fileInput" type="file" accept="image/*" style="display: none" @change="onImageSelected" />
+              </div>
             </div>
           </div>
-        </div>
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
-          <button class="btn-ghost" @click="dialog = false">キャンセル</button>
-          <button class="btn-dark" @click="save">保存</button>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
+            <button class="btn-ghost" @click="dialog = false">キャンセル</button>
+            <button class="btn-dark" @click="save">保存</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 

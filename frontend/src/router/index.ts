@@ -1,4 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { reloadOnce } from '@/lib/native'
+
+// meta.depth = 2 の画面は meta.parent の下の階層（遷移アニメーション・iOS の左端スワイプで戻る に使う）
 
 const router = createRouter({
   history: createWebHistory(),
@@ -15,9 +18,9 @@ const router = createRouter({
         { path: 'quiz', name: 'quiz', component: () => import('@/views/QuizView.vue') },
         { path: 'goals', name: 'goals', component: () => import('@/views/GoalsView.vue') },
         { path: 'settings', name: 'settings', component: () => import('@/views/SettingsView.vue') },
-        { path: 'vocabulary', name: 'vocabulary', component: () => import('@/views/VocabularyManageView.vue') },
-        { path: 'review', name: 'review', component: () => import('@/views/ReviewView.vue') },
-        { path: 'flashcard', name: 'flashcard', component: () => import('@/views/FlashcardView.vue') },
+        { path: 'vocabulary', name: 'vocabulary', component: () => import('@/views/VocabularyManageView.vue'), meta: { depth: 2, parent: 'quiz', title: '単語帳管理' } },
+        { path: 'review', name: 'review', component: () => import('@/views/ReviewView.vue'), meta: { depth: 2, parent: 'quiz', title: '単語の復習' } },
+        { path: 'flashcard', name: 'flashcard', component: () => import('@/views/FlashcardView.vue'), meta: { depth: 2, parent: 'quiz', title: 'フラッシュカード' } },
         { path: 'quizzes', name: 'quizzes', component: () => import('@/views/QuizzesView.vue') },
         { path: 'invoices', name: 'invoices', component: () => import('@/views/InvoicesView.vue') },
       ],
@@ -51,7 +54,7 @@ const router = createRouter({
           path: 'quizzes/:id',
           name: 'tutor-quiz-grade',
           component: () => import('@/views/TutorQuizGradeView.vue'),
-          meta: { tutor: true },
+          meta: { tutor: true, depth: 2, parent: 'tutor-quizzes', title: '採点・添削' },
         },
         {
           path: 'invoices',
@@ -78,6 +81,13 @@ router.beforeEach((to) => {
   if (token && !to.meta.public) {
     if (isTutor && !to.meta.tutor) return { name: 'tutor-home' }
     if (!isTutor && to.meta.tutor) return { name: 'home' }
+  }
+})
+
+// デプロイ後に古いチャンクが無くなっていて画面を開けないときは、読み直して最新版にする
+router.onError((err, to) => {
+  if (/dynamically imported module|Importing a module script failed|error loading dynamically imported/i.test(String(err?.message ?? err))) {
+    reloadOnce(to.fullPath)
   }
 })
 

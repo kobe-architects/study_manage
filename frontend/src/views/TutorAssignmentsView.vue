@@ -6,6 +6,7 @@ import { useUiStore } from '@/stores/ui'
 import AssignmentCard from '@/components/AssignmentCard.vue'
 import GoalLinkModal from '@/components/GoalLinkModal.vue'
 import type { Assignment, GoalLinkBook } from '@/types'
+import { appConfirm } from '@/lib/dialog'
 
 const study = useStudyStore()
 const ui = useUiStore()
@@ -70,7 +71,7 @@ async function save() {
 }
 
 async function remove(a: Assignment) {
-  if (!confirm(`課題「${assignmentTitle(a.title, a.dueOn)}」を削除しますか？`)) return
+  if (!(await appConfirm(`課題「${assignmentTitle(a.title, a.dueOn)}」を削除しますか？`, { danger: true, okText: '削除' }))) return
   await study.deleteAssignment(a.id)
   ui.notify('削除しました')
 }
@@ -118,37 +119,41 @@ function onLinkSave(ids: number[]) {
     </div>
 
     <!-- 課題の追加 / 編集 -->
-    <div v-if="modal.open" class="overlay" @click="modal.open = false">
-      <div class="modal" @click.stop>
-        <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">{{ modal.id === null ? '課題を追加' : '課題を編集' }}</div>
-        <div style="display: flex; flex-direction: column; gap: 13px">
-          <label class="fld"><span>課題タイトル（任意・未入力の場合は期限がタイトルになります）</span><input v-model="modal.title" placeholder="例: 今週中に三角比の例題を1周" /></label>
-          <label class="fld"><span>期限</span><input v-model="modal.dueOn" type="date" /></label>
-          <label class="fld"><span>メモ（任意）</span><textarea v-model="modal.note" rows="2" placeholder="生徒への補足・指示など"></textarea></label>
-          <div>
-            <span class="fld-label">個別学習データの選択<span style="color: #cf5563">（必須）</span></span>
-            <button class="link-select" :class="{ empty: !modal.itemIds.length }" :disabled="linkLoading" @click="openLink">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
-              {{ modal.itemIds.length ? `${modal.itemIds.length}件を選択済み（変更）` : 'ツリーから対象を選択' }}
-            </button>
+    <Transition name="ui-modal">
+      <div v-if="modal.open" class="overlay ui-overlay ui-sheet ui-swipe" @click="modal.open = false">
+        <div class="modal ui-panel" @click.stop>
+          <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">{{ modal.id === null ? '課題を追加' : '課題を編集' }}</div>
+          <div style="display: flex; flex-direction: column; gap: 13px">
+            <label class="fld"><span>課題タイトル（任意・未入力の場合は期限がタイトルになります）</span><input v-model="modal.title" placeholder="例: 今週中に三角比の例題を1周" /></label>
+            <label class="fld"><span>期限</span><input v-model="modal.dueOn" type="date" /></label>
+            <label class="fld"><span>メモ（任意）</span><textarea v-model="modal.note" rows="2" placeholder="生徒への補足・指示など"></textarea></label>
+            <div>
+              <span class="fld-label">個別学習データの選択<span style="color: #cf5563">（必須）</span></span>
+              <button class="link-select" :class="{ empty: !modal.itemIds.length }" :disabled="linkLoading" @click="openLink">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
+                {{ modal.itemIds.length ? `${modal.itemIds.length}件を選択済み（変更）` : 'ツリーから対象を選択' }}
+              </button>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
+            <button class="btn-ghost" @click="modal.open = false">キャンセル</button>
+            <button class="btn-dark" :disabled="!modal.itemIds.length" @click="save">{{ modal.id === null ? '追加する' : '保存' }}</button>
           </div>
         </div>
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
-          <button class="btn-ghost" @click="modal.open = false">キャンセル</button>
-          <button class="btn-dark" :disabled="!modal.itemIds.length" @click="save">{{ modal.id === null ? '追加する' : '保存' }}</button>
-        </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- 対象データ選択ツリー -->
-    <GoalLinkModal
-      v-if="linkOpen"
-      :goal-title="modal.title || '新しい課題'"
-      :books="linkBooks"
-      :initial-ids="modal.itemIds"
-      @save="onLinkSave"
-      @close="linkOpen = false"
-    />
+    <Transition name="ui-modal">
+      <GoalLinkModal
+        v-if="linkOpen"
+        :goal-title="modal.title || '新しい課題'"
+        :books="linkBooks"
+        :initial-ids="modal.itemIds"
+        @save="onLinkSave"
+        @close="linkOpen = false"
+      />
+    </Transition>
   </div>
 </template>
 

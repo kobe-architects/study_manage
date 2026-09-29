@@ -553,9 +553,9 @@ function toggleSec(id: number) {
           <div class="lab" style="margin-top: 12px">番号で指定（小テスト印刷用・任意）</div>
           <div class="range-row">
             <span style="color: var(--mut)">No.</span>
-            <input v-model.number="printRange.from" type="number" min="1" :max="vocab.items.length" class="rng" />
+            <input v-model.number="printRange.from" type="number" inputmode="numeric" min="1" :max="vocab.items.length" class="rng" />
             <span style="color: var(--mut)">〜</span>
-            <input v-model.number="printRange.to" type="number" min="1" :max="vocab.items.length" class="rng" />
+            <input v-model.number="printRange.to" type="number" inputmode="numeric" min="1" :max="vocab.items.length" class="rng" />
             <button v-if="printRange.from !== null || printRange.to !== null" class="link-btn" style="color: #9aa1ab" @click="clearRange">クリア</button>
           </div>
           <div v-if="rangeActive" class="range-note">
@@ -600,14 +600,14 @@ function toggleSec(id: number) {
           <div style="display: flex; gap: 14px; margin-bottom: 14px">
             <div style="flex: 1">
               <div class="lab">出題形式</div>
-              <div class="seg2">
+              <div v-seg class="seg2">
                 <button :class="{ on: quizType === 'choice' }" @click="quizType = 'choice'">4択</button>
                 <button :class="{ on: quizType === 'input' }" @click="quizType = 'input'">入力</button>
               </div>
             </div>
             <div style="flex: 1">
               <div class="lab">出題順</div>
-              <div class="seg2">
+              <div v-seg class="seg2">
                 <button :class="{ on: !ordered }" @click="ordered = false">ランダム</button>
                 <button :class="{ on: ordered }" @click="ordered = true">順番</button>
               </div>
@@ -618,7 +618,7 @@ function toggleSec(id: number) {
             <span style="font-size: 12px; color: var(--mut); font-weight: 500">問題数</span>
             <div style="display: flex; align-items: center; gap: 8px">
               <button class="all-btn" :class="{ on: wantCount === 0 }" @click="count = 0">すべて</button>
-              <input v-model.number="count" type="number" min="1" :max="selCount || undefined" class="num-input" @focus="count === 0 && (count = Math.min(10, selCount) || 1)" />
+              <input v-model.number="count" type="number" inputmode="numeric" min="1" :max="selCount || undefined" class="num-input" @focus="count === 0 && (count = Math.min(10, selCount) || 1)" />
               <span style="font-size: 11px; color: var(--faint)">問</span>
             </div>
           </div>
@@ -645,7 +645,7 @@ function toggleSec(id: number) {
           <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap">
             <div style="position: relative; flex: 1; min-width: 150px">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9aa1ab" stroke-width="2" style="position: absolute; left: 11px; top: 50%; transform: translateY(-50%)"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>
-              <input v-model="wq" placeholder="単語・意味で検索" style="width: 100%; padding: 8px 11px 8px 34px; border: 1px solid #e3e6ea; border-radius: 9px; font-size: 13px; outline: none" />
+              <input v-model="wq" placeholder="単語・意味で検索" enterkeyhint="search" style="width: 100%; padding: 8px 11px 8px 34px; border: 1px solid #e3e6ea; border-radius: 9px; font-size: 13px; outline: none" />
             </div>
             <select v-model="wSec" class="mini-select">
               <option v-for="o in wSecOptions" :key="o.val" :value="o.val">{{ o.label }}</option>
@@ -726,6 +726,8 @@ function toggleSec(id: number) {
               <input
                 v-model="inputVal"
                 placeholder="英単語を入力"
+                autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"
+                enterkeyhint="done"
                 :disabled="revealed"
                 class="dm"
                 :style="{
@@ -871,57 +873,63 @@ function toggleSec(id: number) {
     </template>
 
     <!-- 出題セクション選択モーダル -->
-    <div v-if="secModalOpen" class="overlay" @click="secModalOpen = false">
-      <div class="sec-modal" @click.stop>
-        <div class="row-between" style="margin-bottom: 14px">
-          <div style="font-size: 15px; font-weight: 700">出題セクション</div>
-          <span style="display: flex; gap: 12px">
-            <button class="link-btn" @click="allSec">全選択</button>
-            <button class="link-btn" style="color: #9aa1ab" @click="clearSec">解除</button>
-          </span>
+    <Transition name="ui-modal">
+      <div v-if="secModalOpen" class="overlay ui-overlay ui-sheet ui-swipe" @click="secModalOpen = false">
+        <div class="sec-modal ui-panel" @click.stop>
+          <div class="row-between" style="margin-bottom: 14px">
+            <div style="font-size: 15px; font-weight: 700">出題セクション</div>
+            <span style="display: flex; gap: 12px">
+              <button class="link-btn" @click="allSec">全選択</button>
+              <button class="link-btn" style="color: #9aa1ab" @click="clearSec">解除</button>
+            </span>
+          </div>
+          <div v-if="secGroups.length" class="sec-groups">
+            <button v-for="g in secGroups" :key="g.name" class="grp" :class="{ on: g.ids.every((id) => secSel[id]) }" @click="toggleSecGroup(g.ids)">{{ g.name }}<span class="grp-n">{{ g.ids.length }}</span></button>
+          </div>
+          <div class="sec-chips">
+            <button
+              v-for="s in sections"
+              :key="s.id"
+              class="chip"
+              :style="{
+                border: '1px solid ' + (secSel[s.id] ? '#1c2024' : '#e3e6ea'),
+                background: secSel[s.id] ? '#1c2024' : '#fff',
+                color: secSel[s.id] ? '#fff' : '#6b7280',
+              }"
+              @click="toggleSec(s.id)"
+            >{{ s.name }}</button>
+          </div>
+          <button class="next-btn" style="margin-top: 16px" @click="secModalOpen = false">決定（{{ selectedSecCount }} / {{ sections.length }}）</button>
         </div>
-        <div v-if="secGroups.length" class="sec-groups">
-          <button v-for="g in secGroups" :key="g.name" class="grp" :class="{ on: g.ids.every((id) => secSel[id]) }" @click="toggleSecGroup(g.ids)">{{ g.name }}<span class="grp-n">{{ g.ids.length }}</span></button>
-        </div>
-        <div class="sec-chips">
-          <button
-            v-for="s in sections"
-            :key="s.id"
-            class="chip"
-            :style="{
-              border: '1px solid ' + (secSel[s.id] ? '#1c2024' : '#e3e6ea'),
-              background: secSel[s.id] ? '#1c2024' : '#fff',
-              color: secSel[s.id] ? '#fff' : '#6b7280',
-            }"
-            @click="toggleSec(s.id)"
-          >{{ s.name }}</button>
-        </div>
-        <button class="next-btn" style="margin-top: 16px" @click="secModalOpen = false">決定（{{ selectedSecCount }} / {{ sections.length }}）</button>
       </div>
-    </div>
+    </Transition>
 
     <!-- メモ編集モーダル -->
-    <div v-if="memoOpen" class="overlay" @click="memoOpen = false">
-      <div class="memo-modal" @click.stop>
-        <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px">メモを編集</div>
-        <textarea v-model="memoText" rows="4" class="memo-area" placeholder="覚え方・補足など"></textarea>
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px">
-          <button class="prev-btn" @click="memoOpen = false">キャンセル</button>
-          <button class="answer-btn" @click="saveMemo">保存</button>
+    <Transition name="ui-modal">
+      <div v-if="memoOpen" class="overlay ui-overlay ui-sheet ui-swipe" @click="memoOpen = false">
+        <div class="memo-modal ui-panel" @click.stop>
+          <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px">メモを編集</div>
+          <textarea v-model="memoText" rows="4" class="memo-area" placeholder="覚え方・補足など"></textarea>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px">
+            <button class="prev-btn" @click="memoOpen = false">キャンセル</button>
+            <button class="answer-btn" @click="saveMemo">保存</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- 小テスト印刷 -->
-    <TestSheetPrint
-      v-if="printOpen"
-      :words="printSelection"
-      :all-words="vocab.items"
-      :resource-name="vocab.resource?.name ?? ''"
-      v-model:test-type="printType"
-      v-model:test-format="printFormat"
-      @close="printOpen = false"
-    />
+    <Transition name="ui-modal">
+      <TestSheetPrint
+        v-if="printOpen"
+        :words="printSelection"
+        :all-words="vocab.items"
+        :resource-name="vocab.resource?.name ?? ''"
+        v-model:test-type="printType"
+        v-model:test-format="printFormat"
+        @close="printOpen = false"
+      />
+    </Transition>
   </div>
 </template>
 

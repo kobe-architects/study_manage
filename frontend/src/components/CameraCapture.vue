@@ -243,7 +243,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="cam-overlay">
+  <div class="cam-overlay ui-fullscreen">
     <div class="cam-top">
       <div style="min-width: 0">
         <div style="font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ quiz.title }}</div>
@@ -448,6 +448,9 @@ onBeforeUnmount(() => {
   z-index: 80;
   display: flex;
   flex-direction: column;
+  /* ノッチ・ホームバーに×ボタンやシャッターが重ならないようにする */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  overscroll-behavior: none;
 }
 .cam-top {
   display: flex;

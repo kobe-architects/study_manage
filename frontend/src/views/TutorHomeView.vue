@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
 import type { RecordListItem } from '@/types'
+import { appConfirm } from '@/lib/dialog'
 
 const auth = useAuthStore()
 const study = useStudyStore()
@@ -169,7 +170,7 @@ async function saveEvent(id: number | null, title: string, isMock: boolean, note
   }
 }
 async function deleteEvent(id: number) {
-  if (!confirm('この予定を削除しますか？')) return
+  if (!(await appConfirm('この予定を削除しますか？', { danger: true, okText: '削除' }))) return
   try {
     await study.deleteEvent(id)
     ui.notify('予定を削除しました')
@@ -301,14 +302,16 @@ function recordColorHex(c: string | null): string {
       </div>
     </div>
 
-    <EventModal
-      v-if="eventModal"
-      :date="eventModal.date"
-      :events="eventsOfModalDate"
-      @save="saveEvent"
-      @delete="deleteEvent"
-      @close="eventModal = null"
-    />
+    <Transition name="ui-modal">
+      <EventModal
+        v-if="eventModal"
+        :date="eventModal.date"
+        :events="eventsOfModalDate"
+        @save="saveEvent"
+        @delete="deleteEvent"
+        @close="eventModal = null"
+      />
+    </Transition>
   </div>
 </template>
 
@@ -440,6 +443,14 @@ function recordColorHex(c: string | null): string {
   width: 100%;
   justify-content: flex-start;
   text-align: left;
+  /* 長い教材名がスマホで見切れないよう折り返す。行全体を押しやすい高さにする */
+  white-space: normal;
+  min-width: 0;
+  min-height: 34px;
+}
+.book-name.toggle svg,
+.book-name.toggle .book-cnt {
+  flex-shrink: 0;
 }
 .book-cnt {
   font-size: 10.5px;

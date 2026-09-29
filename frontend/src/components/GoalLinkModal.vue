@@ -145,9 +145,9 @@ function save() {
 </script>
 
 <template>
-  <!-- キャンセルボタンでのみ閉じる（オーバーレイクリックでは閉じない） -->
-  <div class="overlay">
-    <div class="modal" @click.stop>
+  <div class="overlay ui-overlay ui-sheet">
+    <!-- キャンセルボタンでのみ閉じる（オーバーレイクリックでは閉じない） -->
+    <div class="modal ui-panel" @click.stop>
       <div class="modal-head">
         <div>
           <div style="font-size: 16px; font-weight: 700">個別学習データの紐づけ</div>

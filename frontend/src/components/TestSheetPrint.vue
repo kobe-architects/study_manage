@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { shuffle } from '@/lib/design'
 import type { PrintTestFormat, PrintTestType, Vocabulary } from '@/types'
+import { appAlert } from '@/lib/dialog'
+import { showHtml, useInAppViewer } from '@/lib/docViewer'
 
 const props = defineProps<{
   words: Vocabulary[]
@@ -196,12 +198,18 @@ function buildHtml(): string {
 function doPrint() {
   const words = targetWords()
   if (!words.length) {
-    window.alert('対象の単語がありません')
+    appAlert('対象の単語がありません')
+    return
+  }
+  // ホーム画面から起動したアプリでは別ウィンドウが使えないため、アプリ内のビューアで表示する
+  if (useInAppViewer) {
+    showHtml(buildHtml(), '小テスト')
+    emit('close')
     return
   }
   const win = window.open('', '_blank')
   if (!win) {
-    window.alert('ポップアップがブロックされました。ブラウザの設定で許可してください。')
+    appAlert('ポップアップがブロックされました。ブラウザの設定で許可してください。')
     return
   }
   win.document.write(buildHtml())
@@ -211,8 +219,8 @@ function doPrint() {
 </script>
 
 <template>
-  <div class="overlay no-print" @click="emit('close')">
-    <div class="modal" @click.stop>
+  <div class="overlay no-print ui-overlay ui-sheet ui-swipe" @click="emit('close')">
+    <div class="modal ui-panel" @click.stop>
       <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">小テストの種類</div>
 
       <div class="sec-label">テストタイプ</div>

@@ -8,15 +8,15 @@ import { useResourceStore } from '@/stores/resource'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import { STUDY_TYPES, type RecordColor, type RecordListItem, type StudyType } from '@/types'
+import { appConfirm } from '@/lib/dialog'
+import { isTouch, viewportWidth } from '@/lib/native'
 
 const study = useStudyStore()
 const resource = useResourceStore()
 const auth = useAuthStore()
 const ui = useUiStore()
 
-const vw = ref(window.innerWidth)
-window.addEventListener('resize', () => (vw.value = window.innerWidth))
-const isMobile = computed(() => vw.value < 860)
+const isMobile = computed(() => viewportWidth.value < 860)
 
 /** 登録方法: 教材の行に記録 / 科目を選んで自由入力 */
 const mode = ref<'book' | 'free'>('book')
@@ -131,6 +131,8 @@ async function register() {
 }
 
 async function removeRecord(id: number) {
+  // タッチ端末では小さなゴミ箱アイコンの押し間違いが起きやすいので確認する
+  if (isTouch && !(await appConfirm('この学習記録を削除しますか？', { danger: true, okText: '削除' }))) return
   await study.deleteRecord(id)
   resource.refreshBookSummary().catch(() => {})
   ui.notify('学習記録を削除しました')
@@ -216,7 +218,7 @@ async function exportExcel() {
         <div style="font-size: 15px; font-weight: 700">学習日を登録</div>
         <HelpTip text="教材の行: 講義・問題集・教科書の各行に学習日を記録します（同じ行に何度でも登録可・復習期限も設定できます）。&#10;自由入力: 教材に紐づかない学習（YouTube の英語コンテンツ、英会話など）を科目と内容で記録します。" />
       </div>
-      <div class="seg2" style="margin-bottom: 14px">
+      <div v-seg class="seg2" style="margin-bottom: 14px">
         <button :class="{ on: mode === 'book' }" @click="mode = 'book'">教材の行</button>
         <button :class="{ on: mode === 'free' }" @click="mode = 'free'">自由入力</button>
       </div>
@@ -238,11 +240,11 @@ async function exportExcel() {
         </button>
       </div>
       <div v-else style="display: flex; flex-direction: column; gap: 12px">
-        <label class="fld"><span>種別</span>
-          <div class="seg2">
+        <div class="fld"><span>種別</span>
+          <div v-seg class="seg2">
             <button v-for="t in STUDY_TYPES" :key="t" :class="{ on: form.type === t }" @click="form.type = t">{{ t }}</button>
           </div>
-        </label>
+        </div>
         <label class="fld"><span>教材</span>
           <select v-model.number="form.bookId">
             <option v-for="b in books" :key="b.id" :value="b.id">{{ b.title }}</option>
@@ -283,7 +285,7 @@ async function exportExcel() {
             <input
               v-if="REVIEW_OPTIONS[form.reviewIdx].kind === 'custom'"
               v-model.number="form.customDays"
-              type="number"
+              type="number" inputmode="numeric"
               min="1"
               class="review-custom"
               placeholder="日数"
@@ -538,7 +540,8 @@ async function exportExcel() {
   background: transparent;
   cursor: pointer;
   color: #c9ced6;
-  padding: 4px;
+  padding: 9px;
+  margin: -5px -6px -5px -2px;
   flex-shrink: 0;
 }
 .del-rec:hover {

@@ -62,7 +62,7 @@ const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6" /><rect x="4" y="9" width="16" height="8" rx="2" /><path d="M6 14h12v7H6z" /></svg>
           問題PDFを作る
         </button>
-        <div class="seg">
+        <div v-seg class="seg">
           <button :class="{ on: tab === 'list' }" @click="tab = 'list'">一覧</button>
           <button :class="{ on: tab === 'stats' }" @click="tab = 'stats'">分析</button>
         </div>
@@ -82,9 +82,15 @@ const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(
       <div v-else class="hint">読み込み中…</div>
     </template>
 
-    <CameraCapture v-if="state.capture" :quiz="state.capture" @close="state.capture = null" @submitted="onSubmitted" />
-    <QuizResultModal v-if="state.resultId !== null" :quiz-id="state.resultId" @close="state.resultId = null" />
-    <QuizPrintDialog v-if="printOpen" @close="printOpen = false" />
+    <Transition name="ui-modal">
+      <CameraCapture v-if="state.capture" :quiz="state.capture" @close="state.capture = null" @submitted="onSubmitted" />
+    </Transition>
+    <Transition name="ui-modal">
+      <QuizResultModal v-if="state.resultId !== null" :quiz-id="state.resultId" @close="state.resultId = null" />
+    </Transition>
+    <Transition name="ui-modal">
+      <QuizPrintDialog v-if="printOpen" @close="printOpen = false" />
+    </Transition>
   </div>
 </template>
 

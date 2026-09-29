@@ -212,7 +212,7 @@ function indent(level: number) {
 <template>
   <div>
     <!-- view switch -->
-    <div class="seg" style="margin-bottom: 16px">
+    <div v-seg class="seg" style="margin-bottom: 16px">
       <button class="seg-btn" :class="{ on: view === 'table' }" @click="view = 'table'">一覧</button>
       <button class="seg-btn" :class="{ on: view === 'tree' }" @click="view = 'tree'">進捗対象の設定</button>
     </div>
@@ -322,16 +322,18 @@ function indent(level: number) {
       </div>
     </template>
 
-    <ItemEditModal
-      v-if="editTarget || addMode"
-      :add-mode="addMode"
-      :name="editTarget?.name ?? ''"
-      :meta="editTarget?.meta ?? ''"
-      :items="study.items"
-      @save="onEditSave"
-      @add="onAddSave"
-      @close="editTarget = null; addMode = false"
-    />
+    <Transition name="ui-modal">
+      <ItemEditModal
+        v-if="editTarget || addMode"
+        :add-mode="addMode"
+        :name="editTarget?.name ?? ''"
+        :meta="editTarget?.meta ?? ''"
+        :items="study.items"
+        @save="onEditSave"
+        @add="onAddSave"
+        @close="editTarget = null; addMode = false"
+      />
+    </Transition>
   </div>
 </template>
 

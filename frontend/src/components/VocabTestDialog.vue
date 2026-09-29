@@ -151,8 +151,8 @@ function add() {
 </script>
 
 <template>
-  <div class="overlay">
-    <div class="modal">
+  <div class="overlay ui-overlay ui-sheet">
+    <div class="modal ui-panel">
       <div class="head">
         <div style="font-size: 15px; font-weight: 700">英単語テストを追加</div>
         <button class="x" @click="emit('close')">×</button>
@@ -161,7 +161,7 @@ function add() {
       <div v-else-if="!resources.length" class="hint">単語帳がありません。</div>
       <template v-else>
         <div class="lab">単語帳</div>
-        <div class="seg">
+        <div v-seg class="seg">
           <button v-for="r in resources" :key="r.id" :class="{ on: form.resourceId === r.id }" @click="selectResource(r.id)">{{ r.name }}<span class="cnt">{{ r.wordCount }}語</span></button>
         </div>
 
@@ -170,9 +170,9 @@ function add() {
         </div>
         <div class="range-row">
           <span class="rl">No.</span>
-          <input v-model.number="form.from" type="number" min="1" :max="words.length" class="rng" :disabled="loadingWords" />
+          <input v-model.number="form.from" type="number" inputmode="numeric" min="1" :max="words.length" class="rng" :disabled="loadingWords" />
           <span class="rl">〜</span>
-          <input v-model.number="form.to" type="number" min="1" :max="words.length" class="rng" :disabled="loadingWords" />
+          <input v-model.number="form.to" type="number" inputmode="numeric" min="1" :max="words.length" class="rng" :disabled="loadingWords" />
           <span class="rl" style="color: var(--faint)">{{ range ? range.to - range.from + 1 + '語' : '範囲が不正です' }}</span>
           <span class="quick">
             <button class="link" :disabled="!range || range.from <= 1" @click="setRange((range?.from ?? 1) - BLOCK, BLOCK)">‹ 前の{{ BLOCK }}語</button>
@@ -193,7 +193,7 @@ function add() {
             </select>
           </label>
           <label class="fld"><span>出題数（1枚 {{ perPage }}問まで・最大 {{ maxCount }}問）</span>
-            <input v-model.number="form.count" type="number" min="1" :max="maxCount" />
+            <input v-model.number="form.count" type="number" inputmode="numeric" min="1" :max="maxCount" />
           </label>
           <label class="fld"><span>出題順</span>
             <select v-model="form.order">

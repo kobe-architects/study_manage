@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { AnnotationDoc, AnnotationItem, AnnotationShape } from '@/types'
+import { appConfirm } from '@/lib/dialog'
 
 /**
  * 回答写真の採点・添削エディタ（PC / iPad 共用）。
@@ -398,9 +399,9 @@ function redo() {
   selectedId.value = null
   commit()
 }
-function clearAll() {
+async function clearAll() {
   if (!items.value.length) return
-  if (!confirm('この用紙の注釈をすべて消しますか？')) return
+  if (!(await appConfirm('この用紙の注釈をすべて消しますか？', { danger: true, okText: '消す' }))) return
   snapshot()
   items.value = []
   selectedId.value = null
@@ -606,7 +607,12 @@ function onUp(e: PointerEvent) {
     temp = null
     commit()
   } else if (tool.value === 'text' && !moved) {
-    openText(p.x, p.y)
+    // 指・ペンで既存のテキストをタップしたときは、新しく作らずにそのテキストを編集する
+    const it = e.pointerType !== 'mouse' ? textAt(p.x, p.y) : undefined
+    if (it) {
+      selectedId.value = it.id
+      openText(it.x, it.y, it)
+    } else openText(p.x, p.y)
   } else if (tool.value === 'select' && resizeItem) {
     if (resizeItem.snapped) setDirty(true)
     resizeItem = null
@@ -615,8 +621,34 @@ function onUp(e: PointerEvent) {
     if (moved) setDirty(true)
     dragItem = null
     draw()
+    doubleTapEdit(e, p)
   }
   start = null
+}
+
+/** p の位置にあるテキスト注釈（重なっているときは上のもの） */
+function textAt(x: number, y: number) {
+  const it = [...items.value].reverse().find((i) => i.type === 'text' && hit(i, x, y, 10 / scale.value))
+  return it && it.type === 'text' ? it : undefined
+}
+/**
+ * 指・Apple Pencil のダブルタップでテキスト注釈を編集する。
+ * タッチ操作では dblclick が発生しないことがあるため、選択ツールでのタップ 2 回を自前で判定する。
+ */
+let lastTap: { t: number; x: number; y: number } | null = null
+function doubleTapEdit(e: PointerEvent, p: { x: number; y: number }) {
+  if (e.pointerType === 'mouse' || moved) {
+    lastTap = null
+    return
+  }
+  const near = !!lastTap && e.timeStamp - lastTap.t < 380 && Math.hypot(p.x - lastTap.x, p.y - lastTap.y) < 28 / scale.value
+  lastTap = near ? null : { t: e.timeStamp, x: p.x, y: p.y }
+  if (!near) return
+  const it = textAt(p.x, p.y)
+  if (it) {
+    selectedId.value = it.id
+    openText(it.x, it.y, it)
+  }
 }
 
 // ---------- タッチのピンチ拡縮・1本指スクロール（ステージで受ける） ----------
@@ -883,7 +915,8 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="editor" :class="{ fill: fitToContainer }">
+  <!-- no-gesture: 画面共通のジェスチャー（引っ張って更新・端スワイプで戻る）をここでは起こさない -->
+  <div class="editor no-gesture" :class="{ fill: fitToContainer }">
     <Teleport :to="toolbarTarget" :disabled="!toolbarTarget">
       <div v-if="!readonly && compact" class="toolbar vertical compact">
         <!-- 常時表示: ペン・消しゴム・戻す・進む＋展開 -->

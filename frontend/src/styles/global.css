@@ -24,6 +24,18 @@ body,
 /* スマホでのダブルタップ拡大を無効化（ピンチ拡大・スクロールは維持） */
 html {
   touch-action: manipulation;
+  /* 横向きにしたときに iOS が文字を勝手に拡大しないようにする */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* タップ時の灰色の四角いハイライトを消す（押した感触は下の :active で出す） */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 画面全体が引っ張られてバウンドしたり、引っ張って再読み込みされたりしないようにする
+   （スクロールはレイアウト内のスクロール領域で行う） */
+html,
+body {
+  overscroll-behavior: none;
 }
 
 body {
@@ -60,18 +72,227 @@ body {
   background-clip: content-box;
 }
 
-@keyframes lmsFade {
+/* ===== 画面遷移（lib/pageNav.ts がクラスを付け替える） ===== */
+/* タブの切り替え: ふわっと表示 */
+.page-fade {
+  animation: pageFade 0.26s ease;
+}
+/* 下の階層へ: 右からスライドイン */
+.page-push {
+  animation: pagePush 0.34s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+/* 上の階層へ戻る: 左からスライドイン */
+.page-pop {
+  animation: pagePop 0.34s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+@keyframes pageFade {
   from {
     opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
+    transform: translateY(5px);
   }
 }
-.fade-in {
-  animation: lmsFade 0.3s ease;
+@keyframes pagePush {
+  from {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+}
+@keyframes pagePop {
+  from {
+    opacity: 0;
+    transform: translateX(-36px);
+  }
+}
+
+/* ===== タッチ操作の手触り ===== */
+button {
+  /* 長押しでボタンの文字が選択されたり、iOS のメニューが出たりしないようにする */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  transition: opacity 0.2s ease;
+}
+/* 指で押している間は少し薄くする（iOS のボタンと同じ感触）。マウス操作の端末では付けない */
+@media (hover: none) {
+  button:not(:disabled):active,
+  .tap:active {
+    opacity: 0.55;
+    transition-duration: 0s;
+  }
+}
+/* iOS は日付入力欄が空だと高さが潰れ、値も中央寄せになる */
+input[type='date'],
+input[type='time'],
+input[type='month'] {
+  min-height: 2.45em;
+}
+input::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+/* ===== セグメント切替のスライド（lib/segSlide.ts の v-seg） ===== */
+.seg-ind {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  transition:
+    transform 0.34s cubic-bezier(0.2, 0.9, 0.25, 1),
+    width 0.34s cubic-bezier(0.2, 0.9, 0.25, 1),
+    height 0.34s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.seg-anim > :not(.seg-ind) {
+  position: relative;
+  z-index: 1;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  transition: color 0.25s ease, opacity 0.2s ease;
+}
+
+/* ===== モーダル共通 =====
+   .ui-overlay = 背景、.ui-panel = 本体。開くときのアニメーションは CSS だけで付き、
+   閉じるときのアニメーションは <Transition name="ui-modal"> で囲むと付く。
+   .ui-sheet を付けるとスマホ幅では下から出るシートになり、.ui-swipe で下スワイプして閉じられる（lib/native.ts）。 */
+.ui-overlay {
+  animation: uiFadeIn 0.2s ease;
+  overscroll-behavior: contain;
+}
+.ui-overlay > .ui-panel {
+  animation: uiPopIn 0.28s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.ui-modal-leave-active {
+  animation: uiFadeOut 0.2s ease forwards;
+  pointer-events: none;
+}
+.ui-modal-leave-active > .ui-panel {
+  animation: uiPopOut 0.2s ease forwards;
+}
+/* 全画面表示（カメラ・添削・結果表示など） */
+.ui-fullscreen {
+  animation: uiFsIn 0.24s ease;
+}
+.ui-modal-leave-active.ui-fullscreen {
+  animation: uiFsOut 0.22s ease forwards;
+}
+@keyframes uiFadeIn {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes uiFadeOut {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes uiPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.965);
+  }
+}
+@keyframes uiPopOut {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+/* 全画面表示は中でキャンバスの座標を測るものがあるため、位置は動かさず透明度だけ変える */
+@keyframes uiFsIn {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes uiFsOut {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes uiSheetIn {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes uiSheetOut {
+  from {
+    transform: translateY(var(--ui-drag, 0px));
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+/* スマホ幅: 下から出るシート（:root を付けて各画面の scoped スタイルより優先させる） */
+@media (max-width: 600px) {
+  :root .ui-overlay.ui-sheet {
+    align-items: flex-end;
+    padding: calc(env(safe-area-inset-top) + 28px) 0 0;
+  }
+  :root .ui-sheet > .ui-panel {
+    position: relative;
+    width: 100%;
+    max-width: none;
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: max(20px, calc(env(safe-area-inset-bottom) + 14px));
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.14);
+    animation: uiSheetIn 0.38s cubic-bezier(0.2, 0.9, 0.25, 1);
+  }
+  /* 余白なしで作られているパネル（ヘッダー・フッターで区切るタイプ） */
+  :root .ui-sheet > .ui-panel.ui-flush {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* つまみ（下スワイプで閉じられる目印） */
+  :root .ui-sheet.ui-swipe > .ui-panel::before {
+    content: '';
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    width: 38px;
+    height: 5px;
+    margin-left: -19px;
+    border-radius: 3px;
+    background: #d6dae0;
+  }
+  :root .ui-modal-leave-active.ui-sheet > .ui-panel {
+    animation: uiSheetOut 0.26s cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+}
+
+/* モーダル・全画面表示が開いている間は、後ろの画面がタッチでスクロールしないようにする */
+@media (pointer: coarse) {
+  html:has(.ui-overlay, .ui-fullscreen) .app-scroll {
+    overflow: hidden;
+  }
+}
+
+/* 動きを減らす設定の端末ではアニメーションを控えめにする */
+@media (prefers-reduced-motion: reduce) {
+  .page-fade,
+  .page-push,
+  .page-pop,
+  .ui-overlay,
+  .ui-overlay > .ui-panel,
+  .ui-fullscreen,
+  :root .ui-sheet > .ui-panel {
+    animation-duration: 0.01s !important;
+  }
+}
+
+/* ===== グローバルトースト（App.vue） ===== */
+.v-snackbar.app-toast {
+  margin-bottom: calc(10px + var(--app-bottom-inset, 0px));
+}
+.v-snackbar.app-toast .v-snackbar__wrapper {
+  min-width: 0;
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+}
+.v-snackbar.app-toast .v-snackbar__content {
+  padding: 11px 20px;
+  font-size: 13px;
 }
 
 /* shared card */

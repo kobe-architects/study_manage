@@ -200,6 +200,18 @@ frontend/dist/assets/     →  backend/public/assets/
 - `public/index.php`（Laravel フロントコントローラ）はそのまま
 - 静的アセット（`/assets/*`）は実体があるため Apache が直接配信
 - 更新時は `public/assets/` を一度空にしてから入れると古いファイルが残らない
+- **ホーム画面に追加（PWA）用のファイル**（`dist` 直下。中身が変わったときだけで可）:
+  ```
+  frontend/dist/manifest.webmanifest
+  frontend/dist/apple-touch-icon.png
+  frontend/dist/icon-192.png
+  frontend/dist/icon-512.png
+  frontend/dist/icon-maskable-512.png
+  frontend/dist/favicon.svg
+  →  backend/public/
+  ```
+  これらが無いと、存在しないパスとして index.html が返り、iPhone・iPad でホーム画面に追加したときに
+  アイコン・全画面起動が効かない（2026-09-30 追加）
 
 ---
 

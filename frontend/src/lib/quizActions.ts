@@ -18,7 +18,7 @@ export function useQuizActions(reload: () => Promise<void> | void) {
   async function openPdf(q: QuizSummary) {
     state.busy = true
     try {
-      await quizApi.previewQuizPdf(q.id)
+      await quizApi.previewQuizPdf(q.id, false, q.title)
     } catch {
       ui.notify('PDF の表示に失敗しました')
     } finally {

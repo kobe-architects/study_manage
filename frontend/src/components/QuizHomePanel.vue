@@ -54,8 +54,12 @@ const shown = computed(() => {
       @result="openResult($event)"
     />
     <div v-if="!shown.length" class="card" style="padding: 16px 18px; font-size: 12px; color: var(--faint)">未提出・採点待ちの小テストはありません</div>
-    <CameraCapture v-if="state.capture" :quiz="state.capture" @close="state.capture = null" @submitted="onSubmitted" />
-    <QuizResultModal v-if="state.resultId !== null" :quiz-id="state.resultId" @close="state.resultId = null" />
+    <Transition name="ui-modal">
+      <CameraCapture v-if="state.capture" :quiz="state.capture" @close="state.capture = null" @submitted="onSubmitted" />
+    </Transition>
+    <Transition name="ui-modal">
+      <QuizResultModal v-if="state.resultId !== null" :quiz-id="state.resultId" @close="state.resultId = null" />
+    </Transition>
   </template>
 </template>
 

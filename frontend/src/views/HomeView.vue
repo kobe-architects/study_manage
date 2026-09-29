@@ -14,6 +14,8 @@ import { useUiStore } from '@/stores/ui'
 import { useVocabularyStore } from '@/stores/vocabulary'
 import { useRouter } from 'vue-router'
 import { type Goal, type GoalItemDetail, type RecordColor, type ReviewItem, type StudyType } from '@/types'
+import { appConfirm } from '@/lib/dialog'
+import { viewportWidth } from '@/lib/native'
 
 const study = useStudyStore()
 const auth = useAuthStore()
@@ -29,9 +31,7 @@ const tab = ref<'plan' | 'progress' | 'goals' | 'review'>('plan')
 // 先生からの課題（未記録のみカード表示）
 study.fetchAssignments().catch(() => {})
 const pendingAssignments = computed(() => study.assignments.filter((a) => a.achieved === null))
-const vw = ref(window.innerWidth)
-window.addEventListener('resize', () => (vw.value = window.innerWidth))
-const isMobile = computed(() => vw.value < 860)
+const isMobile = computed(() => viewportWidth.value < 860)
 
 const hideEmpty = computed(() => auth.settings?.hideEmpty ?? false)
 
@@ -72,7 +72,8 @@ function toggleVocab(id: number) {
 
 // ---- 目標設定状況（ガントチャート） ----
 const PX_PER_DAY = 34
-const GANTT_LABEL_W = 300
+/** 見出し列（目標名）の幅。スマホ・タブレット縦では狭くしてチャート部分を見やすくする */
+const ganttLabelW = computed(() => (viewportWidth.value < 600 ? 132 : viewportWidth.value < 860 ? 200 : 300))
 const WD = ['日', '月', '火', '水', '木', '金', '土']
 const EXTEND_DAYS = 60 // スクロール端で読み込む日数
 const EDGE_PX = 400 // 端とみなすしきい値(px)
@@ -212,7 +213,7 @@ const gantt = computed(() => {
       }
     }
   }
-  return { rows, days, months, posPx, todayPx, width, labelW: GANTT_LABEL_W }
+  return { rows, days, months, posPx, todayPx, width, labelW: ganttLabelW.value }
 })
 // 目標バー（作成日→期限）。ペース目安の位置(pacePx)＝今日をバー内にクランプ。
 function goalBar(row: GanttGoalRow) {
@@ -243,7 +244,7 @@ function onGanttWheel(e: WheelEvent) {
   const el = ganttScroll.value
   if (!el) return
   // 見出し列（固定）の上では横スクロールに変換せず、ページの縦スクロールに委ねる
-  if (e.clientX - el.getBoundingClientRect().left < GANTT_LABEL_W) return
+  if (e.clientX - el.getBoundingClientRect().left < ganttLabelW.value) return
   if (el.scrollWidth <= el.clientWidth) return
   const dy = e.deltaY
   if (dy === 0) return
@@ -481,7 +482,7 @@ async function saveEvent(id: number | null, title: string, isMock: boolean, note
   }
 }
 async function deleteEvent(id: number) {
-  if (!confirm('この予定を削除しますか？')) return
+  if (!(await appConfirm('この予定を削除しますか？', { danger: true, okText: '削除' }))) return
   try {
     await study.deleteEvent(id)
     ui.notify('予定を削除しました')
@@ -496,7 +497,7 @@ async function deleteEvent(id: number) {
   <div>
     <!-- tabs -->
     <div style="display: flex; margin-bottom: 18px" :class="{ 'full-w': (tab === 'plan' || tab === 'progress') && !isMobile }">
-      <div class="seg">
+      <div v-seg class="seg">
         <button class="seg-btn" :class="{ on: tab === 'plan' }" @click="tab = 'plan'">計画</button>
         <button class="seg-btn" :class="{ on: tab === 'progress' }" @click="tab = 'progress'">進捗率</button>
         <button class="seg-btn" :class="{ on: tab === 'goals' }" @click="selectGoals">目標</button>
@@ -642,7 +643,7 @@ async function deleteEvent(id: number) {
         目標がありません。<br />「目標設定」から個別学習データを紐づけて目標を作成すると、ここに期限までのガントチャートが表示されます。
       </div>
       <div v-else ref="ganttScroll" class="card gantt-card" @wheel="onGanttWheel" @scroll="onGanttScroll">
-        <div class="gantt" :style="{ width: gantt.labelW + gantt.width + 'px' }">
+        <div class="gantt" :style="{ width: gantt.labelW + gantt.width + 'px', '--g-label-w': gantt.labelW + 'px' }">
           <!-- 日付軸（日付＋曜日、土=青 / 日=赤） -->
           <div class="g-axis-row">
             <div class="g-label-col g-corner">目標 / 中間目標</div>
@@ -739,7 +740,7 @@ async function deleteEvent(id: number) {
       <template v-else>
         <div class="row-between" style="margin-bottom: 13px; flex-wrap: wrap; gap: 10px">
           <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
-            <div class="seg rv-seg">
+            <div v-seg class="seg rv-seg">
               <button class="seg-btn" :class="{ on: reviewFilter === 'pending' }" @click="reviewFilter = 'pending'">未復習<span v-if="pendingReviews.length" class="flt-num">{{ pendingReviews.length }}</span></button>
               <button class="seg-btn" :class="{ on: reviewFilter === 'done' }" @click="reviewFilter = 'done'">復習済み<span v-if="doneReviews.length" class="flt-num">{{ doneReviews.length }}</span></button>
               <button class="seg-btn" :class="{ on: reviewFilter === 'all' }" @click="reviewFilter = 'all'">すべて</button>
@@ -802,47 +803,51 @@ async function deleteEvent(id: number) {
 
     <!-- 復習記録モーダル -->
     <Teleport to="body">
-    <div v-if="reviewModal.open" class="modal-bg" @click.self="reviewModal.open = false">
-      <div class="modal">
-        <div class="modal-title">復習を記録</div>
-        <div v-if="reviewModal.item" style="font-size: 12.5px; color: var(--mut); margin-top: -4px">
-          {{ reviewModal.item.title ?? reviewModal.item.sub ?? '（無題）' }}
-          <span style="color: var(--faint)"> ｜ {{ reviewModal.item.bookTitle }}</span>
-        </div>
-        <div class="rv-form-row">
-          <label class="fld" style="flex: 1"><span>復習した日</span><input v-model="reviewModal.date" type="date" /></label>
-          <div class="fld" style="flex: 0 0 auto">
-            <span>色</span>
-            <div style="display: flex; align-items: center; gap: 8px; height: 37px">
-              <button class="rec-dot none" :class="{ sel: reviewModal.color === null }" title="色なし" @click="reviewModal.color = null"></button>
-              <button v-for="c in RECORD_COLOR_KEYS" :key="c" class="rec-dot" :class="{ sel: reviewModal.color === c }" :style="{ background: DATE_COLORS[c] }" :title="COLOR_LABEL[c]" @click="reviewModal.color = c"></button>
+    <Transition name="ui-modal">
+      <div v-if="reviewModal.open" class="modal-bg ui-overlay ui-sheet ui-swipe" @click.self="reviewModal.open = false">
+        <div class="modal ui-panel">
+          <div class="modal-title">復習を記録</div>
+          <div v-if="reviewModal.item" style="font-size: 12.5px; color: var(--mut); margin-top: -4px">
+            {{ reviewModal.item.title ?? reviewModal.item.sub ?? '（無題）' }}
+            <span style="color: var(--faint)"> ｜ {{ reviewModal.item.bookTitle }}</span>
+          </div>
+          <div class="rv-form-row">
+            <label class="fld" style="flex: 1"><span>復習した日</span><input v-model="reviewModal.date" type="date" /></label>
+            <div class="fld" style="flex: 0 0 auto">
+              <span>色</span>
+              <div style="display: flex; align-items: center; gap: 8px; height: 37px">
+                <button class="rec-dot none" :class="{ sel: reviewModal.color === null }" title="色なし" @click="reviewModal.color = null"></button>
+                <button v-for="c in RECORD_COLOR_KEYS" :key="c" class="rec-dot" :class="{ sel: reviewModal.color === c }" :style="{ background: DATE_COLORS[c] }" :title="COLOR_LABEL[c]" @click="reviewModal.color = c"></button>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="fld">
-          <span>次回の復習期限</span>
-          <div class="review-opts">
-            <button v-for="(opt, i) in REVIEW_OPTIONS" :key="opt.label" class="review-chip" :class="{ on: reviewModal.reviewIdx === i }" @click="reviewModal.reviewIdx = i">{{ opt.label }}</button>
-            <input v-if="REVIEW_OPTIONS[reviewModal.reviewIdx].kind === 'custom'" v-model.number="reviewModal.customDays" type="number" min="1" class="review-custom" placeholder="日数" />
+          <div class="fld">
+            <span>次回の復習期限</span>
+            <div class="review-opts">
+              <button v-for="(opt, i) in REVIEW_OPTIONS" :key="opt.label" class="review-chip" :class="{ on: reviewModal.reviewIdx === i }" @click="reviewModal.reviewIdx = i">{{ opt.label }}</button>
+              <input v-if="REVIEW_OPTIONS[reviewModal.reviewIdx].kind === 'custom'" v-model.number="reviewModal.customDays" type="number" inputmode="numeric" min="1" class="review-custom" placeholder="日数" />
+            </div>
+            <span style="font-size: 11px; color: var(--faint); font-weight: 400; margin-top: 4px">{{ reviewModalPreview }}</span>
           </div>
-          <span style="font-size: 11px; color: var(--faint); font-weight: 400; margin-top: 4px">{{ reviewModalPreview }}</span>
-        </div>
-        <div class="modal-actions">
-          <button class="btn-out" @click="reviewModal.open = false">キャンセル</button>
-          <button class="btn-dark" :disabled="reviewModal.saving" @click="submitReviewRecord">復習を記録して完了</button>
+          <div class="modal-actions">
+            <button class="btn-out" @click="reviewModal.open = false">キャンセル</button>
+            <button class="btn-dark" :disabled="reviewModal.saving" @click="submitReviewRecord">復習を記録して完了</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
     </Teleport>
 
-    <EventModal
-      v-if="eventModal"
-      :date="eventModal.date"
-      :events="eventsOfModalDate"
-      @save="saveEvent"
-      @delete="deleteEvent"
-      @close="eventModal = null"
-    />
+    <Transition name="ui-modal">
+      <EventModal
+        v-if="eventModal"
+        :date="eventModal.date"
+        :events="eventsOfModalDate"
+        @save="saveEvent"
+        @delete="deleteEvent"
+        @close="eventModal = null"
+      />
+    </Transition>
   </div>
 </template>
 
@@ -1024,7 +1029,7 @@ async function deleteEvent(id: number) {
   position: relative;
 }
 .g-label-col {
-  width: 300px;
+  width: var(--g-label-w, 300px);
   flex-shrink: 0;
   padding-left: 16px;
   padding-right: 12px;

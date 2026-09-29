@@ -4,6 +4,7 @@ import HelpTip from '@/components/HelpTip.vue'
 import { quizApi } from '@/api/quiz'
 import { useUiStore } from '@/stores/ui'
 import type { BookPdf, PdfPageMap } from '@/types'
+import { appConfirm } from '@/lib/dialog'
 
 /**
  * 教材（個別学習データ）への PDF 紐づけ管理（生徒・講師共用）。
@@ -105,7 +106,7 @@ async function saveEdit() {
   }
 }
 async function remove(p: BookPdf) {
-  if (!confirm(`PDF「${p.title}」の紐づけを削除しますか？\n（この PDF から出題済みの小テストは残りますが、新規出題には使えなくなります）`)) return
+  if (!(await appConfirm(`PDF「${p.title}」の紐づけを削除しますか？\n（この PDF から出題済みの小テストは残りますが、新規出題には使えなくなります）`, { danger: true, okText: '削除' }))) return
   try {
     await quizApi.deletePdf(p.id)
     pdfs.value = pdfs.value.filter((x) => x.id !== p.id)
@@ -127,8 +128,8 @@ function mapLabel(p: BookPdf): string {
 </script>
 
 <template>
-  <div class="overlay" @click="emit('close')">
-    <div class="modal" @click.stop>
+  <div class="overlay ui-overlay ui-sheet ui-swipe" @click="emit('close')">
+    <div class="modal ui-panel" @click.stop>
       <div class="head">
         <div>
           <div style="font-size: 15px; font-weight: 700">PDF の紐づけ</div>
@@ -234,11 +235,15 @@ function mapLabel(p: BookPdf): string {
 }
 .x {
   border: none;
-  background: transparent;
-  font-size: 22px;
-  color: #9aa1ab;
+  background: #f2f3f5;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 20px;
+  color: #6b7280;
   cursor: pointer;
   line-height: 1;
+  flex-shrink: 0;
 }
 .empty {
   font-size: 12.5px;

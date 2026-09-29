@@ -5,6 +5,7 @@ import HelpTip from '@/components/HelpTip.vue'
 import { quizApi, rateColor } from '@/api/quiz'
 import { useUiStore } from '@/stores/ui'
 import type { QuizDetail, QuizPageDetail } from '@/types'
+import { saveFile } from '@/lib/native'
 
 /**
  * 採点・添削結果の閲覧（生徒・講師共用）。全画面で回答画像（添削があれば合成画像）を表示し、
@@ -241,16 +242,13 @@ function fileBase(): string {
   return (quiz.value?.title ?? '小テスト').replace(/[\\/:*?"<>|]/g, '_')
 }
 
-function saveImage() {
+/** 表示中の画像を保存（iPhone・iPad は共有シートから「画像を保存」で写真に保存できる） */
+async function saveImage() {
   const p = page.value
   const url = currentUrl.value
   if (!p || !url) return
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${fileBase()}_p${p.pageNo}${p.hasAnnotated ? '_添削' : ''}.jpg`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
+  const blob = await (await fetch(url)).blob()
+  await saveFile(blob, `${fileBase()}_p${p.pageNo}${p.hasAnnotated ? '_添削' : ''}.jpg`, { preferShare: true })
 }
 
 async function download(kind: 'result' | 'quiz') {
@@ -259,7 +257,7 @@ async function download(kind: 'result' | 'quiz') {
   try {
     // 問題 PDF は別タブでプレビュー、添削済み PDF はダウンロード
     if (kind === 'result') await quizApi.downloadResultPdf(quiz.value.id, quiz.value.title)
-    else await quizApi.previewQuizPdf(quiz.value.id)
+    else await quizApi.previewQuizPdf(quiz.value.id, false, quiz.value.title)
   } catch {
     ui.notify(kind === 'result' ? 'ダウンロードに失敗しました' : 'PDF の表示に失敗しました')
   } finally {
@@ -271,7 +269,7 @@ const commentOpen = ref(true)
 </script>
 
 <template>
-  <div class="rv">
+  <div class="rv ui-fullscreen">
     <!-- 上部: タイトル・得点・閉じる -->
     <div class="rv-top">
       <div class="rv-title">
@@ -373,6 +371,9 @@ const commentOpen = ref(true)
   flex-direction: column;
   overscroll-behavior: none;
   touch-action: none;
+  /* 横向きのスマホでノッチに重ならないようにする */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 .rv-top {
   display: flex;

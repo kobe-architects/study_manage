@@ -6,6 +6,7 @@ import { INVOICE_STATUS, hoursLabel, invoiceApi, minToTime, workDateLabel, yen }
 import { renderInvoiceSheet } from '@/lib/invoiceSheet'
 import { useUiStore } from '@/stores/ui'
 import type { InvoiceDetail, InvoiceSummary, TutorAccount } from '@/types'
+import { appConfirm } from '@/lib/dialog'
 
 /**
  * 生徒用: 講師請求管理。
@@ -133,7 +134,7 @@ async function removeEntry(id: number) {
 // ---- ステータス操作 ----
 async function doAction(act: 'close' | 'reopen' | 'issue' | 'pay', confirmText?: string) {
   if (!cur.value) return
-  if (confirmText && !confirm(confirmText)) return
+  if (confirmText && !(await appConfirm(confirmText))) return
   busy.value = true
   try {
     applyDetail(await invoiceApi.action(cur.value.id, act))

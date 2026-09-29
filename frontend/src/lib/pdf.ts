@@ -7,6 +7,8 @@ import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
  */
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl
 
+export { pdfjsLib }
+
 const rendered = new Map<string, Promise<string>>()
 
 export function renderPage(url: string, width: number, pageNo = 1, quality = 0.82): Promise<string> {

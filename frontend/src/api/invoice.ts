@@ -1,5 +1,6 @@
 import client from '@/api/client'
 import type { InvoiceDetail, InvoiceStatus, InvoiceSummary } from '@/types'
+import { showPdf, useInAppViewer } from '@/lib/docViewer'
 
 /** API プレフィックス。講師ログイン時は /tutor 配下 */
 function p(): string {
@@ -44,12 +45,18 @@ export const invoiceApi = {
    * ポップアップブロック回避のため、クリック直後（同期）に空タブを開いてから処理する。
    */
   async openPdf(id: number, image: Blob): Promise<void> {
-    const w = window.open('', '_blank')
+    // ホーム画面から起動したアプリでは別タブが使えないため、アプリ内のビューアで表示する
+    const w = useInAppViewer ? null : window.open('', '_blank')
     try {
       const fd = new FormData()
       fd.append('image', image, 'invoice.jpg')
       const res = await client.post(`${p()}/invoices/${id}/pdf`, fd, { responseType: 'blob' })
-      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const pdf = new Blob([res.data], { type: 'application/pdf' })
+      if (useInAppViewer) {
+        showPdf(pdf, '請求書.pdf')
+        return
+      }
+      const url = URL.createObjectURL(pdf)
       if (w) w.location.replace(url)
       else window.open(url, '_blank')
       setTimeout(() => URL.revokeObjectURL(url), 60_000)

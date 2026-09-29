@@ -18,7 +18,7 @@ async function select(id: number) {
 </script>
 
 <template>
-  <div v-if="vocab.resources.length > 1" class="switch" role="tablist" aria-label="単語帳">
+  <div v-seg v-if="vocab.resources.length > 1" class="switch" role="tablist" aria-label="単語帳">
     <button
       v-for="r in vocab.resources"
       :key="r.id"

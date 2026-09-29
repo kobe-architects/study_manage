@@ -64,10 +64,27 @@ const weeks = computed(() => {
   return w
 })
 
+/** 月送りのアニメーション（次の月=右から / 前の月=左から） */
+const slide = ref('')
 function move(delta: number) {
   const d = new Date(month.value)
   d.setMonth(d.getMonth() + delta)
   month.value = d
+  slide.value = delta > 0 ? 'cal-next' : 'cal-prev'
+}
+
+// 左右スワイプで月を切り替える（タッチ端末）
+let sw: { x: number; y: number } | null = null
+function onTouchStart(e: TouchEvent) {
+  sw = e.touches.length === 1 ? { x: e.touches[0]!.clientX, y: e.touches[0]!.clientY } : null
+}
+function onTouchEnd(e: TouchEvent) {
+  if (!sw) return
+  const t = e.changedTouches[0]!
+  const dx = t.clientX - sw.x
+  const dy = t.clientY - sw.y
+  sw = null
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) move(dx < 0 ? 1 : -1)
 }
 function click(c: { inM: boolean; iso: string; evName: string }) {
   if (!c.inM) return
@@ -89,16 +106,42 @@ function click(c: { inM: boolean; iso: string; evName: string }) {
     <div class="dow-row">
       <div v-for="wd in weekDays" :key="wd" class="dow">{{ wd }}</div>
     </div>
-    <div v-for="(wk, wi) in weeks" :key="wi" class="cal-row">
-      <button v-for="(c, ci) in wk" :key="ci" class="cal-cell" :style="{ background: c.bg }" @click="click(c)">
-        <span class="cal-day" :style="{ color: c.color }">{{ c.day }}</span>
-        <span v-if="c.show" class="cal-ev" :style="{ background: c.evColor }">{{ c.evName }}</span>
-      </button>
+    <div class="cal-body" @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
+      <div :key="label" :class="slide">
+        <div v-for="(wk, wi) in weeks" :key="wi" class="cal-row">
+          <button v-for="(c, ci) in wk" :key="ci" class="cal-cell" :style="{ background: c.bg }" @click="click(c)">
+            <span class="cal-day" :style="{ color: c.color }">{{ c.day }}</span>
+            <span v-if="c.show" class="cal-ev" :style="{ background: c.evColor }">{{ c.evName }}</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+.cal-body {
+  overflow: hidden;
+  touch-action: pan-y pinch-zoom;
+}
+.cal-next {
+  animation: calNext 0.28s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.cal-prev {
+  animation: calPrev 0.28s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+@keyframes calNext {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+}
+@keyframes calPrev {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
 .cal-head {
   display: flex;
   justify-content: space-between;
@@ -108,8 +151,8 @@ function click(c: { inM: boolean; iso: string; evName: string }) {
 .nav-sq {
   border: none;
   background: #f2f3f5;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
   cursor: pointer;
   color: #6b7280;

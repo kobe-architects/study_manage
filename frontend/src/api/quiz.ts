@@ -1,5 +1,7 @@
 import client from '@/api/client'
 import type { AnnotationDoc, BookPdf, PdfPageMap, QuizBook, QuizDetail, QuizPageDetail, QuizPageSpec, QuizRow, QuizStats, QuizSummary, StudyResource, Vocabulary } from '@/types'
+import { saveFile } from '@/lib/native'
+import { showPdf, useInAppViewer } from '@/lib/docViewer'
 
 /** API プレフィックス。家庭教師ログイン時は /tutor 配下の生徒スコープ API を使う */
 function p(): string {
@@ -21,8 +23,14 @@ export async function fetchBlobUrl(url: string): Promise<string> {
 /**
  * 認証付き PDF を別タブでプレビュー表示する（保存ダイアログを出さずブラウザのビューアで開く）。
  * ポップアップブロック回避のため、クリック直後（同期）に空タブを開いてから取得する。
+ * ホーム画面から起動したアプリでは別タブが使えないため、アプリ内のビューアで表示する。
  */
-export async function previewPdf(url: string): Promise<void> {
+export async function previewPdf(url: string, filename = 'document.pdf'): Promise<void> {
+  if (useInAppViewer) {
+    const res = await client.get(url, { responseType: 'blob' })
+    showPdf(new Blob([res.data], { type: 'application/pdf' }), filename)
+    return
+  }
   const w = window.open('', '_blank')
   try {
     const res = await client.get(url, { responseType: 'blob' })
@@ -39,14 +47,7 @@ export async function previewPdf(url: string): Promise<void> {
 /** 認証付き URL のファイルをダウンロード（保存ダイアログ） */
 export async function downloadFile(url: string, filename: string): Promise<void> {
   const res = await client.get(url, { responseType: 'blob' })
-  const blobUrl = URL.createObjectURL(res.data)
-  const a = document.createElement('a')
-  a.href = blobUrl
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+  await saveFile(res.data, filename)
 }
 
 function toForm(payload: object, renders: Record<number, { question: Blob; answer: Blob }>, cover?: Blob | null): FormData {
@@ -191,8 +192,8 @@ export const quizApi = {
   },
 
   /** 問題 PDF を別タブでプレビュー表示する。withAnswers は講師のみ有効（英単語テストの解答用紙を末尾に付ける） */
-  previewQuizPdf(id: number, withAnswers = false): Promise<void> {
-    return previewPdf(`${p()}/quizzes/${id}/download${withAnswers ? '?answers=1' : ''}`)
+  previewQuizPdf(id: number, withAnswers = false, title = '小テスト'): Promise<void> {
+    return previewPdf(`${p()}/quizzes/${id}/download${withAnswers ? '?answers=1' : ''}`, `${title}.pdf`)
   },
 
   downloadResultPdf(id: number, title: string): Promise<void> {
@@ -210,26 +211,24 @@ export const quizApi = {
   // ===== 生徒が自分で問題 PDF を作って出力（記録なし） =====
   /** 選んだページ（＋章の表紙画像・白紙）の PDF を生成して別タブで表示、または保存する */
   async printPdf(sources: PrintSource[], images: Blob[], title: string, mode: 'preview' | 'download'): Promise<void> {
-    const w = mode === 'preview' ? window.open('', '_blank') : null
+    const w = mode === 'preview' && !useInAppViewer ? window.open('', '_blank') : null
     try {
       const fd = new FormData()
       fd.append('pages', JSON.stringify(sources))
       fd.append('title', title)
       images.forEach((b, i) => fd.append(`images[${i}]`, b, `cover${i}.jpg`))
       const res = await client.post('/quizzes/print-pdf', fd, { responseType: 'blob' })
-      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
-      if (mode === 'preview') {
+      const pdf = new Blob([res.data], { type: 'application/pdf' })
+      if (mode === 'preview' && useInAppViewer) {
+        showPdf(pdf, `${title || '小テスト'}.pdf`)
+      } else if (mode === 'preview') {
+        const blobUrl = URL.createObjectURL(pdf)
         if (w) w.location.replace(blobUrl)
         else window.open(blobUrl, '_blank')
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
       } else {
-        const a = document.createElement('a')
-        a.href = blobUrl
-        a.download = `${title || '小テスト'}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
+        await saveFile(pdf, `${title || '小テスト'}.pdf`)
       }
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
     } catch (e) {
       w?.close()
       throw e

@@ -4,6 +4,7 @@ import client from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore, type ColorMode, type NavStyle, type ProgressStyle } from '@/stores/ui'
 import type { StudyType, TutorAccount, UserSettings } from '@/types'
+import { appConfirm } from '@/lib/dialog'
 
 const auth = useAuthStore()
 const ui = useUiStore()
@@ -166,7 +167,7 @@ async function saveTutorPassword() {
 }
 
 async function removeTutor(t: TutorAccount) {
-  if (!confirm(`家庭教師アカウント「${t.name}」を削除しますか？`)) return
+  if (!(await appConfirm(`家庭教師アカウント「${t.name}」を削除しますか？`, { danger: true, okText: '削除' }))) return
   try {
     await client.delete(`/tutors/${t.id}`)
     tutors.value = tutors.value.filter((x) => x.id !== t.id)
@@ -283,7 +284,7 @@ async function removeTutor(t: TutorAccount) {
           <div class="tutor-actions">
             <label class="rate-box">
               <span>時給</span>
-              <input :value="t.hourlyRate" type="number" min="0" step="100" @change="saveTutorRate(t, $event)" />
+              <input :value="t.hourlyRate" type="number" inputmode="numeric" min="0" step="100" @change="saveTutorRate(t, $event)" />
               <span>円</span>
             </label>
             <button class="mini-btn" @click="pwEdit.id = pwEdit.id === t.id ? null : t.id; pwEdit.password = ''">PW再設定</button>
@@ -305,7 +306,7 @@ async function removeTutor(t: TutorAccount) {
 
         <div v-if="tutorForm.open" class="tutor-form">
           <label class="fld"><span>氏名</span><input v-model="tutorForm.name" /></label>
-          <label class="fld"><span>ログインID（メールアドレス形式でなくても可）</span><input v-model="tutorForm.email" type="text" autocomplete="off" /></label>
+          <label class="fld"><span>ログインID（メールアドレス形式でなくても可）</span><input v-model="tutorForm.email" type="text" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" /></label>
           <label class="fld"><span>パスワード（8文字以上）</span><input v-model="tutorForm.password" type="password" autocomplete="new-password" /></label>
           <div style="display: flex; gap: 8px; justify-content: flex-end">
             <button class="mini-btn" @click="tutorForm.open = false">キャンセル</button>

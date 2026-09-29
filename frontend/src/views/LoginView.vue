@@ -40,7 +40,7 @@ async function submit() {
       <form @submit.prevent="submit" style="display: flex; flex-direction: column; gap: 14px">
         <label class="fld">
           <span>ID</span>
-          <input v-model="email" type="text" autocomplete="username" />
+          <input v-model="email" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" />
         </label>
         <label class="fld">
           <span>パスワード</span>
@@ -70,6 +70,7 @@ async function submit() {
 <style scoped>
 .login-wrap {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;

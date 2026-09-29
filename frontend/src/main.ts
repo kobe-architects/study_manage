@@ -4,9 +4,13 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import App from './App.vue'
 import router from './router'
 import vuetify from './plugins/vuetify'
+import { installNativeFeel } from './lib/native'
+import { vSeg } from './lib/segSlide'
 import './styles/global.css'
+
+installNativeFeel()
 
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 
-createApp(App).use(pinia).use(router).use(vuetify).mount('#app')
+createApp(App).use(pinia).use(router).use(vuetify).directive('seg', vSeg).mount('#app')

@@ -8,6 +8,7 @@ import { fetchBlobUrl, quizApi, rateColor } from '@/api/quiz'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import type { AnnotationDoc, QuizDetail, QuizPageDetail } from '@/types'
+import { appConfirm } from '@/lib/dialog'
 
 /**
  * 講師用: 採点・添削画面。
@@ -146,7 +147,7 @@ async function closeFs() {
       closing.value = false
     }
     // 保存に失敗したときは添削を捨てずに全画面のまま残す
-    if (!ok && !confirm('添削の保存に失敗しました。保存せずに閉じますか？（描いた内容は失われます）')) return
+    if (!ok && !(await appConfirm('添削の保存に失敗しました。保存せずに閉じますか？\n（描いた内容は失われます）', { danger: true, okText: '閉じる' }))) return
   }
   fsOpen.value = false
   fsReady.value = false
@@ -325,7 +326,7 @@ onBeforeRouteLeave(async () => {
   if (fsOpen.value) unlockPage()
   if (!dirty.value && pending.size === 0) return true
   const ok = await flushAnnotations()
-  return ok || confirm('添削の保存に失敗しました。保存せずに移動しますか？（描いた内容は失われます）')
+  return ok || (await appConfirm('添削の保存に失敗しました。保存せずに移動しますか？\n（描いた内容は失われます）', { danger: true, okText: '移動する' }))
 })
 
 // ---- 採点（○△× のみ。点数はサーバー側でマークから自動設定される） ----
@@ -367,7 +368,7 @@ async function finish() {
     warnOpen.value = true
     return
   }
-  if (!confirm(`採点・添削を完了しますか？（得点 ${scoreForm.score} / ${scoreForm.maxScore}点・${scoreRate.value}%）\n完了すると生徒に結果が表示されます。`)) return
+  if (!(await appConfirm(`得点 ${scoreForm.score} / ${scoreForm.maxScore}点（${scoreRate.value}%）\n完了すると生徒に結果が表示されます。`, { title: '採点・添削を完了しますか？', okText: '完了する' }))) return
   try {
     await quizApi.finish(quiz.value.id)
     ui.notify('採点・添削を完了しました')
@@ -382,7 +383,7 @@ function goToScoreInput() {
   nextTick(() => scoreInput.value?.focus())
 }
 async function reopen() {
-  if (!quiz.value || !confirm('採点・添削をやり直しますか？（生徒側では「提出済み」に戻ります）')) return
+  if (!quiz.value || !(await appConfirm('生徒側では「提出済み」に戻ります。', { title: '採点・添削をやり直しますか？', okText: 'やり直す' }))) return
   try {
     await quizApi.reopen(quiz.value.id)
     await load()
@@ -551,7 +552,7 @@ async function downloadResult() {
   </div>
   <div v-else class="empty">読み込み中…</div>
   <!-- 全画面添削: 上=ページ一覧（横スクロール）・左=縦型ツール・中央=添削キャンバス（「解答を表示」で上下分割） -->
-  <div v-if="fsOpen && quiz && page" class="fs">
+  <div v-if="fsOpen && quiz && page" class="fs ui-fullscreen">
     <div class="fs-top">
       <button class="fs-close" @click="closeFs">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
@@ -620,29 +621,35 @@ async function downloadResult() {
     </div>
   </div>
   <!-- 採点未入力の警告 -->
-  <div v-if="warnOpen" class="sheet-overlay" style="z-index: 90" @click="warnOpen = false">
-    <div class="warn-modal" @click.stop>
-      <div class="warn-title">採点が入力されていません</div>
-      <div class="warn-body">「採点・添削を完了」するには、右側の採点欄に得点と満点を入力してください。完了すると生徒に結果（得点・添削）が表示されます。</div>
-      <div class="warn-btns">
-        <button class="btn" @click="warnOpen = false">閉じる</button>
-        <button class="btn primary" @click="goToScoreInput">採点を入力する</button>
+  <Transition name="ui-modal">
+    <div v-if="warnOpen" class="sheet-overlay ui-overlay" style="z-index: 90" @click="warnOpen = false">
+      <div class="warn-modal ui-panel" @click.stop>
+        <div class="warn-title">採点が入力されていません</div>
+        <div class="warn-body">「採点・添削を完了」するには、右側の採点欄に得点と満点を入力してください。完了すると生徒に結果（得点・添削）が表示されます。</div>
+        <div class="warn-btns">
+          <button class="btn" @click="warnOpen = false">閉じる</button>
+          <button class="btn primary" @click="goToScoreInput">採点を入力する</button>
+        </div>
       </div>
     </div>
-  </div>
-  <div v-if="sheetOpen && quiz && page" class="sheet-overlay" @click="sheetOpen = false">
-    <div class="sheet-modal" @click.stop>
-      <button class="sheet-x" @click="sheetOpen = false">×</button>
-      <AuthImage :src="quizApi.renderImageUrl(quiz.id, page.id)" />
+  </Transition>
+  <Transition name="ui-modal">
+    <div v-if="sheetOpen && quiz && page" class="sheet-overlay ui-overlay" @click="sheetOpen = false">
+      <div class="sheet-modal ui-panel" @click.stop>
+        <button class="sheet-x" @click="sheetOpen = false">×</button>
+        <AuthImage :src="quizApi.renderImageUrl(quiz.id, page.id)" />
+      </div>
     </div>
-  </div>
+  </Transition>
   <!-- 解答ページの拡大表示 -->
-  <div v-if="ansOpen && page && page.ansPdfId && page.ansPage" class="sheet-overlay" @click="ansOpen = false">
-    <div class="sheet-modal" @click.stop>
-      <button class="sheet-x" @click="ansOpen = false">×</button>
-      <div class="ans-zoom"><PdfThumb :key="'ansz' + page.id" :pdf-id="page.ansPdfId" :page="page.ansPage" :width="1400" eager /></div>
+  <Transition name="ui-modal">
+    <div v-if="ansOpen && page && page.ansPdfId && page.ansPage" class="sheet-overlay ui-overlay" @click="ansOpen = false">
+      <div class="sheet-modal ui-panel" @click.stop>
+        <button class="sheet-x" @click="ansOpen = false">×</button>
+        <div class="ans-zoom"><PdfThumb :key="'ansz' + page.id" :pdf-id="page.ansPdfId" :page="page.ansPage" :width="1400" eager /></div>
+      </div>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <style scoped>

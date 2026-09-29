@@ -129,8 +129,8 @@ async function output(mode: 'preview' | 'download') {
 </script>
 
 <template>
-  <div class="overlay">
-    <div class="dlg">
+  <div class="overlay ui-overlay ui-sheet">
+    <div class="dlg ui-panel ui-flush">
       <div class="head">
         <div style="display: flex; align-items: center; gap: 8px; min-width: 0">
           <b style="font-size: 15px">問題PDFを作る</b>
@@ -199,11 +199,15 @@ async function output(mode: 'preview' | 'download') {
 }
 .x {
   border: none;
-  background: transparent;
-  font-size: 22px;
-  color: #9aa1ab;
+  background: #f2f3f5;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 20px;
+  color: #6b7280;
   cursor: pointer;
   line-height: 1;
+  flex-shrink: 0;
 }
 .body {
   flex: 1;
@@ -221,6 +225,7 @@ async function output(mode: 'preview' | 'download') {
   font-size: 12px;
   font-weight: 700;
   color: var(--mut);
+  white-space: nowrap;
 }
 .sel {
   flex: 1;
@@ -276,5 +281,27 @@ async function output(mode: 'preview' | 'download') {
 .btn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+/* スマホ: 下のシートで表示。操作欄は 2 段にし、ボタンを押しやすい大きさにする */
+@media (max-width: 600px) {
+  .body {
+    padding: 12px 14px;
+  }
+  .foot {
+    flex-wrap: wrap;
+    row-gap: 10px;
+    padding: 10px 14px;
+  }
+  .cnt {
+    width: 100%;
+  }
+  .opt {
+    white-space: nowrap;
+  }
+  .btn {
+    flex: 1;
+    min-height: 42px;
+    white-space: nowrap;
+  }
 }
 </style>

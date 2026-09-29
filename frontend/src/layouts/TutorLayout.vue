@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NavIcon from '@/components/NavIcon.vue'
+import PullIndicator from '@/components/PullIndicator.vue'
+import SplashScreen from '@/components/SplashScreen.vue'
 import { ICONS, daysBetween, parseDate } from '@/lib/design'
+import { appConfirm } from '@/lib/dialog'
+import { isTouch, viewportWidth } from '@/lib/native'
+import { usePageNav } from '@/lib/pageNav'
 import { useAuthStore } from '@/stores/auth'
 import { useStudyStore } from '@/stores/study'
 
@@ -25,6 +30,25 @@ onMounted(async () => {
   }
 })
 
+/** スマホ・iPad 縦: 上部バー＋下部タブバー */
+const isMobile = computed(() => viewportWidth.value < 860)
+
+// ---- 画面遷移（アニメーション・スクロール位置・引っ張って更新） ----
+const scrollEl = ref<HTMLElement | null>(null)
+const contentEl = ref<HTMLElement | null>(null)
+const { pageAnim, refreshKey, pull, refreshing, pullTrigger, scrollToTop, onPullRefresh, bind } = usePageNav(scrollEl, contentEl)
+watch(scrollEl, (el) => bind(el))
+onPullRefresh(() => Promise.all([auth.fetchMe(), study.fetchAssignments()]))
+
+// トースト等をタブバーの上に出すための高さ
+watchEffect(() => {
+  document.documentElement.style.setProperty(
+    '--app-bottom-inset',
+    ready.value && isMobile.value ? 'calc(60px + env(safe-area-inset-bottom))' : '0px',
+  )
+})
+onUnmounted(() => document.documentElement.style.removeProperty('--app-bottom-inset'))
+
 const studentName = computed(() => auth.user?.student?.name ?? '生徒')
 const tutorName = computed(() => auth.user?.name ?? '先生')
 const tutorInitial = computed(() => (tutorName.value || '先')[0])
@@ -38,11 +62,11 @@ const daysToExam = computed(() => {
 })
 
 const NAV_TUTOR = [
-  { key: 'home', route: 'tutor-home', label: 'トップページ', icon: ICONS.home },
-  { key: 'subjects', route: 'tutor-subjects', label: '科目別学習状況', icon: ICONS.data },
-  { key: 'assignment', route: 'tutor-assignments', label: '課題設定', icon: ICONS.record },
-  { key: 'quiz', route: 'tutor-quizzes', label: '小テスト', icon: ICONS.test },
-  { key: 'invoice', route: 'tutor-invoices', label: '請求書管理', icon: ICONS.invoice },
+  { key: 'home', route: 'tutor-home', label: 'トップページ', short: 'トップ', icon: ICONS.home },
+  { key: 'subjects', route: 'tutor-subjects', label: '科目別学習状況', short: '科目別', icon: ICONS.data },
+  { key: 'assignment', route: 'tutor-assignments', label: '課題設定', short: '課題', icon: ICONS.record },
+  { key: 'quiz', route: 'tutor-quizzes', label: '小テスト', short: '小テスト', icon: ICONS.test },
+  { key: 'invoice', route: 'tutor-invoices', label: '請求書管理', short: '請求', icon: ICONS.invoice },
 ]
 
 /** 「小テスト」「科目別学習状況」は生徒側の設定でオンのときだけ表示する */
@@ -66,24 +90,39 @@ const activeKey = computed(() => {
   return map[route.name as string] ?? 'home'
 })
 
+// スマホ上部バー: 画面名と、下の階層の画面では「‹ 戻る」
+const pageTitle = computed(
+  () => (route.meta.title as string | undefined) ?? NAV_TUTOR.find((n) => n.key === activeKey.value)?.label ?? '',
+)
+const parentRoute = computed(() => route.meta.parent as string | undefined)
+const parentLabel = computed(() => NAV_TUTOR.find((n) => n.route === parentRoute.value)?.short ?? '戻る')
+
+function goBack() {
+  const parent = parentRoute.value
+  if (!parent) return
+  if (window.history.state?.back === router.resolve({ name: parent }).fullPath) router.back()
+  else router.push({ name: parent })
+}
+
+/** ナビのタップ。今いる画面のタブをもう一度押したら先頭までスクロールする */
 function go(routeName: string) {
-  router.push({ name: routeName })
+  if (route.name === routeName) scrollToTop()
+  else router.push({ name: routeName })
 }
 
 async function logout() {
+  if (!(await appConfirm('ログアウトしますか？', { okText: 'ログアウト' }))) return
   await auth.logout()
   router.push({ name: 'login' })
 }
 </script>
 
 <template>
-  <div v-if="!ready" class="loading">
-    <div class="spinner"></div>
-    <div style="font-size: 13px; color: var(--faint); letter-spacing: 0.04em">読み込み中…</div>
-  </div>
+  <SplashScreen v-if="!ready" />
 
   <div v-else class="shell">
-    <header class="topbar">
+    <!-- PC・iPad 横: 上部ナビ -->
+    <header v-if="!isMobile" class="topbar">
       <div class="brand-mini">
         <div class="logo-sm dm">師</div>
         <div style="line-height: 1.25">
@@ -116,43 +155,55 @@ async function logout() {
       </div>
     </header>
 
+    <!-- スマホ・iPad 縦: 左=ロゴ or 戻る / 中央=画面名 / 右=アカウント -->
+    <header v-else class="mobile-top">
+      <div class="mt-side">
+        <button v-if="parentRoute" class="mt-back" @click="goBack">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
+          <span>{{ parentLabel }}</span>
+        </button>
+        <div v-else class="logo-sm dm" style="width: 28px; height: 28px; font-size: 14px">師</div>
+      </div>
+      <Transition name="mt-title" mode="out-in">
+        <div :key="pageTitle" class="mt-title">{{ pageTitle }}</div>
+      </Transition>
+      <div class="mt-side">
+        <div class="avatar" style="width: 30px; height: 30px; font-size: 12px">{{ tutorInitial }}</div>
+        <button class="logout-btn" title="ログアウト" @click="logout">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></svg>
+        </button>
+      </div>
+    </header>
+
     <main class="main">
-      <div class="scroll">
-        <div class="content">
+      <div ref="scrollEl" class="scroll app-scroll">
+        <PullIndicator v-if="isTouch" :pull="pull" :trigger="pullTrigger" :refreshing="refreshing" />
+        <div ref="contentEl" class="content" :class="{ m: isMobile }">
+          <!-- スマホでは担当生徒を上部バーに出せないので、先頭に小さく表示する -->
+          <div v-if="isMobile && !parentRoute" class="m-student">
+            担当: {{ studentName }}<template v-if="daysToExam !== null">・受験まで{{ daysToExam }}日</template>
+          </div>
           <router-view v-slot="{ Component }">
-            <component :is="Component" :key="route.fullPath" class="fade-in" />
+            <component :is="Component" :key="route.fullPath + '#' + refreshKey" :class="pageAnim" />
           </router-view>
         </div>
       </div>
     </main>
+
+    <!-- スマホ・iPad 縦: 下部タブ -->
+    <nav v-if="isMobile" class="mobile-nav">
+      <button v-for="n in navItems" :key="n.key" class="mnav-btn" :class="{ active: activeKey === n.key }" @click="go(n.route)">
+        <span class="mnav-ic"><NavIcon :paths="n.icon" :size="22" /></span>
+        <span class="mnav-lb">{{ n.short }}</span>
+      </button>
+    </nav>
   </div>
 </template>
 
 <style scoped>
-.loading {
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 14px;
-  background: var(--bg);
-}
-.spinner {
-  width: 34px;
-  height: 34px;
-  border: 3px solid #e3e6ea;
-  border-top-color: #3b50cc;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 .shell {
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -265,13 +316,147 @@ async function logout() {
   overflow: hidden;
 }
 .scroll {
+  position: relative;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior-y: contain;
 }
 .content {
   max-width: 1100px;
   margin: 0 auto;
   padding: 24px 22px 40px;
+}
+.content.m {
+  padding: 14px max(16px, env(safe-area-inset-right)) 26px max(16px, env(safe-area-inset-left));
+}
+.m-student {
+  font-size: 11.5px;
+  color: var(--faint);
+  margin-bottom: 10px;
+}
+
+/* ---------- スマホ・iPad 縦 ---------- */
+.mobile-top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: calc(52px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+  background: #fff;
+  border-bottom: 1px solid #e9ebee;
+  flex-shrink: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.mt-side {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  z-index: 1;
+}
+.mt-back {
+  display: flex;
+  align-items: center;
+  margin-left: -6px;
+  padding: 6px 8px 6px 0;
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.mt-title {
+  position: absolute;
+  left: 92px;
+  right: 92px;
+  bottom: 0;
+  line-height: 52px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.mt-title-enter-active,
+.mt-title-leave-active {
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+.mt-title-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
+.mt-title-leave-to {
+  opacity: 0;
+}
+.mobile-nav {
+  display: flex;
+  background: #fff;
+  border-top: 1px solid #e9ebee;
+  flex-shrink: 0;
+  padding: 5px max(4px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left));
+  -webkit-user-select: none;
+  user-select: none;
+}
+.mnav-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 0 3px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #9ba2ac;
+  transition: color 0.2s ease;
+}
+.mnav-btn.active {
+  color: #2e4a8f;
+}
+.mnav-btn:active {
+  opacity: 1;
+}
+.mnav-btn:active .mnav-ic svg {
+  transform: scale(0.86);
+}
+.mnav-ic {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(52px, 100%);
+  height: 30px;
+  border-radius: 15px;
+}
+.mnav-ic svg {
+  position: relative;
+  transition: transform 0.18s ease;
+}
+.mnav-ic::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #e8eefb;
+  opacity: 0;
+  transform: scaleX(0.4);
+  transition: transform 0.32s cubic-bezier(0.2, 0.9, 0.25, 1), opacity 0.2s ease;
+}
+.mnav-btn.active .mnav-ic::before {
+  opacity: 1;
+  transform: none;
+}
+.mnav-lb {
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 </style>

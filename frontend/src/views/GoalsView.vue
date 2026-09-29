@@ -6,6 +6,7 @@ import { useUiStore } from '@/stores/ui'
 import GoalCard from '@/components/GoalCard.vue'
 import GoalLinkModal from '@/components/GoalLinkModal.vue'
 import type { GoalLinkBook, Goal } from '@/types'
+import { appConfirm } from '@/lib/dialog'
 
 const study = useStudyStore()
 const ui = useUiStore()
@@ -147,7 +148,7 @@ async function remove(g: Goal) {
   const msg = g.subGoals?.length
     ? `「${g.title}」と中間目標${g.subGoals.length}件を削除しますか？`
     : `「${g.title}」を削除しますか？`
-  if (!confirm(msg)) return
+  if (!(await appConfirm(msg, { danger: true, okText: '削除' }))) return
   await study.deleteGoal(g.id)
   ui.notify('削除しました')
 }
@@ -205,97 +206,109 @@ async function saveEdit() {
     </div>
 
     <!-- 目標を追加 -->
-    <div v-if="open" class="overlay" @click="open = false">
-      <div class="modal" @click.stop>
-        <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">目標を追加</div>
-        <div style="display: flex; flex-direction: column; gap: 13px">
-          <label class="fld"><span>目標タイトル</span><input v-model="form.title" placeholder="例: 数学II 微分・積分を固める" /></label>
-          <label class="fld"><span>期限</span><input v-model="form.deadline" type="date" /></label>
-          <div>
-            <span class="fld-label" style="margin-bottom: 2px">進める項目数は紐づけたデータ数になります</span>
+    <Transition name="ui-modal">
+      <div v-if="open" class="overlay ui-overlay ui-sheet ui-swipe" @click="open = false">
+        <div class="modal ui-panel" @click.stop>
+          <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">目標を追加</div>
+          <div style="display: flex; flex-direction: column; gap: 13px">
+            <label class="fld"><span>目標タイトル</span><input v-model="form.title" placeholder="例: 数学II 微分・積分を固める" /></label>
+            <label class="fld"><span>期限</span><input v-model="form.deadline" type="date" /></label>
+            <div>
+              <span class="fld-label" style="margin-bottom: 2px">進める項目数は紐づけたデータ数になります</span>
+            </div>
+            <div>
+              <span class="fld-label">個別学習データの紐づけ<span style="color: #cf5563">（必須）</span></span>
+              <button class="link-select" :class="{ empty: !form.itemIds.length }" :disabled="linkLoading" @click="openAddLink">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
+                {{ form.itemIds.length ? `${form.itemIds.length}件を紐づけ済み（変更）` : 'ツリーから対象を選択' }}
+              </button>
+            </div>
           </div>
-          <div>
-            <span class="fld-label">個別学習データの紐づけ<span style="color: #cf5563">（必須）</span></span>
-            <button class="link-select" :class="{ empty: !form.itemIds.length }" :disabled="linkLoading" @click="openAddLink">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
-              {{ form.itemIds.length ? `${form.itemIds.length}件を紐づけ済み（変更）` : 'ツリーから対象を選択' }}
-            </button>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
+            <button class="btn-ghost" @click="open = false">キャンセル</button>
+            <button class="btn-dark" :disabled="!form.title.trim() || !form.itemIds.length" @click="save">追加する</button>
           </div>
-        </div>
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
-          <button class="btn-ghost" @click="open = false">キャンセル</button>
-          <button class="btn-dark" :disabled="!form.title.trim() || !form.itemIds.length" @click="save">追加する</button>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- 中間目標を追加 -->
-    <div v-if="subModal.open" class="overlay" @click="subModal.open = false">
-      <div class="modal" @click.stop>
-        <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px">中間目標を追加</div>
-        <div style="font-size: 12px; color: var(--faint); margin-bottom: 16px">元の目標: {{ subModal.parent?.title }}（期限 {{ subModal.parent?.deadline }}）</div>
-        <div style="display: flex; flex-direction: column; gap: 13px">
-          <label class="fld"><span>中間目標タイトル</span><input v-model="subModal.title" placeholder="例: 今週中に三角比を1周" /></label>
-          <label class="fld"><span>期限（元の目標以前）</span><input v-model="subModal.deadline" type="date" :max="subModal.parent?.deadline" /></label>
-          <div>
-            <span class="fld-label">対象項目<span style="color: #cf5563">（必須・元の目標の項目から）</span></span>
-            <button class="link-select" :class="{ empty: !subModal.itemIds.length }" :disabled="linkLoading" @click="openSubLink">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
-              {{ subModal.itemIds.length ? `${subModal.itemIds.length}件を選択済み（変更）` : 'ツリーから対象を選択' }}
-            </button>
+    <Transition name="ui-modal">
+      <div v-if="subModal.open" class="overlay ui-overlay ui-sheet ui-swipe" @click="subModal.open = false">
+        <div class="modal ui-panel" @click.stop>
+          <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px">中間目標を追加</div>
+          <div style="font-size: 12px; color: var(--faint); margin-bottom: 16px">元の目標: {{ subModal.parent?.title }}（期限 {{ subModal.parent?.deadline }}）</div>
+          <div style="display: flex; flex-direction: column; gap: 13px">
+            <label class="fld"><span>中間目標タイトル</span><input v-model="subModal.title" placeholder="例: 今週中に三角比を1周" /></label>
+            <label class="fld"><span>期限（元の目標以前）</span><input v-model="subModal.deadline" type="date" :max="subModal.parent?.deadline" /></label>
+            <div>
+              <span class="fld-label">対象項目<span style="color: #cf5563">（必須・元の目標の項目から）</span></span>
+              <button class="link-select" :class="{ empty: !subModal.itemIds.length }" :disabled="linkLoading" @click="openSubLink">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
+                {{ subModal.itemIds.length ? `${subModal.itemIds.length}件を選択済み（変更）` : 'ツリーから対象を選択' }}
+              </button>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
+            <button class="btn-ghost" @click="subModal.open = false">キャンセル</button>
+            <button class="btn-dark" :disabled="!subModal.title.trim() || !subModal.itemIds.length" @click="saveSub">追加する</button>
           </div>
         </div>
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
-          <button class="btn-ghost" @click="subModal.open = false">キャンセル</button>
-          <button class="btn-dark" :disabled="!subModal.title.trim() || !subModal.itemIds.length" @click="saveSub">追加する</button>
-        </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- 目標・中間目標の編集 -->
-    <div v-if="editModal.open" class="overlay" @click="editModal.open = false">
-      <div class="modal" @click.stop>
-        <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px">{{ editModal.isSub ? '中間目標を編集' : '目標を編集' }}</div>
-        <div v-if="editModal.isSub && editModal.maxDeadline" style="font-size: 12px; color: var(--faint); margin-bottom: 16px">期限は元の目標（{{ editModal.maxDeadline }}）以前にしてください</div>
-        <div v-else style="height: 8px"></div>
-        <div style="display: flex; flex-direction: column; gap: 13px">
-          <label class="fld"><span>タイトル</span><input v-model="editModal.title" placeholder="目標タイトル" /></label>
-          <label class="fld"><span>期限</span><input v-model="editModal.deadline" type="date" :max="editModal.isSub ? (editModal.maxDeadline ?? undefined) : undefined" /></label>
-        </div>
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
-          <button class="btn-ghost" @click="editModal.open = false">キャンセル</button>
-          <button class="btn-dark" :disabled="!editModal.title.trim()" @click="saveEdit">保存</button>
+    <Transition name="ui-modal">
+      <div v-if="editModal.open" class="overlay ui-overlay ui-sheet ui-swipe" @click="editModal.open = false">
+        <div class="modal ui-panel" @click.stop>
+          <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px">{{ editModal.isSub ? '中間目標を編集' : '目標を編集' }}</div>
+          <div v-if="editModal.isSub && editModal.maxDeadline" style="font-size: 12px; color: var(--faint); margin-bottom: 16px">期限は元の目標（{{ editModal.maxDeadline }}）以前にしてください</div>
+          <div v-else style="height: 8px"></div>
+          <div style="display: flex; flex-direction: column; gap: 13px">
+            <label class="fld"><span>タイトル</span><input v-model="editModal.title" placeholder="目標タイトル" /></label>
+            <label class="fld"><span>期限</span><input v-model="editModal.deadline" type="date" :max="editModal.isSub ? (editModal.maxDeadline ?? undefined) : undefined" /></label>
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px">
+            <button class="btn-ghost" @click="editModal.open = false">キャンセル</button>
+            <button class="btn-dark" :disabled="!editModal.title.trim()" @click="saveEdit">保存</button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- 紐づけツリー: 既存目標 -->
-    <GoalLinkModal
-      v-if="linkGoal"
-      :goal-title="linkGoal.title"
-      :books="linkBooks"
-      :initial-ids="linkGoal.itemIds"
-      @save="onLinkSave"
-      @close="linkGoal = null"
-    />
+    <Transition name="ui-modal">
+      <GoalLinkModal
+        v-if="linkGoal"
+        :goal-title="linkGoal.title"
+        :books="linkBooks"
+        :initial-ids="linkGoal.itemIds"
+        @save="onLinkSave"
+        @close="linkGoal = null"
+      />
+    </Transition>
     <!-- 紐づけツリー: 目標追加時 -->
-    <GoalLinkModal
-      v-if="addLinkOpen"
-      :goal-title="form.title || '新しい目標'"
-      :books="linkBooks"
-      :initial-ids="form.itemIds"
-      @save="onAddLinkSave"
-      @close="addLinkOpen = false"
-    />
+    <Transition name="ui-modal">
+      <GoalLinkModal
+        v-if="addLinkOpen"
+        :goal-title="form.title || '新しい目標'"
+        :books="linkBooks"
+        :initial-ids="form.itemIds"
+        @save="onAddLinkSave"
+        @close="addLinkOpen = false"
+      />
+    </Transition>
     <!-- 紐づけツリー: 中間目標（親の項目のみ） -->
-    <GoalLinkModal
-      v-if="subLinkOpen"
-      :goal-title="subModal.title || '中間目標'"
-      :books="subLinkBooks"
-      :initial-ids="subModal.itemIds"
-      @save="onSubLinkSave"
-      @close="subLinkOpen = false"
-    />
+    <Transition name="ui-modal">
+      <GoalLinkModal
+        v-if="subLinkOpen"
+        :goal-title="subModal.title || '中間目標'"
+        :books="subLinkBooks"
+        :initial-ids="subModal.itemIds"
+        @save="onSubLinkSave"
+        @close="subLinkOpen = false"
+      />
+    </Transition>
   </div>
 </template>
 
