@@ -111,14 +111,29 @@ const rows = computed(() => {
 })
 /** 科目ごとにテーブルを分ける（科目の並び順 → 名前順）。英単語テストは「英語」に入る */
 const groups = computed(() => {
-  const m = new Map<string, { name: string; order: number; rows: QuizSummary[] }>()
+  const m = new Map<string, { name: string; order: number; color: string; rows: QuizSummary[] }>()
   for (const q of rows.value) {
-    const g = m.get(q.subjectName) ?? { name: q.subjectName, order: q.subjectOrder, rows: [] }
+    const g = m.get(q.subjectName) ?? { name: q.subjectName, order: q.subjectOrder, color: q.subjectColor, rows: [] }
     g.rows.push(q)
     m.set(q.subjectName, g)
   }
   return [...m.values()].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'ja'))
 })
+/** 背景色の明るさに応じて文字色を白／黒にする */
+function textOn(bg: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(bg.trim())
+  if (!m) return '#fff'
+  const n = parseInt(m[1]!, 16)
+  const r = (n >> 16) & 255
+  const g = (n >> 8) & 255
+  const b = n & 255
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+  return lum > 0.6 ? '#1c2024' : '#fff'
+}
+/** 生徒の姓（「中田 智允」→「中田」）。一言の頭に（姓）を付ける */
+function surname(q: QuizSummary): string {
+  return (q.studentName ?? '').trim().split(/[\s　]+/)[0] ?? ''
+}
 const filtered = computed(() => filter.status !== 'all' || !!filter.book || filter.period !== 'all' || !!filter.q.trim())
 function clearFilters() {
   filter.status = 'all'
@@ -176,7 +191,7 @@ function dueClass(q: QuizSummary): string {
     </div>
 
     <div v-for="g in groups" :key="g.name" class="tbl-wrap">
-      <div class="subj">{{ g.name }}<span class="subj-n">{{ g.rows.length }}件</span></div>
+      <div class="subj" :style="{ background: g.color, color: textOn(g.color) }">{{ g.name }}<span class="subj-n">{{ g.rows.length }}件</span></div>
       <table class="tbl">
         <thead>
           <tr>
@@ -225,8 +240,7 @@ function dueClass(q: QuizSummary): string {
                 <span v-if="partIndex[q.id] && partIndex[q.id]!.n > 1" class="part-no" :title="q.title">{{ partIndex[q.id]!.i }}/{{ partIndex[q.id]!.n }}</span>
               </div>
               <div v-if="q.note" class="note">{{ q.note }}</div>
-              <div v-if="q.submitNote" class="note snote">一言: {{ q.submitNote }}</div>
-              <div v-if="role === 'owner' && q.createdByName" class="note">{{ q.createdByName }}</div>
+              <div v-if="q.submitNote" class="note snote">（{{ surname(q) }}）{{ q.submitNote }}</div>
             </td>
             <td class="c-pages r">{{ q.pageCount }}</td>
             <td class="c-due nowrap" :class="dueClass(q)">{{ fmt(q.dueOn) }}</td>
@@ -370,7 +384,7 @@ function dueClass(q: QuizSummary): string {
 .subj-n {
   font-size: 11px;
   font-weight: 600;
-  color: var(--faint);
+  opacity: 0.8;
 }
 .tbl {
   width: 100%;

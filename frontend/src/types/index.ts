@@ -552,6 +552,10 @@ export interface QuizSummary {
   /** 科目名と並び順（一覧で科目ごとにテーブルを分ける。英単語テストは「英語」） */
   subjectName: string
   subjectOrder: number
+  /** 科目のイメージ色（科目見出しの背景に使う） */
+  subjectColor: string
+  /** 生徒の表示名（一覧の「一言」に（姓）を付けるため） */
+  studentName: string
   createdByName: string | null
   overdue: boolean
 }

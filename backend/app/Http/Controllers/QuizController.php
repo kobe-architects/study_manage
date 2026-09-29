@@ -10,6 +10,7 @@ use App\Models\ResourceBookPdf;
 use App\Models\StudyRecord;
 use App\Models\StudyResource;
 use App\Models\Subject;
+use App\Models\User;
 use App\Support\ImageTools;
 use App\Support\LineNotify;
 use App\Support\PdfTools;
@@ -156,7 +157,7 @@ class QuizController extends Controller
     public function index(Request $request): JsonResponse
     {
         $userId = $this->targetUserId($request);
-        $quizzes = Quiz::with(['creator:id,name', 'book:id,title,subject_id', 'book.subject:id,name,sort_order'])
+        $quizzes = Quiz::with(['creator:id,name', 'book:id,title,subject_id', 'book.subject:id,name,sort_order,color_vivid'])
             ->withCount(['pages', 'pages as answered_count' => fn ($q) => $q->whereNotNull('answer_path')])
             ->where('user_id', $userId)
             ->orderByDesc('id')
@@ -172,7 +173,7 @@ class QuizController extends Controller
     public function show(Request $request, Quiz $quiz): JsonResponse
     {
         $this->authorizeQuiz($request, $quiz);
-        $quiz->load(['creator:id,name', 'book:id,title,subject_id', 'book.subject:id,name,sort_order', 'pages.pdf:id,title', 'pages.refPdf:id,title', 'pages.item']);
+        $quiz->load(['creator:id,name', 'book:id,title,subject_id', 'book.subject:id,name,sort_order,color_vivid', 'pages.pdf:id,title', 'pages.refPdf:id,title', 'pages.item']);
         $quiz->loadCount(['pages', 'pages as answered_count' => fn ($q) => $q->whereNotNull('answer_path')]);
 
         $data = $this->summary($quiz, $this->scoreSums([$quiz->id])->get($quiz->id), Carbon::today());
@@ -947,12 +948,20 @@ class QuizController extends Controller
             ->keyBy('quiz_id');
     }
 
-    /** 英単語テスト（教材なし）を「英語」の科目順に並べるための sort_order */
-    private array $englishOrderCache = [];
+    /** 英単語テスト（教材なし）を「英語」の科目として扱うための科目情報（ユーザーごとにキャッシュ） */
+    private array $englishSubjectCache = [];
 
-    private function englishSubjectOrder(int $userId): int
+    private function englishSubject(int $userId): ?Subject
     {
-        return $this->englishOrderCache[$userId] ??= (int) (Subject::where('user_id', $userId)->where('name', '英語')->value('sort_order') ?? 999);
+        return $this->englishSubjectCache[$userId] ??= Subject::where('user_id', $userId)->where('name', '英語')->first(['id', 'name', 'sort_order', 'color_vivid']);
+    }
+
+    /** 生徒の表示名（設定の名前があればそれ）。一覧の「一言」に付ける */
+    private array $studentNameCache = [];
+
+    private function studentName(int $userId): string
+    {
+        return $this->studentNameCache[$userId] ??= (string) (User::with('settings')->find($userId)?->settings?->name ?: User::find($userId)?->name ?? '');
     }
 
     private function summary(Quiz $q, $score, Carbon $today): array
@@ -993,7 +1002,9 @@ class QuizController extends Controller
             'bookTitle' => $q->book?->title,
             // 科目（一覧で科目ごとに分けるため）。教材のない英単語テストは「英語」扱い
             'subjectName' => $q->book ? ($q->book->subject?->name ?? 'その他') : '英語',
-            'subjectOrder' => $q->book ? ($q->book->subject?->sort_order ?? 999) : ($this->englishSubjectOrder($q->user_id)),
+            'subjectOrder' => (int) (($q->book ? $q->book->subject?->sort_order : $this->englishSubject($q->user_id)?->sort_order) ?? 999),
+            'subjectColor' => ($q->book ? $q->book->subject?->color_vivid : $this->englishSubject($q->user_id)?->color_vivid) ?? '#475569',
+            'studentName' => $this->studentName($q->user_id),
             'createdByName' => $q->creator?->name,
             'overdue' => $q->status === Quiz::STATUS_ASSIGNED && $q->due_on !== null && $q->due_on->lt($today),
         ];
