@@ -3,7 +3,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import HelpTip from '@/components/HelpTip.vue'
 import PdfPagePicker, { type SelectedPage } from '@/components/PdfPagePicker.vue'
 import { quizApi, type PrintSource } from '@/api/quiz'
-import { renderChapterCover } from '@/lib/pdfCover'
+import { renderChapterCover, renderTimeStamp } from '@/lib/pdfCover'
+import { guideMinutesOf } from '@/lib/design'
 import { useUiStore } from '@/stores/ui'
 import type { BookPdf, QuizBook, QuizRow } from '@/types'
 
@@ -83,15 +84,34 @@ async function buildSources(): Promise<{ sources: PrintSource[]; images: Blob[] 
   }
   const sources: PrintSource[] = []
   const images: Blob[] = []
+  // 目安時間（★×5分）のスタンプ画像。同じ分数は 1 枚を使い回す
+  const stampIndex = new Map<number, number>()
+  const stampFor = async (m: number) => {
+    if (!stampIndex.has(m)) {
+      images.push(await renderTimeStamp(m))
+      stampIndex.set(m, images.length - 1)
+    }
+    return stampIndex.get(m)!
+  }
   for (const g of groups) {
     let count = 0
     if (withCovers.value && g.chapter) {
-      images.push(await renderChapterCover(g.chapter, book.value?.title ?? ''))
+      let total = 0
+      let any = false
+      for (const p of g.pages) {
+        const m = guideMinutesOf(p.difficulty)
+        if (m !== null) {
+          total += m
+          any = true
+        }
+      }
+      images.push(await renderChapterCover(g.chapter, book.value?.title ?? '', any ? total : null))
       sources.push({ type: 'image', index: images.length - 1 })
       count++
     }
     for (const p of g.pages) {
-      sources.push({ type: 'pdf', pdfId: p.pdfId!, page: p.page! })
+      const m = guideMinutesOf(p.difficulty)
+      sources.push({ type: 'pdf', pdfId: p.pdfId!, page: p.page!, ...(m !== null ? { stamp: await stampFor(m) } : {}) })
       count++
     }
     if (duplex.value && count % 2 === 1) sources.push({ type: 'blank' })

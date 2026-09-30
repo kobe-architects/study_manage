@@ -170,6 +170,7 @@ class QuizController extends Controller
             'pages.*.pdfId' => ['nullable', 'integer'],
             'pages.*.page' => ['nullable', 'integer', 'min:1'],
             'pages.*.index' => ['nullable', 'integer', 'min:0'],
+            'pages.*.stamp' => ['nullable', 'integer', 'min:0'],
             'title' => ['nullable', 'string', 'max:100'],
         ])->validate();
         $pdfs = ResourceBookPdf::whereHas('book', fn ($q) => $q->where('user_id', $userId))->get()->keyBy('id');
@@ -191,7 +192,9 @@ class QuizController extends Controller
             $pdf = $pdfs->get((int) ($p['pdfId'] ?? 0));
             abort_if($pdf === null, 422, 'PDF が見つかりません。');
             abort_if((int) ($p['page'] ?? 0) > $pdf->page_count || (int) ($p['page'] ?? 0) < 1, 422, 'ページ番号が PDF の範囲外です。');
-            $sources[] = ['path' => $pdf->absolutePath(), 'page' => (int) $p['page']];
+            // 目安時間のスタンプ（images[stamp]。フロントで描画した透過 PNG）
+            $stamp = isset($p['stamp']) ? $request->file('images.'.(int) $p['stamp']) : null;
+            $sources[] = ['path' => $pdf->absolutePath(), 'page' => (int) $p['page'], 'stamp' => $stamp?->getRealPath()];
         }
         $out = tempnam(sys_get_temp_dir(), 'quizprint').'.pdf';
         PdfTools::extractPages($sources, $out);
@@ -261,6 +264,7 @@ class QuizController extends Controller
             return $quiz;
         });
         $this->saveCover($quiz, $request);
+        $this->saveStamps($quiz, $request);
         $this->generatePdf($quiz);
 
         // 生徒へ LINE 通知（複数教材をまとめて出題した場合は最初のパートのみ）
@@ -308,6 +312,7 @@ class QuizController extends Controller
                 $this->createPages($quiz, $pages, $request);
             });
             $this->saveCover($quiz, $request);
+            $this->saveStamps($quiz, $request);
             $this->generatePdf($quiz);
         } elseif ($request->hasFile('cover')) {
             // タイトルなどの変更だけでも表紙は作り直す
@@ -375,7 +380,7 @@ class QuizController extends Controller
                 if ($p->pdf === null) {
                     return null;
                 }
-                $sources[] = ['path' => $p->pdf->absolutePath(), 'page' => $p->pdf_page];
+                $sources[] = $this->pageSource($quiz, $p);
             }
         }
         if ($answers === []) {
@@ -512,8 +517,14 @@ class QuizController extends Controller
             'score' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'maxScore' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'note' => ['nullable', 'string', 'max:500'],
+            'times' => ['nullable', 'array'],
+            'times.*' => ['nullable', 'integer', 'min:0', 'max:600'],
         ]);
         $selfGraded = (bool) ($data['selfGraded'] ?? false);
+        // 各問題（ページ）の回答にかかった時間（分）。送られてきたページだけ更新する
+        foreach (($data['times'] ?? []) as $pageId => $min) {
+            $quiz->pages()->where('id', (int) $pageId)->update(['answer_minutes' => $min === null ? null : (int) $min]);
+        }
         // 先生への一言（任意）。再提出のたびに上書きする
         $note = trim((string) ($data['note'] ?? ''));
         $note = $note === '' ? null : $note;
@@ -987,6 +998,7 @@ class QuizController extends Controller
                 'resource_book_pdf_id' => $pdf->id,
                 'pdf_page' => $pageNo,
                 'resource_book_item_id' => $item?->id,
+                'guide_minutes' => self::guideMinutes($item?->difficulty),
                 'label' => mb_substr($label, 0, 255),
                 'ref_pdf_id' => $refPdf?->id,
                 'ref_page' => $refPdf && ! empty($p['refPage']) ? min((int) $p['refPage'], $refPdf->page_count) : null,
@@ -994,6 +1006,51 @@ class QuizController extends Controller
         }
 
         return $out;
+    }
+
+    /** 教材行の難易度（'***' や '★★★'）から目安時間（分）を求める。★1つ = 5分。★が無ければ null */
+    public static function guideMinutes(?string $difficulty): ?int
+    {
+        if ($difficulty === null) {
+            return null;
+        }
+        $stars = preg_match_all('/[*★]/u', $difficulty);
+
+        return $stars > 0 ? $stars * 5 : null;
+    }
+
+    /**
+     * 目安時間のスタンプ画像（stamps[分] = 透過 PNG）を小テストのフォルダに保存する。
+     * サーバーには日本語フォントが無いため、フロントで描画した画像を出題 PDF の各ページ右上に置く。
+     */
+    private function saveStamps(Quiz $quiz, Request $request): void
+    {
+        $files = $request->file('stamps');
+        if (! is_array($files)) {
+            return;
+        }
+        $disk = Storage::disk('local');
+        foreach ($files as $minutes => $file) {
+            if (! is_numeric($minutes) || $file === null) {
+                continue;
+            }
+            $disk->put($quiz->dir().'/stamps/'.(int) $minutes.'.png', (string) file_get_contents($file->getRealPath()));
+        }
+    }
+
+    /** 出題 PDF のページ（教材ページ）のソース指定。目安時間のスタンプがあれば付ける */
+    private function pageSource(Quiz $quiz, QuizPage $p): array
+    {
+        $disk = Storage::disk('local');
+        $src = ['path' => $p->pdf->absolutePath(), 'page' => $p->pdf_page];
+        if ($p->guide_minutes !== null) {
+            $rel = $quiz->dir().'/stamps/'.$p->guide_minutes.'.png';
+            if ($disk->exists($rel)) {
+                $src['stamp'] = $disk->path($rel);
+            }
+        }
+
+        return $src;
     }
 
     /** 英単語テストのページには問題用紙画像（renders[index]）が必要 */
@@ -1053,7 +1110,7 @@ class QuizController extends Controller
                 $sources[] = ['image' => $disk->path($p->render_path)];
             } else {
                 abort_if($p->pdf === null, 422, 'PDF が見つかりません。');
-                $sources[] = ['path' => $p->pdf->absolutePath(), 'page' => $p->pdf_page];
+                $sources[] = $this->pageSource($quiz, $p);
             }
         }
         $rel = $quiz->dir().'/quiz.pdf';
@@ -1179,6 +1236,8 @@ class QuizController extends Controller
             'seqNo' => $item?->seq_no,
             'itemTitle' => $item?->title,
             'difficulty' => $item?->difficulty,
+            'guideMinutes' => $p->guide_minutes,
+            'answerMinutes' => $p->answer_minutes,
             'refPdfId' => $p->ref_pdf_id,
             'refPdfTitle' => $p->refPdf?->title,
             'refPage' => $p->ref_page,

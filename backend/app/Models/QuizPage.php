@@ -15,9 +15,9 @@ class QuizPage extends Model
     public const KIND_VOCAB = 'vocab';
 
     protected $fillable = [
-        'quiz_id', 'page_no', 'kind', 'resource_book_pdf_id', 'pdf_page', 'resource_book_item_id', 'label',
+        'quiz_id', 'page_no', 'kind', 'resource_book_pdf_id', 'pdf_page', 'resource_book_item_id', 'guide_minutes', 'label',
         'vocab_spec', 'vocab_words', 'render_path', 'answer_render_path',
-        'ref_pdf_id', 'ref_page', 'answer_path', 'answer_uploaded_at', 'annotations', 'annotated_path',
+        'ref_pdf_id', 'ref_page', 'answer_path', 'answer_uploaded_at', 'answer_minutes', 'annotations', 'annotated_path',
         'mark', 'score', 'max_score', 'comment',
     ];
 
@@ -27,6 +27,8 @@ class QuizPage extends Model
         'ref_page' => 'integer',
         'score' => 'integer',
         'max_score' => 'integer',
+        'guide_minutes' => 'integer',
+        'answer_minutes' => 'integer',
         'annotations' => 'array',
         'vocab_spec' => 'array',
         'vocab_words' => 'array',

@@ -597,6 +597,10 @@ export interface QuizPageDetail {
   vocabSpec: { resourceId: number; resourceName: string; sectionNames: string[]; testType: PrintTestType; testFormat: PrintTestFormat; count: number } | null
   /** 出題語と解答（講師、または添削済みの場合のみ） */
   vocabWords: VocabTestWord[] | null
+  /** 目安時間（分）。教材行の★の数 × 5 分。★が無い行・英単語テストは null */
+  guideMinutes: number | null
+  /** 生徒が提出時に登録した回答にかかった時間（分） */
+  answerMinutes: number | null
   hasRender: boolean
   hasAnswer: boolean
   answerUploadedAt: string | null

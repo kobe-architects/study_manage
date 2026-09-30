@@ -47,9 +47,28 @@ class PdfTools
             $size = $pdf->getTemplateSize($tpl);
             $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
             $pdf->useTemplate($tpl);
+            // 目安時間などのスタンプ画像（透過 PNG）をページ右上に置く
+            if (! empty($p['stamp']) && is_file($p['stamp'])) {
+                self::addStamp($pdf, $p['stamp'], (float) $size['width']);
+            }
         }
         self::ensureDir($outAbsPath);
         $pdf->Output('F', $outAbsPath);
+    }
+
+    /**
+     * スタンプ画像を現在のページの右上に置く（幅 34mm・上 4mm・右 5mm）。
+     * 教材のスキャンは余白が少なく、ページ上端の章見出し帯には重なるが、その下の例題の枠には掛からない大きさにしている。
+     */
+    private static function addStamp(FPDF $pdf, string $imagePath, float $pageWidth): void
+    {
+        $info = @getimagesize($imagePath);
+        if (! $info) {
+            return;
+        }
+        $w = 34.0;
+        $type = ($info[2] ?? null) === IMAGETYPE_PNG ? 'PNG' : 'JPG';
+        $pdf->Image($imagePath, $pageWidth - $w - 5, 4, $w, 0, $type);
     }
 
     /** 画像を A4 いっぱい（余白 6mm）に配置したページを追加する */

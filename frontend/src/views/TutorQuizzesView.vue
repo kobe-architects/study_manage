@@ -7,10 +7,10 @@ import QuizStats from '@/components/QuizStats.vue'
 import QuizTable from '@/components/QuizTable.vue'
 import PdfPagePicker, { type SelectedPage } from '@/components/PdfPagePicker.vue'
 import VocabTestDialog from '@/components/VocabTestDialog.vue'
-import { renderQuizCover } from '@/lib/pdfCover'
+import { renderQuizCover, renderTimeStamp } from '@/lib/pdfCover'
 import { renderVocabSheet, TEST_FORMAT_LABEL, TEST_TYPE_LABEL } from '@/lib/vocabTest'
 import { quizApi } from '@/api/quiz'
-import { iso } from '@/lib/design'
+import { guideMinutesOf, iso } from '@/lib/design'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import type { BookPdf, QuizBook, QuizPageSpec, QuizRow, QuizStats as QuizStatsT, QuizSummary } from '@/types'
@@ -289,7 +289,7 @@ async function save() {
         pages: wiz.pages.map(toPageSpec),
       }
       const part0 = parts.value[0]
-      await quizApi.update(wiz.id, payload, await buildRenders(wiz.pages, baseTitle), await buildCover(baseTitle, part0?.bookId ?? null, part0?.label ?? ''))
+      await quizApi.update(wiz.id, payload, await buildRenders(wiz.pages, baseTitle), await buildCover(baseTitle, part0?.bookId ?? null, part0?.label ?? '', wiz.pages), await buildStamps(wiz.pages))
       ui.notify('小テストを更新しました')
     } else {
       // 新規: 教材ごとに別パート（別の小テスト行）として出題し、同じ groupKey でまとめる
@@ -306,7 +306,7 @@ async function save() {
           groupKey,
           pages: part.pages.map(toPageSpec),
         }
-        await quizApi.create(payload, await buildRenders(part.pages, printTitle), await buildCover(printTitle, part.bookId, part.label))
+        await quizApi.create(payload, await buildRenders(part.pages, printTitle), await buildCover(printTitle, part.bookId, part.label, part.pages), await buildStamps(part.pages))
         created++
       }
       ui.notify(
@@ -328,10 +328,34 @@ async function save() {
 }
 
 /** 小テストの表紙（科目バッジ・「小テスト」・小テスト名・教材名・氏名／解答日欄）。英単語テストは「英語」の科目色を使う */
-async function buildCover(quizTitle: string, bookId: number | null, bookTitle: string): Promise<Blob> {
+async function buildCover(quizTitle: string, bookId: number | null, bookTitle: string, pages: SelectedPage[]): Promise<Blob> {
   const book = bookId !== null ? wiz.books.find((b) => b.id === bookId) : wiz.books.find((b) => b.subjectName === '英語')
   const subject = bookId !== null ? (book?.subjectName ?? '') : '英語'
-  return renderQuizCover({ subject: subject || '－', color: book?.colorVivid ?? '#475569', quizTitle, bookTitle })
+  return renderQuizCover({ subject: subject || '－', color: book?.colorVivid ?? '#475569', quizTitle, bookTitle, totalMinutes: totalGuideMinutes(pages) })
+}
+
+/** 目安時間の合計（★のある行のみ。無ければ null） */
+function totalGuideMinutes(pages: SelectedPage[]): number | null {
+  let sum = 0
+  let any = false
+  for (const p of pages) {
+    const m = guideMinutesOf(p.difficulty)
+    if (m !== null) {
+      sum += m
+      any = true
+    }
+  }
+  return any ? sum : null
+}
+
+/** 選んだページに出てくる目安時間（分）ごとのスタンプ画像（サーバーが各ページの右上に置く） */
+async function buildStamps(pages: SelectedPage[]): Promise<Record<number, Blob>> {
+  const out: Record<number, Blob> = {}
+  for (const p of pages) {
+    const m = guideMinutesOf(p.difficulty)
+    if (m !== null && !out[m]) out[m] = await renderTimeStamp(m)
+  }
+  return out
 }
 
 function toPageSpec(p: SelectedPage): QuizPageSpec {

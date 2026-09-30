@@ -55,8 +55,56 @@ export function textOn(bg: string): string {
   return lum > 0.6 ? '#1c2024' : '#fff'
 }
 
-/** 章の表紙: 中央に章名を大きく。上に教材名を小さく */
-export async function renderChapterCover(chapter: string, bookTitle: string): Promise<Blob> {
+/**
+ * 目安時間のスタンプ（各ページの右上に置く小さな画像）。透過 PNG で返す。
+ * 描画サイズ 520×150px を、サーバー側で幅 38mm 程度に縮めて配置する。
+ */
+export async function renderTimeStamp(minutes: number): Promise<Blob> {
+  const c = document.createElement('canvas')
+  c.width = 520
+  c.height = 150
+  const ctx = c.getContext('2d')!
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.92)'
+  ctx.strokeStyle = '#1c2024'
+  ctx.lineWidth = 6
+  ctx.beginPath()
+  ctx.roundRect(4, 4, 512, 142, 26)
+  ctx.fill()
+  ctx.stroke()
+  ctx.fillStyle = '#1c2024'
+  ctx.textBaseline = 'middle'
+  ctx.textAlign = 'left'
+  ctx.font = `600 44px ${FONT}`
+  ctx.fillText('目安', 32, 78)
+  ctx.textAlign = 'right'
+  ctx.font = `700 76px ${FONT}`
+  ctx.fillText(`${minutes}`, 392, 80)
+  ctx.font = `600 44px ${FONT}`
+  ctx.fillText('分', 484, 82)
+  return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error('stamp'))), 'image/png'))
+}
+
+/** 「目安時間 合計 45分（★1つ＝5分）」の 1 行を描く（表紙用） */
+function drawTotalTime(ctx: CanvasRenderingContext2D, minutes: number, y: number) {
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = '#1c2024'
+  ctx.font = `700 40px ${FONT}`
+  const label = `目安時間 合計 ${minutes}分`
+  const w = ctx.measureText(label).width + 90
+  ctx.strokeStyle = '#1c2024'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.roundRect(W / 2 - w / 2, y - 40, w, 80, 40)
+  ctx.stroke()
+  ctx.fillText(label, W / 2, y + 2)
+  ctx.fillStyle = '#6b7280'
+  ctx.font = `500 26px ${FONT}`
+  ctx.fillText('（各問題の★1つ＝5分。右上に問題ごとの目安を記載）', W / 2, y + 72)
+}
+
+/** 章の表紙: 中央に章名を大きく。上に教材名を小さく。目安時間の合計があれば下に表示 */
+export async function renderChapterCover(chapter: string, bookTitle: string, totalMinutes?: number | null): Promise<Blob> {
   const { c, ctx } = canvas()
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
@@ -77,11 +125,12 @@ export async function renderChapterCover(chapter: string, bookTitle: string): Pr
   ctx.moveTo(W / 2 - 180, y0 + (lines.length - 1) * lh + size * 0.9)
   ctx.lineTo(W / 2 + 180, y0 + (lines.length - 1) * lh + size * 0.9)
   ctx.stroke()
+  if (totalMinutes) drawTotalTime(ctx, totalMinutes, y0 + (lines.length - 1) * lh + size * 0.9 + 170)
   return toJpeg(c)
 }
 
 /** 小テストの表紙: 左上に科目バッジ、中央に「小テスト」と小テスト名・教材名、下部に氏名・解答日の記入欄 */
-export async function renderQuizCover(o: { subject: string; color: string; quizTitle: string; bookTitle: string }): Promise<Blob> {
+export async function renderQuizCover(o: { subject: string; color: string; quizTitle: string; bookTitle: string; totalMinutes?: number | null }): Promise<Blob> {
   const { c, ctx } = canvas()
   // 科目バッジ（左上）
   ctx.font = `700 40px ${FONT}`
@@ -115,6 +164,8 @@ export async function renderQuizCover(o: { subject: string; color: string; quizT
   const bl = wrap(ctx, o.bookTitle, W - 240)
   const by2 = 760 + tl.length * ts * 1.35 + 20
   bl.forEach((l, i) => ctx.fillText(l, W / 2, by2 + i * bs * 1.35))
+  // 目安時間の合計（★のある教材のみ）
+  if (o.totalMinutes) drawTotalTime(ctx, o.totalMinutes, Math.min(1180, by2 + bl.length * bs * 1.35 + 90))
 
   // 下部: 氏名・解答日
   ctx.textAlign = 'left'

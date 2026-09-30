@@ -439,6 +439,10 @@ async function downloadResult() {
         <span v-if="page.kind === 'vocab'" class="vtag">英単語テスト・{{ page.maxScore }}問</span>
         <span v-if="page.chapter">{{ page.chapter }}</span>
         <span v-if="page.difficulty" style="color: #d98a1a">{{ page.difficulty }}</span>
+        <span v-if="page.guideMinutes || page.answerMinutes !== null" class="time-tag" :class="{ over: page.guideMinutes && page.answerMinutes !== null && page.answerMinutes > page.guideMinutes }">
+          <template v-if="page.answerMinutes !== null">回答 {{ page.answerMinutes }}分</template>
+          <template v-if="page.guideMinutes"><template v-if="page.answerMinutes !== null"> / </template>目安 {{ page.guideMinutes }}分</template>
+        </span>
         <span class="bar-ctrl">
           <template v-if="answerUrl && !narrow">
             <button class="mini" title="縮小" @click="editor?.zoomBy(1 / 1.25)">−</button>
@@ -1022,6 +1026,19 @@ async function downloadResult() {
   .back {
     display: none;
   }
+}
+.time-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #eef1f6;
+  color: #5b6b8c;
+  white-space: nowrap;
+}
+.time-tag.over {
+  background: #fdf0f1;
+  color: #c0444f;
 }
 .back {
   border: none;

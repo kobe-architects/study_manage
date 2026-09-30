@@ -48,6 +48,16 @@ const selfGradeValid = computed(
 const selfRate = computed(() => (selfGradeValid.value ? Math.round((selfGrade.score! / selfGrade.maxScore!) * 100) : null))
 // 先生への一言（任意。LINE 通知に含まれる）。再提出時は前回の内容を初期値にする
 const submitNote = ref(props.quiz.submitNote ?? '')
+// 各問題（ページ）の回答にかかった時間（分）。再提出時は前回の値を初期値にする
+const minutes = reactive<Record<number, number | null>>(Object.fromEntries(props.quiz.pages.map((p) => [p.id, p.answerMinutes])))
+const timesPayload = computed(() => {
+  const out: Record<number, number> = {}
+  for (const p of pages.value) {
+    const m = minutes[p.id]
+    if (typeof m === 'number' && Number.isFinite(m) && m >= 0) out[p.id] = Math.round(m)
+  }
+  return out
+})
 
 function stateOf(pageId: number, hasAnswer: boolean): 'new' | 'old' | 'none' {
   if (shots.value.has(pageId)) return 'new'
@@ -223,7 +233,7 @@ async function submit() {
       await quizApi.uploadAnswer(props.quiz.id, p.id, s.blob)
       progress.value.done++
     }
-    await quizApi.submit(props.quiz.id, selfGrade.on ? { score: selfGrade.score!, maxScore: selfGrade.maxScore! } : null, submitNote.value.trim() || null)
+    await quizApi.submit(props.quiz.id, selfGrade.on ? { score: selfGrade.score!, maxScore: selfGrade.maxScore! } : null, submitNote.value.trim() || null, timesPayload.value)
     ui.notify(selfGrade.on ? '自己採点つきで提出しました' : '回答を提出しました')
     emit('submitted')
   } catch (e: unknown) {
@@ -320,8 +330,15 @@ onBeforeUnmount(() => {
             <div style="font-size: 11px" :style="{ color: stateOf(p.id, p.hasAnswer) === 'none' ? '#ff9f9f' : '#b7bcc6' }">
               {{ stateOf(p.id, p.hasAnswer) === 'new' ? '新しく撮影' : stateOf(p.id, p.hasAnswer) === 'old' ? '提出済みの写真を使用' : '未撮影（タップして撮影）' }}
             </div>
+            <!-- 回答にかかった時間（分）。目安時間があれば並べて表示 -->
+            <label class="time-row" @click.stop>
+              <span class="time-lab">かかった時間</span>
+              <input v-model.number="minutes[p.id]" type="number" min="0" max="600" inputmode="numeric" placeholder="－" class="time-input" />
+              <span class="time-unit">分</span>
+              <span v-if="p.guideMinutes" class="time-guide" :class="{ over: (minutes[p.id] ?? 0) > p.guideMinutes }">目安 {{ p.guideMinutes }}分</span>
+            </label>
           </div>
-          <span style="font-size: 11px; color: #b7bcc6">撮り直す ›</span>
+          <span style="font-size: 11px; color: #b7bcc6; flex-shrink: 0">撮り直す ›</span>
         </div>
       </div>
       <!-- 先生への一言（任意） -->
@@ -362,6 +379,50 @@ onBeforeUnmount(() => {
 /* 先生への一言（提出前確認） */
 .msg-row {
   margin: 0 14px 8px;
+}
+/* 回答にかかった時間 */
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  cursor: default;
+}
+.time-lab {
+  font-size: 11px;
+  color: #b7bcc6;
+}
+.time-input {
+  width: 60px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+}
+.time-input:focus {
+  border-color: #5b7cff;
+}
+.time-unit {
+  font-size: 11px;
+  color: #b7bcc6;
+}
+.time-guide {
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #e6e8ec;
+}
+.time-guide.over {
+  background: rgba(224, 83, 61, 0.35);
+  color: #ffb4a8;
 }
 .msg-input {
   width: 100%;

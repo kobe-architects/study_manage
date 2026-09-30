@@ -337,7 +337,11 @@ const commentOpen = ref(true)
           <b>{{ page.pageNo }}. {{ page.label }}</b>
           <span class="sub">
             <template v-if="page.kind === 'vocab'">英単語テスト・{{ page.vocabSpec?.resourceName }}</template>
-            <template v-else>{{ page.chapter }}<span v-if="page.difficulty" style="color: #f0b25a; margin-left: 6px">{{ page.difficulty }}</span></template>
+            <template v-else>{{ page.chapter }}<span v-if="page.difficulty" style="color: #f0b25a; margin-left: 6px">{{ page.difficulty }}</span>
+              <span v-if="page.answerMinutes !== null || page.guideMinutes" style="margin-left: 8px; color: #b7bcc6">
+                <template v-if="page.answerMinutes !== null">回答 {{ page.answerMinutes }}分</template>
+                <template v-if="page.guideMinutes"><template v-if="page.answerMinutes !== null"> / </template>目安 {{ page.guideMinutes }}分</template>
+              </span></template>
           </span>
           <span class="cnt">{{ idx + 1 }} / {{ pages.length }}</span>
         </div>

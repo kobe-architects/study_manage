@@ -58,6 +58,13 @@ export function computeReviewOn(studiedOn: string, opt: ReviewOption, customDays
   return iso(d)
 }
 
+/** 教材行の難易度（'***' や '★★★'）から目安時間（分）を求める。★1つ = 5分。★が無ければ null */
+export function guideMinutesOf(difficulty: string | null | undefined): number | null {
+  if (!difficulty) return null
+  const stars = (difficulty.match(/[*★]/g) ?? []).length
+  return stars > 0 ? stars * 5 : null
+}
+
 /** 課題の表示タイトル。未設定（空）の場合は期限をタイトルにする */
 export function assignmentTitle(title: string | null, dueOn: string): string {
   if (title && title.trim()) return title

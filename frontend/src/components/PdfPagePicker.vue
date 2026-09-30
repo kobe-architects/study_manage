@@ -15,6 +15,8 @@ export interface SelectedPage extends QuizPageSpec {
   key: string
   label: string
   pdfTitle: string
+  /** 教材行の難易度（'***' など）。目安時間（★×5分）の計算に使う */
+  difficulty?: string | null
   /** 出題元の教材（英単語テストは null）。教材ごとに別パート（別提出）として出題される */
   bookId?: number | null
   bookTitle?: string
@@ -133,6 +135,7 @@ function toggle(pdf: BookPdf, page: number, row: QuizRow | null) {
     pdfId: pdf.id,
     page,
     itemId: row?.id ?? null,
+    difficulty: row?.difficulty ?? null,
     label: row ? rowLabel(row) : `${pdf.title} p.${page}`,
     pdfTitle: pdf.title,
     bookId: props.bookId ?? null,
@@ -197,7 +200,7 @@ function toggleRow(r: QuizRow, e?: MouseEvent) {
         if (pg === null) continue
         const key = keyOf(pdf.id, pg)
         if (next.some((s) => s.key === key)) continue
-        next.push({ key, kind: 'pdf', pdfId: pdf.id, page: pg, itemId: x.id, label: rowLabel(x), pdfTitle: pdf.title, bookId: props.bookId ?? null, bookTitle: props.bookTitle ?? '' })
+        next.push({ key, kind: 'pdf', pdfId: pdf.id, page: pg, itemId: x.id, difficulty: x.difficulty, label: rowLabel(x), pdfTitle: pdf.title, bookId: props.bookId ?? null, bookTitle: props.bookTitle ?? '' })
       }
       emit('update:modelValue', next)
       lastClickedKey = r.key

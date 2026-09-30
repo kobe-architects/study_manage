@@ -50,7 +50,12 @@ export async function downloadFile(url: string, filename: string): Promise<void>
   await saveFile(res.data, filename)
 }
 
-function toForm(payload: object, renders: Record<number, { question: Blob; answer: Blob }>, cover?: Blob | null): FormData {
+function toForm(
+  payload: object,
+  renders: Record<number, { question: Blob; answer: Blob }>,
+  cover?: Blob | null,
+  stamps: Record<number, Blob> = {},
+): FormData {
   const fd = new FormData()
   fd.append('payload', JSON.stringify(payload))
   for (const [idx, r] of Object.entries(renders)) {
@@ -59,11 +64,13 @@ function toForm(payload: object, renders: Record<number, { question: Blob; answe
   }
   // 小テストの表紙（フロントで描画した画像。出題 PDF の先頭に付く）
   if (cover) fd.append('cover', cover, 'cover.jpg')
+  // 目安時間のスタンプ（分 → 透過 PNG。サーバーが各ページの右上に置く）
+  for (const [min, b] of Object.entries(stamps)) fd.append(`stamps[${min}]`, b, `stamp${min}.png`)
   return fd
 }
 
 /** 生徒の問題 PDF 出力のページ指定（教材ページ／表紙画像／白紙） */
-export type PrintSource = { type: 'pdf'; pdfId: number; page: number } | { type: 'image'; index: number } | { type: 'blank' }
+export type PrintSource = { type: 'pdf'; pdfId: number; page: number; stamp?: number } | { type: 'image'; index: number } | { type: 'blank' }
 
 export const quizApi = {
   prefix: p,
@@ -146,8 +153,9 @@ export const quizApi = {
     payload: { title: string | null; note: string | null; dueOn: string | null; maxScore: number; bookId: number | null; pages: QuizPageSpec[] },
     renders: Record<number, { question: Blob; answer: Blob }> = {},
     cover?: Blob | null,
+    stamps: Record<number, Blob> = {},
   ): Promise<number> {
-    const { data } = await client.post(`${p()}/quizzes`, toForm(payload, renders, cover))
+    const { data } = await client.post(`${p()}/quizzes`, toForm(payload, renders, cover, stamps))
     return data.data.id
   },
 
@@ -156,9 +164,10 @@ export const quizApi = {
     payload: { title?: string | null; note?: string | null; dueOn?: string | null; maxScore?: number; pages?: QuizPageSpec[] },
     renders: Record<number, { question: Blob; answer: Blob }> = {},
     cover?: Blob | null,
+    stamps: Record<number, Blob> = {},
   ): Promise<void> {
     // multipart は PUT で解析されないため POST + _method
-    const fd = toForm(payload, renders, cover)
+    const fd = toForm(payload, renders, cover, stamps)
     fd.append('_method', 'PUT')
     await client.post(`${p()}/quizzes/${id}`, fd)
   },
@@ -242,11 +251,17 @@ export const quizApi = {
     await client.post(`/quizzes/${quizId}/pages/${pageId}/answer`, fd)
   },
 
-  /** 提出。自己採点済みなら得点・満点を、先生への一言（任意）があれば note を一緒に送る */
-  async submit(quizId: number, selfGrade?: { score: number; maxScore: number } | null, note?: string | null): Promise<void> {
+  /** 提出。自己採点済みなら得点・満点を、先生への一言（任意）があれば note を、ページごとの回答時間（分）を times で一緒に送る */
+  async submit(
+    quizId: number,
+    selfGrade?: { score: number; maxScore: number } | null,
+    note?: string | null,
+    times: Record<number, number> = {},
+  ): Promise<void> {
     await client.post(`/quizzes/${quizId}/submit`, {
       ...(selfGrade ? { selfGraded: true, score: selfGrade.score, maxScore: selfGrade.maxScore } : { selfGraded: false }),
       note: note ?? null,
+      times,
     })
   },
 
