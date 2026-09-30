@@ -1,3 +1,6 @@
 # DBダンプ（機密データを含むためGit管理しない）
 *.sql
 study_manage_dump.sql
+
+# 本番サーバーのパスワード（ローカル参照用・コミットしない）
+docs/other/sever_pass
