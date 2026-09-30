@@ -60,8 +60,8 @@ async function loadPdf(blob: Blob) {
       { root: body.value, rootMargin: '800px 0px' },
     )
     body.value?.querySelectorAll('[data-no]').forEach((el) => io!.observe(el))
-  } catch {
-    error.value = 'PDF を表示できませんでした'
+  } catch (e) {
+    error.value = `PDF を表示できませんでした（${(e as Error)?.message ?? e}）`
   } finally {
     loading.value = false
   }

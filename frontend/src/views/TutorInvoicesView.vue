@@ -7,6 +7,7 @@ import { renderInvoiceSheet } from '@/lib/invoiceSheet'
 import { useUiStore } from '@/stores/ui'
 import type { InvoiceDetail, InvoiceSummary } from '@/types'
 import { appConfirm } from '@/lib/dialog'
+import { useAuthStore } from '@/stores/auth'
 
 /**
  * 講師用: 請求書管理。
@@ -14,6 +15,10 @@ import { appConfirm } from '@/lib/dialog'
  * 「請求内容確認済み（正式発行）」「支払確認済み」への更新と PDF 発行を行う。
  */
 const ui = useUiStore()
+const auth = useAuthStore()
+/** フロー図のバッジ・確認ダイアログに出す実名 */
+const studentName = computed(() => auth.user?.student?.name ?? '生徒')
+const tutorName = computed(() => auth.user?.name ?? '講師')
 
 const list = ref<InvoiceSummary[]>([])
 const cur = ref<InvoiceDetail | null>(null)
@@ -65,8 +70,12 @@ function applyDetail(d: InvoiceDetail) {
   if (i >= 0) list.value[i] = d
 }
 
+/** ステータスを変える操作は、内容を示した確認ダイアログを経てから実行する */
 async function doAction(act: 'confirm' | 'confirm-payment', confirmText: string) {
-  if (!cur.value || !(await appConfirm(confirmText))) return
+  if (!cur.value) return
+  const title = act === 'confirm' ? '請求内容を確認済みにしますか？' : '支払いを確認済みにしますか？'
+  const okText = act === 'confirm' ? '正式発行する' : '支払確認済みにする'
+  if (!(await appConfirm(confirmText, { title, okText }))) return
   busy.value = true
   try {
     applyDetail(await invoiceApi.action(cur.value.id, act))
@@ -113,7 +122,7 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
     <!-- 請求書の発行フロー（現在のステータスまでを濃い色で表示） -->
     <div class="card" style="margin-bottom: 14px">
       <div class="sec-t">請求書の発行フロー</div>
-      <InvoiceFlow :status="cur?.status ?? null" role="tutor" />
+      <InvoiceFlow :status="cur?.status ?? null" :student-name="studentName" :tutor-name="tutorName" />
     </div>
 
     <div class="grid">
@@ -144,8 +153,10 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
           <div class="sec-t">ステータス・操作</div>
 
           <div class="actions">
-            <button v-if="cur && cur.status === 'issued'" class="btn primary" :disabled="busy" @click="doAction('confirm', `${ymLabel}分（${yen(cur.amount)}）の請求内容を確認済みにして正式発行しますか？`)">請求内容確認済みにする（正式発行）</button>
-            <button v-if="cur && cur.status === 'paid'" class="btn primary" :disabled="busy" @click="doAction('confirm-payment', '支払いを確認済みにしますか？')">支払確認済みにする</button>
+            <button v-if="cur && cur.status === 'issued'" class="btn primary" :disabled="busy" @click="doAction('confirm', `${ymLabel}分・${hoursLabel(cur.totalMinutes)}時間・${yen(cur.amount)}
+正式発行になり、${studentName}さんに LINE で通知されます。`)">請求内容確認済みにする（正式発行）</button>
+            <button v-if="cur && cur.status === 'paid'" class="btn primary" :disabled="busy" @click="doAction('confirm-payment', `${ymLabel}分（${yen(cur.amount)}）の入金を確認済みにします。
+${studentName}さんに LINE で通知されます。`)">支払確認済みにする</button>
             <button v-if="cur && cur.status !== 'open'" class="btn" :disabled="busy" @click="openPdf">請求書PDF</button>
           </div>
           <div v-if="!loading && !cur" class="hint-line">生徒側で稼働時間が登録されると、この月の請求書が表示されます。</div>

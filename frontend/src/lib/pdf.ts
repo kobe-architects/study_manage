@@ -1,5 +1,6 @@
-import * as pdfjsLib from 'pdfjs-dist'
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+// legacy ビルド: 通常ビルドは Promise.withResolvers / Promise.try を使うため、少し古い iPadOS の Safari で読み込みに失敗する
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs'
+import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 
 /**
  * pdf.js ラッパー。認証付き URL の PDF（ページ単位に抽出した小さなファイル）を描画して

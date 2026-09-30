@@ -8,6 +8,7 @@ import { renderInvoiceSheet } from '@/lib/invoiceSheet'
 import { useUiStore } from '@/stores/ui'
 import type { InvoiceDetail, InvoiceSummary, TutorAccount } from '@/types'
 import { appConfirm } from '@/lib/dialog'
+import { useAuthStore } from '@/stores/auth'
 
 /**
  * 生徒用: 講師請求管理。
@@ -15,6 +16,7 @@ import { appConfirm } from '@/lib/dialog'
  * 締め → 仮発行 → 講師の内容確認（正式発行）→ 支払済み更新 → 講師の支払確認 の流れで管理する。
  */
 const ui = useUiStore()
+const auth = useAuthStore()
 
 const tutors = ref<TutorAccount[]>([])
 const tutorSel = ref<number | null>(null)
@@ -133,9 +135,11 @@ async function removeEntry(id: number) {
 }
 
 // ---- ステータス操作 ----
+/** ステータスを変える操作は、内容を示した確認ダイアログを経てから実行する */
+const ACTION_TITLE: Record<string, string> = { close: '締めますか？', issue: '請求書を仮発行しますか？', pay: '支払済みにしますか？' }
 async function doAction(act: 'close' | 'reopen' | 'issue' | 'pay', confirmText?: string) {
   if (!cur.value) return
-  if (confirmText && !(await appConfirm(confirmText))) return
+  if (confirmText && !(await appConfirm(confirmText, { title: ACTION_TITLE[act], okText: ({ close: '締める', issue: '仮発行する', pay: '支払済みにする' } as Record<string, string>)[act] }))) return
   busy.value = true
   try {
     applyDetail(await invoiceApi.action(cur.value.id, act))
@@ -205,7 +209,7 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
     <!-- 請求書の発行フロー（現在のステータスまでを濃い色で表示） -->
     <div class="card" style="margin-bottom: 14px">
       <div class="sec-t">請求書の発行フロー</div>
-      <InvoiceFlow :status="cur?.status ?? null" role="owner" />
+      <InvoiceFlow :status="cur?.status ?? null" :student-name="auth.settings?.name ?? '生徒'" :tutor-name="tutors.find((t) => t.id === tutorSel)?.name ?? '講師'" />
     </div>
 
     <div class="grid">

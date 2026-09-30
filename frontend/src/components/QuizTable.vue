@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import { rateColor } from '@/api/quiz'
 import type { QuizSummary } from '@/types'
 
 /**
  * 小テスト一覧のテーブル表示（生徒・講師共用）。
- * 1行＝1パート（教材ごと）。ステータスはバッジで色分けし、ステータス・教材・出題日・キーワードで絞り込める。
- * 同じ出題（箱）に複数の教材がある場合はタイトルの横に「1/2」のように表示する。
+ * 1行＝1パート（教材ごと）。科目 → 教材ごとにテーブルを分け、ステータスはバッジで色分けする。
+ * ステータス・教材・出題日・キーワードで絞り込める。講師のメモ・生徒の一言は左端のコメントアイコンをタップすると表示する。
  */
 const props = defineProps<{ quizzes: QuizSummary[]; role: 'owner' | 'tutor' }>()
 const emit = defineEmits<{
@@ -116,16 +116,60 @@ const rows = computed(() => {
   })
   return list
 })
-/** 科目ごとにテーブルを分ける（科目の並び順 → 名前順）。英単語テストは「英語」に入る */
+/** 科目（並び順 → 名前順）→ 教材ごとにテーブルを分ける。英単語テストは「英語」に入る */
 const groups = computed(() => {
-  const m = new Map<string, { name: string; order: number; color: string; rows: QuizSummary[] }>()
+  const m = new Map<string, { name: string; order: number; color: string; books: Map<string, { name: string; rows: QuizSummary[] }> }>()
   for (const q of rows.value) {
-    const g = m.get(q.subjectName) ?? { name: q.subjectName, order: q.subjectOrder, color: q.subjectColor, rows: [] }
-    g.rows.push(q)
+    const g = m.get(q.subjectName) ?? { name: q.subjectName, order: q.subjectOrder, color: q.subjectColor, books: new Map() }
+    const bn = partLabel(q)
+    const b = g.books.get(bn) ?? { name: bn, rows: [] }
+    b.rows.push(q)
+    g.books.set(bn, b)
     m.set(q.subjectName, g)
   }
-  return [...m.values()].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'ja'))
+  return [...m.values()]
+    .map((g) => ({ ...g, books: [...g.books.values()] }))
+    .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'ja'))
 })
+/** 行のタイトル（同じ出題に複数の教材があるときは「1/2」を添える） */
+function quizLabel(q: QuizSummary): string {
+  const p = partIndex.value[q.id]
+  return p && p.n > 1 ? `${q.title}（${p.i}/${p.n}）` : q.title
+}
+
+// ---- コメント（講師のメモ・生徒の一言）のポップオーバー ----
+const hasNote = (q: QuizSummary) => !!(q.note || q.submitNote)
+const notePop = ref<{ id: number; title: string; note: string | null; submitNote: string | null; who: string; top: number; left: number } | null>(null)
+function toggleNote(q: QuizSummary, e: MouseEvent) {
+  if (notePop.value?.id === q.id) {
+    closeNote()
+    return
+  }
+  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  const w = Math.min(320, window.innerWidth - 16)
+  notePop.value = {
+    id: q.id,
+    title: quizLabel(q),
+    note: q.note ?? null,
+    submitNote: q.submitNote ?? null,
+    who: surname(q) || '生徒',
+    top: r.bottom + 6,
+    left: Math.max(8, Math.min(r.left, window.innerWidth - w - 8)),
+  }
+  window.setTimeout(() => {
+    document.addEventListener('pointerdown', onDocDown, true)
+    window.addEventListener('scroll', closeNote, true)
+  })
+}
+function closeNote() {
+  notePop.value = null
+  document.removeEventListener('pointerdown', onDocDown, true)
+  window.removeEventListener('scroll', closeNote, true)
+}
+function onDocDown(e: Event) {
+  if (!(e.target as HTMLElement).closest('.note-pop, .note-btn')) closeNote()
+}
+onBeforeUnmount(closeNote)
 /** 背景色の明るさに応じて文字色を白／黒にする */
 function textOn(bg: string): string {
   const m = /^#?([0-9a-f]{6})$/i.exec(bg.trim())
@@ -141,16 +185,8 @@ function textOn(bg: string): string {
 function surname(q: QuizSummary): string {
   return (q.studentName ?? '').trim().split(/[\s　]+/)[0] ?? ''
 }
-/** 絞り込み欄は既定で折りたたみ。折りたたみ中は現在の条件を要約して表示する */
+/** 絞り込み欄は既定で折りたたみ */
 const filtersOpen = ref(false)
-const filterSummary = computed(() => {
-  const parts: string[] = []
-  parts.push(filter.status.length ? filter.status.map((k) => STATUS_LABEL.value[k]).join('・') : 'すべてのステータス')
-  if (filter.book) parts.push(filter.book)
-  if (filter.period !== 'all') parts.push({ week: '直近1週間', month: '直近1ヶ月', quarter: '直近3ヶ月' }[filter.period])
-  if (filter.q.trim()) parts.push(`「${filter.q.trim()}」`)
-  return parts.join(' / ')
-})
 const filtered = computed(() => filter.status.length > 0 || !!filter.book || filter.period !== 'all' || !!filter.q.trim())
 function clearFilters() {
   filter.status = []
@@ -179,12 +215,10 @@ function dueClass(q: QuizSummary): string {
     <!-- 絞り込み: 既定は折りたたみ。ステータス（複数選択）・教材・出題日・キーワード・並び順 -->
     <div class="filters">
       <div class="filter-head">
-        <button class="ftoggle" :class="{ on: filtersOpen }" @click="filtersOpen = !filtersOpen">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z" /></svg>
-          絞り込み
+        <button class="ftoggle" :class="{ on: filtersOpen }" aria-label="絞り込み" @click="filtersOpen = !filtersOpen">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z" /></svg>
           <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6" /></svg>
         </button>
-        <span class="fsum">{{ filterSummary }}</span>
         <button v-if="filtered" class="clear" @click="clearFilters">解除</button>
         <span class="cnt">{{ rows.length }} / {{ quizzes.length }}件</span>
       </div>
@@ -216,79 +250,98 @@ function dueClass(q: QuizSummary): string {
     </div>
 
     <div v-for="g in groups" :key="g.name" class="group">
-      <!-- 科目の見出し（テーブルの外・左上に科目色のバッジ） -->
+      <!-- 科目の見出し（科目色のバッジ） -->
       <div class="subj">
         <span class="subj-badge" :style="{ background: g.color, color: textOn(g.color) }">{{ g.name }}</span>
-        <span class="subj-n">{{ g.rows.length }}件</span>
       </div>
-      <div class="tbl-wrap">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th class="c-actions"></th>
-            <th class="c-status">ステータス</th>
-            <th class="c-date">出題日</th>
-            <th class="c-book">教材</th>
-            <th class="c-pages r">ページ</th>
-            <th class="c-due">期限</th>
-            <th class="c-score">得点</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="q in g.rows" :key="q.id" :class="['row', statusOf(q)]">
+      <!-- 教材ごとのテーブル -->
+      <div v-for="b in g.books" :key="b.name" class="book-block">
+        <div class="book-head">{{ b.name }}</div>
+        <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th class="c-note"></th>
+              <th class="c-actions"></th>
+              <th class="c-status">ステータス</th>
+              <th class="c-date">出題日</th>
+              <th class="c-pages r">ページ</th>
+              <th class="c-due">期限</th>
+              <th class="c-score">得点</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="q in b.rows" :key="q.id" :class="['row', statusOf(q)]" :title="quizLabel(q)">
+              <!-- コメント: あれば濃いアイコン＋点、なければ薄いアイコン -->
+              <td class="c-note">
+                <button
+                  class="note-btn"
+                  :class="{ has: hasNote(q), on: notePop?.id === q.id }"
+                  :disabled="!hasNote(q)"
+                  :aria-label="hasNote(q) ? 'コメントを表示' : 'コメントなし'"
+                  @click="toggleNote(q, $event)"
+                >
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16v10.5H9.5L5 20v-4H4z" /></svg>
+                  <span v-if="hasNote(q)" class="note-dot"></span>
+                </button>
+              </td>
             <td class="c-actions">
-              <div class="acts">
-                <template v-if="role === 'owner'">
-                  <button v-if="q.status === 'graded'" class="btn primary" @click="emit('result', q)">結果を見る</button>
-                  <button v-if="q.status !== 'graded'" class="btn primary" @click="emit('capture', q)">{{ q.status === 'submitted' ? '撮り直して再提出' : '撮影して提出' }}</button>
-                  <button v-else-if="q.selfGraded" class="btn" title="撮り直し・自己採点の点数の修正" @click="emit('capture', q)">再提出</button>
-                  <button class="btn" title="問題 PDF を別タブでプレビュー" @click="emit('pdf', q)">問題PDF</button>
-                </template>
-                <template v-else>
-                  <button v-if="q.status === 'submitted'" class="btn primary" @click="emit('grade', q)">採点・添削する</button>
-                  <template v-else-if="q.status === 'graded'">
-                    <button class="btn primary" @click="emit('result', q)">結果を見る</button>
-                    <button class="btn" title="採点・添削画面を開く（やり直し・PDF）" @click="emit('grade', q)">採点・添削</button>
+                <div class="acts">
+                  <template v-if="role === 'owner'">
+                    <button v-if="q.status === 'graded'" class="btn primary" @click="emit('result', q)">結果を見る</button>
+                    <button v-if="q.status !== 'graded'" class="btn primary" @click="emit('capture', q)">{{ q.status === 'submitted' ? '撮り直して再提出' : '撮影して提出' }}</button>
+                    <button v-else-if="q.selfGraded" class="btn" title="撮り直し・自己採点の点数の修正" @click="emit('capture', q)">再提出</button>
+                    <button class="btn" title="問題 PDF を別タブでプレビュー" @click="emit('pdf', q)">問題PDF</button>
                   </template>
-                  <button v-else class="btn" @click="emit('edit', q)">編集</button>
-                  <button class="btn" title="問題 PDF を別タブでプレビュー" @click="emit('pdf', q)">問題PDF</button>
-                  <button class="btn danger" @click="emit('remove', q)">削除</button>
-                </template>
-              </div>
-            </td>
-            <td class="c-status">
-              <div class="badges">
-                <span class="badge" :class="statusOf(q)">{{ STATUS_LABEL[statusOf(q)] }}</span>
-                <span v-if="q.status === 'graded' && q.selfGraded" class="badge self">自己採点</span>
-                <span v-if="q.status === 'assigned' && q.answeredCount" class="badge sub">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</span>
-              </div>
-            </td>
-            <td class="c-date nowrap">{{ fmt(q.createdOn) }}</td>
-            <td class="c-book">
-              <div class="bk">
-                {{ partLabel(q) }}
-                <span v-if="partIndex[q.id] && partIndex[q.id]!.n > 1" class="part-no" :title="q.title">{{ partIndex[q.id]!.i }}/{{ partIndex[q.id]!.n }}</span>
-              </div>
-              <div v-if="q.note" class="note">{{ q.note }}</div>
-              <div v-if="q.submitNote" class="note snote">（{{ surname(q) }}）{{ q.submitNote }}</div>
-            </td>
-            <td class="c-pages r">{{ q.pageCount }}</td>
-            <td class="c-due nowrap" :class="dueClass(q)">{{ fmt(q.dueOn) }}</td>
+                  <template v-else>
+                    <button v-if="q.status === 'submitted'" class="btn primary" @click="emit('grade', q)">採点・添削する</button>
+                    <template v-else-if="q.status === 'graded'">
+                      <button class="btn primary" @click="emit('result', q)">結果を見る</button>
+                      <button class="btn" title="採点・添削画面を開く（やり直し・PDF）" @click="emit('grade', q)">採点・添削</button>
+                    </template>
+                    <button v-else class="btn" @click="emit('edit', q)">編集</button>
+                    <button class="btn" title="問題 PDF を別タブでプレビュー" @click="emit('pdf', q)">問題PDF</button>
+                    <button class="btn danger" @click="emit('remove', q)">削除</button>
+                  </template>
+                </div>
+              </td>
+              <td class="c-status">
+                <div class="badges">
+                  <span class="badge" :class="statusOf(q)">{{ STATUS_LABEL[statusOf(q)] }}</span>
+                  <span v-if="q.status === 'graded' && q.selfGraded" class="badge self">自己採点</span>
+                  <span v-if="q.status === 'assigned' && q.answeredCount" class="badge sub">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</span>
+                </div>
+              </td>
+              <td class="c-date nowrap">{{ fmt(q.createdOn) }}</td>
+              <td class="c-pages r">{{ q.pageCount }}</td>
+              <td class="c-due nowrap" :class="dueClass(q)">{{ fmt(q.dueOn) }}</td>
             <td class="c-score">
-              <template v-if="q.status === 'graded' && q.score !== null">
-                <span class="score-line"><b :style="{ color: rateColor(q.rate) }">{{ q.score }}</b><span class="max"> / {{ q.maxScore }}点</span></span>
-                <span class="rate-line">
-                  <span class="rate-bar"><span :style="{ width: (q.rate ?? 0) + '%', background: rateColor(q.rate) }"></span></span>
-                  <span class="rate" :style="{ color: rateColor(q.rate) }">{{ q.rate ?? '–' }}%</span>
-                </span>
-              </template>
-              <span v-else class="dash">–</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                <template v-if="q.status === 'graded' && q.score !== null">
+                  <span class="score-line"><b :style="{ color: rateColor(q.rate) }">{{ q.score }}</b><span class="max"> / {{ q.maxScore }}点</span></span>
+                  <span class="rate-line">
+                    <span class="rate-bar"><span :style="{ width: (q.rate ?? 0) + '%', background: rateColor(q.rate) }"></span></span>
+                    <span class="rate" :style="{ color: rateColor(q.rate) }">{{ q.rate ?? '–' }}%</span>
+                  </span>
+                </template>
+                <span v-else class="dash">–</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
       </div>
     </div>
+
+    <!-- コメントのポップオーバー（テーブルの横スクロール枠に切られないよう body 直下に出す） -->
+    <Teleport to="body">
+      <Transition name="np">
+        <div v-if="notePop" class="note-pop" :style="{ top: notePop.top + 'px', left: notePop.left + 'px' }">
+          <div class="np-title">{{ notePop.title }}</div>
+          <div v-if="notePop.note" class="np-row"><span class="np-lab tutor">講師</span><span class="np-text">{{ notePop.note }}</span></div>
+          <div v-if="notePop.submitNote" class="np-row"><span class="np-lab student">{{ notePop.who }}</span><span class="np-text">{{ notePop.submitNote }}</span></div>
+        </div>
+      </Transition>
+    </Teleport>
     <div v-if="!groups.length" class="tbl-wrap empty">条件に一致する小テストはありません</div>
   </div>
 </template>
@@ -335,13 +388,8 @@ function dueClass(q: QuizSummary): string {
 .ftoggle.on .chev {
   transform: rotate(180deg);
 }
-.fsum {
-  font-size: 11.5px;
-  color: var(--faint);
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.filter-head .clear {
+  margin-left: 2px;
 }
 .status-tabs {
   display: flex;
@@ -459,14 +507,32 @@ function dueClass(q: QuizSummary): string {
   font-weight: 700;
   line-height: 1.5;
 }
-.subj-n {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--faint);
+/* 教材ごとの見出しとテーブル */
+.book-block {
+  margin-bottom: 8px;
+}
+.book-block:last-child {
+  margin-bottom: 0;
+}
+.book-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.book-head::before {
+  content: '';
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: #c9cfd8;
 }
 .tbl {
   width: 100%;
-  min-width: 760px;
+  min-width: 600px;
   border-collapse: collapse;
   font-size: 12.5px;
 }
@@ -534,32 +600,41 @@ function dueClass(q: QuizSummary): string {
 .c-score {
   width: 150px;
 }
-.c-book {
-  min-width: 180px;
+/* コメントアイコンの列（幅は最小に） */
+.c-note {
+  width: 1%;
+  padding-left: 6px;
+  padding-right: 0;
 }
-.bk {
-  font-weight: 600;
-  color: var(--ink);
+.note-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #d3d8df;
+  cursor: default;
 }
-.part-no {
-  display: inline-block;
-  margin-left: 6px;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #5b6b8c;
-  background: #eef1f6;
-  padding: 1px 7px;
-  border-radius: 999px;
-  vertical-align: middle;
-}
-.note {
-  font-size: 11px;
-  color: var(--faint);
-  margin-top: 2px;
-  white-space: pre-wrap;
-}
-.note.snote {
+.note-btn.has {
   color: #5b3fa0;
+  cursor: pointer;
+}
+.note-btn.has.on {
+  background: #efe9fb;
+}
+.note-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e0533d;
+  border: 1.5px solid #fff;
 }
 .badge {
   display: inline-block;
@@ -701,9 +776,6 @@ function dueClass(q: QuizSummary): string {
   .c-due {
     width: 74px;
   }
-  .c-book {
-    min-width: 120px;
-  }
   .c-score {
     width: 118px;
   }
@@ -719,7 +791,7 @@ function dueClass(q: QuizSummary): string {
 @media (max-width: 640px) {
   /* スマホは横スクロールで表示（列を詰めて折り返すより読みやすい） */
   .tbl {
-    min-width: 900px;
+    min-width: 720px;
   }
   .sel {
     flex: 1;
@@ -730,5 +802,66 @@ function dueClass(q: QuizSummary): string {
     text-align: right;
     margin-left: 0;
   }
+}
+</style>
+
+<style>
+/* コメントのポップオーバー（body 直下に出すためグローバル） */
+.note-pop {
+  position: fixed;
+  z-index: 1200;
+  width: min(320px, calc(100vw - 16px));
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e3e6ea;
+  box-shadow: 0 12px 32px rgba(15, 20, 30, 0.18);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.note-pop .np-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--faint);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.note-pop .np-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 0;
+}
+.note-pop .np-lab {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+.note-pop .np-lab.tutor {
+  background: #e8eefb;
+  color: #2e4a8f;
+}
+.note-pop .np-lab.student {
+  background: #e6f5ec;
+  color: #2f7a4f;
+}
+.note-pop .np-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--ink);
+}
+.np-enter-active,
+.np-leave-active {
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+.np-enter-from,
+.np-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 </style>
