@@ -14,10 +14,10 @@ class ResourceBookPdf extends Model
 {
     protected $fillable = [
         'resource_book_id', 'title', 'file_path', 'page_count', 'size_bytes',
-        'page_map', 'page_offset', 'sort_order', 'created_by',
+        'page_map', 'page_offset', 'page_links', 'sort_order', 'created_by',
     ];
 
-    protected $casts = ['page_count' => 'integer', 'size_bytes' => 'integer', 'page_offset' => 'integer'];
+    protected $casts = ['page_count' => 'integer', 'size_bytes' => 'integer', 'page_offset' => 'integer', 'page_links' => 'array'];
 
     protected static function booted(): void
     {

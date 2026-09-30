@@ -224,7 +224,7 @@ class QuizController extends Controller
     public function show(Request $request, Quiz $quiz): JsonResponse
     {
         $this->authorizeQuiz($request, $quiz);
-        $quiz->load(['creator:id,name', 'book:id,title,subject_id', 'book.subject:id,name,sort_order,color_vivid', 'pages.pdf:id,title', 'pages.refPdf:id,title', 'pages.item']);
+        $quiz->load(['creator:id,name', 'book:id,title,subject_id', 'book.subject:id,name,sort_order,color_vivid', 'pages.pdf:id,title,resource_book_id,page_count,page_links', 'pages.refPdf:id,title', 'pages.item']);
         $quiz->loadCount(['pages', 'pages as answered_count' => fn ($q) => $q->whereNotNull('answer_path')]);
 
         $data = $this->summary($quiz, $this->scoreSums([$quiz->id])->get($quiz->id), Carbon::today());
@@ -1154,9 +1154,11 @@ class QuizController extends Controller
                 ->where('title', 'like', '%解答%')
                 ->orderBy('id')
                 ->first();
-            if ($sibling !== null && $p->pdf_page <= $sibling->page_count) {
+            // ページ数が揃っていない教材は出題用 PDF の page_links（ページ → 解答ページ）で読み替える
+            $linked = (int) (($p->pdf->page_links ?? [])[(string) $p->pdf_page] ?? $p->pdf_page);
+            if ($sibling !== null && $linked >= 1 && $linked <= $sibling->page_count) {
                 $ansPdfId = $sibling->id;
-                $ansPage = $p->pdf_page;
+                $ansPage = $linked;
                 $ansPdfTitle = $sibling->title;
             }
         }
