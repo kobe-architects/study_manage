@@ -678,6 +678,44 @@ function dueClass(q: QuizSummary): string {
   padding: 28px 12px;
   font-size: 12.5px;
 }
+/* タブレット縦（講師側は zoom で拡大表示するため実質の幅が狭い）: 列を詰め、ページ数の列は出さずに横スクロールなしで収める */
+@media (min-width: 641px) and (max-width: 900px) {
+  .tbl {
+    min-width: 0;
+  }
+  .tbl th,
+  .tbl td {
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+  .c-pages {
+    display: none;
+  }
+  .c-status {
+    width: 112px;
+  }
+  .badges .badge {
+    width: 100px;
+  }
+  .c-date,
+  .c-due {
+    width: 74px;
+  }
+  .c-book {
+    min-width: 120px;
+  }
+  .c-score {
+    width: 118px;
+  }
+  .rate-line {
+    margin-left: 4px;
+  }
+  /* 操作ボタンが 4 つある行（採点・添削済み）は 2 段に折り返して列幅を抑える */
+  .acts {
+    flex-wrap: wrap;
+    max-width: 230px;
+  }
+}
 @media (max-width: 640px) {
   /* スマホは横スクロールで表示（列を詰めて折り返すより読みやすい） */
   .tbl {

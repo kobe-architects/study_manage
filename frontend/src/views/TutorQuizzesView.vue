@@ -997,6 +997,12 @@ function setDueIn(days: number) {
 .vrow .num.vocab {
   background: #2e7d5b;
 }
+/* タブレット横向き: ページ内容が zoom で拡大されるため、vh ではなく画面いっぱいの背景に対する高さにする */
+@media (pointer: coarse) and (min-width: 700px) {
+  .wizard {
+    height: 100%;
+  }
+}
 /* スマホ・iPad 縦: ウィザードは全画面で表示する */
 @media (max-width: 860px) {
   .overlay {

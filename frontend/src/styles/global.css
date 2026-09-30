@@ -261,6 +261,14 @@ input::-webkit-date-and-time-value {
   }
 }
 
+/* タブレット（講師側はページ内容を zoom で拡大している）: vh で高さを決めているパネルが画面からはみ出さないよう、
+   親（画面いっぱいの背景）に対する 100% を上限にする */
+@media (pointer: coarse) and (min-width: 700px) {
+  :root .ui-overlay > .ui-panel {
+    max-height: 100%;
+  }
+}
+
 /* モーダル・全画面表示・メニューが開いている間は、後ろの画面がタッチでスクロールしないようにする */
 @media (pointer: coarse) {
   html:has(.ui-overlay, .ui-fullscreen, .ui-lock) .app-scroll {

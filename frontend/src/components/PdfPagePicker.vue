@@ -879,7 +879,7 @@ function showPreview(pdfId: number, page: number | null) {
   font-size: 12.5px;
 }
 .zoom-overlay :deep(.zoom-thumb) {
-  width: min(94vw, calc(86vh * 0.71)) !important;
+  width: min(94vw, calc(86vh * 0.71), 100%) !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 .cart {

@@ -403,6 +403,7 @@ async function downloadResult() {
 </script>
 
 <template>
+  <div>
   <div v-if="quiz" class="grade">
     <!-- 左レール: 添削ツール（エディタからテレポート）＋ページリスト -->
     <aside class="rail rail-l">
@@ -650,6 +651,7 @@ async function downloadResult() {
       </div>
     </div>
   </Transition>
+  </div>
 </template>
 
 <style scoped>
@@ -1014,6 +1016,12 @@ async function downloadResult() {
   gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 6px;
+}
+/* スマホ・iPad 縦は上部バーに「‹ 小テスト」があるので、画面内の戻るは出さない */
+@media (max-width: 859px) {
+  .back {
+    display: none;
+  }
 }
 .back {
   border: none;
