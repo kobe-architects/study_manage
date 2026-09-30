@@ -3,7 +3,8 @@ import { onMounted, reactive, ref } from 'vue'
 import { assignmentTitle, iso } from '@/lib/design'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
-import AssignmentCard from '@/components/AssignmentCard.vue'
+import AssignmentTable from '@/components/AssignmentTable.vue'
+import HelpTip from '@/components/HelpTip.vue'
 import GoalLinkModal from '@/components/GoalLinkModal.vue'
 import type { Assignment, GoalLinkBook } from '@/types'
 import { appConfirm } from '@/lib/dialog'
@@ -101,21 +102,20 @@ function onLinkSave(ids: number[]) {
 <template>
   <div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; flex-wrap: wrap">
-      <div style="font-size: 17px; font-weight: 700">課題設定</div>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div style="font-size: 17px; font-weight: 700">課題設定</div>
+        <HelpTip
+          text="個別学習データから対象の行を選び、期限を付けて課題にします。&#10;進捗は課題作成後に生徒が学習記録を付けた行数で自動集計され、生徒のトップページにも同じ課題が表示されます。&#10;期限を過ぎたら「達成」「未達成」を記録してください。"
+        />
+      </div>
       <button class="btn-dark" @click="openAdd">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14" /></svg>課題を追加
       </button>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 14px">
-      <AssignmentCard v-for="a in study.assignments" :key="a.id" :assignment="a" @edit="openEdit" @remove="remove" />
-      <div v-if="!study.assignments.length" class="hint" style="text-align: center">
-        課題がまだありません。「課題を追加」から、個別学習データを選択して期限を設定してください。
-      </div>
-    </div>
-
-    <div class="hint">
-      課題の進捗は<b>課題作成後に生徒が学習記録を付けた行数</b>で自動集計されます。生徒のトップページにも同じ課題が表示され、進み具合が共有されます。
+    <AssignmentTable v-if="study.assignments.length" :assignments="study.assignments" @edit="openEdit" @remove="remove" />
+    <div v-else class="hint" style="text-align: center">
+      課題がまだありません。「課題を追加」から、個別学習データを選択して期限を設定してください。
     </div>
 
     <!-- 課題の追加 / 編集 -->

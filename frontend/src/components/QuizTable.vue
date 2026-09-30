@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref } from 'vue'
+import ActionMenu, { type ActionMenuItem } from '@/components/ActionMenu.vue'
+import { viewportWidth } from '@/lib/native'
 import { rateColor } from '@/api/quiz'
 import type { QuizSummary } from '@/types'
 
@@ -135,6 +137,27 @@ const groups = computed(() => {
 function quizLabel(q: QuizSummary): string {
   const p = partIndex.value[q.id]
   return p && p.n > 1 ? `${q.title}（${p.i}/${p.n}）` : q.title
+}
+
+// ---- 操作ボタン。主操作は常にボタン、その他はタブレット・スマホでは「操作」メニューにまとめる ----
+const compact = computed(() => viewportWidth.value <= 900)
+type ActionKey = 'pdf' | 'remove' | 'edit' | 'grade' | 'resubmit'
+function secondary(q: QuizSummary): (ActionMenuItem & { key: ActionKey })[] {
+  const pdf = { key: 'pdf' as const, label: '問題PDF' }
+  if (props.role === 'owner') {
+    return q.status === 'graded' && q.selfGraded ? [{ key: 'resubmit', label: '再提出' }, pdf] : [pdf]
+  }
+  const remove = { key: 'remove' as const, label: '削除', danger: true }
+  if (q.status === 'submitted') return [pdf, remove]
+  if (q.status === 'graded') return [{ key: 'grade', label: '採点・添削' }, pdf, remove]
+  return [{ key: 'edit', label: '編集' }, pdf, remove]
+}
+function onAction(q: QuizSummary, key: string) {
+  if (key === 'pdf') emit('pdf', q)
+  else if (key === 'remove') emit('remove', q)
+  else if (key === 'edit') emit('edit', q)
+  else if (key === 'grade') emit('grade', q)
+  else if (key === 'resubmit') emit('capture', q)
 }
 
 // ---- コメント（講師のメモ・生徒の一言）のポップオーバー ----
@@ -287,21 +310,19 @@ function dueClass(q: QuizSummary): string {
               </td>
             <td class="c-actions">
                 <div class="acts">
+                  <!-- 主操作 -->
                   <template v-if="role === 'owner'">
                     <button v-if="q.status === 'graded'" class="btn primary" @click="emit('result', q)">結果を見る</button>
-                    <button v-if="q.status !== 'graded'" class="btn primary" @click="emit('capture', q)">{{ q.status === 'submitted' ? '撮り直して再提出' : '撮影して提出' }}</button>
-                    <button v-else-if="q.selfGraded" class="btn" title="撮り直し・自己採点の点数の修正" @click="emit('capture', q)">再提出</button>
-                    <button class="btn" title="問題 PDF を別タブでプレビュー" @click="emit('pdf', q)">問題PDF</button>
+                    <button v-else class="btn primary" @click="emit('capture', q)">{{ q.status === 'submitted' ? '撮り直して再提出' : '撮影して提出' }}</button>
                   </template>
                   <template v-else>
                     <button v-if="q.status === 'submitted'" class="btn primary" @click="emit('grade', q)">採点・添削する</button>
-                    <template v-else-if="q.status === 'graded'">
-                      <button class="btn primary" @click="emit('result', q)">結果を見る</button>
-                      <button class="btn" title="採点・添削画面を開く（やり直し・PDF）" @click="emit('grade', q)">採点・添削</button>
-                    </template>
-                    <button v-else class="btn" @click="emit('edit', q)">編集</button>
-                    <button class="btn" title="問題 PDF を別タブでプレビュー" @click="emit('pdf', q)">問題PDF</button>
-                    <button class="btn danger" @click="emit('remove', q)">削除</button>
+                    <button v-else-if="q.status === 'graded'" class="btn primary" @click="emit('result', q)">結果を見る</button>
+                  </template>
+                  <!-- その他の操作: タブレット・スマホでは「操作」メニュー、PC では並べて表示 -->
+                  <ActionMenu v-if="compact && secondary(q).length >= 2" :items="secondary(q)" @select="onAction(q, $event)" />
+                  <template v-else>
+                    <button v-for="it in secondary(q)" :key="it.key" class="btn" :class="{ danger: it.danger }" @click="onAction(q, it.key)">{{ it.label }}</button>
                   </template>
                 </div>
               </td>
@@ -781,11 +802,6 @@ function dueClass(q: QuizSummary): string {
   }
   .rate-line {
     margin-left: 4px;
-  }
-  /* 操作ボタンが 4 つある行（採点・添削済み）は 2 段に折り返して列幅を抑える */
-  .acts {
-    flex-wrap: wrap;
-    max-width: 230px;
   }
 }
 @media (max-width: 640px) {
