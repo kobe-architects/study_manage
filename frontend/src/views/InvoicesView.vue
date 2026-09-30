@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import HelpTip from '@/components/HelpTip.vue'
 import client from '@/api/client'
 import { INVOICE_STATUS, hoursLabel, invoiceApi, minToTime, workDateLabel, yen } from '@/api/invoice'
+import InvoiceFlow from '@/components/InvoiceFlow.vue'
 import { renderInvoiceSheet } from '@/lib/invoiceSheet'
 import { useUiStore } from '@/stores/ui'
 import type { InvoiceDetail, InvoiceSummary, TutorAccount } from '@/types'
@@ -155,7 +156,8 @@ async function openPdf() {
   if (!cur.value) return
   busy.value = true
   try {
-    await invoiceApi.openPdf(cur.value.id, await renderInvoiceSheet(cur.value))
+    const inv = cur.value
+    await invoiceApi.openPdf(inv.id, () => renderInvoiceSheet(inv))
   } catch {
     ui.notify('PDF の作成に失敗しました')
   } finally {
@@ -200,6 +202,12 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
       家庭教師アカウントがありません。設定画面の「家庭教師アカウント」から追加してください。
     </div>
 
+    <!-- 請求書の発行フロー（現在のステータスまでを濃い色で表示） -->
+    <div class="card" style="margin-bottom: 14px">
+      <div class="sec-t">請求書の発行フロー</div>
+      <InvoiceFlow :status="cur?.status ?? null" role="owner" />
+    </div>
+
     <div class="grid">
       <!-- 稼働時間 -->
       <div class="card">
@@ -242,14 +250,7 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
       <!-- ステータス・操作 -->
       <div class="side">
         <div class="card">
-          <div class="sec-t">請求書の発行フロー</div>
-          <ol class="flow">
-            <li :class="{ done: cur && cur.status !== 'open' }">締め（あなた）</li>
-            <li :class="{ done: cur && ['issued', 'confirmed', 'paid', 'done'].includes(cur.status) }">請求書を仮発行（あなた）</li>
-            <li :class="{ done: cur && ['confirmed', 'paid', 'done'].includes(cur.status) }">請求内容確認＝正式発行（講師）</li>
-            <li :class="{ done: cur && ['paid', 'done'].includes(cur.status) }">支払済み（あなた）</li>
-            <li :class="{ done: cur && cur.status === 'done' }">支払確認済み（講師）</li>
-          </ol>
+          <div class="sec-t">ステータス・操作</div>
 
           <div class="actions">
             <button v-if="cur && cur.status === 'open'" class="btn primary" :disabled="busy || !cur.entryCount" @click="doAction('close', `${ymLabel}分を締めますか？\n締めると稼働時間の編集ができなくなり、請求書を仮発行できるようになります。`)">締め（入力を確定）</button>
@@ -258,6 +259,7 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
             <button v-if="cur && cur.status === 'confirmed'" class="btn primary" :disabled="busy" @click="doAction('pay', `${ymLabel}分（${yen(cur.amount)}）を支払済みにしますか？`)">支払済みにする</button>
             <button v-if="cur && cur.status !== 'open'" class="btn" :disabled="busy" @click="openPdf">請求書PDF</button>
           </div>
+          <div v-if="!loading && !cur" class="hint-line">稼働時間を登録すると、この月の請求書が作られます。</div>
           <div v-if="cur && cur.status === 'issued'" class="hint-line">講師の請求内容確認（正式発行）を待っています。</div>
           <div v-if="cur && cur.status === 'paid'" class="hint-line">講師の支払確認を待っています。</div>
         </div>
@@ -437,19 +439,6 @@ const st = computed(() => (cur.value ? INVOICE_STATUS[cur.value.status] : null))
 }
 .amount {
   margin-left: auto;
-}
-.flow {
-  margin: 0 0 12px;
-  padding-left: 22px;
-  font-size: 12.5px;
-  color: var(--faint);
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.flow li.done {
-  color: #2f7a4f;
-  font-weight: 600;
 }
 .actions {
   display: flex;

@@ -42,12 +42,13 @@ export const invoiceApi = {
 
   /**
    * 請求書 PDF を別タブでプレビュー。画面側で描画した請求書画像を送り、サーバーで PDF 化して受け取る。
-   * ポップアップブロック回避のため、クリック直後（同期）に空タブを開いてから処理する。
+   * ポップアップブロック回避のため、クリック直後（同期）に空タブを開いてから描画・取得する
+   * （描画を待ってから開くと Safari がポップアップとして止める）。タッチ端末はアプリ内のビューアで表示する。
    */
-  async openPdf(id: number, image: Blob): Promise<void> {
-    // ホーム画面から起動したアプリでは別タブが使えないため、アプリ内のビューアで表示する
+  async openPdf(id: number, render: () => Promise<Blob>): Promise<void> {
     const w = useInAppViewer ? null : window.open('', '_blank')
     try {
+      const image = await render()
       const fd = new FormData()
       fd.append('image', image, 'invoice.jpg')
       const res = await client.post(`${p()}/invoices/${id}/pdf`, fd, { responseType: 'blob' })

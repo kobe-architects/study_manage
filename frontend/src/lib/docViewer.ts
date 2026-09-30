@@ -2,10 +2,14 @@
 // ホーム画面から起動したアプリでは別タブ（window.open）が使えない・blob の URL を別タブに渡せないため、
 // PDF のプレビューや印刷用の一覧はアプリ内の全画面ビューアで表示し、共有シートから印刷・保存する。
 import { reactive } from 'vue'
-import { isStandalone, isTouch } from '@/lib/native'
+import { isTouch } from '@/lib/native'
 
-/** 別タブの代わりにアプリ内ビューアを使うか（ホーム画面から起動したタッチ端末） */
-export const useInAppViewer = isStandalone && isTouch
+/**
+ * 別タブの代わりにアプリ内ビューアを使うか。
+ * タッチ端末（iPhone・iPad・Android）は、ホーム画面起動では別タブが使えず、Safari でも blob の PDF を新しいタブに渡すと
+ * 表示できないことがあるため、常にアプリ内ビューアで表示する。
+ */
+export const useInAppViewer = isTouch
 
 export const docState = reactive<{
   open: boolean
