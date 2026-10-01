@@ -384,6 +384,52 @@ class ResourceBookController extends Controller
     }
 
     /**
+     * 複数行の学習記録をまとめて登録する（生徒の「先生からの課題」で範囲選択して一括記録）。
+     * 学習項目に紐づいていない行は飛ばし、登録件数と飛ばした件数を返す。
+     */
+    public function recordRows(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'rowIds' => ['required', 'array', 'min:1', 'max:500'],
+            'rowIds.*' => ['integer'],
+            'studiedOn' => ['required', 'date'],
+            'color' => ['nullable', 'in:red,blue,green'],
+            'reviewOn' => ['nullable', 'date'],
+        ]);
+        $userId = $request->user()->id;
+        $rows = ResourceBookItem::with('book:id,type,user_id')
+            ->whereIn('id', array_unique($data['rowIds']))
+            ->whereHas('book', fn ($q) => $q->where('user_id', $userId))
+            ->get();
+        $now = now();
+        $records = [];
+        $skipped = 0;
+        foreach ($rows as $row) {
+            if ($row->study_item_id === null) {
+                $skipped++;
+
+                continue;
+            }
+            $records[] = [
+                'user_id' => $userId,
+                'study_item_id' => $row->study_item_id,
+                'resource_book_item_id' => $row->id,
+                'type' => $row->book->type,
+                'studied_on' => $data['studiedOn'],
+                'color' => $data['color'] ?? null,
+                'review_on' => $data['reviewOn'] ?? null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+        if ($records !== []) {
+            DB::transaction(fn () => StudyRecord::insert($records));
+        }
+
+        return response()->json(['data' => ['created' => count($records), 'skipped' => $skipped]], 201);
+    }
+
+    /**
      * 講義教材に関連する問題（=同じ小分類に紐づく「問題集」教材の行）を一覧で返す。
      * 印刷/画面出力用。講義以外の教材でも動作するが、UIでは講義でのみ提供する。
      */

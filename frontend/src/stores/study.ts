@@ -261,6 +261,12 @@ export const useStudyStore = defineStore('study', {
       await client.post(`/resource-book-rows/${rowId}/record`, { studiedOn, color, reviewOn })
       await Promise.all([this.fetchAssignments(), this.fetchItems(), this.fetchRecordStats(), this.fetchGoals()])
     },
+    /** 複数行をまとめて記録（課題の範囲選択）。戻り値は登録件数 */
+    async recordAssignmentItems(rowIds: number[], studiedOn: string, color: string | null, reviewOn: string | null): Promise<number> {
+      const { data } = await client.post('/resource-book-rows/record-bulk', { rowIds, studiedOn, color, reviewOn })
+      await Promise.all([this.fetchAssignments(), this.fetchItems(), this.fetchRecordStats(), this.fetchGoals()])
+      return (data.data?.created as number) ?? rowIds.length
+    },
   },
 })
 

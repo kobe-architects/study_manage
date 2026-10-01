@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { assignmentTitle, computeReviewOn, daysBetween, iso, parseDate, pct, REVIEW_OPTIONS, TYPE_BADGE } from '@/lib/design'
+import HelpTip from '@/components/HelpTip.vue'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
 import type { Assignment, GoalItemDetail, RecordColor } from '@/types'
@@ -58,26 +59,81 @@ function parentLabel(it: GoalItemDetail): string {
   return it.chapter ?? it.sub ?? it.title ?? '（無題）'
 }
 
-// ---- 課題からの学習記録（生徒のみ）。行をクリック → 学習日・色・復習期限を指定して記録 ----
+// ---- 行の選択（生徒のみ）。チェックで複数選択、Shift+クリックで範囲選択し、まとめて学習記録できる ----
+const selected = ref<Set<number>>(new Set())
+/** Shift+クリックの範囲選択の起点 */
+let anchorId: number | null = null
+/** 表示順（教材グループをまたいだ一列） */
+const visibleRows = computed(() => bookGroups.value.flatMap((g) => g.rows))
+const selectedRows = computed(() => visibleRows.value.filter((it) => selected.value.has(it.id)))
+function setSelected(next: Set<number>) {
+  selected.value = next
+}
+/** 行のチェック（Shift なら起点からの範囲をまとめて選択） */
+function toggleSelect(it: GoalItemDetail, e?: MouseEvent) {
+  if (!props.readonly) return
+  const next = new Set(selected.value)
+  if (e?.shiftKey && anchorId !== null && anchorId !== it.id) {
+    const list = visibleRows.value
+    const a = list.findIndex((x) => x.id === anchorId)
+    const b = list.findIndex((x) => x.id === it.id)
+    if (a >= 0 && b >= 0) {
+      const [from, to] = a < b ? [a, b] : [b, a]
+      for (const x of list.slice(from, to + 1)) next.add(x.id)
+      setSelected(next)
+      anchorId = it.id
+      window.getSelection()?.removeAllRanges()
+      return
+    }
+  }
+  if (next.has(it.id)) next.delete(it.id)
+  else next.add(it.id)
+  setSelected(next)
+  anchorId = it.id
+}
+/** 行本体のクリック: Shift なら範囲選択、選択中なら選択の切替、それ以外は 1 件の記録モーダル */
+function onRowClick(it: GoalItemDetail, e: MouseEvent) {
+  if (!props.readonly) return
+  if (e.shiftKey || selected.value.size > 0) {
+    toggleSelect(it, e)
+    return
+  }
+  openRecord([it])
+}
+function selectUnstudied() {
+  setSelected(new Set(visibleRows.value.filter((it) => !it.studied).map((it) => it.id)))
+}
+function clearSelection() {
+  setSelected(new Set())
+  anchorId = null
+}
+
+// ---- 課題からの学習記録（生徒のみ）。1 件または選択した複数件を、学習日・色・復習期限を指定して記録 ----
 const recModal = reactive<{
   open: boolean
-  item: GoalItemDetail | null
+  items: GoalItemDetail[]
   date: string
   color: RecordColor | null
   reviewIdx: number
   customDays: number | null
   saving: boolean
-}>({ open: false, item: null, date: iso(new Date()), color: null, reviewIdx: 0, customDays: 7, saving: false })
+}>({ open: false, items: [], date: iso(new Date()), color: null, reviewIdx: 0, customDays: 7, saving: false })
 
-function openRecord(it: GoalItemDetail) {
-  if (!props.readonly) return
+function openRecord(list: GoalItemDetail[]) {
+  if (!props.readonly || !list.length) return
   recModal.open = true
-  recModal.item = it
+  recModal.items = list
   recModal.date = iso(new Date())
   recModal.color = null
   recModal.reviewIdx = 0
   recModal.customDays = 7
   recModal.saving = false
+}
+function openRecordSelected() {
+  openRecord(selectedRows.value)
+}
+function itemLabel(it: GoalItemDetail): string {
+  return `${it.seqNo ? it.seqNo + '. ' : ''}${it.title ?? it.sub ?? ''}`
 }
 const recPreview = computed(() => {
   const opt = REVIEW_OPTIONS[recModal.reviewIdx]
@@ -87,14 +143,25 @@ const recPreview = computed(() => {
   return `→ 復習期限: ${d.getMonth() + 1}/${d.getDate()}`
 })
 async function submitRecord() {
-  if (!recModal.item || recModal.saving) return
+  if (!recModal.items.length || recModal.saving) return
   recModal.saving = true
   const opt = REVIEW_OPTIONS[recModal.reviewIdx]
   const reviewOn = computeReviewOn(recModal.date, opt, recModal.customDays)
   try {
-    await study.recordAssignmentItem(recModal.item.id, recModal.date, recModal.color, reviewOn)
-    ui.notify('学習を記録しました')
+    if (recModal.items.length === 1) {
+      await study.recordAssignmentItem(recModal.items[0]!.id, recModal.date, recModal.color, reviewOn)
+      ui.notify('学習を記録しました')
+    } else {
+      const n = await study.recordAssignmentItems(
+        recModal.items.map((it) => it.id),
+        recModal.date,
+        recModal.color,
+        reviewOn,
+      )
+      ui.notify(`${n}件の学習を記録しました`)
+    }
     recModal.open = false
+    clearSelection()
     // 明細を取り直して達成状態を反映
     loading.value = true
     try {
@@ -166,7 +233,19 @@ async function setAchieved(value: boolean) {
       </button>
       <div v-if="expanded" style="margin-top: 6px">
         <div v-if="loading" style="font-size: 12px; color: var(--faint); padding: 6px 2px">読み込み中…</div>
-        <div v-else style="max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px">
+        <template v-else>
+        <div v-if="readonly && items.length" class="sel-bar">
+          <template v-if="selected.size">
+            <span class="sel-n">{{ selected.size }}件を選択中</span>
+            <button class="sel-btn primary" @click="openRecordSelected">まとめて学習を記録</button>
+            <button class="sel-btn" @click="clearSelection">解除</button>
+          </template>
+          <template v-else>
+            <button class="sel-btn" @click="selectUnstudied">未学習をすべて選択</button>
+            <HelpTip text="左のチェックで複数選択できます。&#10;Shift を押しながらクリックすると、前に選んだ行からまとめて範囲選択できます。&#10;選択中は行のクリックで選択の切替、選択なしでは行のクリックで 1 件ずつ記録できます。" />
+          </template>
+        </div>
+        <div style="max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px">
           <template v-for="g in bookGroups" :key="g.name">
             <div class="gi-book">{{ g.name }}</div>
             <component
@@ -174,9 +253,12 @@ async function setAchieved(value: boolean) {
               v-for="it in g.rows"
               :key="it.id"
               class="gi-row"
-              :class="{ clickable: readonly }"
-              @click="openRecord(it)"
+              :class="{ clickable: readonly, sel: selected.has(it.id) }"
+              @click="onRowClick(it, $event)"
             >
+              <span v-if="readonly" class="gi-check" :class="{ on: selected.has(it.id) }" role="checkbox" :aria-checked="selected.has(it.id)" @click.stop="toggleSelect(it, $event)">
+                <svg v-if="selected.has(it.id)" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7" /></svg>
+              </span>
               <span v-if="it.type" class="gi-badge" :style="{ background: TYPE_BADGE[it.type].bg, color: TYPE_BADGE[it.type].fg }">{{ it.type }}</span>
               <span v-else class="gi-badge" style="background: #f1f2f4; color: #aeb4bd">—</span>
               <span class="gi-mark" :style="{ color: it.studied ? '#2e9d62' : '#cbd1d8' }">{{ it.studied ? '✓' : '○' }}</span>
@@ -186,6 +268,7 @@ async function setAchieved(value: boolean) {
           </template>
           <div v-if="!items.length" style="font-size: 12px; color: var(--faint); padding: 6px 2px">対象データがありません</div>
         </div>
+        </template>
       </div>
     </div>
 
@@ -193,10 +276,15 @@ async function setAchieved(value: boolean) {
     <Transition name="ui-modal">
       <div v-if="recModal.open" class="overlay ui-overlay ui-sheet ui-swipe" @click="recModal.open = false">
         <div class="modal ui-panel" @click.stop>
-          <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px">学習を記録</div>
-          <div style="font-size: 12px; color: var(--faint); margin-bottom: 14px">
-            <span v-if="recModal.item?.seqNo">{{ recModal.item.seqNo }}. </span>{{ recModal.item?.title ?? recModal.item?.sub ?? '' }}
-            <span v-if="recModal.item?.bookTitle">（{{ recModal.item.bookTitle }}）</span>
+          <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px">{{ recModal.items.length > 1 ? `${recModal.items.length}件の学習を記録` : '学習を記録' }}</div>
+          <div style="font-size: 12px; color: var(--faint); margin-bottom: 14px; text-align: left">
+            <template v-if="recModal.items.length === 1">
+              {{ itemLabel(recModal.items[0]!) }}<span v-if="recModal.items[0]!.bookTitle">（{{ recModal.items[0]!.bookTitle }}）</span>
+            </template>
+            <template v-else>
+              <div v-for="it in recModal.items.slice(0, 5)" :key="it.id" class="rec-item">{{ itemLabel(it) }}</div>
+              <div v-if="recModal.items.length > 5" class="rec-item">…他 {{ recModal.items.length - 5 }}件</div>
+            </template>
           </div>
           <div style="display: flex; flex-direction: column; gap: 13px">
             <label class="fld"><span>学習日</span><input v-model="recModal.date" type="date" /></label>
@@ -334,6 +422,59 @@ async function setAchieved(value: boolean) {
 }
 .gi-row.clickable:hover {
   background: #f6f8fb;
+}
+.gi-row.clickable {
+  user-select: none;
+}
+.gi-row.sel {
+  background: #eef2fb;
+}
+.gi-check {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  border: 1.5px solid #cfd4db;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.gi-check.on {
+  background: #3b50cc;
+  border-color: #3b50cc;
+}
+.sel-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 2px 2px 6px;
+}
+.sel-n {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2e4a8f;
+}
+.sel-btn {
+  padding: 4px 10px;
+  border: 1px solid #e3e6ea;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--mut);
+  cursor: pointer;
+}
+.sel-btn.primary {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
+}
+.rec-item {
+  font-size: 12px;
+  color: var(--mut);
+  line-height: 1.6;
 }
 .overlay {
   position: fixed;

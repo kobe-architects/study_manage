@@ -68,6 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/resource-book-rows/{row}', [ResourceBookController::class, 'rowDestroy']);
         Route::get('/resource-book-rows/{row}/records', [ResourceBookController::class, 'rowRecords']);
         Route::post('/resource-book-rows/{row}/record', [ResourceBookController::class, 'recordRow']);
+        Route::post('/resource-book-rows/record-bulk', [ResourceBookController::class, 'recordRows']); // 複数行をまとめて記録（課題の範囲選択）
 
         Route::get('/goals/link-options', [GoalController::class, 'linkOptions']);
         Route::get('/goals', [GoalController::class, 'index']);
