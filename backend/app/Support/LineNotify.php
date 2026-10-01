@@ -29,6 +29,11 @@ class LineNotify
         if ($user === null || ! $user->line_user_id) {
             return;
         }
+        // 文面の前後の空白・改行は落とす（通知に URL は付けない）
+        $message = trim($message);
+        if ($message === '') {
+            return;
+        }
         try {
             $res = Http::withToken($token)->timeout(10)->post(self::API.'/message/push', [
                 'to' => $user->line_user_id,

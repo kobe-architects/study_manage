@@ -273,7 +273,7 @@ class QuizController extends Controller
             LineNotify::push(
                 $quiz->user,
                 "小テストが出題されました。\n「{$quiz->title}」"
-                .($quiz->due_on ? '（期限 '.$quiz->due_on->toDateString().'）' : '')."\n".config('app.url'),
+                .($quiz->due_on ? '（期限 '.$quiz->due_on->toDateString().'）' : ''),
             );
         }
 
@@ -553,9 +553,9 @@ class QuizController extends Controller
         if ($selfGraded) {
             $rate = (int) round($data['score'] / $data['maxScore'] * 100);
             $message = "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を自己採点して提出しました。\n"
-                ."得点 {$data['score']} / {$data['maxScore']}点（{$rate}%）\n".$noteLine.config('app.url');
+                ."得点 {$data['score']} / {$data['maxScore']}点（{$rate}%）\n".$noteLine;
         } else {
-            $message = "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を提出しました。\n".$noteLine."採点・添削をお願いします。\n".config('app.url');
+            $message = "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を提出しました。\n".$noteLine.'採点・添削をお願いします。';
         }
         LineNotify::push($quiz->creator, $message);
 
@@ -642,7 +642,7 @@ class QuizController extends Controller
         $scoreText = "（{$quiz->score} / {$quiz->max_score}点）";
         LineNotify::push(
             $quiz->user,
-            "小テスト「{$quiz->title}」の採点・添削が完了しました{$scoreText}。\n結果を確認しましょう。\n".config('app.url'),
+            "小テスト「{$quiz->title}」の採点・添削が完了しました{$scoreText}。\n結果を確認しましょう。",
         );
 
         return response()->json(['data' => ['id' => $quiz->id, 'status' => $quiz->status]]);

@@ -106,7 +106,7 @@ class TutorInvoiceController extends Controller
                 "{$invoice->user?->name}さんが稼働時間を登録しました。\n"
                 .$on->format('n月j日').' '.$hm((int) $data['startMin']).'〜'.$hm((int) $data['endMin']).$note."\n"
                 .'この日の稼働 '.$this->hoursText($dayMinutes).($dayCount > 1 ? "（{$dayCount}件）" : '')."\n"
-                ."{$invoice->year}年{$invoice->month}月分 合計 {$this->amountText($invoice)}\n".config('app.url'),
+                ."{$invoice->year}年{$invoice->month}月分 合計 {$this->amountText($invoice)}",
             );
         }
 
@@ -178,7 +178,7 @@ class TutorInvoiceController extends Controller
         $this->transition($invoice, TutorInvoice::STATUS_CLOSED, TutorInvoice::STATUS_ISSUED, ['issued_at' => now()]);
         LineNotify::push(
             $invoice->tutor,
-            "{$invoice->year}年{$invoice->month}月分の請求書が仮発行されました（{$this->amountText($invoice)}）。\n内容を確認し、問題なければ「請求内容確認済み」に更新してください。\n".config('app.url'),
+            "{$invoice->year}年{$invoice->month}月分の請求書が仮発行されました（{$this->amountText($invoice)}）。\n内容を確認し、問題なければ「請求内容確認済み」に更新してください。",
         );
 
         return $this->show($request, $invoice->fresh());
@@ -191,7 +191,7 @@ class TutorInvoiceController extends Controller
         $this->transition($invoice, TutorInvoice::STATUS_ISSUED, TutorInvoice::STATUS_CONFIRMED, ['confirmed_at' => now()]);
         LineNotify::push(
             $invoice->user,
-            "{$invoice->year}年{$invoice->month}月分の請求書の内容が確認され、正式に発行されました（{$this->amountText($invoice)}）。\nお支払い後、「支払済み」に更新してください。\n".config('app.url'),
+            "{$invoice->year}年{$invoice->month}月分の請求書の内容が確認され、正式に発行されました（{$this->amountText($invoice)}）。\nお支払い後、「支払済み」に更新してください。",
         );
 
         return $this->show($request, $invoice->fresh());
@@ -204,7 +204,7 @@ class TutorInvoiceController extends Controller
         $this->transition($invoice, TutorInvoice::STATUS_CONFIRMED, TutorInvoice::STATUS_PAID, ['paid_at' => now()]);
         LineNotify::push(
             $invoice->tutor,
-            "{$invoice->year}年{$invoice->month}月分の請求書が支払済みに更新されました（{$this->amountText($invoice)}）。\n入金を確認し、「支払確認済み」に更新してください。\n".config('app.url'),
+            "{$invoice->year}年{$invoice->month}月分の請求書が支払済みに更新されました（{$this->amountText($invoice)}）。\n入金を確認し、「支払確認済み」に更新してください。",
         );
 
         return $this->show($request, $invoice->fresh());
@@ -217,7 +217,7 @@ class TutorInvoiceController extends Controller
         $this->transition($invoice, TutorInvoice::STATUS_PAID, TutorInvoice::STATUS_DONE, ['done_at' => now()]);
         LineNotify::push(
             $invoice->user,
-            "{$invoice->year}年{$invoice->month}月分の請求書の支払いが確認されました。ありがとうございました。\n".config('app.url'),
+            "{$invoice->year}年{$invoice->month}月分の請求書の支払いが確認されました。ありがとうございました。",
         );
 
         return $this->show($request, $invoice->fresh());
