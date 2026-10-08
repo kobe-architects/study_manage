@@ -98,6 +98,30 @@ class QuizController extends Controller
             return $g ? (int) round($g->q_score / $g->q_max * 100) : null;
         };
 
+        /**
+         * row_pages による行→ページ。[[pdfId => page, ...], ...]（行が複数ページなら要素が複数）。
+         * ページ数が PDF ごとに違う場合は少ない方に合わせる。
+         */
+        $rowPagesFor = function (int $rowId) use ($pdfs): array {
+            $per = [];
+            foreach ($pdfs as $p) {
+                $pages = $p->pagesForRow($rowId);
+                if ($pages !== []) {
+                    $per[(string) $p->id] = $pages;
+                }
+            }
+            if ($per === []) {
+                return [];
+            }
+            $n = min(array_map('count', $per));
+            $out = [];
+            for ($i = 0; $i < $n; $i++) {
+                $out[] = array_map(fn (array $pages) => $pages[$i], $per);
+            }
+
+            return $out;
+        };
+
         $pagesFor = function (?string $seq) use ($pdfs): object {
             $pages = [];
             foreach ($pdfs as $p) {
@@ -117,6 +141,8 @@ class QuizController extends Controller
             $base = [
                 'id' => $r->id,
                 'chapter' => $r->chapter,
+                // 一覧の見出しに使うグループ（スタディサプリは「第N講 …」。なければ章）
+                'group' => $r->meta['講'] ?? null,
                 'difficulty' => $r->difficulty,
                 'checkFlag' => $r->check_flag,
                 'important' => (bool) $r->important,
@@ -137,6 +163,16 @@ class QuizController extends Controller
                         'seqNo' => $seq,
                         'title' => (string) ($spec[1] ?? ''),
                         'pages' => $pagesFor($seq),
+                    ];
+                }
+            } elseif (($rowPages = $rowPagesFor($r->id)) !== []) {
+                // 行→ページの対応表（row_pages）がある PDF: 複数ページなら ①② に分けて並べる
+                foreach ($rowPages as $i => $pages) {
+                    $data[] = $base + [
+                        'key' => count($rowPages) > 1 ? $r->id.'-'.$i : (string) $r->id,
+                        'seqNo' => $r->seq_no,
+                        'title' => (string) $r->title.(count($rowPages) > 1 ? ' '.mb_substr('①②③④⑤⑥⑦⑧⑨⑩', $i, 1) : ''),
+                        'pages' => (object) $pages,
                     ];
                 }
             } else {

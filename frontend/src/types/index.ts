@@ -504,6 +504,8 @@ export interface QuizRow {
   /** 一覧表示用の一意キー */
   key: string
   chapter: string | null
+  /** 一覧の見出しに使うグループ（スタディサプリの「第N講 …」など）。なければ章 */
+  group: string | null
   seqNo: string | null
   title: string | null
   difficulty: string | null

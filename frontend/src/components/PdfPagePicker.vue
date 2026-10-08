@@ -27,7 +27,8 @@ const emit = defineEmits<{ 'update:modelValue': [SelectedPage[]] }>()
 
 const activePdfId = ref<number>(props.pdfs[0]?.id ?? 0)
 const activePdf = computed(() => props.pdfs.find((p) => p.id === activePdfId.value) ?? null)
-const canUseRows = computed(() => activePdf.value?.pageMap === 'seq' && props.rows.length > 0)
+/** 「一覧から選ぶ」が使えるか: 番号＝ページ対応の PDF、または行→ページの対応表がある PDF */
+const canUseRows = computed(() => props.rows.some((r) => r.pages[String(activePdfId.value)] !== undefined))
 const mode = ref<'rows' | 'pages'>(canUseRows.value ? 'rows' : 'pages')
 watch(activePdfId, () => {
   if (!canUseRows.value) mode.value = 'pages'
@@ -80,10 +81,14 @@ const filteredRows = computed(() => {
   })
 })
 
+/** 一覧の見出し: グループ（講）があればそれ、なければ章 */
+function groupOf(r: QuizRow): string {
+  return r.group ?? r.chapter ?? ''
+}
 const groupedRows = computed(() => {
   const groups: { chapter: string; rows: QuizRow[] }[] = []
   for (const r of filteredRows.value) {
-    const c = r.chapter ?? ''
+    const c = groupOf(r)
     const g = groups[groups.length - 1]
     if (g && g.chapter === c) g.rows.push(r)
     else groups.push({ chapter: c, rows: [r] })
@@ -112,8 +117,15 @@ const rowByPage = computed(() => {
   return m
 })
 
+/** 行番号の表示: 数字なら「No.12」、PART1 などはそのまま */
+function seqLabel(r: QuizRow): string {
+  if (!r.seqNo) return ''
+  return /^\d/.test(r.seqNo) ? `No.${r.seqNo}` : r.seqNo
+}
+/** 出題ページのラベル。番号が PART 形式のときは講（グループ）も付ける */
 function rowLabel(r: QuizRow): string {
-  return `${r.seqNo ? 'No.' + r.seqNo + ' ' : ''}${r.title ?? ''}`.trim()
+  const prefix = r.seqNo && !/^\d/.test(r.seqNo) && r.group ? `${r.group} ` : ''
+  return `${prefix}${seqLabel(r)} ${r.title ?? ''}`.trim()
 }
 
 function toggle(pdf: BookPdf, page: number, row: QuizRow | null) {
@@ -302,7 +314,7 @@ function showPreview(pdfId: number, page: number | null) {
       </div>
       <div class="mode-row">
         <div v-seg class="seg">
-          <button :class="{ on: mode === 'rows' }" :disabled="!canUseRows" :title="canUseRows ? '' : 'この PDF は番号=ページ対応ではありません'" @click="mode = 'rows'">一覧から選ぶ</button>
+          <button :class="{ on: mode === 'rows' }" :disabled="!canUseRows" :title="canUseRows ? '' : 'この PDF には一覧（例題）とページの対応がありません'" @click="mode = 'rows'">一覧から選ぶ</button>
           <button :class="{ on: mode === 'pages' }" @click="mode = 'pages'">ページから選ぶ</button>
         </div>
         <div v-if="refTarget" class="ref-banner">
@@ -349,7 +361,7 @@ function showPreview(pdfId: number, page: number | null) {
               <span class="box">
                 <svg v-if="pageOfRow(r) !== null && selectedKeys.has(keyOf(activePdfId, pageOfRow(r)!))" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7" /></svg>
               </span>
-              <span class="no">{{ r.seqNo ? 'No.' + r.seqNo : '' }}</span>
+              <span class="no">{{ seqLabel(r) }}</span>
               <span class="ttl">
                 {{ r.title }}
                 <span v-if="r.important" class="imp">重要</span>

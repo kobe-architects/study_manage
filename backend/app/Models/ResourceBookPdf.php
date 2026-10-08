@@ -14,10 +14,10 @@ class ResourceBookPdf extends Model
 {
     protected $fillable = [
         'resource_book_id', 'title', 'file_path', 'page_count', 'size_bytes',
-        'page_map', 'page_offset', 'page_links', 'sort_order', 'created_by',
+        'page_map', 'page_offset', 'page_links', 'row_pages', 'sort_order', 'created_by',
     ];
 
-    protected $casts = ['page_count' => 'integer', 'size_bytes' => 'integer', 'page_offset' => 'integer', 'page_links' => 'array'];
+    protected $casts = ['page_count' => 'integer', 'size_bytes' => 'integer', 'page_offset' => 'integer', 'page_links' => 'array', 'row_pages' => 'array'];
 
     protected static function booted(): void
     {
@@ -44,6 +44,21 @@ class ResourceBookPdf extends Model
         $page = (int) trim($seqNo) + $this->page_offset;
 
         return ($page >= 1 && $page <= $this->page_count) ? $page : null;
+    }
+
+    /**
+     * 行（例題）に対応するページ（複数可）。row_pages（{行ID: [ページ,...]}）に登録があればそれを返す。
+     *
+     * @return int[]
+     */
+    public function pagesForRow(int $rowId): array
+    {
+        $pages = ($this->row_pages ?? [])[(string) $rowId] ?? null;
+        if (! is_array($pages)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map('intval', $pages), fn (int $p) => $p >= 1 && $p <= $this->page_count));
     }
 
     public function absolutePath(): string
