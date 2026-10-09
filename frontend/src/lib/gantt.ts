@@ -1,18 +1,36 @@
 // ガントチャート共通: 表示倍率・配色・日付計算
 import { daysBetween, iso, parseDate } from '@/lib/design'
 
-export type GanttZoom = 'year' | 'quarter' | 'month' | 'week'
+export type GanttZoom = 'fit' | 'year' | 'quarter' | 'month' | 'week'
 
-/** 表示倍率。dayW = 1日あたりの横幅（px） */
+/** 表示倍率。dayW = 1日あたりの横幅（px）。fit は枠の幅に合わせる（横スクロールなし） */
 export const GANTT_ZOOMS: { key: GanttZoom; label: string; dayW: number }[] = [
+  { key: 'fit', label: '全体', dayW: 0 },
   { key: 'year', label: '年', dayW: 1.6 },
   { key: 'quarter', label: '四半期', dayW: 3.2 },
   { key: 'month', label: '月', dayW: 8 },
   { key: 'week', label: '週', dayW: 22 },
 ]
 
-/** 項目の色の候補 */
-export const GANTT_COLORS = ['#3b50cc', '#2e9d62', '#e0533d', '#d98a1f', '#8b5cf6', '#0ea5a4', '#b85188', '#5b6b8c', '#b7681a', '#1c2024']
+/** 区間のひな形（学習の段階）。名前と色をまとめて入れる */
+export const GANTT_PHASES: { label: string; color: string }[] = [
+  { label: '範囲学習', color: '#dcdde1' },
+  { label: '復習・演習', color: '#a9abb0' },
+  { label: '過去問', color: '#35373b' },
+]
+
+/** 区間の色の候補（前半はひな形の灰色） */
+export const GANTT_COLORS = ['#dcdde1', '#a9abb0', '#35373b', '#3b50cc', '#2e9d62', '#e0533d', '#d98a1f', '#8b5cf6', '#0ea5a4', '#b85188']
+
+/** 暗い色か（上に白い文字を置くべきか） */
+export function isDark(hex: string): boolean {
+  const h = (hex || '').replace('#', '')
+  if (h.length !== 6) return false
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.55
+}
 
 export function addDays(d: Date, n: number): Date {
   const r = new Date(d)
@@ -44,6 +62,42 @@ export function fmtYmd(isoDate: string): string {
 export function fmtYm(isoDate: string): string {
   const d = parseDate(isoDate)
   return `${d.getFullYear()}年${d.getMonth() + 1}月`
+}
+
+/** 目盛りの区切り（年・月）。startIdx = 表示開始日からの日数、days = その区切りの日数 */
+export interface Span {
+  key: string
+  year: number
+  month: number // 年の区切りでは 0
+  startIdx: number
+  days: number
+}
+
+export function yearSpans(rangeStart: Date, rangeEnd: Date): Span[] {
+  const out: Span[] = []
+  let d = new Date(rangeStart)
+  while (d <= rangeEnd) {
+    const y = d.getFullYear()
+    const yEnd = new Date(y, 11, 31)
+    const segEnd = yEnd < rangeEnd ? yEnd : rangeEnd
+    out.push({ key: String(y), year: y, month: 0, startIdx: daysBetween(rangeStart, d), days: daysBetween(d, segEnd) + 1 })
+    d = new Date(y + 1, 0, 1)
+  }
+  return out
+}
+
+export function monthSpans(rangeStart: Date, rangeEnd: Date): Span[] {
+  const out: Span[] = []
+  let d = new Date(rangeStart)
+  while (d <= rangeEnd) {
+    const y = d.getFullYear()
+    const m = d.getMonth()
+    const mEnd = new Date(y, m + 1, 0)
+    const segEnd = mEnd < rangeEnd ? mEnd : rangeEnd
+    out.push({ key: `${y}-${m + 1}`, year: y, month: m + 1, startIdx: daysBetween(rangeStart, d), days: daysBetween(d, segEnd) + 1 })
+    d = new Date(y, m + 1, 1)
+  }
+  return out
 }
 
 /**

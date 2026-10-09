@@ -737,17 +737,29 @@ export interface QuizStats {
 // ===== ガントチャート（数年分の学習計画） =====
 export type GanttTaskKind = 'task' | 'milestone'
 
+/** 行の中の区間（期間のバー）または節目（1日・ひし形） */
 export interface GanttTask {
   id: number
-  title: string
+  rowId: number
+  title: string // 区間の名前（範囲学習・復習・演習・過去問 など）
   /** task=期間のバー / milestone=1日の節目（ひし形） */
   kind: GanttTaskKind
   startOn: string // ISO
-  endOn: string // ISO（マイルストーンは startOn と同じ）
+  endOn: string // ISO（節目は startOn と同じ）
   color: string // #rrggbb
   progress: number // 0-100
   note: string | null
   sortOrder: number
+}
+
+/** 行（科目・学習分野）。区間を複数持つ */
+export interface GanttRow {
+  id: number
+  title: string
+  /** 科目のまとまり（数学・英語など）。変わる所に太い区切り線が入る */
+  group: string | null
+  sortOrder: number
+  tasks: GanttTask[]
 }
 
 export interface GanttChart {
@@ -757,8 +769,9 @@ export interface GanttChart {
   /** 表示期間の開始・終了（ISO） */
   startOn: string
   endOn: string
+  rowCount: number
   taskCount: number
   updatedAt: string | null
   /** 詳細取得（show）のときのみ */
-  tasks?: GanttTask[]
+  rows?: GanttRow[]
 }

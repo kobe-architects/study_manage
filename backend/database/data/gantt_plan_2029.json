@@ -1,0 +1,104 @@
+{
+  "title": "受験本番までの学習計画",
+  "note": "範囲学習 → 復習・演習 → 過去問 の流れで科目ごとに計画（2026年10月〜2029年2月）",
+  "startOn": "2026-10-01",
+  "endOn": "2029-02-28",
+  "rows": [
+    { "title": "数学A", "group": "数学", "tasks": [
+      { "title": "範囲学習", "startOn": "2026-10-01", "endOn": "2026-10-31", "color": "#dcdde1" }
+    ]},
+    { "title": "数学Ⅱ", "group": "数学", "tasks": [
+      { "title": "範囲学習", "startOn": "2026-11-01", "endOn": "2026-12-31", "color": "#dcdde1" }
+    ]},
+    { "title": "数学B：数列・統計", "group": "数学", "tasks": [
+      { "title": "範囲学習", "startOn": "2027-01-01", "endOn": "2027-02-28", "color": "#dcdde1" }
+    ]},
+    { "title": "数学C：ベクトル", "group": "数学", "tasks": [
+      { "title": "範囲学習", "startOn": "2027-02-01", "endOn": "2027-02-28", "color": "#dcdde1" }
+    ]},
+    { "title": "数学Ⅲ", "group": "数学", "tasks": [
+      { "title": "範囲学習", "startOn": "2027-03-01", "endOn": "2027-05-31", "color": "#dcdde1" }
+    ]},
+    { "title": "数学C：曲線・複素数平面", "group": "数学", "tasks": [
+      { "title": "範囲学習", "startOn": "2027-06-01", "endOn": "2027-06-30", "color": "#dcdde1" }
+    ]},
+    { "title": "数学：全分野の演習・復習", "group": "数学", "tasks": [
+      { "title": "復習・演習", "startOn": "2026-10-01", "endOn": "2028-08-31", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-09-01", "endOn": "2029-02-28", "color": "#35373b" }
+    ]},
+
+    { "title": "英語① 単語・熟語", "group": "英語", "tasks": [
+      { "title": "範囲学習", "startOn": "2026-10-01", "endOn": "2027-06-30", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2027-07-01", "endOn": "2029-02-28", "color": "#a9abb0" }
+    ]},
+    { "title": "英語② 文法・語法", "group": "英語", "tasks": [
+      { "title": "範囲学習", "startOn": "2026-10-01", "endOn": "2027-02-28", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2027-03-01", "endOn": "2029-02-28", "color": "#a9abb0" }
+    ]},
+    { "title": "英語③ 英文解釈", "group": "英語", "tasks": [
+      { "title": "範囲学習", "startOn": "2026-12-01", "endOn": "2027-03-31", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2027-04-01", "endOn": "2028-08-31", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-09-01", "endOn": "2028-12-31", "color": "#35373b" },
+      { "title": "復習・演習", "startOn": "2029-01-01", "endOn": "2029-01-31", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2029-02-01", "endOn": "2029-02-28", "color": "#35373b" }
+    ]},
+    { "title": "英語④ 長文読解・要約", "group": "英語", "tasks": [
+      { "title": "範囲学習", "startOn": "2027-01-01", "endOn": "2027-03-31", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2027-04-01", "endOn": "2028-08-31", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-09-01", "endOn": "2029-02-28", "color": "#35373b" }
+    ]},
+    { "title": "英語⑤ 英作文", "group": "英語", "tasks": [
+      { "title": "範囲学習", "startOn": "2027-03-01", "endOn": "2027-06-30", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2027-07-01", "endOn": "2028-08-31", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-09-01", "endOn": "2028-12-31", "color": "#35373b" },
+      { "title": "復習・演習", "startOn": "2029-01-01", "endOn": "2029-01-31", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2029-02-01", "endOn": "2029-02-28", "color": "#35373b" }
+    ]},
+    { "title": "英語⑥ リスニング", "group": "英語", "tasks": [
+      { "title": "範囲学習", "startOn": "2026-10-01", "endOn": "2027-03-31", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2027-04-01", "endOn": "2028-08-31", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-09-01", "endOn": "2029-02-28", "color": "#35373b" }
+    ]},
+
+    { "title": "物理基礎・物理", "group": "理科", "tasks": [
+      { "title": "範囲学習", "startOn": "2027-01-01", "endOn": "2028-03-31", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2028-04-01", "endOn": "2028-08-31", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-09-01", "endOn": "2029-02-28", "color": "#35373b" }
+    ]},
+    { "title": "化学基礎・化学", "group": "理科", "tasks": [
+      { "title": "範囲学習", "startOn": "2027-01-01", "endOn": "2028-03-31", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2028-04-01", "endOn": "2028-08-31", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-09-01", "endOn": "2029-02-28", "color": "#35373b" }
+    ]},
+
+    { "title": "国語：現代文", "group": "国語・社会・情報", "tasks": [
+      { "title": "範囲学習", "startOn": "2027-07-01", "endOn": "2027-12-31", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2028-01-01", "endOn": "2028-06-30", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-07-01", "endOn": "2029-02-28", "color": "#35373b" }
+    ]},
+    { "title": "国語：古文", "group": "国語・社会・情報", "tasks": [
+      { "title": "範囲学習", "startOn": "2027-01-01", "endOn": "2027-06-30", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2027-07-01", "endOn": "2028-06-30", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-07-01", "endOn": "2029-02-28", "color": "#35373b" }
+    ]},
+    { "title": "国語：漢文", "group": "国語・社会・情報", "tasks": [
+      { "title": "範囲学習", "startOn": "2027-01-01", "endOn": "2027-06-30", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2027-07-01", "endOn": "2028-06-30", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-07-01", "endOn": "2029-02-28", "color": "#35373b" }
+    ]},
+    { "title": "地歴公民：公共・政経（仮）", "group": "国語・社会・情報", "tasks": [
+      { "title": "範囲学習", "startOn": "2028-01-01", "endOn": "2028-06-30", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2028-07-01", "endOn": "2028-09-30", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-10-01", "endOn": "2029-01-31", "color": "#35373b" }
+    ]},
+    { "title": "情報Ⅰ", "group": "国語・社会・情報", "tasks": [
+      { "title": "範囲学習", "startOn": "2028-01-01", "endOn": "2028-06-30", "color": "#dcdde1" },
+      { "title": "復習・演習", "startOn": "2028-07-01", "endOn": "2028-09-30", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-10-01", "endOn": "2029-01-31", "color": "#35373b" }
+    ]},
+    { "title": "共通テスト：全科目の形式", "group": "国語・社会・情報", "tasks": [
+      { "title": "復習・演習", "startOn": "2028-07-01", "endOn": "2028-09-30", "color": "#a9abb0" },
+      { "title": "過去問", "startOn": "2028-10-01", "endOn": "2029-01-31", "color": "#35373b" }
+    ]}
+  ]
+}

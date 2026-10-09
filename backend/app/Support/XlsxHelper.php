@@ -287,7 +287,7 @@ class XlsxHelper
 
     // ====================== 列記号 ⇔ インデックス ======================
 
-    private static function colLetter(int $index): string
+    public static function colLetter(int $index): string
     {
         $s = '';
         $n = $index + 1;
@@ -313,7 +313,7 @@ class XlsxHelper
 
     // ====================== XML エスケープ ======================
 
-    private static function esc(string $s): string
+    public static function esc(string $s): string
     {
         // 制御文字（タブ・改行以外）を除去してから実体参照化
         $s = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $s);
@@ -331,7 +331,7 @@ class XlsxHelper
     /**
      * @param  array<string, string>  $files  パス => 内容
      */
-    private static function zip(array $files): string
+    public static function zip(array $files): string
     {
         $local = '';
         $central = '';

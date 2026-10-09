@@ -1,27 +1,32 @@
 <script setup lang="ts">
 /**
- * ガントチャートの編集画面。上部に名前・表示期間・倍率、下にチャート本体（GanttBoard）。
- * バーのドラッグ結果はすぐ画面に反映してから保存する（失敗したら読み直して元に戻す）。
+ * ガントチャートの編集画面。上部に名前・表示期間・倍率・出力、下にチャート本体（GanttBoard）。
+ * 行（科目・学習分野）と区間（範囲学習・復習・演習・過去問 などのバー／節目）を追加・編集し、
+ * バーのドラッグ結果はすぐ画面に反映してから保存する（失敗したら元に戻す）。
  */
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import ActionMenu from '@/components/ActionMenu.vue'
 import GanttBoard from '@/components/GanttBoard.vue'
+import GanttRowModal from '@/components/GanttRowModal.vue'
 import GanttTaskModal from '@/components/GanttTaskModal.vue'
 import HelpTip from '@/components/HelpTip.vue'
-import { ganttApi, type GanttTaskInput } from '@/api/gantt'
+import { ganttApi, type GanttChartDetail, type GanttTaskInput } from '@/api/gantt'
 import { appConfirm } from '@/lib/dialog'
+import { showPdf, useInAppViewer } from '@/lib/docViewer'
 import { GANTT_ZOOMS, fmtYm, type GanttZoom } from '@/lib/gantt'
-import { isTouch, viewportWidth } from '@/lib/native'
+import { renderGanttImage } from '@/lib/ganttRender'
+import { isTouch, saveFile, viewportWidth } from '@/lib/native'
 import { vSeg } from '@/lib/segSlide'
 import { useUiStore } from '@/stores/ui'
-import type { GanttChart, GanttTask } from '@/types'
+import type { GanttRow, GanttTask } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const ui = useUiStore()
 
 const chartId = computed(() => Number(route.params.id))
-const chart = ref<(GanttChart & { tasks: GanttTask[] }) | null>(null)
+const chart = ref<GanttChartDetail | null>(null)
 const loading = ref(true)
 const board = ref<InstanceType<typeof GanttBoard> | null>(null)
 const isMobile = computed(() => viewportWidth.value < 860)
@@ -39,37 +44,115 @@ async function load() {
 }
 onMounted(load)
 
-// ---- 倍率（端末に記憶） ----
+/** 既存のグループ名（行の編集で候補に出す） */
+const groups = computed(() => {
+  const out: string[] = []
+  for (const r of chart.value?.rows ?? []) if (r.group && !out.includes(r.group)) out.push(r.group)
+  return out
+})
+
+// ---- 倍率（端末に記憶。既定は「全体」＝横スクロールなし） ----
 const ZOOM_KEY = 'sm_gantt_zoom'
-const zoom = ref<GanttZoom>((localStorage.getItem(ZOOM_KEY) as GanttZoom | null) ?? 'quarter')
-if (!GANTT_ZOOMS.some((z) => z.key === zoom.value)) zoom.value = 'quarter'
+const zoom = ref<GanttZoom>((localStorage.getItem(ZOOM_KEY) as GanttZoom | null) ?? 'fit')
+if (!GANTT_ZOOMS.some((z) => z.key === zoom.value)) zoom.value = 'fit'
 watch(zoom, (z) => localStorage.setItem(ZOOM_KEY, z))
 
-// ---- 項目の追加・編集 ----
-const taskModal = reactive<{ open: boolean; task: GanttTask | null; initialStart?: string }>({ open: false, task: null })
-function openAdd(startOn?: string) {
+function findRow(id: number): GanttRow | undefined {
+  return chart.value?.rows.find((r) => r.id === id)
+}
+function syncCounts() {
+  if (!chart.value) return
+  chart.value.rowCount = chart.value.rows.length
+  chart.value.taskCount = chart.value.rows.reduce((n, r) => n + r.tasks.length, 0)
+}
+
+// ---- 行の追加・編集 ----
+const rowModal = reactive<{ open: boolean; row: GanttRow | null }>({ open: false, row: null })
+function openAddRow() {
+  rowModal.row = null
+  rowModal.open = true
+}
+function openEditRow(r: GanttRow) {
+  rowModal.row = r
+  rowModal.open = true
+}
+async function saveRow(payload: { title: string; group: string | null }) {
+  if (!chart.value) return
+  try {
+    if (rowModal.row) {
+      const updated = await ganttApi.updateRow(rowModal.row.id, payload)
+      const i = chart.value.rows.findIndex((r) => r.id === updated.id)
+      if (i >= 0) chart.value.rows.splice(i, 1, updated)
+      ui.notify('行を更新しました')
+    } else {
+      const created = await ganttApi.createRow(chart.value.id, payload)
+      chart.value.rows.push(created)
+      syncCounts()
+      ui.notify('行を追加しました')
+    }
+    rowModal.open = false
+  } catch (e) {
+    ui.notify(errorMessage(e, '保存に失敗しました'))
+  }
+}
+async function deleteRow(id: number) {
+  const r = findRow(id)
+  if (!chart.value || !r) return
+  const msg = r.tasks.length ? `「${r.title}」と区間${r.tasks.length}件を削除しますか？` : `「${r.title}」を削除しますか？`
+  if (!(await appConfirm(msg, { danger: true, okText: '削除' }))) return
+  try {
+    await ganttApi.removeRow(id)
+    chart.value.rows = chart.value.rows.filter((x) => x.id !== id)
+    syncCounts()
+    rowModal.open = false
+    ui.notify('削除しました')
+  } catch {
+    ui.notify('削除に失敗しました')
+  }
+}
+
+/** 行の並び替え */
+async function onReorder(ids: number[]) {
+  if (!chart.value) return
+  const map = new Map(chart.value.rows.map((r) => [r.id, r]))
+  const prev = chart.value.rows
+  chart.value.rows = ids.map((id) => map.get(id)!).filter(Boolean)
+  try {
+    chart.value.rows = await ganttApi.reorderRows(chart.value.id, ids)
+  } catch {
+    chart.value.rows = prev
+    ui.notify('並び順の保存に失敗しました')
+  }
+}
+
+// ---- 区間の追加・編集 ----
+const taskModal = reactive<{ open: boolean; row: GanttRow | null; task: GanttTask | null; initialStart?: string }>({ open: false, row: null, task: null })
+function openAddTask(row: GanttRow, startOn?: string) {
+  taskModal.row = row
   taskModal.task = null
   taskModal.initialStart = startOn
   taskModal.open = true
 }
-function openEdit(t: GanttTask) {
+function openEditTask(t: GanttTask) {
+  const row = findRow(t.rowId)
+  if (!row) return
+  taskModal.row = row
   taskModal.task = t
   taskModal.initialStart = undefined
   taskModal.open = true
 }
 async function saveTask(payload: GanttTaskInput & { title: string; startOn: string }) {
-  if (!chart.value) return
+  const row = taskModal.row
+  if (!chart.value || !row) return
   try {
     if (taskModal.task) {
-      const updated = await ganttApi.updateTask(taskModal.task.id, payload)
-      replaceTask(updated)
-      ui.notify('項目を更新しました')
+      replaceTask(await ganttApi.updateTask(taskModal.task.id, payload))
+      ui.notify('区間を更新しました')
     } else {
-      const created = await ganttApi.createTask(chart.value.id, payload)
-      chart.value.tasks.push(created)
-      chart.value.taskCount = chart.value.tasks.length
-      ui.notify('項目を追加しました')
-      // 追加した項目が見えるようにスクロール
+      const created = await ganttApi.createTask(row.id, payload)
+      row.tasks.push(created)
+      syncCounts()
+      ui.notify('区間を追加しました')
       board.value?.scrollToDate(created.startOn)
     }
     taskModal.open = false
@@ -78,14 +161,14 @@ async function saveTask(payload: GanttTaskInput & { title: string; startOn: stri
   }
 }
 async function deleteTask(id: number) {
-  if (!chart.value) return
-  const t = chart.value.tasks.find((x) => x.id === id)
-  if (!t) return
+  const row = taskModal.row
+  const t = row?.tasks.find((x) => x.id === id)
+  if (!chart.value || !row || !t) return
   if (!(await appConfirm(`「${t.title}」を削除しますか？`, { danger: true, okText: '削除' }))) return
   try {
     await ganttApi.removeTask(id)
-    chart.value.tasks = chart.value.tasks.filter((x) => x.id !== id)
-    chart.value.taskCount = chart.value.tasks.length
+    row.tasks = row.tasks.filter((x) => x.id !== id)
+    syncCounts()
     taskModal.open = false
     ui.notify('削除しました')
   } catch {
@@ -93,20 +176,19 @@ async function deleteTask(id: number) {
   }
 }
 function replaceTask(t: GanttTask) {
-  if (!chart.value) return
-  const i = chart.value.tasks.findIndex((x) => x.id === t.id)
-  if (i >= 0) chart.value.tasks.splice(i, 1, t)
+  const row = findRow(t.rowId)
+  if (!row) return
+  const i = row.tasks.findIndex((x) => x.id === t.id)
+  if (i >= 0) row.tasks.splice(i, 1, t)
 }
 
-/** ドラッグで期間を動かした: 先に画面へ反映し、保存に失敗したら読み直す */
+/** ドラッグで期間を動かした: 先に画面へ反映し、保存に失敗したら元に戻す */
 async function onMove(t: GanttTask, startOn: string, endOn: string) {
-  if (!chart.value) return
   const prev = { startOn: t.startOn, endOn: t.endOn }
   t.startOn = startOn
   t.endOn = endOn
   try {
-    const updated = await ganttApi.updateTask(t.id, { startOn, endOn })
-    replaceTask(updated)
+    replaceTask(await ganttApi.updateTask(t.id, { startOn, endOn }))
   } catch {
     t.startOn = prev.startOn
     t.endOn = prev.endOn
@@ -114,17 +196,56 @@ async function onMove(t: GanttTask, startOn: string, endOn: string) {
   }
 }
 
-/** 並び替え */
-async function onReorder(ids: number[]) {
-  if (!chart.value) return
-  const map = new Map(chart.value.tasks.map((t) => [t.id, t]))
-  const prev = chart.value.tasks
-  chart.value.tasks = ids.map((id) => map.get(id)!).filter(Boolean)
+// ---- 出力（画像・PDF・Excel） ----
+const exporting = ref(false)
+const exportItems = [
+  { key: 'image', label: '画像（PNG）で保存' },
+  { key: 'pdf', label: 'PDF を開く' },
+  { key: 'excel', label: 'Excel で保存' },
+]
+function baseName(): string {
+  return (chart.value?.title ?? 'gantt').replace(/[\\/:*?"<>|]/g, '-')
+}
+async function onExport(key: string) {
+  if (!chart.value || exporting.value) return
+  exporting.value = true
   try {
-    chart.value.tasks = await ganttApi.reorderTasks(chart.value.id, ids)
-  } catch {
-    chart.value.tasks = prev
-    ui.notify('並び順の保存に失敗しました')
+    if (key === 'image') {
+      const blob = await renderGanttImage(chart.value, 'image/png')
+      await saveFile(blob, `${baseName()}.png`, { preferShare: true })
+    } else if (key === 'excel') {
+      const blob = await ganttApi.excel(chart.value.id)
+      await saveFile(blob, `${baseName()}.xlsx`)
+    } else if (key === 'pdf') {
+      await openPdf()
+    }
+  } catch (e) {
+    ui.notify(errorMessage(e, '出力に失敗しました'))
+  } finally {
+    exporting.value = false
+  }
+}
+/**
+ * PDF: 画面側で描いた画像をサーバーで PDF にして表示する。
+ * ポップアップブロック回避のため、クリック直後に空タブを開いてから描画・取得する。タッチ端末はアプリ内のビューアで表示。
+ */
+async function openPdf() {
+  if (!chart.value) return
+  const w = useInAppViewer ? null : window.open('', '_blank')
+  try {
+    const image = await renderGanttImage(chart.value, 'image/jpeg', 0.92)
+    const pdf = await ganttApi.pdf(chart.value.id, image)
+    const name = `${baseName()}.pdf`
+    if (useInAppViewer) {
+      showPdf(pdf, name)
+      return
+    }
+    const url = URL.createObjectURL(pdf)
+    if (w) w.location.href = url
+    else window.open(url, '_blank')
+  } catch (e) {
+    w?.close()
+    throw e
   }
 }
 
@@ -168,8 +289,8 @@ async function duplicateChart() {
 }
 async function deleteChart() {
   if (!chart.value) return
-  const n = chart.value.tasks.length
-  const msg = n ? `「${chart.value.title}」と項目${n}件を削除しますか？` : `「${chart.value.title}」を削除しますか？`
+  const n = chart.value.rows.length
+  const msg = n ? `「${chart.value.title}」と行${n}件を削除しますか？` : `「${chart.value.title}」を削除しますか？`
   if (!(await appConfirm(msg, { danger: true, okText: '削除' }))) return
   try {
     await ganttApi.remove(chart.value.id)
@@ -186,8 +307,8 @@ function errorMessage(e: unknown, fallback: string): string {
 }
 
 const helpText = isTouch
-  ? 'バーを横にドラッグすると期間ごと移動、バーの両端を引っ張ると開始日・終了日を変えられます（1日単位）。バーや項目名をタップすると編集、左端の取っ手を上下にドラッグすると並び替えです。「節目」は模試や本番など1日の予定で、ひし形で表示します。'
-  : 'バーを横にドラッグすると期間ごと移動、バーの両端をドラッグすると開始日・終了日を変えられます（1日単位）。バーや項目名をクリックすると編集、空いている場所をダブルクリックするとその日から始まる項目を追加、左端の取っ手を上下にドラッグすると並び替えです。「節目」は模試や本番など1日の予定で、ひし形で表示します。'
+  ? '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べます。バーを横にドラッグすると期間ごと移動、両端を引っ張ると開始日・終了日を変えられます（1日単位）。バーをタップすると編集、行の名前をタップすると行の編集、行の「＋」で区間を追加、左端の取っ手を上下にドラッグすると並び替えです。「全体」倍率は横スクロールなしで全期間を表示します。'
+  : '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べます。バーを横にドラッグすると期間ごと移動、両端をドラッグすると開始日・終了日を変えられます（1日単位）。バーをクリックすると編集、行の名前をクリックすると行の編集、行の空いている場所をダブルクリックするとその日から始まる区間を追加、左端の取っ手を上下にドラッグすると並び替えです。「全体」倍率は横スクロールなしで全期間を表示します。'
 </script>
 
 <template>
@@ -211,33 +332,43 @@ const helpText = isTouch
           <div v-seg class="seg">
             <button v-for="z in GANTT_ZOOMS" :key="z.key" class="seg-btn" :class="{ on: zoom === z.key }" @click="zoom = z.key">{{ z.label }}</button>
           </div>
-          <button class="btn-ghost" @click="board?.scrollToToday()">今日</button>
-          <button class="btn-dark" @click="openAdd()">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14" /></svg>項目を追加
+          <button v-if="zoom !== 'fit'" class="btn-ghost" @click="board?.scrollToToday()">今日</button>
+          <div class="export" :class="{ busy: exporting }">
+            <ActionMenu :items="exportItems" label="出力" @select="onExport" />
+          </div>
+          <button class="btn-dark" @click="openAddRow">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14" /></svg>行を追加
           </button>
         </div>
       </div>
 
       <GanttBoard
         ref="board"
-        :tasks="chart.tasks"
+        :rows="chart.rows"
         :start-on="chart.startOn"
         :end-on="chart.endOn"
         :zoom="zoom"
         @move="onMove"
         @reorder="onReorder"
-        @edit="openEdit"
-        @add="openAdd"
+        @edit-task="openEditTask"
+        @edit-row="openEditRow"
+        @add-task="openAddTask"
       />
 
       <div v-if="chart.note" class="note">{{ chart.note }}</div>
     </template>
 
-    <!-- 項目の追加・編集 -->
+    <!-- 行の追加・編集 -->
+    <Transition name="ui-modal">
+      <GanttRowModal v-if="rowModal.open" :row="rowModal.row" :groups="groups" @save="saveRow" @delete="deleteRow" @close="rowModal.open = false" />
+    </Transition>
+
+    <!-- 区間の追加・編集 -->
     <Transition name="ui-modal">
       <GanttTaskModal
-        v-if="taskModal.open && chart"
+        v-if="taskModal.open && chart && taskModal.row"
         :task="taskModal.task"
+        :row="taskModal.row"
         :initial-start="taskModal.initialStart"
         :chart-start="chart.startOn"
         :chart-end="chart.endOn"
@@ -259,7 +390,7 @@ const helpText = isTouch
               <label class="fld"><span>表示期間の終了</span><input v-model="settings.endOn" type="date" :min="settings.startOn" /></label>
             </div>
             <div v-if="settingsError" class="err">{{ settingsError }}</div>
-            <div v-else class="sub">期間を狭めても項目は消えません（期間外の項目は「表示期間より前／後」と表示）</div>
+            <div v-else class="sub">期間を狭めても区間は消えません（期間外の区間は表示されないだけです）</div>
             <label class="fld"><span>メモ（任意）</span><textarea v-model="settings.note" rows="2"></textarea></label>
           </div>
           <div class="foot">
@@ -349,7 +480,7 @@ const helpText = isTouch
   padding: 3px;
 }
 .seg-btn {
-  padding: 6px 13px;
+  padding: 6px 12px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -361,6 +492,10 @@ const helpText = isTouch
 .seg-btn.on {
   background: #1c2024;
   color: #fff;
+}
+.export.busy {
+  opacity: 0.5;
+  pointer-events: none;
 }
 .btn-dark {
   display: flex;

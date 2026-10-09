@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ガントチャート一覧。複数のチャート（数年分の計画）を作成・複製・削除し、選んで編集画面へ進む。
+ * ガントチャート一覧（リスト形式）。複数のチャート（数年分の計画）を作成・複製・削除し、選んで編集画面へ進む。
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -8,6 +8,7 @@ import HelpTip from '@/components/HelpTip.vue'
 import { ganttApi } from '@/api/gantt'
 import { appConfirm } from '@/lib/dialog'
 import { defaultChartRange, fmtYm } from '@/lib/gantt'
+import { viewportWidth } from '@/lib/native'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import type { GanttChart } from '@/types'
@@ -18,6 +19,7 @@ const ui = useUiStore()
 
 const charts = ref<GanttChart[]>([])
 const loading = ref(true)
+const isNarrow = computed(() => viewportWidth.value < 700)
 
 async function load() {
   loading.value = true
@@ -82,7 +84,7 @@ async function duplicate(c: GanttChart) {
 }
 
 async function remove(c: GanttChart) {
-  const msg = c.taskCount ? `「${c.title}」と項目${c.taskCount}件を削除しますか？` : `「${c.title}」を削除しますか？`
+  const msg = c.rowCount ? `「${c.title}」と行${c.rowCount}件を削除しますか？` : `「${c.title}」を削除しますか？`
   if (!(await appConfirm(msg, { danger: true, okText: '削除' }))) return
   try {
     await ganttApi.remove(c.id)
@@ -96,7 +98,7 @@ async function remove(c: GanttChart) {
 function updatedLabel(c: GanttChart): string {
   if (!c.updatedAt) return ''
   const d = new Date(c.updatedAt.replace(' ', 'T'))
-  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 </script>
 
@@ -106,7 +108,7 @@ function updatedLabel(c: GanttChart): string {
       <div class="ttl">
         <span>ガントチャート</span>
         <HelpTip
-          text="数年分の学習計画をガントチャートで立てられます。チャートは複数作れるので、「本番までの全体計画」「夏休みの計画」のように分けて管理できます。チャートを開いて、バーをドラッグすると期間の移動、両端を引っ張ると期間の長さを変えられます。"
+          text="数年分の学習計画をガントチャートで立てられます。チャートは複数作れるので、「本番までの全体計画」「夏休みの計画」のように分けて管理できます。行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べ、バーのドラッグで期間を動かせます。画像・PDF・Excel で出力できます。"
         />
       </div>
       <button class="btn-dark" @click="openCreate">
@@ -118,24 +120,29 @@ function updatedLabel(c: GanttChart): string {
     <div v-else-if="!charts.length" class="hint" style="text-align: center">
       ガントチャートがまだありません。「新規作成」から、計画の名前と期間（数年分）を決めて作成してください。
     </div>
-    <div v-else class="grid">
-      <div v-for="c in charts" :key="c.id" class="card gc tap" role="button" tabindex="0" @click="openChart(c)" @keydown.enter="openChart(c)">
-        <div class="gc-head">
-          <div class="gc-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 5h16v14H4z" /><path d="M7 9h6" /><path d="M10 12h8" /><path d="M7 15h4" /></svg>
-          </div>
-          <div style="flex: 1; min-width: 0">
-            <div class="gc-title">{{ c.title }}</div>
-            <div class="gc-range">{{ fmtYm(c.startOn) }} 〜 {{ fmtYm(c.endOn) }}</div>
-          </div>
+    <div v-else class="card list">
+      <div v-if="!isNarrow" class="lrow head">
+        <div class="c-name">名前</div>
+        <div class="c-range">表示期間</div>
+        <div class="c-count">行 / 区間</div>
+        <div class="c-upd">更新</div>
+        <div class="c-act"></div>
+      </div>
+      <div v-for="c in charts" :key="c.id" class="lrow tap" role="button" tabindex="0" @click="openChart(c)" @keydown.enter="openChart(c)">
+        <div class="c-name">
+          <div class="name">{{ c.title }}</div>
+          <div v-if="c.note" class="note">{{ c.note }}</div>
+          <div v-if="isNarrow" class="meta">{{ fmtYm(c.startOn) }} 〜 {{ fmtYm(c.endOn) }}・行 {{ c.rowCount }} / 区間 {{ c.taskCount }}・更新 {{ updatedLabel(c) }}</div>
         </div>
-        <div v-if="c.note" class="gc-note">{{ c.note }}</div>
-        <div class="gc-foot">
-          <span class="gc-meta">項目 <b class="dm">{{ c.taskCount }}</b> 件<span v-if="c.updatedAt">・更新 {{ updatedLabel(c) }}</span></span>
-          <div class="gc-actions" @click.stop>
-            <button class="pill" @click="duplicate(c)">複製</button>
-            <button class="pill danger" @click="remove(c)">削除</button>
-          </div>
+        <template v-if="!isNarrow">
+          <div class="c-range">{{ fmtYm(c.startOn) }} 〜 {{ fmtYm(c.endOn) }}</div>
+          <div class="c-count dm">{{ c.rowCount }} / {{ c.taskCount }}</div>
+          <div class="c-upd">{{ updatedLabel(c) }}</div>
+        </template>
+        <div class="c-act" @click.stop>
+          <button class="pill primary" @click="openChart(c)">開く</button>
+          <button class="pill" @click="duplicate(c)">複製</button>
+          <button class="pill danger" @click="remove(c)">削除</button>
         </div>
       </div>
     </div>
@@ -216,87 +223,98 @@ function updatedLabel(c: GanttChart): string {
   color: var(--faint);
   line-height: 1.7;
 }
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+
+/* ---- リスト ---- */
+.list {
+  overflow: hidden;
+}
+.lrow {
+  display: flex;
+  align-items: center;
   gap: 14px;
-}
-.gc {
-  padding: 16px 18px 14px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #f0f1f3;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
   outline: none;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
-.gc:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
+.lrow:last-child {
+  border-bottom: none;
 }
-.gc:focus-visible {
-  box-shadow: 0 0 0 2px #b9c2f2;
+.lrow:hover {
+  background: #fafbfc;
 }
-.gc-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.lrow:focus-visible {
+  box-shadow: inset 0 0 0 2px #b9c2f2;
 }
-.gc-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  background: #eef1f6;
-  color: #3b50cc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+.lrow.head {
+  cursor: default;
+  padding: 9px 18px;
+  background: #f6f7f9;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--mut);
 }
-.gc-title {
-  font-size: 15px;
+.lrow.head:hover {
+  background: #f6f7f9;
+}
+.c-name {
+  flex: 1;
+  min-width: 0;
+}
+.name {
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.gc-range {
-  font-size: 12px;
-  color: var(--mut);
-  margin-top: 2px;
-}
-.gc-note {
-  font-size: 12px;
-  color: var(--faint);
-  line-height: 1.6;
-  white-space: pre-line;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.gc-foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  border-top: 1px solid #f0f1f3;
-  padding-top: 10px;
-}
-.gc-meta {
+.note {
   font-size: 11.5px;
   color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
 }
-.gc-meta b {
-  color: var(--ink);
+.meta {
+  font-size: 11px;
+  color: var(--faint);
+  margin-top: 3px;
+}
+.c-range {
+  width: 190px;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  color: var(--mut);
+  white-space: nowrap;
+}
+.c-count {
+  width: 80px;
+  flex-shrink: 0;
   font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
 }
-.gc-actions {
+.head .c-count {
+  font-weight: 700;
+  font-size: 11.5px;
+  color: var(--mut);
+}
+.c-upd {
+  width: 120px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+.c-act {
+  flex-shrink: 0;
   display: flex;
   gap: 6px;
 }
 .pill {
-  padding: 5px 11px;
+  padding: 6px 12px;
   border: 1px solid #e3e6ea;
   border-radius: 99px;
   background: #fff;
@@ -304,10 +322,16 @@ function updatedLabel(c: GanttChart): string {
   font-weight: 600;
   color: var(--mut);
   cursor: pointer;
+  white-space: nowrap;
 }
 .pill:hover {
   background: #f6f7f9;
   color: var(--ink);
+}
+.pill.primary {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
 }
 .pill.danger {
   color: #c0444f;
@@ -316,6 +340,17 @@ function updatedLabel(c: GanttChart): string {
 .pill.danger:hover {
   background: #fdf3f4;
 }
+@media (max-width: 700px) {
+  .lrow {
+    flex-wrap: wrap;
+    padding: 12px 14px;
+  }
+  .c-act {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
 .overlay {
   position: fixed;
   inset: 0;

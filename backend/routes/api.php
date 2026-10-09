@@ -89,15 +89,20 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::put('/settings', [SettingController::class, 'update']);
 
-        // ===== ガントチャート（数年分の学習計画・複数管理） =====
+        // ===== ガントチャート（数年分の学習計画・複数管理。チャート → 行 → 区間） =====
         Route::get('/gantt-charts', [GanttController::class, 'index']);
         Route::post('/gantt-charts', [GanttController::class, 'store']);
         Route::get('/gantt-charts/{chart}', [GanttController::class, 'show']);
         Route::put('/gantt-charts/{chart}', [GanttController::class, 'update']);
         Route::delete('/gantt-charts/{chart}', [GanttController::class, 'destroy']);
         Route::post('/gantt-charts/{chart}/duplicate', [GanttController::class, 'duplicate']);
-        Route::post('/gantt-charts/{chart}/tasks', [GanttController::class, 'storeTask']);
-        Route::put('/gantt-charts/{chart}/tasks/reorder', [GanttController::class, 'reorderTasks']);
+        Route::post('/gantt-charts/{chart}/pdf', [GanttController::class, 'pdf']); // 画面で描いた画像を PDF に
+        Route::get('/gantt-charts/{chart}/excel', [GanttController::class, 'excel']);
+        Route::post('/gantt-charts/{chart}/rows', [GanttController::class, 'storeRow']);
+        Route::put('/gantt-charts/{chart}/rows/reorder', [GanttController::class, 'reorderRows']);
+        Route::put('/gantt-rows/{row}', [GanttController::class, 'updateRow']);
+        Route::delete('/gantt-rows/{row}', [GanttController::class, 'destroyRow']);
+        Route::post('/gantt-rows/{row}/tasks', [GanttController::class, 'storeTask']);
         Route::put('/gantt-tasks/{task}', [GanttController::class, 'updateTask']);
         Route::delete('/gantt-tasks/{task}', [GanttController::class, 'destroyTask']);
 

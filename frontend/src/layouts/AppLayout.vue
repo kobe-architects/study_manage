@@ -458,9 +458,9 @@ async function logout() {
 .content.m {
   padding: 18px max(16px, env(safe-area-inset-right)) calc(26px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
-/* ガントチャートなど横に広く使う画面: 横幅 90%（スマホは全幅のまま） */
+/* ガントチャートなど横に広く使う画面: 横幅 95%（スマホは全幅のまま） */
 .content.wide:not(.m) {
   max-width: none;
-  width: 90%;
+  width: 95%;
 }
 </style>

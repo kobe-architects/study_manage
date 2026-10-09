@@ -1,17 +1,16 @@
 <script setup lang="ts">
 /**
- * ガントチャートの項目（バー／マイルストーン）の追加・編集モーダル。
- * task が null のときは新規追加。initialStart は空いている場所をダブルクリックしたときの開始日。
+ * ガントチャートの区間（期間のバー／節目）の追加・編集モーダル。
+ * task が null のときは新規追加。initialStart は行の空いている場所をダブルクリックしたときの開始日。
  */
 import { computed, reactive } from 'vue'
-import { parseDate } from '@/lib/design'
-import { GANTT_COLORS, addDays, fmtYmd } from '@/lib/gantt'
-import { iso } from '@/lib/design'
+import { iso, parseDate } from '@/lib/design'
+import { GANTT_COLORS, GANTT_PHASES, addDays, fmtYmd, isDark } from '@/lib/gantt'
 import { vSeg } from '@/lib/segSlide'
-import type { GanttTask, GanttTaskKind } from '@/types'
+import type { GanttRow, GanttTask, GanttTaskKind } from '@/types'
 import type { GanttTaskInput } from '@/api/gantt'
 
-const props = defineProps<{ task: GanttTask | null; initialStart?: string; chartStart: string; chartEnd: string }>()
+const props = defineProps<{ task: GanttTask | null; row: GanttRow; initialStart?: string; chartStart: string; chartEnd: string }>()
 const emit = defineEmits<{ save: [payload: GanttTaskInput & { title: string; startOn: string }]; delete: [id: number]; close: [] }>()
 
 const start = props.task?.startOn ?? props.initialStart ?? props.chartStart
@@ -35,8 +34,13 @@ const dateError = computed(() => (!isMilestone.value && form.startOn && form.end
 const canSave = computed(() => !!form.title.trim() && !!form.startOn && (isMilestone.value || (!!form.endOn && !dateError.value)))
 
 function onStartChange() {
-  // 開始日を後ろにずらして終了日を越えたら、終了日も同じだけ動かす
   if (!isMilestone.value && form.endOn && form.endOn < form.startOn) form.endOn = form.startOn
+}
+/** ひな形（範囲学習など）: 名前と色をまとめて入れる */
+function applyPhase(p: { label: string; color: string }) {
+  form.title = p.label
+  form.color = p.color
+  if (form.kind === 'milestone') form.kind = 'task'
 }
 
 function submit() {
@@ -57,7 +61,10 @@ function submit() {
   <div class="overlay ui-overlay ui-sheet ui-swipe" @click="emit('close')">
     <div class="modal ui-panel" @click.stop>
       <div class="head">
-        <div style="font-size: 16px; font-weight: 700">{{ isNew ? '項目を追加' : '項目を編集' }}</div>
+        <div>
+          <div style="font-size: 16px; font-weight: 700">{{ isNew ? '区間を追加' : '区間を編集' }}</div>
+          <div class="rowname">{{ row.title }}</div>
+        </div>
         <div v-seg class="seg">
           <button class="seg-btn" :class="{ on: form.kind === 'task' }" @click="form.kind = 'task'">期間</button>
           <button class="seg-btn" :class="{ on: form.kind === 'milestone' }" @click="form.kind = 'milestone'">節目</button>
@@ -65,9 +72,25 @@ function submit() {
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 13px">
+        <div v-if="!isMilestone">
+          <span class="fld-label">ひな形</span>
+          <div class="phases">
+            <button
+              v-for="p in GANTT_PHASES"
+              :key="p.label"
+              class="phase"
+              :class="{ on: form.title === p.label && form.color === p.color, dark: isDark(p.color) }"
+              :style="{ '--c': p.color }"
+              @click="applyPhase(p)"
+            >
+              {{ p.label }}
+            </button>
+          </div>
+        </div>
+
         <label class="fld">
-          <span>タイトル</span>
-          <input v-model="form.title" :placeholder="isMilestone ? '例: 共通テスト' : '例: 数学ⅠA 基礎を固める'" @keydown.enter="submit" />
+          <span>名前</span>
+          <input v-model="form.title" :placeholder="isMilestone ? '例: 共通テスト' : '例: 範囲学習'" @keydown.enter="submit" />
         </label>
 
         <div class="dates">
@@ -101,9 +124,9 @@ function submit() {
         <div v-if="!isMilestone">
           <div class="row-between">
             <span class="fld-label" style="margin-bottom: 0">進捗</span>
-            <span class="dm" style="font-size: 13px; font-weight: 700" :style="{ color: form.color }">{{ form.progress }}%</span>
+            <span class="dm" style="font-size: 13px; font-weight: 700">{{ form.progress }}%</span>
           </div>
-          <input v-model.number="form.progress" type="range" min="0" max="100" step="5" class="range" :style="{ '--c': form.color }" />
+          <input v-model.number="form.progress" type="range" min="0" max="100" step="5" class="range" />
         </div>
 
         <label class="fld">
@@ -143,16 +166,22 @@ function submit() {
 }
 .head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
+}
+.rowname {
+  font-size: 12px;
+  color: var(--faint);
+  margin-top: 2px;
 }
 .seg {
   display: flex;
   background: #f1f2f4;
   border-radius: 9px;
   padding: 2px;
+  flex-shrink: 0;
 }
 .seg-btn {
   padding: 5px 13px;
@@ -168,6 +197,27 @@ function submit() {
   background: #fff;
   color: var(--ink);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.phases {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.phase {
+  padding: 6px 12px;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+  background: var(--c);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.phase.dark {
+  color: #fff;
+}
+.phase.on {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--primary);
 }
 .fld span,
 .fld-label {
@@ -223,7 +273,7 @@ function submit() {
   padding: 0;
 }
 .sw.on {
-  box-shadow: 0 0 0 2px var(--c);
+  box-shadow: 0 0 0 2px var(--primary);
 }
 .row-between {
   display: flex;
@@ -233,7 +283,7 @@ function submit() {
 }
 .range {
   width: 100%;
-  accent-color: var(--c);
+  accent-color: var(--primary);
   margin: 4px 0 0;
 }
 .foot {

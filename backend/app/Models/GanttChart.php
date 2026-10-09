@@ -18,6 +18,13 @@ class GanttChart extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** 行（科目・学習分野） */
+    public function rows(): HasMany
+    {
+        return $this->hasMany(GanttRow::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /** 全区間（行をまたいだ一覧。件数の集計用） */
     public function tasks(): HasMany
     {
         return $this->hasMany(GanttTask::class)->orderBy('sort_order')->orderBy('id');
