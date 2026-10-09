@@ -733,3 +733,32 @@ export interface QuizStats {
   weak: QuizWeakItem[]
 }
 
+
+// ===== ガントチャート（数年分の学習計画） =====
+export type GanttTaskKind = 'task' | 'milestone'
+
+export interface GanttTask {
+  id: number
+  title: string
+  /** task=期間のバー / milestone=1日の節目（ひし形） */
+  kind: GanttTaskKind
+  startOn: string // ISO
+  endOn: string // ISO（マイルストーンは startOn と同じ）
+  color: string // #rrggbb
+  progress: number // 0-100
+  note: string | null
+  sortOrder: number
+}
+
+export interface GanttChart {
+  id: number
+  title: string
+  note: string | null
+  /** 表示期間の開始・終了（ISO） */
+  startOn: string
+  endOn: string
+  taskCount: number
+  updatedAt: string | null
+  /** 詳細取得（show）のときのみ */
+  tasks?: GanttTask[]
+}

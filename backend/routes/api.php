@@ -3,6 +3,7 @@
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CalendarEventController;
+use App\Http\Controllers\GanttController;
 use App\Http\Controllers\GoalController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\RecordController;
@@ -87,6 +88,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/events/{calendarEvent}', [CalendarEventController::class, 'destroy']);
 
         Route::put('/settings', [SettingController::class, 'update']);
+
+        // ===== ガントチャート（数年分の学習計画・複数管理） =====
+        Route::get('/gantt-charts', [GanttController::class, 'index']);
+        Route::post('/gantt-charts', [GanttController::class, 'store']);
+        Route::get('/gantt-charts/{chart}', [GanttController::class, 'show']);
+        Route::put('/gantt-charts/{chart}', [GanttController::class, 'update']);
+        Route::delete('/gantt-charts/{chart}', [GanttController::class, 'destroy']);
+        Route::post('/gantt-charts/{chart}/duplicate', [GanttController::class, 'duplicate']);
+        Route::post('/gantt-charts/{chart}/tasks', [GanttController::class, 'storeTask']);
+        Route::put('/gantt-charts/{chart}/tasks/reorder', [GanttController::class, 'reorderTasks']);
+        Route::put('/gantt-tasks/{task}', [GanttController::class, 'updateTask']);
+        Route::delete('/gantt-tasks/{task}', [GanttController::class, 'destroyTask']);
 
         // ===== 家庭教師アカウント管理 =====
         Route::get('/tutors', [TutorAccountController::class, 'index']);

@@ -86,6 +86,8 @@ const activeKey = computed(() => {
     review: 'quiz',
     flashcard: 'quiz',
     goals: 'goal',
+    gantt: 'gantt',
+    'gantt-chart': 'gantt',
     quizzes: 'test',
     invoices: 'invoice',
     settings: 'settings',
@@ -210,7 +212,7 @@ async function logout() {
 
         <div ref="scrollEl" class="scroll app-scroll">
           <PullIndicator v-if="isTouch" :pull="pull" :trigger="pullTrigger" :refreshing="refreshing" />
-          <div ref="contentEl" class="content" :class="{ m: isMobile }">
+          <div ref="contentEl" class="content" :class="{ m: isMobile, wide: !!route.meta.wide }">
             <router-view v-slot="{ Component }">
               <component :is="Component" :key="route.fullPath + '#' + refreshKey" :class="pageAnim" />
             </router-view>
@@ -455,5 +457,10 @@ async function logout() {
 }
 .content.m {
   padding: 18px max(16px, env(safe-area-inset-right)) calc(26px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+/* ガントチャートなど横に広く使う画面: 横幅 90%（スマホは全幅のまま） */
+.content.wide:not(.m) {
+  max-width: none;
+  width: 90%;
 }
 </style>
