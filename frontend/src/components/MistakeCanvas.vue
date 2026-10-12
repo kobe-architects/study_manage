@@ -1,10 +1,12 @@
 <script setup lang="ts">
 /**
  * 間違いノートのページ編集。問題の写真・説明用の画像を動かす／大きさを変える、文字を入力する、ペンで手書きする。
- * 座標はページ本体（NOTE_W × NOTE_H）で持ち、画面には枠の幅に合わせて拡大縮小して表示する。
+ * ページ（NOTE_W × NOTE_H）は固定高さのステージの中に置き、拡大縮小・移動して見る。
+ * - 拡縮: マウスホイール（カーソル位置を中心）、ピンチ、「−」「＋」「全体」「幅」ボタン
+ * - 移動: ホイールボタン（中ボタン）のドラッグ、指 1 本（書く設定でないとき）／指 2 本のドラッグ
  * - 選択: 画像・文字の枠をドラッグで移動、右下のつまみで大きさ変更
- * - ペン / 消しゴム: Apple Pencil・マウスで書く。指は既定ではスクロール（「指で書く」を ON にすると指でも書ける）
- * - 文字: 文字の枠に入力（PC のキーボード・iPad のソフトキーボード）
+ * - ペン / 消しゴム: Apple Pencil・マウスで書く。指は既定では移動（「指で書く」を ON にすると指でも書ける）
+ * - 文字: 文字の枠に入力
  * 変更はひとまとまりごとに update:layout で親へ渡す（親が自動保存する）。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -32,14 +34,63 @@ const selectedId = ref<string | null>(null)
 const selected = computed(() => props.layout.items.find((i) => i.id === selectedId.value) ?? null)
 const canDelete = computed(() => !!selected.value && !(selected.value.type === 'image' && selected.value.role === 'problem'))
 
-// ---- 表示倍率 ----
-const wrap = ref<HTMLElement | null>(null)
-const page = ref<HTMLElement | null>(null)
-const s = ref(0.5)
+// ---- ステージ（表示枠）と拡大縮小・移動 ----
+const stage = ref<HTMLElement | null>(null)
+const stageW = ref(800)
+const stageH = ref(600)
+const z = ref(0.5)
+const tx = ref(0)
+const ty = ref(0)
+const Z_MIN = 0.12
+const Z_MAX = 5
+let fitted = false
 let ro: ResizeObserver | null = null
+
 function measure() {
-  if (wrap.value) s.value = Math.max(0.1, wrap.value.clientWidth / NOTE_W)
+  const el = stage.value
+  if (!el) return
+  const top = el.getBoundingClientRect().top
+  stageH.value = Math.max(420, Math.round(window.innerHeight - top - 20))
+  stageW.value = el.clientWidth
+  if (!fitted && stageW.value > 0) {
+    fitted = true
+    fitAll()
+  }
 }
+/** ページ全体が収まる倍率に */
+function fitAll() {
+  const nz = Math.min((stageW.value - 32) / NOTE_W, (stageH.value - 32) / NOTE_H)
+  z.value = clamp(nz, Z_MIN, Z_MAX)
+  tx.value = Math.round((stageW.value - NOTE_W * z.value) / 2)
+  ty.value = Math.round((stageH.value - NOTE_H * z.value) / 2)
+}
+/** 幅いっぱいに */
+function fitWidth() {
+  z.value = clamp((stageW.value - 32) / NOTE_W, Z_MIN, Z_MAX)
+  tx.value = 16
+  ty.value = 16
+}
+/** (cx, cy)（ステージ内の座標）を中心に factor 倍 */
+function zoomAt(factor: number, cx: number, cy: number) {
+  const nz = clamp(z.value * factor, Z_MIN, Z_MAX)
+  tx.value = cx - ((cx - tx.value) * nz) / z.value
+  ty.value = cy - ((cy - ty.value) * nz) / z.value
+  z.value = nz
+}
+function zoomStep(dir: 1 | -1) {
+  zoomAt(dir > 0 ? 1.25 : 0.8, stageW.value / 2, stageH.value / 2)
+}
+function onWheel(e: WheelEvent) {
+  const r = stage.value!.getBoundingClientRect()
+  const factor = Math.exp(-e.deltaY * (e.ctrlKey ? 0.004 : 0.0012))
+  zoomAt(factor, e.clientX - r.left, e.clientY - r.top)
+}
+const pageStyle = computed(() => ({
+  width: NOTE_W + 'px',
+  height: NOTE_H + 'px',
+  transform: `translate(${tx.value}px, ${ty.value}px) scale(${z.value})`,
+  '--inv': String(1 / z.value),
+}))
 
 // ---- 取り消し ----
 const undoStack = ref<MistakeLayout[]>([])
@@ -56,10 +107,11 @@ function commit(next: MistakeLayout) {
   emit('update:layout', next)
 }
 
-// ---- ドラッグ（移動・大きさ・ペン・消しゴム・指のスクロール） ----
+// ---- ドラッグ（移動・大きさ・ペン・消しゴム・ステージの移動）とピンチ ----
 interface Drag {
   kind: 'move' | 'resize' | 'stroke' | 'erase' | 'pan'
   id: string
+  pointerId: number
   x0: number
   y0: number
   ox: number
@@ -68,35 +120,75 @@ interface Drag {
   oh: number
   aspect: number
   moved: boolean
-  lastClientY: number
+  lastX: number
+  lastY: number
 }
 let drag: Drag | null = null
 const preview = ref<{ id: string; x: number; y: number; w: number; h: number } | null>(null)
 const live = ref<MistakeStroke | null>(null)
 const erased = ref<Set<number>>(new Set())
+const panning = ref(false)
 
-function toPage(e: PointerEvent): { x: number; y: number } {
-  const r = page.value!.getBoundingClientRect()
-  return { x: (e.clientX - r.left) / s.value, y: (e.clientY - r.top) / s.value }
+/** タッチ中の指（ピンチ用） */
+const touches = new Map<number, { x: number; y: number }>()
+let pinch: { d0: number; z0: number; px: number; py: number } | null = null
+
+function stageXY(e: PointerEvent): { x: number; y: number } {
+  const r = stage.value!.getBoundingClientRect()
+  return { x: e.clientX - r.left, y: e.clientY - r.top }
 }
-function scroller(): HTMLElement | null {
-  return page.value?.closest<HTMLElement>('.app-scroll') ?? null
+function toPage(e: PointerEvent): { x: number; y: number } {
+  const s = stageXY(e)
+  return { x: (s.x - tx.value) / z.value, y: (s.y - ty.value) / z.value }
+}
+function startPan(e: PointerEvent) {
+  stage.value!.setPointerCapture(e.pointerId)
+  drag = { kind: 'pan', id: '', pointerId: e.pointerId, x0: 0, y0: 0, ox: 0, oy: 0, ow: 0, oh: 0, aspect: 1, moved: false, lastX: e.clientX, lastY: e.clientY }
+  panning.value = true
+}
+function cancelDrag() {
+  drag = null
+  live.value = null
+  erased.value = new Set()
+  preview.value = null
+  panning.value = false
 }
 
 function onDown(e: PointerEvent) {
+  if (e.pointerType === 'touch') {
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (touches.size === 2) {
+      // 2 本目の指: 書きかけ・動かしかけは捨ててピンチ（拡縮・移動）にする
+      cancelDrag()
+      stage.value!.setPointerCapture(e.pointerId)
+      const [a, b] = Array.from(touches.values())
+      const r = stage.value!.getBoundingClientRect()
+      const cx = (a!.x + b!.x) / 2 - r.left
+      const cy = (a!.y + b!.y) / 2 - r.top
+      pinch = { d0: Math.max(1, Math.hypot(a!.x - b!.x, a!.y - b!.y)), z0: z.value, px: (cx - tx.value) / z.value, py: (cy - ty.value) / z.value }
+      return
+    }
+  }
+  if (pinch) return
+  if (e.button === 1) {
+    // ホイールボタンのドラッグで移動
+    e.preventDefault()
+    startPan(e)
+    return
+  }
   if (e.pointerType === 'mouse' && e.button !== 0) return
   const target = e.target as HTMLElement
   if (tool.value === 'text' && target.closest('textarea')) return // 入力中
   const finger = e.pointerType === 'touch'
   const p = toPage(e)
-  const base = { x0: p.x, y0: p.y, ox: 0, oy: 0, ow: 0, oh: 0, aspect: 1, moved: false, lastClientY: e.clientY }
+  const base = { pointerId: e.pointerId, x0: p.x, y0: p.y, ox: 0, oy: 0, ow: 0, oh: 0, aspect: 1, moved: false, lastX: e.clientX, lastY: e.clientY }
 
   if (tool.value === 'pen' || tool.value === 'eraser') {
     if (finger && !fingerDraw.value) {
-      drag = { kind: 'pan', id: '', ...base }
+      startPan(e)
       return
     }
-    page.value!.setPointerCapture(e.pointerId)
+    stage.value!.setPointerCapture(e.pointerId)
     if (tool.value === 'pen') {
       live.value = { color: color.value, width: width.value, points: [round(p.x), round(p.y)] }
       drag = { kind: 'stroke', id: '', ...base }
@@ -115,27 +207,42 @@ function onDown(e: PointerEvent) {
   const it = id ? props.layout.items.find((x) => x.id === id) : undefined
   if (it && id) {
     selectedId.value = id
-    page.value!.setPointerCapture(e.pointerId)
+    stage.value!.setPointerCapture(e.pointerId)
     drag = { kind: handle ? 'resize' : 'move', id, ...base, ox: it.x, oy: it.y, ow: it.w, oh: it.h, aspect: it.h > 0 ? it.w / it.h : 1 }
     preview.value = { id, x: it.x, y: it.y, w: it.w, h: it.h }
     return
   }
   selectedId.value = null
-  if (finger) drag = { kind: 'pan', id: '', ...base }
+  if (finger) startPan(e) // 指で空いている所を動かすとページが動く
 }
 
 function onMove(e: PointerEvent) {
-  if (!drag) return
+  if (e.pointerType === 'touch' && touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  if (pinch) {
+    if (touches.size < 2) return
+    const [a, b] = Array.from(touches.values())
+    const r = stage.value!.getBoundingClientRect()
+    const cx = (a!.x + b!.x) / 2 - r.left
+    const cy = (a!.y + b!.y) / 2 - r.top
+    const d = Math.max(1, Math.hypot(a!.x - b!.x, a!.y - b!.y))
+    const nz = clamp((pinch.z0 * d) / pinch.d0, Z_MIN, Z_MAX)
+    z.value = nz
+    tx.value = cx - pinch.px * nz
+    ty.value = cy - pinch.py * nz
+    return
+  }
+  if (!drag || drag.pointerId !== e.pointerId) return
   if (drag.kind === 'pan') {
-    const sc = scroller()
-    if (sc) sc.scrollTop -= e.clientY - drag.lastClientY
-    drag.lastClientY = e.clientY
+    tx.value += e.clientX - drag.lastX
+    ty.value += e.clientY - drag.lastY
+    drag.lastX = e.clientX
+    drag.lastY = e.clientY
     return
   }
   const p = toPage(e)
   const dx = p.x - drag.x0
   const dy = p.y - drag.y0
-  if (!drag.moved && Math.abs(dx) * s.value < 2 && Math.abs(dy) * s.value < 2) return
+  if (!drag.moved && Math.abs(dx) * z.value < 2 && Math.abs(dy) * z.value < 2) return
   drag.moved = true
   if (drag.kind === 'stroke' && live.value) {
     const pts = live.value.points
@@ -160,10 +267,15 @@ function onMove(e: PointerEvent) {
   }
 }
 
-function onUp() {
-  if (!drag) return
+function onUp(e: PointerEvent) {
+  if (e.pointerType === 'touch') {
+    touches.delete(e.pointerId)
+    if (pinch && touches.size < 2) pinch = null
+  }
+  if (!drag || drag.pointerId !== e.pointerId) return
   const d = drag
   drag = null
+  panning.value = false
   if (d.kind === 'pan') return
   if (d.kind === 'stroke') {
     const st = live.value
@@ -247,7 +359,7 @@ function clearInk() {
 // ---- 表示 ----
 function box(it: MistakeLayoutItem) {
   const b = preview.value?.id === it.id ? preview.value : it
-  return { left: b.x * s.value + 'px', top: b.y * s.value + 'px', width: b.w * s.value + 'px', height: b.h * s.value + 'px' }
+  return { left: b.x + 'px', top: b.y + 'px', width: b.w + 'px', height: b.h + 'px' }
 }
 function pathOf(st: MistakeStroke): string {
   const p = st.points
@@ -256,34 +368,44 @@ function pathOf(st: MistakeStroke): string {
   for (let i = 2; i + 1 < p.length; i += 2) d += ` L${p[i]} ${p[i + 1]}`
   return d
 }
-const touchAction = computed(() => (tool.value === 'text' ? 'pan-y' : 'none'))
-const cursor = computed(() => ({ select: 'default', pen: 'crosshair', eraser: 'cell', text: 'text' })[tool.value])
+const cursor = computed(() => (panning.value ? 'grabbing' : { select: 'default', pen: 'crosshair', eraser: 'cell', text: 'text' }[tool.value]))
+const zoomLabel = computed(() => `${Math.round(z.value * 100)}%`)
 
 // ---- キーボード ----
 function onKey(e: KeyboardEvent) {
   const tag = (e.target as HTMLElement)?.tagName
   const typing = tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT'
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !typing) {
+  if (typing) return
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
     e.preventDefault()
     undo()
-  } else if ((e.key === 'Delete' || e.key === 'Backspace') && !typing && selected.value) {
+  } else if ((e.key === 'Delete' || e.key === 'Backspace') && selected.value) {
     e.preventDefault()
     deleteSelected()
   } else if (e.key === 'Escape') {
     selectedId.value = null
+  } else if (e.key === '+' || e.key === '=') {
+    zoomStep(1)
+  } else if (e.key === '-') {
+    zoomStep(-1)
+  } else if (e.key === '0' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault()
+    fitAll()
   }
 }
 
 onMounted(() => {
   measure()
-  if (wrap.value && typeof ResizeObserver !== 'undefined') {
+  if (stage.value && typeof ResizeObserver !== 'undefined') {
     ro = new ResizeObserver(measure)
-    ro.observe(wrap.value)
+    ro.observe(stage.value)
   }
+  window.addEventListener('resize', measure)
   window.addEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => {
   ro?.disconnect()
+  window.removeEventListener('resize', measure)
   window.removeEventListener('keydown', onKey)
 })
 </script>
@@ -322,6 +444,14 @@ onBeforeUnmount(() => {
         </div>
       </template>
       <div style="flex: 1"></div>
+      <!-- 拡大縮小 -->
+      <div class="seg zoom" title="ホイールで拡縮、ホイールボタンのドラッグで移動">
+        <button class="tb" aria-label="縮小" @click="zoomStep(-1)">−</button>
+        <span class="zl dm">{{ zoomLabel }}</span>
+        <button class="tb" aria-label="拡大" @click="zoomStep(1)">＋</button>
+        <button class="tb" @click="fitAll">全体</button>
+        <button class="tb" @click="fitWidth">幅</button>
+      </div>
       <button class="tb ghost" @click="addTextBox">＋ 文字の枠</button>
       <button v-if="canDelete" class="tb danger" @click="deleteSelected">{{ selected?.type === 'text' ? '文字の枠を削除' : '画像を削除' }}</button>
       <button class="tb ghost" :disabled="!undoStack.length" title="取り消し（Ctrl+Z）" @click="undo">
@@ -329,18 +459,20 @@ onBeforeUnmount(() => {
       </button>
     </div>
 
-    <!-- ページ -->
-    <div ref="wrap" class="wrap">
-      <div
-        ref="page"
-        class="mpage no-gesture"
-        :class="{ ['tool-' + tool]: true }"
-        :style="{ height: NOTE_H * s + 'px', touchAction, cursor }"
-        @pointerdown="onDown"
-        @pointermove="onMove"
-        @pointerup="onUp"
-        @pointercancel="onUp"
-      >
+    <!-- ステージ（この中でページを拡縮・移動） -->
+    <div
+      ref="stage"
+      class="stage no-gesture"
+      :class="{ ['tool-' + tool]: true }"
+      :style="{ height: stageH + 'px', cursor }"
+      @wheel.prevent="onWheel"
+      @pointerdown="onDown"
+      @pointermove="onMove"
+      @pointerup="onUp"
+      @pointercancel="onUp"
+      @contextmenu.prevent
+    >
+      <div class="mpage" :style="pageStyle">
         <div v-if="!hasProblem" class="placeholder">
           <div>まず対象の問題の写真を登録してください</div>
           <div class="ph-sub">上の「撮影する」「画像を選ぶ」か、PC では画像をコピーして Ctrl+V、またはここへドラッグ＆ドロップ</div>
@@ -360,7 +492,7 @@ onBeforeUnmount(() => {
             :value="it.text ?? ''"
             :readonly="tool !== 'text'"
             :placeholder="tool === 'text' ? '間違えた部分・解説を入力' : ''"
-            :style="{ fontSize: (it.fontSize ?? DEFAULT_FONT) * s + 'px', lineHeight: LINE_HEIGHT, padding: 6 * s + 'px' }"
+            :style="{ fontSize: (it.fontSize ?? DEFAULT_FONT) + 'px', lineHeight: LINE_HEIGHT }"
             spellcheck="false"
             @focus="onTextFocus(it)"
             @input="onTextInput(it, $event)"
@@ -376,6 +508,7 @@ onBeforeUnmount(() => {
           <path v-if="live" :d="pathOf(live)" :stroke="live.color" :stroke-width="live.width" fill="none" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
+      <div class="stage-hint">{{ isTouch ? '2 本の指で拡縮・移動' : 'ホイールで拡縮・ホイールボタンのドラッグで移動' }}</div>
     </div>
   </div>
 </template>
@@ -401,6 +534,7 @@ onBeforeUnmount(() => {
 }
 .seg {
   display: flex;
+  align-items: center;
   background: #f1f2f4;
   border-radius: 9px;
   padding: 2px;
@@ -437,6 +571,16 @@ onBeforeUnmount(() => {
   background: #fdf3f4;
   color: #c0444f;
 }
+.zoom .tb {
+  padding: 6px 9px;
+}
+.zl {
+  min-width: 44px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mut);
+}
 .colors {
   display: flex;
   gap: 6px;
@@ -462,18 +606,36 @@ onBeforeUnmount(() => {
   color: var(--mut);
   font-weight: 600;
 }
-.wrap {
-  width: 100%;
-}
-.mpage {
+.stage {
   position: relative;
   width: 100%;
-  background: #fff;
-  border: 1px solid #d4d8de;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  background: #e6e8ec;
+  border: 1px solid #d4d8de;
+  border-radius: 12px;
+  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+}
+.stage-hint {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  font-size: 11px;
+  color: #7c838d;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  padding: 2px 8px;
+  pointer-events: none;
+}
+.mpage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  background: #fff;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
   /* 罫線（薄い方眼） */
   background-image: linear-gradient(#f3f4f6 1px, transparent 1px), linear-gradient(90deg, #f3f4f6 1px, transparent 1px);
   background-size: 48px 48px;
@@ -485,16 +647,16 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 12px;
   color: var(--faint);
-  font-size: 14px;
+  font-size: 30px;
   font-weight: 600;
   text-align: center;
-  padding: 20px;
+  padding: 40px;
   pointer-events: none;
 }
 .ph-sub {
-  font-size: 12px;
+  font-size: 22px;
   font-weight: 400;
 }
 .item {
@@ -513,7 +675,8 @@ onBeforeUnmount(() => {
   display: block;
   width: 100%;
   height: 100%;
-  border: 1px dashed transparent;
+  padding: 6px;
+  border: 2px dashed transparent;
   background: transparent;
   resize: none;
   outline: none;
@@ -533,33 +696,34 @@ onBeforeUnmount(() => {
   border-color: var(--primary);
 }
 .tool-select .item:hover {
-  outline: 1px dashed #b9c2f2;
+  outline: 2px dashed #b9c2f2;
 }
 .item.sel {
-  outline: 2px solid var(--primary);
+  outline: 3px solid var(--primary);
   outline-offset: -1px;
 }
 .tag {
   position: absolute;
-  left: 6px;
-  top: 6px;
-  font-size: 10px;
+  left: 8px;
+  top: 8px;
+  font-size: 18px;
   font-weight: 700;
   color: #fff;
   background: rgba(28, 32, 36, 0.7);
-  border-radius: 4px;
-  padding: 1px 6px;
+  border-radius: 6px;
+  padding: 2px 10px;
   pointer-events: none;
 }
+/* つまみは拡縮しても画面上で同じ大きさに見えるようにする（--inv = 1 / 倍率） */
 .hdl {
   position: absolute;
-  right: -10px;
-  bottom: -10px;
-  width: 22px;
-  height: 22px;
+  right: calc(-11px * var(--inv, 1));
+  bottom: calc(-11px * var(--inv, 1));
+  width: calc(22px * var(--inv, 1));
+  height: calc(22px * var(--inv, 1));
   border-radius: 50%;
   background: var(--primary);
-  border: 3px solid #fff;
+  border: calc(3px * var(--inv, 1)) solid #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   cursor: nwse-resize;
   touch-action: none;
