@@ -100,6 +100,7 @@ async function load() {
       meta.notedOn = d.notedOn
       await Promise.all(d.images.map((im) => imageObjectUrl(im.id).then((u) => (urls[im.id] = u)).catch(() => {})))
       saveState.value = 'saved'
+      showMeta.value = false
     } else {
       // 新規: 科目・分野は前回使ったもの
       try {
@@ -309,6 +310,7 @@ function errorMessage(e: unknown, fallback: string): string {
 }
 
 // ---- 全画面（編集画面は画面全体に表示。さらにブラウザの全画面にもできる） ----
+// 科目などの欄は、写真を登録するまで（新規）は表示、それ以外は畳んでキャンバスを最大にする
 const showMeta = ref(true)
 const browserFs = ref(false)
 const canBrowserFs = typeof document !== 'undefined' && !!document.fullscreenEnabled && !isTouch
@@ -356,6 +358,7 @@ const saveLabel = computed(
           />
         </div>
         <div class="right">
+          <span v-if="!showMeta && note" class="crumb">{{ [note.subjectName, note.field, note.studyItemName, note.title].filter(Boolean).join(' ／ ') }}</span>
           <span class="save" :class="saveState">{{ saveLabel }}</span>
           <button v-if="note && saveState !== 'saved'" class="btn-ghost" :disabled="saveState === 'saving'" @click="saveNow">今すぐ保存</button>
           <button class="btn-ghost" :title="showMeta ? '科目・タイトルなどの欄を隠してキャンバスを広くする' : '科目・タイトルなどの欄を表示する'" @click="showMeta = !showMeta">{{ showMeta ? '項目を隠す' : '項目を表示' }}</button>
@@ -407,10 +410,10 @@ const saveLabel = computed(
         </label>
       </div>
 
-      <!-- 画像の登録 -->
-      <div class="imgbar">
-        <input ref="problemInput" type="file" accept="image/*" :capture="isTouch ? 'environment' : undefined" hidden @change="onFile($event, 'problem')" />
-        <input ref="extraInput" type="file" accept="image/*" hidden @change="onFile($event, 'extra')" />
+      <input ref="problemInput" type="file" accept="image/*" :capture="isTouch ? 'environment' : undefined" hidden @change="onFile($event, 'problem')" />
+      <input ref="extraInput" type="file" accept="image/*" hidden @change="onFile($event, 'extra')" />
+      <!-- 画像の登録（項目の欄と一緒に表示。キャンバス左の道具からも同じ操作ができる） -->
+      <div v-show="showMeta" class="imgbar">
         <span class="imgbar-label">対象の問題の写真<span v-if="!hasProblem" style="color: #cf5563">（必須）</span></span>
         <span v-if="!note && !categoriesReady" class="paste-hint" style="color: #cf5563">先に科目・大分類・中分類を選んでください</span>
         <button class="btn-dark" :disabled="busy || (!note && !categoriesReady)" @click="problemInput?.click()">
@@ -425,7 +428,17 @@ const saveLabel = computed(
       </div>
 
       <div class="canvas-wrap" @dragover.prevent @drop="onDrop">
-        <MistakeCanvas fill :layout="layout" :urls="urls" :has-problem="hasProblem" @update:layout="onLayout" @remove-image="removeImage" />
+        <MistakeCanvas
+          :layout="layout"
+          :urls="urls"
+          :has-problem="hasProblem"
+          :busy="busy"
+          :can-add-problem="!!note || categoriesReady"
+          @update:layout="onLayout"
+          @remove-image="removeImage"
+          @request-problem="problemInput?.click()"
+          @request-extra="extraInput?.click()"
+        />
       </div>
     </template>
   </div>
@@ -439,8 +452,8 @@ const saveLabel = computed(
   z-index: 150;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: calc(8px + env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  gap: 6px;
+  padding: calc(6px + env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
   background: var(--bg);
   overflow: hidden;
 }
@@ -485,6 +498,15 @@ const saveLabel = computed(
 .ttl {
   font-size: 17px;
   font-weight: 700;
+}
+.crumb {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--mut);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 48vw;
 }
 .save {
   font-size: 12px;

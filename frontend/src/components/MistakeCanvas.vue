@@ -1,13 +1,14 @@
 <script setup lang="ts">
 /**
  * 間違いノートのページ編集。問題の写真・説明用の画像を動かす／大きさを変える、文字を入力する、ペンで手書きする。
- * 方眼の下敷きは画面に固定し、ページ（NOTE_W × NOTE_H = 印刷される範囲。枠は描かない）上のものだけを拡縮・移動して見る。
+ * 左に縦型の道具（小テストの添削と同じ並び）、右の残り全部がキャンバス。
+ * 方眼の下敷き（SVG のパターン）は画面に固定し、ページ（NOTE_W × NOTE_H = 印刷される範囲。枠は描かない）上のものだけを拡縮・移動して見る。
  * - 拡縮: マウスホイール（カーソル位置を中心・1 目盛り約 5%）、ピンチ、「−」「＋」（10% ずつ）「全体」「幅」
  * - 移動: ホイールボタン（中ボタン）のドラッグ、指 1 本（書く設定でないとき）／指 2 本のドラッグ
  * - 選択: 画像・文字の枠をドラッグで移動、右下のつまみで大きさ変更
  * - ペン / 消しゴム: Apple Pencil・マウスで書く。指は既定では移動（「指で書く」を ON にすると指でも書ける）
  * - 文字: 空いている所をクリック（タップ）するとその位置に文字の枠ができ、枠の中で入力
- * 変更はひとまとまりごとに update:layout で親へ渡す（親が自動保存する）。
+ * 変更はひとまとまりごとに update:layout で親へ渡す（親が自動保存する）。写真の登録・画像の追加は親に頼む（requestProblem / requestExtra）。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { DEFAULT_FONT, FONT_SIZES, LINE_HEIGHT, NOTE_H, NOTE_W, PEN_COLORS, PEN_WIDTHS, newItemId } from '@/lib/mistake'
@@ -17,10 +18,11 @@ import type { MistakeLayout, MistakeLayoutItem, MistakeStroke } from '@/types'
 
 type Tool = 'select' | 'pen' | 'eraser' | 'text'
 
-const props = defineProps<{ layout: MistakeLayout; urls: Record<number, string>; hasProblem: boolean; fill?: boolean }>()
-const emit = defineEmits<{ 'update:layout': [layout: MistakeLayout]; removeImage: [imageId: number] }>()
+const props = defineProps<{ layout: MistakeLayout; urls: Record<number, string>; hasProblem: boolean; busy?: boolean; canAddProblem?: boolean }>()
+const emit = defineEmits<{ 'update:layout': [layout: MistakeLayout]; removeImage: [imageId: number]; requestProblem: []; requestExtra: [] }>()
 
 const ui = useUiStore()
+const gid = newItemId('g') // 方眼パターンの id（画面内で一意に）
 
 // ---- 道具 ----
 const tool = ref<Tool>(isTouch ? 'pen' : 'select')
@@ -49,12 +51,7 @@ let ro: ResizeObserver | null = null
 function measure() {
   const el = stage.value
   if (!el) return
-  if (!props.fill) {
-    const top = el.getBoundingClientRect().top
-    stageH.value = Math.max(420, Math.round(window.innerHeight - top - 20))
-  } else {
-    stageH.value = el.clientHeight
-  }
+  stageH.value = el.clientHeight
   stageW.value = el.clientWidth
   if (!fitted && stageW.value > 0 && stageH.value > 0) {
     fitted = true
@@ -456,53 +453,67 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="mc" :class="{ fill }">
-    <!-- 道具 -->
-    <div class="tools">
-      <div class="seg">
-        <button class="tb" :class="{ on: tool === 'select' }" title="選択・移動" @click="tool = 'select'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 3l14 8-6 2-3 6z" /></svg>選択
+  <div class="mc">
+    <!-- 縦型の道具（左） -->
+    <div class="rail">
+      <div class="group">
+        <button class="rb" :class="{ on: tool === 'select' }" title="選択・移動" @click="tool = 'select'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 3l14 8-6 2-3 6z" /></svg><span>選択</span>
         </button>
-        <button class="tb" :class="{ on: tool === 'pen' }" title="ペン" @click="tool = 'pen'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>ペン
+        <button class="rb" :class="{ on: tool === 'pen' }" title="ペン" @click="tool = 'pen'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg><span>ペン</span>
         </button>
-        <button class="tb" :class="{ on: tool === 'eraser' }" title="消しゴム（手書きを消す）" @click="tool = 'eraser'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 20l-4-4 10-10 6 6-8 8z" /><path d="M9 20h12" /></svg>消す
+        <button class="rb" :class="{ on: tool === 'eraser' }" title="消しゴム（手書きを消す）" @click="tool = 'eraser'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 20l-4-4 10-10 6 6-8 8z" /><path d="M9 20h12" /></svg><span>消す</span>
         </button>
-        <button class="tb" :class="{ on: tool === 'text' }" title="文字の挿入: 空いている所をクリックすると文字の枠ができます" @click="tool = 'text'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6h14M12 6v13M9 19h6" /></svg>文字
+        <button class="rb" :class="{ on: tool === 'text' }" title="文字の挿入: 空いている所をクリックすると文字の枠ができます" @click="tool = 'text'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6h14M12 6v13M9 19h6" /></svg><span>文字</span>
         </button>
       </div>
-      <template v-if="tool === 'pen'">
+
+      <!-- 道具ごとの設定 -->
+      <div v-if="tool === 'pen'" class="group sub">
         <div class="colors">
           <button v-for="c in PEN_COLORS" :key="c" class="sw" :class="{ on: color === c }" :style="{ '--c': c }" :aria-label="c" @click="color = c"></button>
         </div>
-        <div class="seg">
-          <button v-for="w in PEN_WIDTHS" :key="w.width" class="tb" :class="{ on: width === w.width }" @click="width = w.width">{{ w.label }}</button>
-        </div>
-      </template>
-      <span v-if="tool === 'text'" class="tip">空いている所をクリックすると、その位置に文字の枠ができます</span>
-      <button v-if="tool === 'eraser' && layout.ink.length" class="tb ghost" @click="clearInk">手書きをすべて消す</button>
-      <label v-if="isTouch && (tool === 'pen' || tool === 'eraser')" class="chk"><input v-model="fingerDraw" type="checkbox" />指で書く</label>
-      <template v-if="selected?.type === 'text'">
-        <div class="seg">
-          <button v-for="f in FONT_SIZES" :key="f.size" class="tb" :class="{ on: (selected.fontSize ?? DEFAULT_FONT) === f.size }" @click="setFontSize(f.size)">{{ f.label }}</button>
-        </div>
-      </template>
-      <div style="flex: 1"></div>
-      <!-- 拡大縮小 -->
-      <div class="seg zoom" title="ホイールで拡縮（約 5% ずつ）、ホイールボタンのドラッグで移動">
-        <button class="tb" aria-label="縮小" @click="zoomStep(-1)">−</button>
-        <span class="zl dm">{{ zoomLabel }}</span>
-        <button class="tb" aria-label="拡大" @click="zoomStep(1)">＋</button>
-        <button class="tb" @click="fitAll">全体</button>
-        <button class="tb" @click="fitWidth">幅</button>
+        <button v-for="w in PEN_WIDTHS" :key="w.width" class="rb small" :class="{ on: width === w.width }" @click="width = w.width">
+          <span class="dotw" :style="{ height: Math.min(10, w.width) + 'px' }"></span><span>{{ w.label }}</span>
+        </button>
+        <label v-if="isTouch" class="chk" title="OFF のときは指で動かし、Apple Pencil で書きます"><input v-model="fingerDraw" type="checkbox" /><span>指で書く</span></label>
       </div>
-      <button class="tb ghost" title="見えている範囲の真ん中に文字の枠を作る" @click="addTextBox">＋ 文字の枠</button>
-      <button v-if="canDelete" class="tb danger" @click="deleteSelected">{{ selected?.type === 'text' ? '文字の枠を削除' : '画像を削除' }}</button>
-      <button class="tb ghost" :disabled="!undoStack.length" title="取り消し（Ctrl+Z）" @click="undo">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4-4 4-4" /><path d="M5 10h9a5 5 0 0 1 0 10h-3" /></svg>取り消し
-      </button>
+      <div v-else-if="tool === 'eraser'" class="group sub">
+        <button class="rb small" :disabled="!layout.ink.length" @click="clearInk"><span>全部消す</span></button>
+        <label v-if="isTouch" class="chk"><input v-model="fingerDraw" type="checkbox" /><span>指で消す</span></label>
+      </div>
+      <div v-else-if="tool === 'text' && selected?.type === 'text'" class="group sub">
+        <button v-for="f in FONT_SIZES" :key="f.size" class="rb small" :class="{ on: (selected.fontSize ?? DEFAULT_FONT) === f.size }" @click="setFontSize(f.size)"><span>{{ f.label }}</span></button>
+      </div>
+
+      <div class="group">
+        <button class="rb" :disabled="busy || (!hasProblem && !canAddProblem)" :title="hasProblem ? '問題の写真を差し替える' : '問題の写真を登録する'" @click="emit('requestProblem')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.2" /></svg><span>{{ hasProblem ? '写真' : '問題' }}</span>
+        </button>
+        <button class="rb" :disabled="busy || !hasProblem" title="説明用の画像を追加" @click="emit('requestExtra')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 16l5-5 4 4 3-3 6 6" /><circle cx="16" cy="9" r="1.5" /></svg><span>画像</span>
+        </button>
+        <button class="rb" title="見えている範囲の真ん中に文字の枠を作る" @click="addTextBox">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M9 6v12M6 18h6" /><path d="M18 10v8M14 14h8" /></svg><span>文字枠</span>
+        </button>
+        <button class="rb danger" :disabled="!canDelete" :title="selected?.type === 'text' ? '文字の枠を削除' : '画像を削除'" @click="deleteSelected">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg><span>削除</span>
+        </button>
+        <button class="rb" :disabled="!undoStack.length" title="取り消し（Ctrl+Z）" @click="undo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4-4 4-4" /><path d="M5 10h9a5 5 0 0 1 0 10h-3" /></svg><span>戻す</span>
+        </button>
+      </div>
+
+      <div class="group zoom" title="ホイールで拡縮（約 5% ずつ）、ホイールボタンのドラッグで移動">
+        <button class="rb small" aria-label="拡大" @click="zoomStep(1)"><span class="big">＋</span></button>
+        <span class="zl dm">{{ zoomLabel }}</span>
+        <button class="rb small" aria-label="縮小" @click="zoomStep(-1)"><span class="big">−</span></button>
+        <button class="rb small" @click="fitAll"><span>全体</span></button>
+        <button class="rb small" @click="fitWidth"><span>幅</span></button>
+      </div>
     </div>
 
     <!-- ステージ（方眼は固定。中のページだけを拡縮・移動） -->
@@ -510,7 +521,7 @@ onBeforeUnmount(() => {
       ref="stage"
       class="stage no-gesture"
       :class="{ ['tool-' + tool]: true }"
-      :style="{ height: fill ? undefined : stageH + 'px', cursor }"
+      :style="{ cursor }"
       @wheel.prevent="onWheel"
       @pointerdown="onDown"
       @pointermove="onMove"
@@ -518,10 +529,24 @@ onBeforeUnmount(() => {
       @pointercancel="onUp"
       @contextmenu.prevent
     >
+      <!-- 方眼の下敷き（SVG のパターン。画面に固定） -->
+      <svg class="grid" aria-hidden="true">
+        <defs>
+          <pattern :id="gid + 's'" width="32" height="32" patternUnits="userSpaceOnUse">
+            <path d="M32 0H0V32" fill="none" stroke="#dfe3e8" stroke-width="1" />
+          </pattern>
+          <pattern :id="gid + 'l'" width="160" height="160" patternUnits="userSpaceOnUse">
+            <rect width="160" height="160" :fill="`url(#${gid}s)`" />
+            <path d="M160 0H0V160" fill="none" stroke="#c3c8d0" stroke-width="1" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" :fill="`url(#${gid}l)`" />
+      </svg>
+
       <div class="mpage" :style="pageStyle">
         <div v-if="!hasProblem" class="placeholder">
           <div>まず対象の問題の写真を登録してください</div>
-          <div class="ph-sub">上の「撮影する」「画像を選ぶ」か、PC では画像をコピーして Ctrl+V、またはここへドラッグ＆ドロップ</div>
+          <div class="ph-sub">左の「問題」ボタンか、PC では画像をコピーして Ctrl+V、またはここへドラッグ＆ドロップ</div>
         </div>
 
         <div
@@ -554,7 +579,10 @@ onBeforeUnmount(() => {
           <path v-if="live" :d="pathOf(live)" :stroke="live.color" :stroke-width="live.width" fill="none" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
-      <div class="stage-hint">{{ isTouch ? '2 本の指で拡縮・移動' : 'ホイールで拡縮・ホイールボタンのドラッグで移動' }}</div>
+      <div class="stage-hint">
+        <template v-if="tool === 'text'">空いている所をクリックすると、その位置に文字の枠ができます　</template>
+        {{ isTouch ? '2 本の指で拡縮・移動' : 'ホイールで拡縮・ホイールボタンのドラッグで移動' }}
+      </div>
     </div>
   </div>
 </template>
@@ -562,87 +590,102 @@ onBeforeUnmount(() => {
 <style scoped>
 .mc {
   display: flex;
+  flex-direction: row;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+/* ---- 縦型の道具 ---- */
+.rail {
+  flex-shrink: 0;
+  width: 64px;
+  display: flex;
   flex-direction: column;
   gap: 8px;
-}
-.mc.fill {
-  flex: 1;
-  min-height: 0;
-}
-.mc.fill .stage {
-  flex: 1;
-  min-height: 0;
-}
-.tools {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 6px 10px;
+  padding: 6px 5px;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
 }
-.seg {
+.rail::-webkit-scrollbar {
+  display: none;
+}
+.group {
   display: flex;
-  align-items: center;
-  background: #f1f2f4;
-  border-radius: 9px;
-  padding: 2px;
-  gap: 2px;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eef0f3;
 }
-.tb {
-  display: inline-flex;
+.group:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.group.sub {
+  background: #f6f7f9;
+  border-radius: 9px;
+  padding: 6px 3px;
+  border-bottom: none;
+}
+.rb {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 6px 11px;
+  gap: 2px;
+  padding: 6px 2px 5px;
   border: none;
-  border-radius: 7px;
+  border-radius: 8px;
   background: transparent;
   color: var(--mut);
-  font-size: 12.5px;
+  font-size: 10.5px;
   font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
+  line-height: 1.1;
 }
-.tb.on {
+.rb.small {
+  flex-direction: row;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 2px;
+  font-size: 11px;
+}
+.rb:hover {
+  background: #f1f2f4;
+}
+.rb.on {
   background: #1c2024;
   color: #fff;
 }
-.tb.ghost {
-  border: 1px solid #e3e6ea;
-  background: #fff;
-}
-.tb.ghost:disabled {
-  opacity: 0.4;
+.rb:disabled {
+  opacity: 0.35;
   cursor: default;
 }
-.tb.danger {
-  border: 1px solid #f0c3c8;
-  background: #fdf3f4;
+.rb.danger:not(:disabled) {
   color: #c0444f;
 }
-.zoom .tb {
-  padding: 6px 9px;
-}
-.zl {
-  min-width: 44px;
-  text-align: center;
-  font-size: 12px;
+.rb .big {
+  font-size: 16px;
   font-weight: 700;
-  color: var(--mut);
 }
-.tip {
-  font-size: 11.5px;
-  color: var(--faint);
+.dotw {
+  width: 16px;
+  border-radius: 3px;
+  background: currentColor;
 }
 .colors {
-  display: flex;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  justify-items: center;
+  padding: 2px 0 5px;
 }
 .sw {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   border: 2px solid #fff;
   background: var(--c);
@@ -655,33 +698,41 @@ onBeforeUnmount(() => {
 }
 .chk {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
+  gap: 2px;
+  font-size: 10px;
   color: var(--mut);
   font-weight: 600;
+  padding-top: 4px;
 }
+.zl {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mut);
+  padding: 2px 0;
+}
+/* ---- ステージ ---- */
 .stage {
   position: relative;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
+  background: #fff;
   border: 1px solid #d4d8de;
   border-radius: 12px;
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
-  /* 方眼の下敷き（画面に固定。拡縮しない）。細い線 32px ごと、少し濃い線 160px ごと */
-  background-color: #fff;
-  background-image:
-    linear-gradient(#c9ced6 1px, transparent 1px),
-    linear-gradient(90deg, #c9ced6 1px, transparent 1px),
-    linear-gradient(#e4e7ec 1px, transparent 1px),
-    linear-gradient(90deg, #e4e7ec 1px, transparent 1px);
-  background-size:
-    160px 160px,
-    160px 160px,
-    32px 32px,
-    32px 32px;
+}
+.grid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 .stage-hint {
   position: absolute;
