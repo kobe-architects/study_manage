@@ -75,6 +75,46 @@ export function bottomOf(items: MistakeLayoutItem[]): number {
 }
 
 /**
+ * 置いたもの（画像・文字・手書き）全体を囲む矩形。何も無ければ null。
+ * 編集画面はページの外にも自由に置けるので、印刷・閲覧ではこの矩形をページに収めて描く。
+ */
+export function contentBox(layout: MistakeLayout): { x: number; y: number; w: number; h: number } | null {
+  let x1 = Infinity
+  let y1 = Infinity
+  let x2 = -Infinity
+  let y2 = -Infinity
+  for (const it of layout.items) {
+    if (it.type === 'text' && !(it.text ?? '').trim()) continue
+    x1 = Math.min(x1, it.x)
+    y1 = Math.min(y1, it.y)
+    x2 = Math.max(x2, it.x + it.w)
+    y2 = Math.max(y2, it.y + it.h)
+  }
+  for (const st of layout.ink) {
+    const r = st.width / 2
+    for (let i = 0; i + 1 < st.points.length; i += 2) {
+      x1 = Math.min(x1, st.points[i]! - r)
+      y1 = Math.min(y1, st.points[i + 1]! - r)
+      x2 = Math.max(x2, st.points[i]! + r)
+      y2 = Math.max(y2, st.points[i + 1]! + r)
+    }
+  }
+  if (!Number.isFinite(x1) || !Number.isFinite(y1)) return null
+  return { x: x1, y: y1, w: Math.max(1, x2 - x1), h: Math.max(1, y2 - y1) }
+}
+
+/**
+ * 印刷・閲覧で使う変換: 置いたもの全体の左上をページの左上に合わせ、ページより大きければ収まるように縮小する
+ * （ページより小さいときは等倍のまま）。
+ */
+export function fitToPage(layout: MistakeLayout): { scale: number; dx: number; dy: number } {
+  const b = contentBox(layout)
+  if (!b) return { scale: 1, dx: 0, dy: 0 }
+  const scale = Math.min(1, NOTE_W / b.w, NOTE_H / b.h)
+  return { scale, dx: -b.x, dy: -b.y }
+}
+
+/**
  * 撮影した写真・貼り付けた画像を、向きを直して長辺 maxSide px の JPEG にする（アップロード容量を抑える）。
  */
 export async function fileToJpeg(file: Blob, maxSide = 1800, quality = 0.88): Promise<{ blob: Blob; width: number; height: number }> {

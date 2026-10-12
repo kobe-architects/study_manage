@@ -1,5 +1,5 @@
 // 間違いノートのページを canvas に描く（全画面の閲覧・画像・PDF 出力で共通。印刷したものと同じ見た目になる）。
-import { GUTTER, HEADER_GAP, HEADER_H, LINE_HEIGHT, NOTE_H, NOTE_W, OUTER, PAGE_H, PAGE_TOP, PAGE_W, fmtDate, loadImageEl } from '@/lib/mistake'
+import { GUTTER, HEADER_GAP, HEADER_H, LINE_HEIGHT, NOTE_H, NOTE_W, OUTER, PAGE_H, PAGE_TOP, PAGE_W, fitToPage, fmtDate, loadImageEl } from '@/lib/mistake'
 import type { MistakeLayout, MistakeNoteDetail } from '@/types'
 
 const FONT = "'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif"
@@ -32,7 +32,11 @@ export function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: numb
   return lines
 }
 
-/** ノート本体（NOTE_W × NOTE_H の座標）を ctx の (ox, oy) に scale 倍で描く */
+/**
+ * ノート本体を ctx の (ox, oy) に scale 倍で描く。
+ * 編集画面ではページの外にも自由に置けるので、置いたもの全体の左上をページの左上に合わせ、
+ * ページ（NOTE_W × NOTE_H）より大きければ収まるように縮小する。
+ */
 export async function drawNoteContent(ctx: CanvasRenderingContext2D, layout: MistakeLayout, ox: number, oy: number, scale = 1) {
   ctx.save()
   ctx.translate(ox, oy)
@@ -40,6 +44,9 @@ export async function drawNoteContent(ctx: CanvasRenderingContext2D, layout: Mis
   ctx.beginPath()
   ctx.rect(0, 0, NOTE_W, NOTE_H)
   ctx.clip()
+  const fit = fitToPage(layout)
+  ctx.scale(fit.scale, fit.scale)
+  ctx.translate(fit.dx, fit.dy)
 
   // 画像（配置の順に）
   for (const it of layout.items) {

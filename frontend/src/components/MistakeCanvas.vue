@@ -2,7 +2,8 @@
 /**
  * 間違いノートのページ編集。問題の写真・説明用の画像を動かす／大きさを変える、文字を入力する、ペンで手書きする。
  * 左に縦型の道具（小テストの添削と同じ並び）、右の残り全部がキャンバス。
- * 方眼の下敷き（SVG のパターン）は画面に固定し、ページ（NOTE_W × NOTE_H = 印刷される範囲。枠は描かない）上のものだけを拡縮・移動して見る。
+ * 方眼の下敷き（SVG のパターン）は画面に固定し、置いたものだけを拡縮・移動して見る。
+ * 置ける範囲に壁はなく（ページの外でもよい）、印刷・閲覧のときに全体がページ（NOTE_W × NOTE_H）に収まるよう自動で調整する。
  * - 拡縮: マウスホイール（カーソル位置を中心・1 目盛り約 5%）、ピンチ、「−」「＋」（10% ずつ）「全体」「幅」
  * - 移動: ホイールボタン（中ボタン）のドラッグ、指 1 本（書く設定でないとき）／指 2 本のドラッグ
  * - 選択: 画像・文字の枠をドラッグで移動、右下のつまみで大きさ変更
@@ -11,7 +12,7 @@
  * 変更はひとまとまりごとに update:layout で親へ渡す（親が自動保存する）。写真の登録・画像の追加は親に頼む（requestProblem / requestExtra）。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { DEFAULT_FONT, FONT_SIZES, LINE_HEIGHT, NOTE_H, NOTE_W, PEN_COLORS, PEN_WIDTHS, newItemId } from '@/lib/mistake'
+import { DEFAULT_FONT, FONT_SIZES, LINE_HEIGHT, NOTE_H, NOTE_W, PEN_COLORS, PEN_WIDTHS, contentBox, newItemId } from '@/lib/mistake'
 import { isTouch } from '@/lib/native'
 import { useUiStore } from '@/stores/ui'
 import type { MistakeLayout, MistakeLayoutItem, MistakeStroke } from '@/types'
@@ -58,12 +59,17 @@ function measure() {
     fitAll()
   }
 }
-/** ページ全体が収まる倍率に */
+/** 置いたもの全体（とページ 1 枚分の広さ）が収まる倍率に */
 function fitAll() {
-  const nz = Math.min((stageW.value - 32) / NOTE_W, (stageH.value - 32) / NOTE_H)
+  const b = contentBox(props.layout)
+  const x1 = Math.min(0, b?.x ?? 0)
+  const y1 = Math.min(0, b?.y ?? 0)
+  const x2 = Math.max(NOTE_W, b ? b.x + b.w : 0)
+  const y2 = Math.max(NOTE_H, b ? b.y + b.h : 0)
+  const nz = Math.min((stageW.value - 32) / (x2 - x1), (stageH.value - 32) / (y2 - y1))
   z.value = clamp(nz, Z_MIN, Z_MAX)
-  tx.value = Math.round((stageW.value - NOTE_W * z.value) / 2)
-  ty.value = Math.round((stageH.value - NOTE_H * z.value) / 2)
+  tx.value = Math.round((stageW.value - (x2 - x1) * z.value) / 2 - x1 * z.value)
+  ty.value = Math.round((stageH.value - (y2 - y1) * z.value) / 2 - y1 * z.value)
 }
 /** 幅いっぱいに */
 function fitWidth() {
@@ -267,16 +273,8 @@ function onMove(e: PointerEvent) {
   } else if (drag.kind === 'erase') {
     eraseAt(p)
   } else if (drag.kind === 'move') {
-    // ページ（印刷される範囲）の中に収める。ページより大きいものは端が合う範囲で動かせる
-    const w = drag.ow
-    const h = drag.oh
-    preview.value = {
-      id: drag.id,
-      x: clamp(drag.ox + dx, Math.min(0, NOTE_W - w), Math.max(0, NOTE_W - w)),
-      y: clamp(drag.oy + dy, Math.min(0, NOTE_H - h), Math.max(0, NOTE_H - h)),
-      w,
-      h,
-    }
+    // 置ける範囲に壁は設けない（印刷・閲覧のときに全体がページに収まるよう自動で調整する）
+    preview.value = { id: drag.id, x: drag.ox + dx, y: drag.oy + dy, w: drag.ow, h: drag.oh }
   } else if (drag.kind === 'resize') {
     const it = props.layout.items.find((x) => x.id === drag!.id)
     if (!it) return
@@ -364,16 +362,7 @@ function setFontSize(size: number) {
 }
 /** (x, y)（ページ座標）を左上にして文字の枠を作り、入力できる状態にする */
 function createTextAt(x: number, y: number) {
-  const it: MistakeLayoutItem = {
-    id: newItemId('t'),
-    type: 'text',
-    text: '',
-    fontSize: DEFAULT_FONT,
-    x: round(clamp(x, 0, NOTE_W - TEXT_W)),
-    y: round(clamp(y, 0, NOTE_H - TEXT_H)),
-    w: TEXT_W,
-    h: TEXT_H,
-  }
+  const it: MistakeLayoutItem = { id: newItemId('t'), type: 'text', text: '', fontSize: DEFAULT_FONT, x: round(x), y: round(y), w: TEXT_W, h: TEXT_H }
   commit({ items: [...props.layout.items, it], ink: props.layout.ink })
   selectedId.value = it.id
   tool.value = 'text'
@@ -745,7 +734,7 @@ onBeforeUnmount(() => {
   padding: 2px 8px;
   pointer-events: none;
 }
-/* ページ本体。枠は描かず、置いたものだけが見える（置ける範囲はページ内に収めている） */
+/* ページ本体。枠は描かず、置いたものだけが見える（ページの外にも置ける。印刷時に全体を収める） */
 .mpage {
   position: absolute;
   left: 0;
@@ -846,6 +835,8 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   pointer-events: none;
+  /* ページの外に書いた線も見えるようにする */
+  overflow: visible;
 }
 .tool-pen .item,
 .tool-eraser .item {
