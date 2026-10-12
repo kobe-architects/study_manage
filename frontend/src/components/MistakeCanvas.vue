@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * 間違いノートのページ編集。問題の写真・説明用の画像を動かす／大きさを変える、文字を入力する、ペンで手書きする。
- * 方眼の下敷きは画面に固定し、ページ（NOTE_W × NOTE_H。印刷される範囲を点線で示す）上のものだけを拡縮・移動して見る。
+ * 方眼の下敷きは画面に固定し、ページ（NOTE_W × NOTE_H = 印刷される範囲。枠は描かない）上のものだけを拡縮・移動して見る。
  * - 拡縮: マウスホイール（カーソル位置を中心・1 目盛り約 5%）、ピンチ、「−」「＋」（10% ずつ）「全体」「幅」
  * - 移動: ホイールボタン（中ボタン）のドラッグ、指 1 本（書く設定でないとき）／指 2 本のドラッグ
  * - 選択: 画像・文字の枠をドラッグで移動、右下のつまみで大きさ変更
@@ -270,9 +270,16 @@ function onMove(e: PointerEvent) {
   } else if (drag.kind === 'erase') {
     eraseAt(p)
   } else if (drag.kind === 'move') {
+    // ページ（印刷される範囲）の中に収める。ページより大きいものは端が合う範囲で動かせる
     const w = drag.ow
     const h = drag.oh
-    preview.value = { id: drag.id, x: clamp(drag.ox + dx, -w + 60, NOTE_W - 60), y: clamp(drag.oy + dy, -h + 60, NOTE_H - 60), w, h }
+    preview.value = {
+      id: drag.id,
+      x: clamp(drag.ox + dx, Math.min(0, NOTE_W - w), Math.max(0, NOTE_W - w)),
+      y: clamp(drag.oy + dy, Math.min(0, NOTE_H - h), Math.max(0, NOTE_H - h)),
+      w,
+      h,
+    }
   } else if (drag.kind === 'resize') {
     const it = props.layout.items.find((x) => x.id === drag!.id)
     if (!it) return
@@ -547,7 +554,7 @@ onBeforeUnmount(() => {
           <path v-if="live" :d="pathOf(live)" :stroke="live.color" :stroke-width="live.width" fill="none" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
-      <div class="stage-hint">{{ isTouch ? '2 本の指で拡縮・移動' : 'ホイールで拡縮・ホイールボタンのドラッグで移動' }}　点線 = 印刷される範囲</div>
+      <div class="stage-hint">{{ isTouch ? '2 本の指で拡縮・移動' : 'ホイールで拡縮・ホイールボタンのドラッグで移動' }}</div>
     </div>
   </div>
 </template>
@@ -663,10 +670,18 @@ onBeforeUnmount(() => {
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
-  /* 方眼の下敷き（画面に固定。拡縮しない） */
+  /* 方眼の下敷き（画面に固定。拡縮しない）。細い線 32px ごと、少し濃い線 160px ごと */
   background-color: #fff;
-  background-image: linear-gradient(#eef0f3 1px, transparent 1px), linear-gradient(90deg, #eef0f3 1px, transparent 1px);
-  background-size: 32px 32px;
+  background-image:
+    linear-gradient(#c9ced6 1px, transparent 1px),
+    linear-gradient(90deg, #c9ced6 1px, transparent 1px),
+    linear-gradient(#e4e7ec 1px, transparent 1px),
+    linear-gradient(90deg, #e4e7ec 1px, transparent 1px);
+  background-size:
+    160px 160px,
+    160px 160px,
+    32px 32px,
+    32px 32px;
 }
 .stage-hint {
   position: absolute;
@@ -679,14 +694,12 @@ onBeforeUnmount(() => {
   padding: 2px 8px;
   pointer-events: none;
 }
+/* ページ本体。枠は描かず、置いたものだけが見える（置ける範囲はページ内に収めている） */
 .mpage {
   position: absolute;
   left: 0;
   top: 0;
   transform-origin: 0 0;
-  overflow: hidden;
-  /* 印刷される範囲（点線）。拡縮しても線の太さは画面上で同じ */
-  outline: calc(1.5px * var(--inv, 1)) dashed #c3c8d0;
 }
 .placeholder {
   position: absolute;
