@@ -37,8 +37,8 @@ async function load() {
 }
 onMounted(load)
 
-// ---- 絞り込み（科目 → 分野） ----
-const filter = reactive({ subject: 'all' as string, field: '' })
+// ---- 絞り込み（科目 → 大分類 → 中分類） ----
+const filter = reactive({ subject: 'all' as string, majorId: 0, midId: 0 })
 const subjectTabs = computed(() => {
   const out: { key: string; name: string; color: string | null; count: number }[] = []
   for (const n of notes.value) {
@@ -49,24 +49,46 @@ const subjectTabs = computed(() => {
   }
   return out
 })
-const fieldChips = computed(() => {
+const majorChips = computed(() => {
   if (filter.subject === 'all') return []
-  const out: { field: string; count: number }[] = []
+  const out: { id: number; name: string; count: number }[] = []
   for (const n of notes.value) {
     if (String(n.subjectId ?? 0) !== filter.subject) continue
-    const f = n.field ?? ''
-    const t = out.find((x) => x.field === f)
+    const id = n.majorId ?? 0
+    const t = out.find((x) => x.id === id)
     if (t) t.count++
-    else out.push({ field: f, count: 1 })
+    else out.push({ id, name: n.majorName ?? '（大分類なし）', count: 1 })
+  }
+  return out
+})
+const midChips = computed(() => {
+  if (!filter.majorId) return []
+  const out: { id: number; name: string; count: number }[] = []
+  for (const n of notes.value) {
+    if (String(n.subjectId ?? 0) !== filter.subject || (n.majorId ?? 0) !== filter.majorId) continue
+    const id = n.midId ?? 0
+    const t = out.find((x) => x.id === id)
+    if (t) t.count++
+    else out.push({ id, name: n.midName ?? '（中分類なし）', count: 1 })
   }
   return out
 })
 function pickSubject(key: string) {
   filter.subject = key
-  filter.field = ''
+  filter.majorId = 0
+  filter.midId = 0
+}
+function pickMajor(id: number) {
+  filter.majorId = id
+  filter.midId = 0
 }
 const visible = computed(() =>
-  notes.value.filter((n) => (filter.subject === 'all' || String(n.subjectId ?? 0) === filter.subject) && (filter.field === '' || (n.field ?? '') === filter.field)),
+  notes.value.filter(
+    (n) =>
+      (filter.subject === 'all' || String(n.subjectId ?? 0) === filter.subject) &&
+      (filter.majorId === 0 || (n.majorId ?? 0) === filter.majorId) &&
+      (filter.midId === 0 || (n.midId ?? 0) === filter.midId),
+  ),
 )
 const groups = computed(() => groupNotes(visible.value))
 const shownCount = computed(() => visible.value.filter((n) => !n.hidden).length)
@@ -189,7 +211,9 @@ async function exportPdf() {
   try {
     const SCALE = 1.4
     const subjectName = filter.subject === 'all' ? '' : (subjectTabs.value.find((t) => t.key === filter.subject)?.name ?? '')
-    const title = ['間違いノート', subjectName, filter.field].filter(Boolean).join('　')
+    const majorName = filter.majorId ? (majorChips.value.find((m) => m.id === filter.majorId)?.name ?? '') : ''
+    const midName = filter.midId ? (midChips.value.find((m) => m.id === filter.midId)?.name ?? '') : ''
+    const title = ['間違いノート', subjectName, majorName, midName].filter(Boolean).join('　')
     // 目次ページ数が決まるまで繰り返す（目次が増えるとページ番号がずれるため）
     let indexCount = 1
     let indexPages: HTMLCanvasElement[] = []
@@ -198,7 +222,7 @@ async function exportPdf() {
         subjectName: n.subjectName ?? '科目なし',
         color: n.colorSoft,
         field: n.field || '（分野なし）',
-        title: n.title || n.source || fmtDate(n.notedOn),
+        title: [n.studyItemName, n.title].filter(Boolean).join('　') || n.source || fmtDate(n.notedOn),
         pageNo: indexCount + i + 1,
       }))
       indexPages = renderIndexPages(entries, 1, title, SCALE)
@@ -248,7 +272,7 @@ async function exportPdf() {
       <div class="ttl">
         <span>間違いノート</span>
         <HelpTip
-          text="間違えた問題を写真に撮って、間違えた部分や解説を書き込んだ 1 ページにまとめます。科目・分野ごとに整理され、「ノートを開く」で実際のバインダーのように見開きで閲覧、「PDF 出力」で両面印刷用の PDF（目次つき・とじ側にパンチ穴の余白）を作れます。ブロックは取っ手のドラッグや矢印で並び替え、「非表示」でノート・PDF から外せます。"
+          text="間違えた問題を写真に撮って、間違えた部分や解説を書き込んだ 1 ページにまとめます。科目 → 大分類 → 中分類（学習項目データの分類）ごとに整理され、「ノートを開く」で実際のバインダーのように見開きで閲覧、「PDF 出力」で両面印刷用の PDF（目次つき・とじ側にパンチ穴の余白）を作れます。ブロックは取っ手のドラッグや矢印で並び替え、「非表示」でノート・PDF から外せます。"
         />
       </div>
       <div class="actions">
@@ -273,9 +297,15 @@ async function exportPdf() {
           <span class="dot"></span>{{ t.name }}<span class="cnt">{{ t.count }}</span>
         </button>
       </div>
-      <div v-if="fieldChips.length" class="chips">
-        <button class="chip" :class="{ on: filter.field === '' }" @click="filter.field = ''">すべての分野</button>
-        <button v-for="f in fieldChips" :key="f.field" class="chip" :class="{ on: filter.field === f.field }" @click="filter.field = f.field">{{ f.field || '（分野なし）' }}<span class="cnt">{{ f.count }}</span></button>
+      <div v-if="majorChips.length" class="chips">
+        <span class="chips-label">大分類</span>
+        <button class="chip" :class="{ on: filter.majorId === 0 }" @click="pickMajor(0)">すべて</button>
+        <button v-for="m in majorChips" :key="m.id" class="chip" :class="{ on: filter.majorId === m.id }" @click="pickMajor(m.id)">{{ m.name }}<span class="cnt">{{ m.count }}</span></button>
+      </div>
+      <div v-if="midChips.length" class="chips">
+        <span class="chips-label">中分類</span>
+        <button class="chip" :class="{ on: filter.midId === 0 }" @click="filter.midId = 0">すべて</button>
+        <button v-for="m in midChips" :key="m.id" class="chip" :class="{ on: filter.midId === m.id }" @click="filter.midId = m.id">{{ m.name }}<span class="cnt">{{ m.count }}</span></button>
       </div>
     </div>
 
@@ -306,7 +336,7 @@ async function exportPdf() {
             <span v-if="n.hidden" class="hid">非表示</span>
           </button>
           <div class="body">
-            <div class="btitle">{{ n.title || '（無題）' }}</div>
+            <div class="btitle">{{ [n.studyItemName, n.title].filter(Boolean).join('　') || '（無題）' }}</div>
             <div class="bsub">{{ fmtDate(n.notedOn) }}<template v-if="n.source">・{{ n.source }}</template><template v-if="n.imageCount > 1">・画像 {{ n.imageCount }}</template></div>
           </div>
           <div class="bact">
@@ -442,8 +472,15 @@ async function exportPdf() {
 }
 .chips {
   display: flex;
+  align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+}
+.chips-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--faint);
+  margin-right: 2px;
 }
 .chip {
   padding: 5px 11px;

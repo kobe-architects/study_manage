@@ -157,10 +157,11 @@ export async function renderNotePage(note: MistakeNoteDetail, opts: PageOptions)
   const head = [note.subjectName ?? '科目なし', note.field].filter(Boolean).join(' ／ ')
   x.fillText(head, ox, oy + 18)
   const hw = x.measureText(head).width
-  if (note.title) {
+  const titleText = [note.studyItemName, note.title].filter(Boolean).join('　')
+  if (titleText) {
     x.fillStyle = INK
     x.font = `700 24px ${FONT}`
-    x.fillText(note.title, ox + hw + 22, oy + 18)
+    x.fillText(titleText, ox + hw + 22, oy + 18)
   }
   x.fillStyle = '#6b7280'
   x.font = `400 16px ${FONT}`

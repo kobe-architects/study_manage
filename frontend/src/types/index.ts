@@ -828,6 +828,14 @@ export interface MistakeNoteSummary {
   subjectName: string | null
   colorSoft: string | null
   colorVivid: string | null
+  /** 分野: 大分類（必須）→ 中分類（必須）→ 小分類（任意）。学習項目データの構造を使う */
+  majorId: number | null
+  majorName: string | null
+  midId: number | null
+  midName: string | null
+  studyItemId: number | null
+  studyItemName: string | null
+  /** 表示用「大分類 ／ 中分類」 */
   field: string | null
   title: string | null
   source: string | null

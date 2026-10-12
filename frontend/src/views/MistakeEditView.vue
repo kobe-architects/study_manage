@@ -14,7 +14,7 @@ import { bottomOf, defaultTextItem, ensureLayout, fileToJpeg, fitExtra, fitProbl
 import { isTouch, viewportWidth } from '@/lib/native'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
-import type { MistakeLayout, MistakeLayoutItem, MistakeNoteDetail, MistakeNoteSummary } from '@/types'
+import type { MistakeLayout, MistakeLayoutItem, MistakeNoteDetail } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,48 +25,97 @@ const noteId = computed(() => (route.name === 'mistake-edit' ? Number(route.para
 const note = ref<MistakeNoteDetail | null>(null)
 const layout = ref<MistakeLayout>(ensureLayout())
 const urls = reactive<Record<number, string>>({})
-const meta = reactive({ subjectId: 0, field: '', title: '', source: '', notedOn: iso(new Date()) })
+const meta = reactive({ subjectId: 0, majorId: 0, midId: 0, studyItemId: 0, title: '', source: '', notedOn: iso(new Date()) })
+/** 科目・大分類・中分類が選ばれている（登録・保存の条件） */
+const categoriesReady = computed(() => meta.subjectId > 0 && meta.majorId > 0 && meta.midId > 0)
 const loading = ref(true)
 const busy = ref(false)
 const saveState = ref<'none' | 'dirty' | 'saving' | 'saved' | 'error'>('none')
 const isMobile = computed(() => viewportWidth.value < 860)
 const hasProblem = computed(() => layout.value.items.some((i) => i.role === 'problem'))
 
-// ---- 科目・分野の候補 ----
+// ---- 科目 → 大分類 → 中分類 → 小分類 の候補（学習項目データから） ----
 const subjects = computed(() => {
   const m = new Map<number, { id: number; name: string; color: string }>()
   for (const it of study.items) if (!m.has(it.subjectId)) m.set(it.subjectId, { id: it.subjectId, name: it.subjectName, color: ui.colorOf(it.colorSoft, it.colorVivid) })
   return Array.from(m.values())
 })
-const allNotes = ref<MistakeNoteSummary[]>([])
-const fieldOptions = computed(() => {
-  const out: string[] = []
-  for (const it of study.items) if (it.subjectId === meta.subjectId && !out.includes(it.major)) out.push(it.major)
-  for (const n of allNotes.value) if (n.subjectId === meta.subjectId && n.field && !out.includes(n.field)) out.push(n.field)
-  return out
+const majors = computed(() => {
+  const m = new Map<number, { id: number; name: string }>()
+  for (const it of study.items) if (it.subjectId === meta.subjectId && !m.has(it.majorId)) m.set(it.majorId, { id: it.majorId, name: it.major })
+  return Array.from(m.values())
 })
+const mids = computed(() => {
+  const m = new Map<number, { id: number; name: string }>()
+  for (const it of study.items) if (it.majorId === meta.majorId && !m.has(it.midId)) m.set(it.midId, { id: it.midId, name: it.mid })
+  return Array.from(m.values())
+})
+const subs = computed(() => study.items.filter((it) => it.midId === meta.midId).map((it) => ({ id: it.id, name: it.sub })))
 const subjectColor = computed(() => subjects.value.find((s) => s.id === meta.subjectId)?.color)
+
+// 上の階層を変えたら下の階層を選び直す
+watch(
+  () => meta.subjectId,
+  () => {
+    if (loading.value) return
+    if (!majors.value.some((m) => m.id === meta.majorId)) {
+      meta.majorId = 0
+      meta.midId = 0
+      meta.studyItemId = 0
+    }
+  },
+)
+watch(
+  () => meta.majorId,
+  () => {
+    if (loading.value) return
+    if (!mids.value.some((m) => m.id === meta.midId)) {
+      meta.midId = 0
+      meta.studyItemId = 0
+    }
+  },
+)
+watch(
+  () => meta.midId,
+  () => {
+    if (loading.value) return
+    if (!subs.value.some((s) => s.id === meta.studyItemId)) meta.studyItemId = 0
+  },
+)
 
 // ---- 読み込み ----
 async function load() {
   loading.value = true
   try {
-    mistakeApi.list().then((l) => (allNotes.value = l)).catch(() => {})
+    if (!study.items.length) await study.fetchItems().catch(() => {})
     if (noteId.value) {
       const d = await mistakeApi.show(noteId.value)
       note.value = d
       layout.value = ensureLayout(d.layout)
       meta.subjectId = d.subjectId ?? 0
-      meta.field = d.field ?? ''
+      meta.majorId = d.majorId ?? 0
+      meta.midId = d.midId ?? 0
+      meta.studyItemId = d.studyItemId ?? 0
       meta.title = d.title ?? ''
       meta.source = d.source ?? ''
       meta.notedOn = d.notedOn
       await Promise.all(d.images.map((im) => imageObjectUrl(im.id).then((u) => (urls[im.id] = u)).catch(() => {})))
       saveState.value = 'saved'
     } else {
-      // 新規: 科目は前回使ったもの
-      const last = Number(localStorage.getItem('sm_mn_subject') ?? 0)
-      meta.subjectId = subjects.value.some((s) => s.id === last) ? last : (subjects.value[0]?.id ?? 0)
+      // 新規: 科目・分野は前回使ったもの
+      try {
+        const last = JSON.parse(localStorage.getItem('sm_mn_cat') ?? '{}') as { subjectId?: number; majorId?: number; midId?: number }
+        if (subjects.value.some((s) => s.id === last.subjectId)) {
+          meta.subjectId = last.subjectId!
+          if (majors.value.some((m) => m.id === last.majorId)) {
+            meta.majorId = last.majorId!
+            if (mids.value.some((m) => m.id === last.midId)) meta.midId = last.midId!
+          }
+        }
+      } catch {
+        // ignore
+      }
+      if (!meta.subjectId) meta.subjectId = subjects.value[0]?.id ?? 0
     }
   } catch {
     ui.notify('間違いノートが見つかりません')
@@ -76,17 +125,16 @@ async function load() {
   }
 }
 onMounted(load)
-watch(
-  () => meta.subjectId,
-  (id) => {
-    if (id) localStorage.setItem('sm_mn_subject', String(id))
-  },
-)
+watch(categoriesReady, (ok) => {
+  if (ok) localStorage.setItem('sm_mn_cat', JSON.stringify({ subjectId: meta.subjectId, majorId: meta.majorId, midId: meta.midId }))
+})
 
 function metaPayload() {
   return {
     subjectId: meta.subjectId || null,
-    field: meta.field.trim() || null,
+    majorId: meta.majorId || null,
+    midId: meta.midId || null,
+    studyItemId: meta.studyItemId || null,
     title: meta.title.trim() || null,
     source: meta.source.trim() || null,
     notedOn: meta.notedOn,
@@ -104,6 +152,10 @@ function scheduleSave() {
 }
 async function saveNow() {
   if (!note.value) return
+  if (!categoriesReady.value) {
+    saveState.value = 'dirty'
+    return // 大分類・中分類を選び直している途中は送らない
+  }
   window.clearTimeout(timer)
   const seq = ++saveSeq
   saveState.value = 'saving'
@@ -145,6 +197,10 @@ const extraInput = ref<HTMLInputElement | null>(null)
 /** 対象の問題の写真を登録（初回は保存の開始、2 回目以降は差し替え） */
 async function setProblem(file: Blob) {
   if (busy.value) return
+  if (!note.value && !categoriesReady.value) {
+    ui.notify('先に科目・大分類・中分類を選んでください')
+    return
+  }
   busy.value = true
   try {
     const { blob, width, height } = await fileToJpeg(file)
@@ -276,7 +332,7 @@ const saveLabel = computed(
           </button>
           <div class="ttl">{{ note ? '間違いノートを編集' : '問題を追加' }}</div>
           <HelpTip
-            text="対象の問題の写真は必須です。スマホ・iPad では「撮影する」でカメラ、PC では画像をコピーして Ctrl+V、またはファイルをドラッグ＆ドロップで登録できます。写真の下に「文字」で入力、iPad では「ペン」で手書きできます（Apple Pencil 推奨。指で書くときは「指で書く」を ON）。説明用の画像は「選択」でドラッグして移動、右下のつまみで大きさを変えられます。変更は自動で保存されます。"
+            text="科目・大分類・中分類（学習項目データの分類）を選んでから、対象の問題の写真を登録します（小分類は任意）。スマホ・iPad では「撮影する」でカメラ、PC では画像をコピーして Ctrl+V、またはファイルをドラッグ＆ドロップで登録できます。写真の下に「文字」で入力、iPad では「ペン」で手書きできます（Apple Pencil 推奨。指で書くときは「指で書く」を ON）。説明用の画像は「選択」でドラッグして移動、右下のつまみで大きさを変えられます。変更は自動で保存されます。"
           />
         </div>
         <div class="right">
@@ -288,18 +344,32 @@ const saveLabel = computed(
       <!-- 科目・分野・タイトルなど -->
       <div class="meta card">
         <label class="fld">
-          <span>科目</span>
+          <span>科目<b class="req">必須</b></span>
           <select v-model.number="meta.subjectId" :style="{ color: subjectColor, fontWeight: subjectColor ? 700 : undefined }">
-            <option :value="0">科目なし</option>
+            <option :value="0">選択してください</option>
             <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
           </select>
         </label>
         <label class="fld">
-          <span>分野</span>
-          <input v-model="meta.field" list="mn-fields" placeholder="例: 二次関数" />
-          <datalist id="mn-fields">
-            <option v-for="f in fieldOptions" :key="f" :value="f"></option>
-          </datalist>
+          <span>大分類<b class="req">必須</b></span>
+          <select v-model.number="meta.majorId" :class="{ empty: !meta.majorId }">
+            <option :value="0">選択してください</option>
+            <option v-for="m in majors" :key="m.id" :value="m.id">{{ m.name }}</option>
+          </select>
+        </label>
+        <label class="fld">
+          <span>中分類<b class="req">必須</b></span>
+          <select v-model.number="meta.midId" :class="{ empty: !meta.midId }" :disabled="!meta.majorId">
+            <option :value="0">選択してください</option>
+            <option v-for="m in mids" :key="m.id" :value="m.id">{{ m.name }}</option>
+          </select>
+        </label>
+        <label class="fld">
+          <span>小分類（任意）</span>
+          <select v-model.number="meta.studyItemId" :disabled="!meta.midId">
+            <option :value="0">指定しない</option>
+            <option v-for="s in subs" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
         </label>
         <label class="fld grow">
           <span>タイトル（任意）</span>
@@ -320,11 +390,12 @@ const saveLabel = computed(
         <input ref="problemInput" type="file" accept="image/*" :capture="isTouch ? 'environment' : undefined" hidden @change="onFile($event, 'problem')" />
         <input ref="extraInput" type="file" accept="image/*" hidden @change="onFile($event, 'extra')" />
         <span class="imgbar-label">対象の問題の写真<span v-if="!hasProblem" style="color: #cf5563">（必須）</span></span>
-        <button class="btn-dark" :disabled="busy" @click="problemInput?.click()">
+        <span v-if="!note && !categoriesReady" class="paste-hint" style="color: #cf5563">先に科目・大分類・中分類を選んでください</span>
+        <button class="btn-dark" :disabled="busy || (!note && !categoriesReady)" @click="problemInput?.click()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.2" /></svg>
           {{ isTouch ? (hasProblem ? '撮り直す' : '撮影する') : hasProblem ? '画像を差し替え' : '画像を選ぶ' }}
         </button>
-        <button v-if="isTouch" class="btn-ghost" :disabled="busy" @click="pickProblemFromLibrary">写真から選ぶ</button>
+        <button v-if="isTouch" class="btn-ghost" :disabled="busy || (!note && !categoriesReady)" @click="pickProblemFromLibrary">写真から選ぶ</button>
         <span class="sep"></span>
         <button class="btn-ghost" :disabled="busy || !hasProblem" @click="extraInput?.click()">＋ 説明用の画像を追加</button>
         <span v-if="!isTouch" class="paste-hint">画像をコピーして Ctrl+V、またはページへドラッグ＆ドロップでも登録できます</span>
@@ -415,6 +486,19 @@ const saveLabel = computed(
 .fld input:focus,
 .fld select:focus {
   border-color: #b9c2f2;
+}
+.fld select.empty {
+  border-color: #f0b8be;
+  background: #fdf3f4;
+}
+.fld select:disabled {
+  opacity: 0.5;
+}
+.req {
+  margin-left: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #cf5563;
 }
 .imgbar {
   display: flex;

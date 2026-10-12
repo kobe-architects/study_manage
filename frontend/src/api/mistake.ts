@@ -3,7 +3,9 @@ import type { MistakeImage, MistakeLayout, MistakeNoteDetail, MistakeNoteSummary
 
 export interface MistakeMetaInput {
   subjectId?: number | null
-  field?: string | null
+  majorId?: number | null
+  midId?: number | null
+  studyItemId?: number | null
   title?: string | null
   source?: string | null
   notedOn?: string
@@ -22,7 +24,9 @@ export const mistakeApi = {
     const fd = new FormData()
     fd.append('image', image, 'problem.jpg')
     if (meta.subjectId) fd.append('subjectId', String(meta.subjectId))
-    if (meta.field) fd.append('field', meta.field)
+    if (meta.majorId) fd.append('majorId', String(meta.majorId))
+    if (meta.midId) fd.append('midId', String(meta.midId))
+    if (meta.studyItemId) fd.append('studyItemId', String(meta.studyItemId))
     if (meta.title) fd.append('title', meta.title)
     if (meta.source) fd.append('source', meta.source)
     if (meta.notedOn) fd.append('notedOn', meta.notedOn)

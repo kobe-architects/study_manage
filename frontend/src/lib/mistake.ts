@@ -158,7 +158,7 @@ export async function loadImageEl(imageId: number): Promise<HTMLImageElement> {
   })
 }
 
-/** 科目 → 分野 のグループ（一覧・インデックス用）。順番は API の並び（バインダーのページ順）のまま */
+/** 科目 → 分野（大分類 ／ 中分類）のグループ（一覧・インデックス用）。順番は API の並び（バインダーのページ順）のまま */
 export interface MistakeGroup {
   key: string
   subjectId: number | null
@@ -168,10 +168,15 @@ export interface MistakeGroup {
   notes: MistakeNoteSummary[]
 }
 
+/** グループのキー（科目・大分類・中分類） */
+export function groupKeyOf(n: { subjectId: number | null; majorId: number | null; midId: number | null }): string {
+  return `${n.subjectId ?? 0}|${n.majorId ?? 0}|${n.midId ?? 0}`
+}
+
 export function groupNotes(notes: MistakeNoteSummary[]): MistakeGroup[] {
   const out: MistakeGroup[] = []
   for (const n of notes) {
-    const key = `${n.subjectId ?? 0}|${n.field ?? ''}`
+    const key = groupKeyOf(n)
     let g = out.find((x) => x.key === key)
     if (!g) {
       g = { key, subjectId: n.subjectId, subjectName: n.subjectName ?? '科目なし', color: n.colorSoft, field: n.field ?? '', notes: [] }

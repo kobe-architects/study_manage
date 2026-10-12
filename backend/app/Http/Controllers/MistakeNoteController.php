@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\MajorCategory;
+use App\Models\MidCategory;
 use App\Models\MistakeNote;
 use App\Models\MistakeNoteImage;
+use App\Models\StudyItem;
 use App\Models\Subject;
 use App\Support\ImageTools;
 use Illuminate\Http\JsonResponse;
@@ -26,30 +28,33 @@ class MistakeNoteController extends Controller
     public function index(Request $request): JsonResponse
     {
         $userId = $this->targetUserId($request);
-        $notes = MistakeNote::with(['subject', 'images'])->where('user_id', $userId)->get();
+        $notes = MistakeNote::with(self::WITH)->where('user_id', $userId)->get();
 
-        return response()->json(['data' => $this->sortForBinder($notes, $userId)->map(fn (MistakeNote $n) => $this->summary($n))->values()]);
+        return response()->json(['data' => $this->sortForBinder($notes)->map(fn (MistakeNote $n) => $this->summary($n))->values()]);
     }
 
-    /** 新規作成。対象の問題の写真（image）が必須。layout は JSON 文字列 */
+    private const WITH = ['subject', 'major', 'mid', 'item', 'images'];
+
+    /** 新規作成。対象の問題の写真（image）と 科目・大分類・中分類 が必須。layout は JSON 文字列 */
     public function store(Request $request): JsonResponse
     {
         $userId = $this->targetUserId($request);
         $data = $request->validate([
             'image' => ['required', 'image', 'mimes:jpeg,png,gif,webp', 'max:12288'],
-            'subjectId' => ['nullable', 'integer'],
-            'field' => ['nullable', 'string', 'max:100'],
+            'subjectId' => ['required', 'integer'],
+            'majorId' => ['required', 'integer'],
+            'midId' => ['required', 'integer'],
+            'studyItemId' => ['nullable', 'integer'],
             'title' => ['nullable', 'string', 'max:255'],
             'source' => ['nullable', 'string', 'max:255'],
             'notedOn' => ['nullable', 'date'],
             'layout' => ['nullable', 'string'],
         ]);
+        $cats = $this->categoriesOf($userId, $data);
 
-        $note = DB::transaction(function () use ($request, $userId, $data) {
-            $note = MistakeNote::create([
+        $note = DB::transaction(function () use ($request, $userId, $data, $cats) {
+            $note = MistakeNote::create($cats + [
                 'user_id' => $userId,
-                'subject_id' => $this->subjectIdOf($userId, $data['subjectId'] ?? null),
-                'field' => $this->nullable($data['field'] ?? null),
                 'title' => $this->nullable($data['title'] ?? null),
                 'source' => $this->nullable($data['source'] ?? null),
                 'noted_on' => $data['notedOn'] ?? now()->toDateString(),
@@ -61,22 +66,24 @@ class MistakeNoteController extends Controller
             return $note;
         });
 
-        return response()->json(['data' => $this->detail($note->fresh(['subject', 'images']))], 201);
+        return response()->json(['data' => $this->detail($note->fresh(self::WITH))], 201);
     }
 
     public function show(Request $request, MistakeNote $note): JsonResponse
     {
         $this->authorizeNote($request, $note);
 
-        return response()->json(['data' => $this->detail($note->load(['subject', 'images']))]);
+        return response()->json(['data' => $this->detail($note->load(self::WITH))]);
     }
 
     public function update(Request $request, MistakeNote $note): JsonResponse
     {
         $this->authorizeNote($request, $note);
         $data = $request->validate([
-            'subjectId' => ['sometimes', 'nullable', 'integer'],
-            'field' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'subjectId' => ['sometimes', 'required', 'integer'],
+            'majorId' => ['sometimes', 'required', 'integer'],
+            'midId' => ['sometimes', 'required', 'integer'],
+            'studyItemId' => ['sometimes', 'nullable', 'integer'],
             'title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'source' => ['sometimes', 'nullable', 'string', 'max:255'],
             'notedOn' => ['sometimes', 'required', 'date'],
@@ -85,10 +92,16 @@ class MistakeNoteController extends Controller
         ]);
 
         $attrs = [];
-        if (array_key_exists('subjectId', $data)) {
-            $attrs['subject_id'] = $this->subjectIdOf($note->user_id, $data['subjectId']);
+        // 分野はまとめて検証する（指定のない項目は今の値を使う）
+        if (array_key_exists('subjectId', $data) || array_key_exists('majorId', $data) || array_key_exists('midId', $data) || array_key_exists('studyItemId', $data)) {
+            $attrs = $this->categoriesOf($note->user_id, [
+                'subjectId' => $data['subjectId'] ?? $note->subject_id,
+                'majorId' => $data['majorId'] ?? $note->major_category_id,
+                'midId' => $data['midId'] ?? $note->mid_category_id,
+                'studyItemId' => array_key_exists('studyItemId', $data) ? $data['studyItemId'] : $note->study_item_id,
+            ]);
         }
-        foreach (['field', 'title', 'source'] as $k) {
+        foreach (['title', 'source'] as $k) {
             if (array_key_exists($k, $data)) {
                 $attrs[$k] = $this->nullable($data[$k]);
             }
@@ -105,7 +118,7 @@ class MistakeNoteController extends Controller
         }
         $note->update($attrs);
 
-        return response()->json(['data' => $this->detail($note->fresh(['subject', 'images']))]);
+        return response()->json(['data' => $this->detail($note->fresh(self::WITH))]);
     }
 
     public function destroy(Request $request, MistakeNote $note): JsonResponse
@@ -194,15 +207,32 @@ class MistakeNoteController extends Controller
         abort_unless($note->user_id === $this->targetUserId($request), 403);
     }
 
-    private function subjectIdOf(int $userId, mixed $id): ?int
+    /**
+     * 科目 → 大分類 → 中分類（→ 小分類）の指定を検証し、保存する列に変換する。
+     * 大分類は科目のもの、中分類は大分類のもの、小分類は中分類のものに限る。
+     *
+     * @return array{subject_id: int, major_category_id: int, mid_category_id: int, study_item_id: ?int}
+     */
+    private function categoriesOf(int $userId, array $in): array
     {
-        if ($id === null || $id === '' || (int) $id === 0) {
-            return null;
+        $subject = Subject::where('user_id', $userId)->whereKey((int) ($in['subjectId'] ?? 0))->first();
+        abort_if($subject === null, 422, '科目を選んでください。');
+        $major = MajorCategory::where('subject_id', $subject->id)->whereKey((int) ($in['majorId'] ?? 0))->first();
+        abort_if($major === null, 422, '大分類を選んでください。');
+        $mid = MidCategory::where('major_category_id', $major->id)->whereKey((int) ($in['midId'] ?? 0))->first();
+        abort_if($mid === null, 422, '中分類を選んでください。');
+        $item = null;
+        if (! empty($in['studyItemId'])) {
+            $item = StudyItem::where('mid_category_id', $mid->id)->whereKey((int) $in['studyItemId'])->first();
+            abort_if($item === null, 422, '小分類が見つかりません。');
         }
-        $subject = Subject::where('user_id', $userId)->whereKey((int) $id)->first();
-        abort_if($subject === null, 422, '科目が見つかりません。');
 
-        return $subject->id;
+        return [
+            'subject_id' => $subject->id,
+            'major_category_id' => $major->id,
+            'mid_category_id' => $mid->id,
+            'study_item_id' => $item?->id,
+        ];
     }
 
     private function nullable(?string $v): ?string
@@ -270,24 +300,20 @@ class MistakeNoteController extends Controller
     }
 
     /**
-     * バインダーのページ順に並べる: 科目（科目の並び順・未設定は最後）→ 分野（大分類の並び順に一致すればその順、それ以外は名前順・未設定は最後）→ 並び順
+     * バインダーのページ順に並べる: 科目（並び順・未設定は最後）→ 大分類（並び順）→ 中分類（並び順）→ 並び順
      *
      * @param  \Illuminate\Support\Collection<int, MistakeNote>  $notes
      * @return \Illuminate\Support\Collection<int, MistakeNote>
      */
-    private function sortForBinder($notes, int $userId)
+    private function sortForBinder($notes)
     {
-        $fieldOrder = [];
-        $majors = MajorCategory::whereIn('subject_id', Subject::where('user_id', $userId)->pluck('id'))->get(['subject_id', 'name', 'sort_order']);
-        foreach ($majors as $m) {
-            $fieldOrder[$m->subject_id][$m->name] = (int) $m->sort_order;
-        }
         $key = fn (MistakeNote $n) => [
             $n->subject?->sort_order ?? PHP_INT_MAX,
             $n->subject_id ?? PHP_INT_MAX,
-            $n->field === null ? 1 : 0,
-            $fieldOrder[$n->subject_id][$n->field] ?? PHP_INT_MAX,
-            (string) $n->field,
+            $n->major?->sort_order ?? PHP_INT_MAX,
+            $n->major_category_id ?? PHP_INT_MAX,
+            $n->mid?->sort_order ?? PHP_INT_MAX,
+            $n->mid_category_id ?? PHP_INT_MAX,
             (int) $n->sort_order,
             (int) $n->id,
         ];
@@ -298,6 +324,7 @@ class MistakeNoteController extends Controller
     private function summary(MistakeNote $n): array
     {
         $problem = $n->images->firstWhere('role', 'problem');
+        $field = implode(' ／ ', array_filter([$n->major?->name, $n->mid?->name], fn ($v) => $v !== null && $v !== ''));
 
         return [
             'id' => $n->id,
@@ -305,7 +332,13 @@ class MistakeNoteController extends Controller
             'subjectName' => $n->subject?->name,
             'colorSoft' => $n->subject?->color_soft,
             'colorVivid' => $n->subject?->color_vivid,
-            'field' => $n->field,
+            'majorId' => $n->major_category_id,
+            'majorName' => $n->major?->name,
+            'midId' => $n->mid_category_id,
+            'midName' => $n->mid?->name,
+            'studyItemId' => $n->study_item_id,
+            'studyItemName' => $n->item?->name,
+            'field' => $field !== '' ? $field : null,
             'title' => $n->title,
             'source' => $n->source,
             'notedOn' => $n->noted_on->toDateString(),

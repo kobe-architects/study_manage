@@ -7,7 +7,7 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { mistakeApi } from '@/api/mistake'
-import { PAGE_H, PAGE_W, groupNotes } from '@/lib/mistake'
+import { PAGE_H, PAGE_W, groupKeyOf, groupNotes } from '@/lib/mistake'
 import { renderNotePage } from '@/lib/mistakeRender'
 import { viewportWidth } from '@/lib/native'
 import type { MistakeNoteDetail, MistakeNoteSummary } from '@/types'
@@ -105,7 +105,7 @@ const fieldsOfActive = computed(() =>
     .filter((g) => String(g.subjectId ?? 0) === activeSubjectKey.value)
     .map((g) => ({ key: g.key, field: g.field || '（分野なし）', first: props.notes.indexOf(g.notes[0]!) })),
 )
-const activeFieldKey = computed(() => `${current.value?.subjectId ?? 0}|${current.value?.field ?? ''}`)
+const activeFieldKey = computed(() => (current.value ? groupKeyOf(current.value) : ''))
 
 // ---- 操作 ----
 function onKey(e: KeyboardEvent) {
