@@ -780,3 +780,67 @@ export interface GanttChart {
   /** 詳細取得（show）のときのみ */
   rows?: GanttRow[]
 }
+
+// ===== 間違いノート =====
+export type MistakeImageRole = 'problem' | 'extra'
+
+export interface MistakeImage {
+  id: number
+  role: MistakeImageRole
+  width: number
+  height: number
+  url: string
+  thumbUrl: string
+}
+
+/** ページ内に置くもの（問題の写真・説明用の画像・文字）。座標はページ内容の座標系（NOTE_W × NOTE_H） */
+export interface MistakeLayoutItem {
+  id: string
+  type: 'image' | 'text'
+  /** type=image のとき */
+  imageId?: number
+  /** 対象の問題の写真 */
+  role?: 'problem'
+  /** type=text のとき */
+  text?: string
+  fontSize?: number
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/** ペンの線。points は [x0, y0, x1, y1, ...] */
+export interface MistakeStroke {
+  color: string
+  width: number
+  points: number[]
+}
+
+export interface MistakeLayout {
+  items: MistakeLayoutItem[]
+  ink: MistakeStroke[]
+}
+
+export interface MistakeNoteSummary {
+  id: number
+  subjectId: number | null
+  subjectName: string | null
+  colorSoft: string | null
+  colorVivid: string | null
+  field: string | null
+  title: string | null
+  source: string | null
+  notedOn: string // ISO
+  hidden: boolean
+  sortOrder: number
+  problemImageId: number | null
+  problemThumbUrl: string | null
+  imageCount: number
+  updatedAt: string | null
+}
+
+export interface MistakeNoteDetail extends MistakeNoteSummary {
+  layout: MistakeLayout
+  images: MistakeImage[]
+}

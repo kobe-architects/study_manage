@@ -4,6 +4,7 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\GanttController;
+use App\Http\Controllers\MistakeNoteController;
 use App\Http\Controllers\GoalController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\RecordController;
@@ -105,6 +106,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/gantt-rows/{row}/tasks', [GanttController::class, 'storeTask']);
         Route::put('/gantt-tasks/{task}', [GanttController::class, 'updateTask']);
         Route::delete('/gantt-tasks/{task}', [GanttController::class, 'destroyTask']);
+
+        // ===== 間違いノート（1 問 = 1 ページ。写真・手書き・入力。科目 → 分野で管理） =====
+        Route::get('/mistake-notes', [MistakeNoteController::class, 'index']);
+        Route::post('/mistake-notes', [MistakeNoteController::class, 'store']); // multipart（問題の写真が必須）
+        Route::put('/mistake-notes/reorder', [MistakeNoteController::class, 'reorder']);
+        Route::get('/mistake-notes/{note}', [MistakeNoteController::class, 'show']);
+        Route::put('/mistake-notes/{note}', [MistakeNoteController::class, 'update']);
+        Route::delete('/mistake-notes/{note}', [MistakeNoteController::class, 'destroy']);
+        Route::post('/mistake-notes/{note}/images', [MistakeNoteController::class, 'storeImage']);
+        Route::get('/mistake-note-images/{image}', [MistakeNoteController::class, 'image']);
+        Route::delete('/mistake-note-images/{image}', [MistakeNoteController::class, 'destroyImage']);
 
         // ===== 家庭教師アカウント管理 =====
         Route::get('/tutors', [TutorAccountController::class, 'index']);
