@@ -8,7 +8,8 @@
  * - 移動: ホイールボタン（中ボタン）のドラッグ、指 1 本（書く設定でないとき）／指 2 本のドラッグ
  * - 選択: 画像・文字の枠をドラッグで移動、右下のつまみで大きさ変更
  * - ペン / 消しゴム: Apple Pencil・マウスで書く。指は既定では移動（「指で書く」を ON にすると指でも書ける）
- * - 文字: 空いている所をクリック（タップ）するとその位置に文字の枠ができ、枠の中で入力
+ * - 文字: 空いている所をクリック（タップ）するとその位置に文字の枠ができ、枠の中で入力。枠の縁をつまむと入力中でも移動できる。
+ *   何も入力しないまま枠から離れると、その枠は自動で消える
  * 変更はひとまとまりごとに update:layout で親へ渡す（親が自動保存する）。写真の登録・画像の追加は親に頼む（requestProblem / requestExtra）。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -214,7 +215,7 @@ function onDown(e: PointerEvent) {
     return
   }
 
-  // 選択・文字: 枠の操作
+  // 選択・文字: 枠の操作（文字モードでは枠の縁 [data-move] をつまむと移動）
   const handle = target.closest<HTMLElement>('[data-handle]')
   const itemEl = target.closest<HTMLElement>('[data-item]')
   const id = (handle ?? itemEl)?.dataset.item
@@ -346,11 +347,31 @@ const TEXT_W = 560
 const TEXT_H = 220
 let textSnapshotFor: string | null = null
 function onTextFocus(it: MistakeLayoutItem) {
+  selectedId.value = it.id
   if (textSnapshotFor !== it.id) {
     snapshot()
     textSnapshotFor = it.id
   }
 }
+/** 何も入力されないまま枠から離れたら、その枠は残さず消す（動かしている最中は消さない） */
+function onTextBlur(it: MistakeLayoutItem) {
+  window.setTimeout(() => discardIfEmpty(it.id), 150)
+}
+function discardIfEmpty(id: string) {
+  if (drag?.id === id) return
+  const cur = props.layout.items.find((x) => x.id === id)
+  if (!cur || cur.type !== 'text' || (cur.text ?? '').trim()) return
+  const ta = stage.value?.querySelector<HTMLTextAreaElement>(`[data-item="${id}"] textarea`)
+  if (ta && document.activeElement === ta) return
+  emit('update:layout', { items: props.layout.items.filter((x) => x.id !== id), ink: props.layout.ink })
+  if (selectedId.value === id) selectedId.value = null
+}
+// 文字モードを離れるときも、空の枠は片づける
+watch(tool, (t, prev) => {
+  if (prev === 'text' && t !== 'text') {
+    for (const it of props.layout.items) if (it.type === 'text') discardIfEmpty(it.id)
+  }
+})
 function onTextInput(it: MistakeLayoutItem, e: Event) {
   const text = (e.target as HTMLTextAreaElement).value
   emit('update:layout', { items: props.layout.items.map((x) => (x.id === it.id ? { ...x, text } : x)), ink: props.layout.ink })
@@ -555,8 +576,16 @@ onBeforeUnmount(() => {
             :style="{ fontSize: (it.fontSize ?? DEFAULT_FONT) + 'px', lineHeight: LINE_HEIGHT }"
             spellcheck="false"
             @focus="onTextFocus(it)"
+            @blur="onTextBlur(it)"
             @input="onTextInput(it, $event)"
           ></textarea>
+          <!-- 文字モードでも枠の縁をつまんで動かせるようにする（上下左右の帯） -->
+          <template v-if="it.type === 'text' && tool === 'text'">
+            <span class="mv t" data-move :data-item="it.id"></span>
+            <span class="mv b" data-move :data-item="it.id"></span>
+            <span class="mv l" data-move :data-item="it.id"></span>
+            <span class="mv r" data-move :data-item="it.id"></span>
+          </template>
           <span v-if="it.role === 'problem'" class="tag">問題</span>
           <span v-if="selectedId === it.id" class="hdl" data-handle="se" :data-item="it.id"></span>
         </div>
@@ -798,6 +827,40 @@ onBeforeUnmount(() => {
 }
 .tool-select .item:hover {
   outline: 2px dashed #b9c2f2;
+}
+/* 文字モードで枠の縁に当てたときの帯（画面上で約 14px。拡縮しても同じ太さ） */
+.mv {
+  position: absolute;
+  pointer-events: auto;
+  cursor: move;
+  touch-action: none;
+}
+.mv.t,
+.mv.b {
+  left: calc(-7px * var(--inv, 1));
+  right: calc(-7px * var(--inv, 1));
+  height: calc(14px * var(--inv, 1));
+}
+.mv.t {
+  top: calc(-7px * var(--inv, 1));
+}
+.mv.b {
+  bottom: calc(-7px * var(--inv, 1));
+}
+.mv.l,
+.mv.r {
+  top: calc(-7px * var(--inv, 1));
+  bottom: calc(-7px * var(--inv, 1));
+  width: calc(14px * var(--inv, 1));
+}
+.mv.l {
+  left: calc(-7px * var(--inv, 1));
+}
+.mv.r {
+  right: calc(-7px * var(--inv, 1));
+}
+.item.text:has(.mv:hover) {
+  outline: calc(2px * var(--inv, 1)) solid var(--primary);
 }
 .item.sel {
   outline: 3px solid var(--primary);
