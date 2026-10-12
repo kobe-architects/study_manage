@@ -14,7 +14,7 @@ import HelpTip from '@/components/HelpTip.vue'
 import { ganttApi, type GanttChartDetail, type GanttTaskInput } from '@/api/gantt'
 import { appConfirm } from '@/lib/dialog'
 import { showPdf, useInAppViewer } from '@/lib/docViewer'
-import { GANTT_ZOOMS, fmtYm, type GanttZoom } from '@/lib/gantt'
+import { GANTT_SNAPS, GANTT_ZOOMS, fmtYm, type GanttSnap, type GanttZoom } from '@/lib/gantt'
 import { renderGanttImage } from '@/lib/ganttRender'
 import { isTouch, saveFile, viewportWidth } from '@/lib/native'
 import { vSeg } from '@/lib/segSlide'
@@ -56,6 +56,12 @@ const ZOOM_KEY = 'sm_gantt_zoom'
 const zoom = ref<GanttZoom>((localStorage.getItem(ZOOM_KEY) as GanttZoom | null) ?? 'fit')
 if (!GANTT_ZOOMS.some((z) => z.key === zoom.value)) zoom.value = 'fit'
 watch(zoom, (z) => localStorage.setItem(ZOOM_KEY, z))
+
+// ---- ドラッグの単位（端末に記憶。既定は 10 日: 1日・11日・21日 / 10日・20日・月末 に吸着） ----
+const SNAP_KEY = 'sm_gantt_snap'
+const snap = ref<GanttSnap>((localStorage.getItem(SNAP_KEY) as GanttSnap | null) ?? 'ten')
+if (!GANTT_SNAPS.some((s) => s.key === snap.value)) snap.value = 'ten'
+watch(snap, (s) => localStorage.setItem(SNAP_KEY, s))
 
 function findRow(id: number): GanttRow | undefined {
   return chart.value?.rows.find((r) => r.id === id)
@@ -311,8 +317,8 @@ function errorMessage(e: unknown, fallback: string): string {
 }
 
 const helpText = isTouch
-  ? '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べます。バーを横にドラッグすると期間ごと移動、両端を引っ張ると開始日・終了日を変えられます（1日単位）。バーをタップすると編集、行の名前をタップすると行の編集、行の「＋」で区間を追加、左端の取っ手を上下にドラッグすると並び替えです。「全体」倍率は横スクロールなしで全期間を表示します。'
-  : '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べます。バーを横にドラッグすると期間ごと移動、両端をドラッグすると開始日・終了日を変えられます（1日単位）。バーをクリックすると編集、行の名前をクリックすると行の編集、行の空いている場所をダブルクリックするとその日から始まる区間を追加、左端の取っ手を上下にドラッグすると並び替えです。「全体」倍率は横スクロールなしで全期間を表示します。'
+  ? '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べます。バーを横にドラッグすると期間ごと移動、両端を引っ張ると開始日・終了日を変えられます。動く単位は「単位」で選べ、10日では 1日・11日・21日で始まり 10日・20日・月末で終わるように吸着、月では月初〜月末に吸着します（細かく動かすときは 1日）。バーをタップすると編集、行の名前をタップすると行の編集、行の「＋」で区間を追加、左端の取っ手を上下にドラッグすると並び替えです。'
+  : '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べます。バーを横にドラッグすると期間ごと移動、両端をドラッグすると開始日・終了日を変えられます。動く単位は「単位」で選べ、10日では 1日・11日・21日で始まり 10日・20日・月末で終わるように吸着、月では月初〜月末に吸着します（細かく動かすときは 1日）。バーをクリックすると編集、行の名前をクリックすると行の編集、行の空いている場所をダブルクリックするとその日から始まる区間を追加、左端の取っ手を上下にドラッグすると並び替えです。'
 </script>
 
 <template>
@@ -337,6 +343,12 @@ const helpText = isTouch
             <button v-for="z in GANTT_ZOOMS" :key="z.key" class="seg-btn" :class="{ on: zoom === z.key }" @click="zoom = z.key">{{ z.label }}</button>
           </div>
           <button v-if="zoom !== 'fit'" class="btn-ghost" @click="board?.scrollToToday()">今日</button>
+          <div class="snap">
+            <span class="snap-label">単位</span>
+            <div v-seg class="seg">
+              <button v-for="s in GANTT_SNAPS" :key="s.key" class="seg-btn" :class="{ on: snap === s.key }" :title="s.key === 'ten' ? '1日・11日・21日で始まり、10日・20日・月末で終わる' : s.key === 'month' ? '月初で始まり、月末で終わる' : '1日ずつ'" @click="snap = s.key">{{ s.label }}</button>
+            </div>
+          </div>
           <div class="export" :class="{ busy: exporting }">
             <ActionMenu :items="exportItems" label="出力" @select="onExport" />
           </div>
@@ -352,6 +364,7 @@ const helpText = isTouch
         :start-on="chart.startOn"
         :end-on="chart.endOn"
         :zoom="zoom"
+        :snap="snap"
         @move="onMove"
         @reorder="onReorder"
         @edit-task="openEditTask"
@@ -500,6 +513,16 @@ const helpText = isTouch
 .export.busy {
   opacity: 0.5;
   pointer-events: none;
+}
+.snap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.snap-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--faint);
 }
 .btn-dark {
   display: flex;

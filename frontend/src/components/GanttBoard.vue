@@ -9,7 +9,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { daysBetween, parseDate } from '@/lib/design'
-import { GANTT_ZOOMS, addDays, isDark, isoAt, monthSpans, todayIso, yearSpans, type GanttZoom } from '@/lib/gantt'
+import { GANTT_ZOOMS, addDays, isDark, isoAt, monthSpans, snapDate, todayIso, yearSpans, type GanttSnap, type GanttZoom } from '@/lib/gantt'
 import { haptic, viewportWidth } from '@/lib/native'
 import { useUiStore } from '@/stores/ui'
 import type { GanttRow, GanttTask } from '@/types'
@@ -21,7 +21,7 @@ function rowColor(row: GanttRow): string | undefined {
   return row.colorSoft && row.colorVivid ? ui.colorOf(row.colorSoft, row.colorVivid) : undefined
 }
 
-const props = defineProps<{ rows: GanttRow[]; startOn: string; endOn: string; zoom: GanttZoom }>()
+const props = defineProps<{ rows: GanttRow[]; startOn: string; endOn: string; zoom: GanttZoom; snap: GanttSnap }>()
 const emit = defineEmits<{
   move: [task: GanttTask, startOn: string, endOn: string]
   reorder: [ids: number[]]
@@ -136,7 +136,7 @@ interface RowView {
   outsideCount: number
 }
 
-const drag = reactive({ id: 0, mode: 'move' as 'move' | 'l' | 'r', x0: 0, lastX: 0, ds: 0, de: 0, s0: 0, e0: 0, moved: false })
+const drag = reactive({ id: 0, mode: 'move' as 'move' | 'l' | 'r', x0: 0, lastX: 0, ds: 0, de: 0, s0: 0, e0: 0, moved: false, milestone: false })
 
 const rowViews = computed<RowView[]>(() => {
   let prevGroup: string | null | undefined
@@ -199,26 +199,58 @@ function onBarDown(e: PointerEvent, t: GanttTask, mode: 'move' | 'l' | 'r') {
   const bar = (e.currentTarget as HTMLElement).closest<HTMLElement>('.gbar, .gms')
   if (!bar) return
   bar.setPointerCapture(e.pointerId)
-  Object.assign(drag, { id: t.id, mode, x0: contentX(e.clientX), lastX: e.clientX, ds: 0, de: 0, s0: idx(t.startOn), e0: idx(t.endOn), moved: false })
+  Object.assign(drag, {
+    id: t.id,
+    mode,
+    x0: contentX(e.clientX),
+    lastX: e.clientX,
+    ds: 0,
+    de: 0,
+    s0: idx(t.startOn),
+    e0: idx(t.endOn),
+    moved: false,
+    milestone: t.kind === 'milestone',
+  })
+}
+
+/** インデックスを単位の区切り（1日・11日・21日 ／ 10日・20日・月末 など）に吸着させる */
+function snapIdx(i: number, kind: 'start' | 'end', dir: 'nearest' | 'up' | 'down' = 'nearest'): number {
+  if (props.snap === 'day') return i
+  return daysBetween(rangeStart.value, snapDate(addDays(rangeStart.value, i), props.snap, kind, dir))
 }
 
 function applyDrag(clientX: number) {
   const dx = contentX(clientX) - drag.x0
   if (!drag.moved && Math.abs(dx) < 4) return
   drag.moved = true
-  let d = Math.round(dx / dayW.value)
+  const d = Math.round(dx / dayW.value)
   const len = drag.e0 - drag.s0
   const last = totalDays.value - 1
   if (drag.mode === 'move') {
-    d = Math.max(-drag.s0, Math.min(last - drag.e0, d))
-    drag.ds = d
-    drag.de = d
+    // 開始・終了をそれぞれ区切りに吸着させる（月初〜月末のバーは動かしても月初〜月末のまま）
+    let s = snapIdx(drag.s0 + d, 'start')
+    let e = drag.milestone ? s : snapIdx(drag.e0 + d, 'end')
+    if (e < s) e = s + len // 短いバーで吸着後に逆転したら長さを保つ
+    if (s < 0) {
+      e -= s
+      s = 0
+    }
+    if (e > last) {
+      s = Math.max(0, s - (e - last))
+      e = last
+    }
+    drag.ds = s - drag.s0
+    drag.de = e - drag.e0
   } else if (drag.mode === 'l') {
-    d = Math.max(-drag.s0, Math.min(len, d))
-    drag.ds = d
+    // 開始日が終了日を越えたら、終了日以前で最も近い区切り（月初など）に止める
+    let s = snapIdx(drag.s0 + d, 'start')
+    if (s > drag.e0) s = snapIdx(drag.e0, 'start', 'down')
+    drag.ds = Math.max(0, Math.min(drag.e0, s)) - drag.s0
   } else {
-    d = Math.max(-len, Math.min(last - drag.e0, d))
-    drag.de = d
+    // 終了日が開始日より前になったら、開始日以降で最も近い区切り（月末など）に止める
+    let e = snapIdx(drag.e0 + d, 'end')
+    if (e < drag.s0) e = snapIdx(drag.s0, 'end', 'up')
+    drag.de = Math.max(drag.s0, Math.min(last, e)) - drag.e0
   }
 }
 
@@ -480,6 +512,10 @@ onBeforeUnmount(() => {
                 <span v-if="b.task.progress > 0" class="gprog" :style="{ width: `calc((100% - 6px) * ${Math.min(100, b.task.progress) / 100})` }"></span>
                 <span class="gh l" @pointerdown.stop="onBarDown($event, b.task, 'l')"></span>
                 <span class="gh r" @pointerdown.stop="onBarDown($event, b.task, 'r')"></span>
+              </div>
+              <!-- ドラッグ中の日付 -->
+              <div v-if="drag.id === b.task.id && drag.moved" class="gtip" :style="{ left: b.left + 'px' }">
+                {{ b.task.kind === 'milestone' ? fmt(b.s) : `${fmt(b.s)} 〜 ${fmt(b.e)}・${b.e - b.s + 1}日` }}
               </div>
             </template>
           </template>
@@ -884,6 +920,21 @@ onBeforeUnmount(() => {
 }
 .gbar:hover .gh::after {
   opacity: 0.55;
+}
+.gtip {
+  position: absolute;
+  top: -14px;
+  z-index: 6;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #1c2024;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  font-variant-numeric: tabular-nums;
 }
 .gout {
   position: absolute;

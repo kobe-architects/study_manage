@@ -12,6 +12,44 @@ export const GANTT_ZOOMS: { key: GanttZoom; label: string; dayW: number }[] = [
   { key: 'week', label: '週', dayW: 22 },
 ]
 
+/** ドラッグで動かすときの単位。day=1日 / ten=10日（上旬・中旬・下旬の区切り） / month=月 */
+export type GanttSnap = 'day' | 'ten' | 'month'
+
+export const GANTT_SNAPS: { key: GanttSnap; label: string }[] = [
+  { key: 'day', label: '1日' },
+  { key: 'ten', label: '10日' },
+  { key: 'month', label: '月' },
+]
+
+/**
+ * 日付を単位の区切りに吸着させる。
+ * 開始日は 1日・11日・21日（月単位は 1日）、終了日は 10日・20日・月末（月単位は月末）のうち最も近い日にする。
+ * 月末付近の終了日は月末に、月末付近の開始日は翌月 1 日に寄る。
+ * dir='up' はその日以降で最も近い区切り、'down' はその日以前で最も近い区切り（開始と終了が逆転したときの補正用）。
+ */
+export function snapDate(d: Date, mode: GanttSnap, kind: 'start' | 'end', dir: 'nearest' | 'up' | 'down' = 'nearest'): Date {
+  if (mode === 'day') return d
+  let best = d
+  let bestDiff = Infinity
+  for (let off = -1; off <= 1; off++) {
+    const y = d.getFullYear()
+    const m = d.getMonth() + off
+    const last = new Date(y, m + 1, 0).getDate()
+    const days = kind === 'start' ? (mode === 'month' ? [1] : [1, 11, 21]) : mode === 'month' ? [last] : [10, 20, last]
+    for (const day of days) {
+      const c = new Date(y, m, day)
+      const delta = daysBetween(d, c)
+      if ((dir === 'up' && delta < 0) || (dir === 'down' && delta > 0)) continue
+      const diff = Math.abs(delta)
+      if (diff < bestDiff) {
+        best = c
+        bestDiff = diff
+      }
+    }
+  }
+  return best
+}
+
 /** 区間のひな形（学習の段階）。名前と色をまとめて入れる */
 export const GANTT_PHASES: { label: string; color: string }[] = [
   { label: '範囲学習', color: '#dcdde1' },
