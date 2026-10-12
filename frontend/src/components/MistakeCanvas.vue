@@ -1,15 +1,15 @@
 <script setup lang="ts">
 /**
  * 間違いノートのページ編集。問題の写真・説明用の画像を動かす／大きさを変える、文字を入力する、ペンで手書きする。
- * ページ（NOTE_W × NOTE_H）は固定高さのステージの中に置き、拡大縮小・移動して見る。
- * - 拡縮: マウスホイール（カーソル位置を中心）、ピンチ、「−」「＋」「全体」「幅」ボタン
+ * 方眼の下敷きは画面に固定し、ページ（NOTE_W × NOTE_H。印刷される範囲を点線で示す）上のものだけを拡縮・移動して見る。
+ * - 拡縮: マウスホイール（カーソル位置を中心・1 目盛り約 5%）、ピンチ、「−」「＋」（10% ずつ）「全体」「幅」
  * - 移動: ホイールボタン（中ボタン）のドラッグ、指 1 本（書く設定でないとき）／指 2 本のドラッグ
  * - 選択: 画像・文字の枠をドラッグで移動、右下のつまみで大きさ変更
  * - ペン / 消しゴム: Apple Pencil・マウスで書く。指は既定では移動（「指で書く」を ON にすると指でも書ける）
- * - 文字: 文字の枠に入力
+ * - 文字: 空いている所をクリック（タップ）するとその位置に文字の枠ができ、枠の中で入力
  * 変更はひとまとまりごとに update:layout で親へ渡す（親が自動保存する）。
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { DEFAULT_FONT, FONT_SIZES, LINE_HEIGHT, NOTE_H, NOTE_W, PEN_COLORS, PEN_WIDTHS, newItemId } from '@/lib/mistake'
 import { isTouch } from '@/lib/native'
 import { useUiStore } from '@/stores/ui'
@@ -17,7 +17,7 @@ import type { MistakeLayout, MistakeLayoutItem, MistakeStroke } from '@/types'
 
 type Tool = 'select' | 'pen' | 'eraser' | 'text'
 
-const props = defineProps<{ layout: MistakeLayout; urls: Record<number, string>; hasProblem: boolean }>()
+const props = defineProps<{ layout: MistakeLayout; urls: Record<number, string>; hasProblem: boolean; fill?: boolean }>()
 const emit = defineEmits<{ 'update:layout': [layout: MistakeLayout]; removeImage: [imageId: number] }>()
 
 const ui = useUiStore()
@@ -41,18 +41,22 @@ const stageH = ref(600)
 const z = ref(0.5)
 const tx = ref(0)
 const ty = ref(0)
-const Z_MIN = 0.12
-const Z_MAX = 5
+const Z_MIN = 0.1
+const Z_MAX = 6
 let fitted = false
 let ro: ResizeObserver | null = null
 
 function measure() {
   const el = stage.value
   if (!el) return
-  const top = el.getBoundingClientRect().top
-  stageH.value = Math.max(420, Math.round(window.innerHeight - top - 20))
+  if (!props.fill) {
+    const top = el.getBoundingClientRect().top
+    stageH.value = Math.max(420, Math.round(window.innerHeight - top - 20))
+  } else {
+    stageH.value = el.clientHeight
+  }
   stageW.value = el.clientWidth
-  if (!fitted && stageW.value > 0) {
+  if (!fitted && stageW.value > 0 && stageH.value > 0) {
     fitted = true
     fitAll()
   }
@@ -78,11 +82,12 @@ function zoomAt(factor: number, cx: number, cy: number) {
   z.value = nz
 }
 function zoomStep(dir: 1 | -1) {
-  zoomAt(dir > 0 ? 1.25 : 0.8, stageW.value / 2, stageH.value / 2)
+  zoomAt(dir > 0 ? 1.1 : 1 / 1.1, stageW.value / 2, stageH.value / 2)
 }
 function onWheel(e: WheelEvent) {
   const r = stage.value!.getBoundingClientRect()
-  const factor = Math.exp(-e.deltaY * (e.ctrlKey ? 0.004 : 0.0012))
+  // 1 目盛り（deltaY 100）でおよそ 5%。トラックパッドのピンチ（ctrlKey）は少し強めに
+  const factor = Math.exp(-e.deltaY * (e.ctrlKey ? 0.002 : 0.0005))
   zoomAt(factor, e.clientX - r.left, e.clientY - r.top)
 }
 const pageStyle = computed(() => ({
@@ -122,6 +127,10 @@ interface Drag {
   moved: boolean
   lastX: number
   lastY: number
+  startX: number
+  startY: number
+  /** 文字モードで空いている所を押した位置（動かさずに離したら文字の枠を作る） */
+  textAt?: { x: number; y: number }
 }
 let drag: Drag | null = null
 const preview = ref<{ id: string; x: number; y: number; w: number; h: number } | null>(null)
@@ -141,9 +150,12 @@ function toPage(e: PointerEvent): { x: number; y: number } {
   const s = stageXY(e)
   return { x: (s.x - tx.value) / z.value, y: (s.y - ty.value) / z.value }
 }
-function startPan(e: PointerEvent) {
+function baseDrag(e: PointerEvent, p: { x: number; y: number }) {
+  return { pointerId: e.pointerId, x0: p.x, y0: p.y, ox: 0, oy: 0, ow: 0, oh: 0, aspect: 1, moved: false, lastX: e.clientX, lastY: e.clientY, startX: e.clientX, startY: e.clientY }
+}
+function startPan(e: PointerEvent, textAt?: { x: number; y: number }) {
   stage.value!.setPointerCapture(e.pointerId)
-  drag = { kind: 'pan', id: '', pointerId: e.pointerId, x0: 0, y0: 0, ox: 0, oy: 0, ow: 0, oh: 0, aspect: 1, moved: false, lastX: e.clientX, lastY: e.clientY }
+  drag = { kind: 'pan', id: '', ...baseDrag(e, { x: 0, y: 0 }), textAt }
   panning.value = true
 }
 function cancelDrag() {
@@ -181,7 +193,6 @@ function onDown(e: PointerEvent) {
   if (tool.value === 'text' && target.closest('textarea')) return // 入力中
   const finger = e.pointerType === 'touch'
   const p = toPage(e)
-  const base = { pointerId: e.pointerId, x0: p.x, y0: p.y, ox: 0, oy: 0, ow: 0, oh: 0, aspect: 1, moved: false, lastX: e.clientX, lastY: e.clientY }
 
   if (tool.value === 'pen' || tool.value === 'eraser') {
     if (finger && !fingerDraw.value) {
@@ -191,10 +202,10 @@ function onDown(e: PointerEvent) {
     stage.value!.setPointerCapture(e.pointerId)
     if (tool.value === 'pen') {
       live.value = { color: color.value, width: width.value, points: [round(p.x), round(p.y)] }
-      drag = { kind: 'stroke', id: '', ...base }
+      drag = { kind: 'stroke', id: '', ...baseDrag(e, p) }
     } else {
       erased.value = new Set()
-      drag = { kind: 'erase', id: '', ...base }
+      drag = { kind: 'erase', id: '', ...baseDrag(e, p) }
       eraseAt(p)
     }
     return
@@ -208,11 +219,16 @@ function onDown(e: PointerEvent) {
   if (it && id) {
     selectedId.value = id
     stage.value!.setPointerCapture(e.pointerId)
-    drag = { kind: handle ? 'resize' : 'move', id, ...base, ox: it.x, oy: it.y, ow: it.w, oh: it.h, aspect: it.h > 0 ? it.w / it.h : 1 }
+    drag = { kind: handle ? 'resize' : 'move', id, ...baseDrag(e, p), ox: it.x, oy: it.y, ow: it.w, oh: it.h, aspect: it.h > 0 ? it.w / it.h : 1 }
     preview.value = { id, x: it.x, y: it.y, w: it.w, h: it.h }
     return
   }
   selectedId.value = null
+  // 空いている所: 文字モードならクリック（タップ）で文字の枠を作る。動かした場合はページの移動
+  if (tool.value === 'text') {
+    startPan(e, p)
+    return
+  }
   if (finger) startPan(e) // 指で空いている所を動かすとページが動く
 }
 
@@ -233,6 +249,8 @@ function onMove(e: PointerEvent) {
   }
   if (!drag || drag.pointerId !== e.pointerId) return
   if (drag.kind === 'pan') {
+    if (!drag.moved && Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < 6) return
+    drag.moved = true
     tx.value += e.clientX - drag.lastX
     ty.value += e.clientY - drag.lastY
     drag.lastX = e.clientX
@@ -262,7 +280,7 @@ function onMove(e: PointerEvent) {
       const w = Math.max(60, Math.min(NOTE_W * 1.5, drag.ow + dx))
       preview.value = { id: drag.id, x: drag.ox, y: drag.oy, w, h: w / drag.aspect }
     } else {
-      preview.value = { id: drag.id, x: drag.ox, y: drag.oy, w: Math.max(140, drag.ow + dx), h: Math.max(80, drag.oh + dy) }
+      preview.value = { id: drag.id, x: drag.ox, y: drag.oy, w: Math.max(140, drag.ow + dx), h: Math.max(60, drag.oh + dy) }
     }
   }
 }
@@ -276,7 +294,10 @@ function onUp(e: PointerEvent) {
   const d = drag
   drag = null
   panning.value = false
-  if (d.kind === 'pan') return
+  if (d.kind === 'pan') {
+    if (!d.moved && d.textAt && e.type === 'pointerup') createTextAt(d.textAt.x, d.textAt.y)
+    return
+  }
   if (d.kind === 'stroke') {
     const st = live.value
     live.value = null
@@ -319,6 +340,8 @@ const round = (n: number) => Math.round(n * 10) / 10
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
 // ---- 文字 ----
+const TEXT_W = 560
+const TEXT_H = 220
 let textSnapshotFor: string | null = null
 function onTextFocus(it: MistakeLayoutItem) {
   if (textSnapshotFor !== it.id) {
@@ -335,13 +358,28 @@ function setFontSize(size: number) {
   if (!it || it.type !== 'text') return
   commit({ items: props.layout.items.map((x) => (x.id === it.id ? { ...x, fontSize: size } : x)), ink: props.layout.ink })
 }
-function addTextBox() {
-  const bottom = props.layout.items.reduce((m, it) => Math.max(m, it.y + it.h), 0)
-  const y = Math.min(NOTE_H - 320, bottom + 24)
-  const it: MistakeLayoutItem = { id: newItemId('t'), type: 'text', text: '', fontSize: DEFAULT_FONT, x: 0, y, w: NOTE_W, h: Math.max(300, NOTE_H - y) }
+/** (x, y)（ページ座標）を左上にして文字の枠を作り、入力できる状態にする */
+function createTextAt(x: number, y: number) {
+  const it: MistakeLayoutItem = {
+    id: newItemId('t'),
+    type: 'text',
+    text: '',
+    fontSize: DEFAULT_FONT,
+    x: round(clamp(x, 0, NOTE_W - TEXT_W)),
+    y: round(clamp(y, 0, NOTE_H - TEXT_H)),
+    w: TEXT_W,
+    h: TEXT_H,
+  }
   commit({ items: [...props.layout.items, it], ink: props.layout.ink })
   selectedId.value = it.id
   tool.value = 'text'
+  nextTick(() => stage.value?.querySelector<HTMLTextAreaElement>(`[data-item="${it.id}"] textarea`)?.focus())
+}
+/** 「＋ 文字の枠」: 今見えている範囲の真ん中に作る */
+function addTextBox() {
+  const cx = (stageW.value / 2 - tx.value) / z.value - TEXT_W / 2
+  const cy = (stageH.value / 2 - ty.value) / z.value - TEXT_H / 2
+  createTextAt(cx, cy)
 }
 function deleteSelected() {
   const it = selected.value
@@ -411,7 +449,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="mc">
+  <div class="mc" :class="{ fill }">
     <!-- 道具 -->
     <div class="tools">
       <div class="seg">
@@ -424,7 +462,7 @@ onBeforeUnmount(() => {
         <button class="tb" :class="{ on: tool === 'eraser' }" title="消しゴム（手書きを消す）" @click="tool = 'eraser'">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 20l-4-4 10-10 6 6-8 8z" /><path d="M9 20h12" /></svg>消す
         </button>
-        <button class="tb" :class="{ on: tool === 'text' }" title="文字を入力" @click="tool = 'text'">
+        <button class="tb" :class="{ on: tool === 'text' }" title="文字の挿入: 空いている所をクリックすると文字の枠ができます" @click="tool = 'text'">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6h14M12 6v13M9 19h6" /></svg>文字
         </button>
       </div>
@@ -436,6 +474,7 @@ onBeforeUnmount(() => {
           <button v-for="w in PEN_WIDTHS" :key="w.width" class="tb" :class="{ on: width === w.width }" @click="width = w.width">{{ w.label }}</button>
         </div>
       </template>
+      <span v-if="tool === 'text'" class="tip">空いている所をクリックすると、その位置に文字の枠ができます</span>
       <button v-if="tool === 'eraser' && layout.ink.length" class="tb ghost" @click="clearInk">手書きをすべて消す</button>
       <label v-if="isTouch && (tool === 'pen' || tool === 'eraser')" class="chk"><input v-model="fingerDraw" type="checkbox" />指で書く</label>
       <template v-if="selected?.type === 'text'">
@@ -445,26 +484,26 @@ onBeforeUnmount(() => {
       </template>
       <div style="flex: 1"></div>
       <!-- 拡大縮小 -->
-      <div class="seg zoom" title="ホイールで拡縮、ホイールボタンのドラッグで移動">
+      <div class="seg zoom" title="ホイールで拡縮（約 5% ずつ）、ホイールボタンのドラッグで移動">
         <button class="tb" aria-label="縮小" @click="zoomStep(-1)">−</button>
         <span class="zl dm">{{ zoomLabel }}</span>
         <button class="tb" aria-label="拡大" @click="zoomStep(1)">＋</button>
         <button class="tb" @click="fitAll">全体</button>
         <button class="tb" @click="fitWidth">幅</button>
       </div>
-      <button class="tb ghost" @click="addTextBox">＋ 文字の枠</button>
+      <button class="tb ghost" title="見えている範囲の真ん中に文字の枠を作る" @click="addTextBox">＋ 文字の枠</button>
       <button v-if="canDelete" class="tb danger" @click="deleteSelected">{{ selected?.type === 'text' ? '文字の枠を削除' : '画像を削除' }}</button>
       <button class="tb ghost" :disabled="!undoStack.length" title="取り消し（Ctrl+Z）" @click="undo">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4-4 4-4" /><path d="M5 10h9a5 5 0 0 1 0 10h-3" /></svg>取り消し
       </button>
     </div>
 
-    <!-- ステージ（この中でページを拡縮・移動） -->
+    <!-- ステージ（方眼は固定。中のページだけを拡縮・移動） -->
     <div
       ref="stage"
       class="stage no-gesture"
       :class="{ ['tool-' + tool]: true }"
-      :style="{ height: stageH + 'px', cursor }"
+      :style="{ height: fill ? undefined : stageH + 'px', cursor }"
       @wheel.prevent="onWheel"
       @pointerdown="onDown"
       @pointermove="onMove"
@@ -508,7 +547,7 @@ onBeforeUnmount(() => {
           <path v-if="live" :d="pathOf(live)" :stroke="live.color" :stroke-width="live.width" fill="none" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
-      <div class="stage-hint">{{ isTouch ? '2 本の指で拡縮・移動' : 'ホイールで拡縮・ホイールボタンのドラッグで移動' }}</div>
+      <div class="stage-hint">{{ isTouch ? '2 本の指で拡縮・移動' : 'ホイールで拡縮・ホイールボタンのドラッグで移動' }}　点線 = 印刷される範囲</div>
     </div>
   </div>
 </template>
@@ -517,17 +556,22 @@ onBeforeUnmount(() => {
 .mc {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+.mc.fill {
+  flex: 1;
+  min-height: 0;
+}
+.mc.fill .stage {
+  flex: 1;
+  min-height: 0;
 }
 .tools {
-  position: sticky;
-  top: 0;
-  z-index: 5;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 6px 10px;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -581,6 +625,10 @@ onBeforeUnmount(() => {
   font-weight: 700;
   color: var(--mut);
 }
+.tip {
+  font-size: 11.5px;
+  color: var(--faint);
+}
 .colors {
   display: flex;
   gap: 6px;
@@ -610,12 +658,15 @@ onBeforeUnmount(() => {
   position: relative;
   width: 100%;
   overflow: hidden;
-  background: #e6e8ec;
   border: 1px solid #d4d8de;
   border-radius: 12px;
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+  /* 方眼の下敷き（画面に固定。拡縮しない） */
+  background-color: #fff;
+  background-image: linear-gradient(#eef0f3 1px, transparent 1px), linear-gradient(90deg, #eef0f3 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 .stage-hint {
   position: absolute;
@@ -623,7 +674,7 @@ onBeforeUnmount(() => {
   bottom: 8px;
   font-size: 11px;
   color: #7c838d;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.8);
   border-radius: 6px;
   padding: 2px 8px;
   pointer-events: none;
@@ -633,12 +684,9 @@ onBeforeUnmount(() => {
   left: 0;
   top: 0;
   transform-origin: 0 0;
-  background: #fff;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
   overflow: hidden;
-  /* 罫線（薄い方眼） */
-  background-image: linear-gradient(#f3f4f6 1px, transparent 1px), linear-gradient(90deg, #f3f4f6 1px, transparent 1px);
-  background-size: 48px 48px;
+  /* 印刷される範囲（点線）。拡縮しても線の太さは画面上で同じ */
+  outline: calc(1.5px * var(--inv, 1)) dashed #c3c8d0;
 }
 .placeholder {
   position: absolute;
@@ -689,7 +737,7 @@ onBeforeUnmount(() => {
 .tool-text .item textarea {
   pointer-events: auto;
   border-color: #c1c8f0;
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.5);
 }
 .tool-text .item textarea:focus {
   border-style: solid;

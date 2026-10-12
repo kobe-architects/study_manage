@@ -10,8 +10,8 @@ import MistakeCanvas from '@/components/MistakeCanvas.vue'
 import HelpTip from '@/components/HelpTip.vue'
 import { mistakeApi } from '@/api/mistake'
 import { iso } from '@/lib/design'
-import { bottomOf, defaultTextItem, ensureLayout, fileToJpeg, fitExtra, fitProblem, forgetImageUrl, imageObjectUrl, newItemId, registerImageUrl } from '@/lib/mistake'
-import { isTouch, viewportWidth } from '@/lib/native'
+import { bottomOf, ensureLayout, fileToJpeg, fitExtra, fitProblem, forgetImageUrl, imageObjectUrl, newItemId, registerImageUrl } from '@/lib/mistake'
+import { isTouch } from '@/lib/native'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
 import type { MistakeLayout, MistakeLayoutItem, MistakeNoteDetail } from '@/types'
@@ -31,7 +31,6 @@ const categoriesReady = computed(() => meta.subjectId > 0 && meta.majorId > 0 &&
 const loading = ref(true)
 const busy = ref(false)
 const saveState = ref<'none' | 'dirty' | 'saving' | 'saved' | 'error'>('none')
-const isMobile = computed(() => viewportWidth.value < 860)
 const hasProblem = computed(() => layout.value.items.some((i) => i.role === 'problem'))
 
 // ---- 科目 → 大分類 → 中分類 → 小分類 の候補（学習項目データから） ----
@@ -210,9 +209,9 @@ async function setProblem(file: Blob) {
       const img = created.images.find((i) => i.role === 'problem')
       if (!img) throw new Error('画像の登録に失敗しました')
       registerImageUrl(img.id, blob)
+      // 文字の枠は最初から置かず、「文字」で好きな位置に挿入してもらう
       const rest = layout.value.items.filter((i) => i.role !== 'problem')
       const problem: MistakeLayoutItem = { id: newItemId('p'), type: 'image', imageId: img.id, role: 'problem', ...fit }
-      if (!rest.some((i) => i.type === 'text')) rest.push(defaultTextItem(fit.h))
       const next: MistakeLayout = { items: [problem, ...rest], ink: layout.value.ink }
       await mistakeApi.update(created.id, { layout: next })
       ui.notify('問題を登録しました。以後の変更は自動で保存されます')
@@ -309,6 +308,27 @@ function errorMessage(e: unknown, fallback: string): string {
   return r?.data?.message || (e instanceof Error && e.message) || fallback
 }
 
+// ---- 全画面（編集画面は画面全体に表示。さらにブラウザの全画面にもできる） ----
+const showMeta = ref(true)
+const browserFs = ref(false)
+const canBrowserFs = typeof document !== 'undefined' && !!document.fullscreenEnabled && !isTouch
+async function toggleBrowserFs() {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen()
+    else await document.documentElement.requestFullscreen()
+  } catch {
+    // 対応していないブラウザでは何もしない
+  }
+}
+function onFsChange() {
+  browserFs.value = !!document.fullscreenElement
+}
+onMounted(() => document.addEventListener('fullscreenchange', onFsChange))
+onBeforeUnmount(() => {
+  document.removeEventListener('fullscreenchange', onFsChange)
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+})
+
 const saveLabel = computed(
   () =>
     ({
@@ -322,27 +342,29 @@ const saveLabel = computed(
 </script>
 
 <template>
-  <div>
-    <div v-if="loading" class="hint" style="text-align: center">読み込み中…</div>
+  <div class="ed ui-fullscreen">
+    <div v-if="loading" class="hint" style="text-align: center; margin: 40px">読み込み中…</div>
     <template v-else>
       <div class="top">
         <div class="left">
-          <button v-if="!isMobile" class="back" @click="router.push({ name: 'mistakes' })">
+          <button class="back" @click="router.push({ name: 'mistakes' })">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7" /></svg>一覧
           </button>
           <div class="ttl">{{ note ? '間違いノートを編集' : '問題を追加' }}</div>
           <HelpTip
-            text="科目・大分類・中分類（学習項目データの分類）を選んでから、対象の問題の写真を登録します（小分類は任意）。スマホ・iPad では「撮影する」でカメラ、PC では画像をコピーして Ctrl+V、またはファイルをドラッグ＆ドロップで登録できます。写真の下に「文字」で入力、iPad では「ペン」で手書きできます（Apple Pencil 推奨。指で書くときは「指で書く」を ON）。説明用の画像は「選択」でドラッグして移動、右下のつまみで大きさを変えられます。変更は自動で保存されます。"
+            text="科目・大分類・中分類（学習項目データの分類）を選んでから、対象の問題の写真を登録します（小分類は任意）。スマホ・iPad では「撮影する」でカメラ、PC では画像をコピーして Ctrl+V、またはファイルをドラッグ＆ドロップで登録できます。「文字」を選んで空いている所をクリックすると、その位置に文字の枠ができます。iPad では「ペン」で手書きできます（Apple Pencil 推奨。指で書くときは「指で書く」を ON）。画像や文字の枠は「選択」でドラッグして移動、右下のつまみで大きさを変えられます。ホイールで拡縮、ホイールボタンのドラッグで表示位置を動かせます。点線が印刷される範囲です。変更は自動で保存されます。"
           />
         </div>
         <div class="right">
           <span class="save" :class="saveState">{{ saveLabel }}</span>
           <button v-if="note && saveState !== 'saved'" class="btn-ghost" :disabled="saveState === 'saving'" @click="saveNow">今すぐ保存</button>
+          <button class="btn-ghost" :title="showMeta ? '科目・タイトルなどの欄を隠してキャンバスを広くする' : '科目・タイトルなどの欄を表示する'" @click="showMeta = !showMeta">{{ showMeta ? '項目を隠す' : '項目を表示' }}</button>
+          <button v-if="canBrowserFs" class="btn-ghost" :title="browserFs ? 'ブラウザの全画面を終了' : 'ブラウザも全画面にする'" @click="toggleBrowserFs">{{ browserFs ? '全画面を終了' : 'ブラウザ全画面' }}</button>
         </div>
       </div>
 
       <!-- 科目・分野・タイトルなど -->
-      <div class="meta card">
+      <div v-show="showMeta" class="meta card">
         <label class="fld">
           <span>科目<b class="req">必須</b></span>
           <select v-model.number="meta.subjectId" :style="{ color: subjectColor, fontWeight: subjectColor ? 700 : undefined }">
@@ -402,21 +424,43 @@ const saveLabel = computed(
         <span v-if="busy" class="paste-hint">画像を処理中…</span>
       </div>
 
-      <div @dragover.prevent @drop="onDrop">
-        <MistakeCanvas :layout="layout" :urls="urls" :has-problem="hasProblem" @update:layout="onLayout" @remove-image="removeImage" />
+      <div class="canvas-wrap" @dragover.prevent @drop="onDrop">
+        <MistakeCanvas fill :layout="layout" :urls="urls" :has-problem="hasProblem" @update:layout="onLayout" @remove-image="removeImage" />
       </div>
     </template>
   </div>
 </template>
 
 <style scoped>
+/* 編集画面は画面全体に表示（ナビやページの余白を使わずキャンバスを広く取る） */
+.ed {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: calc(8px + env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  background: var(--bg);
+  overflow: hidden;
+}
+.canvas-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.canvas-wrap > :deep(.mc) {
+  flex: 1;
+  min-height: 0;
+}
 .top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 .left,
 .right {
@@ -455,9 +499,9 @@ const saveLabel = computed(
 .meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 14px;
-  padding: 12px 16px;
-  margin-bottom: 10px;
+  gap: 8px 12px;
+  padding: 8px 14px;
+  flex-shrink: 0;
 }
 .fld {
   display: flex;
@@ -505,7 +549,7 @@ const saveLabel = computed(
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 10px;
+  flex-shrink: 0;
 }
 .imgbar-label {
   font-size: 12.5px;
