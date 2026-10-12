@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\GanttChart;
 use App\Models\GanttTask;
 use App\Models\User;
+use App\Support\GanttSubjectGuess;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -76,9 +77,12 @@ class ImportGanttChart extends Command
             ]);
             $now = now();
             foreach ($json['rows'] as $ri => $row) {
+                $title = (string) ($row['title'] ?? '');
+                $group = ($row['group'] ?? '') !== '' ? $row['group'] : null;
                 $r = $chart->rows()->create([
-                    'title' => (string) ($row['title'] ?? ''),
-                    'group_name' => ($row['group'] ?? '') !== '' ? $row['group'] : null,
+                    'title' => $title,
+                    'group_name' => $group,
+                    'subject_id' => GanttSubjectGuess::guess($user->id, $title, $group), // 名前から科目（文字色）を推定
                     'sort_order' => $ri + 1,
                 ]);
                 $tasks = [];

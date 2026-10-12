@@ -3,6 +3,7 @@
 import { daysBetween, parseDate } from '@/lib/design'
 import { fmtYm, isDark, monthSpans, todayIso, yearSpans } from '@/lib/gantt'
 import type { GanttChartDetail } from '@/api/gantt'
+import type { GanttRow } from '@/types'
 
 const FONT = "'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif"
 
@@ -13,6 +14,8 @@ export interface RenderOptions {
   monthW?: number
   /** 項目名の列の幅（px） */
   nameW?: number
+  /** 行の名前の文字色（科目のイメージカラー）。undefined を返すと通常の文字色 */
+  rowColor?: (row: GanttRow) => string | undefined
 }
 
 /** 文字が幅に収まらないときは「…」で切る */
@@ -134,10 +137,10 @@ export async function renderGanttCanvas(chart: GanttChartDetail, opts: RenderOpt
     // 行の区切り（グループが変わる所は太く）
     hline(top, PAD, W - PAD, groupStart ? '#4b5260' : '#e9ebee', groupStart ? 2 : 1)
 
-    // 項目名
+    // 項目名（科目のイメージカラー）
     x.textAlign = 'left'
-    x.fillStyle = ink
-    x.font = `500 13px ${FONT}`
+    x.fillStyle = opts.rowColor?.(row) ?? ink
+    x.font = `${opts.rowColor?.(row) ? 700 : 500} 13px ${FONT}`
     const groupLabel = row.group && (i === 0 || groupStart) ? row.group : ''
     const gw = groupLabel ? x.measureText(groupLabel).width : 0
     x.fillText(fitText(x, row.title, nameW - 24 - (groupLabel ? gw + 14 : 0)), PAD + 12, top + ROW / 2)
@@ -235,8 +238,13 @@ export async function renderGanttCanvas(chart: GanttChartDetail, opts: RenderOpt
 }
 
 /** チャートを画像（PNG / JPEG）の Blob にする */
-export async function renderGanttImage(chart: GanttChartDetail, mime: 'image/png' | 'image/jpeg' = 'image/png', quality = 0.92): Promise<Blob> {
-  const c = await renderGanttCanvas(chart)
+export async function renderGanttImage(
+  chart: GanttChartDetail,
+  mime: 'image/png' | 'image/jpeg' = 'image/png',
+  quality = 0.92,
+  opts: RenderOptions = {},
+): Promise<Blob> {
+  const c = await renderGanttCanvas(chart, opts)
   return new Promise((resolve, reject) => {
     c.toBlob((b) => (b ? resolve(b) : reject(new Error('画像の生成に失敗しました'))), mime, quality)
   })

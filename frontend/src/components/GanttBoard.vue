@@ -11,7 +11,15 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import { daysBetween, parseDate } from '@/lib/design'
 import { GANTT_ZOOMS, addDays, isDark, isoAt, monthSpans, todayIso, yearSpans, type GanttZoom } from '@/lib/gantt'
 import { haptic, viewportWidth } from '@/lib/native'
+import { useUiStore } from '@/stores/ui'
 import type { GanttRow, GanttTask } from '@/types'
+
+const ui = useUiStore()
+
+/** 行の名前の文字色: 科目のイメージカラー（配色設定に応じた表示色）。科目がない行は通常の文字色 */
+function rowColor(row: GanttRow): string | undefined {
+  return row.colorSoft && row.colorVivid ? ui.colorOf(row.colorSoft, row.colorVivid) : undefined
+}
 
 const props = defineProps<{ rows: GanttRow[]; startOn: string; endOn: string; zoom: GanttZoom }>()
 const emit = defineEmits<{
@@ -427,7 +435,7 @@ onBeforeUnmount(() => {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7" /><circle cx="15" cy="6" r="1.7" /><circle cx="9" cy="12" r="1.7" /><circle cx="15" cy="12" r="1.7" /><circle cx="9" cy="18" r="1.7" /><circle cx="15" cy="18" r="1.7" /></svg>
           </button>
           <button class="ntext" :title="`${v.row.title}（クリックで行を編集）`" @click="emit('editRow', v.row)">
-            <span class="ntitle">{{ v.row.title }}</span>
+            <span class="ntitle" :style="{ color: rowColor(v.row) }">{{ v.row.title }}</span>
             <span class="nsub">
               <span v-if="v.groupLabel" class="gchip">{{ v.groupLabel }}</span>
               {{ rowSub(v) }}

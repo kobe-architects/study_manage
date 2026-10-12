@@ -11,6 +11,8 @@ export interface GanttChartInput {
 export interface GanttRowInput {
   title?: string
   group?: string | null
+  /** 科目 ID。省略すると新規作成時は名前から推定、null は「科目なし」 */
+  subjectId?: number | null
 }
 
 export interface GanttTaskInput {

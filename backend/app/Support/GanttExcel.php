@@ -86,7 +86,9 @@ final class GanttExcel
             $prevGroup = $row->group_name;
             $topBorder = $groupStart ? 'medium' : null;
 
-            $nameStyle = $w->style(['align' => 'left', 'border' => 'thin', 'borderTop' => $topBorder, 'size' => 10, 'wrap' => true]);
+            // 行の名前は科目のイメージカラー（落ち着いた色）で
+            $nameColor = $row->subject?->color_soft ? strtoupper(ltrim($row->subject->color_soft, '#')) : null;
+            $nameStyle = $w->style(['align' => 'left', 'border' => 'thin', 'borderTop' => $topBorder, 'size' => 10, 'wrap' => true, 'bold' => $nameColor !== null, 'color' => $nameColor]);
             $groupStyle = $w->style(['align' => 'left', 'border' => 'thin', 'borderTop' => $topBorder, 'size' => 9, 'color' => '6B7280']);
             $blank = $w->style(['border' => 'thin', 'borderTop' => $topBorder]);
 

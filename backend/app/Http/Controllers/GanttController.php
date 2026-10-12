@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\GanttChart;
 use App\Models\GanttRow;
 use App\Models\GanttTask;
+use App\Models\Subject;
 use App\Support\GanttExcel;
+use App\Support\GanttSubjectGuess;
 use App\Support\ImageTools;
 use App\Support\PdfTools;
 use Illuminate\Http\JsonResponse;
@@ -124,6 +126,7 @@ class GanttController extends Controller
                 $newRow = $copy->rows()->create([
                     'title' => $row->title,
                     'group_name' => $row->group_name,
+                    'subject_id' => $row->subject_id,
                     'sort_order' => $row->sort_order,
                 ]);
                 $tasks = $row->tasks->map(fn (GanttTask $t) => [
@@ -162,16 +165,23 @@ class GanttController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'group' => ['nullable', 'string', 'max:100'],
+            'subjectId' => ['sometimes', 'nullable', 'integer'],
         ]);
+        $group = ($data['group'] ?? '') !== '' ? $data['group'] : null;
+        // 科目は指定がなければ名前から推定する（null を明示したときは「科目なし」）
+        $subjectId = array_key_exists('subjectId', $data)
+            ? $this->subjectIdOf($chart, $data['subjectId'])
+            : GanttSubjectGuess::guess($chart->user_id, $data['title'], $group);
 
         $row = $chart->rows()->create([
             'title' => $data['title'],
-            'group_name' => ($data['group'] ?? '') !== '' ? $data['group'] : null,
+            'group_name' => $group,
+            'subject_id' => $subjectId,
             'sort_order' => ((int) $chart->rows()->max('sort_order')) + 1,
         ]);
         $chart->touch();
 
-        return response()->json(['data' => $this->rowPayload($row->load('tasks'))], 201);
+        return response()->json(['data' => $this->rowPayload($row->load(['tasks', 'subject']))], 201);
     }
 
     public function updateRow(Request $request, GanttRow $row): JsonResponse
@@ -181,6 +191,7 @@ class GanttController extends Controller
         $data = $request->validate([
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'group' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'subjectId' => ['sometimes', 'nullable', 'integer'],
         ]);
 
         $attrs = [];
@@ -190,10 +201,13 @@ class GanttController extends Controller
         if (array_key_exists('group', $data)) {
             $attrs['group_name'] = ($data['group'] ?? '') !== '' ? $data['group'] : null;
         }
+        if (array_key_exists('subjectId', $data)) {
+            $attrs['subject_id'] = $this->subjectIdOf($chart, $data['subjectId']);
+        }
         $row->update($attrs);
         $chart->touch();
 
-        return response()->json(['data' => $this->rowPayload($row->fresh('tasks'))]);
+        return response()->json(['data' => $this->rowPayload($row->fresh(['tasks', 'subject']))]);
     }
 
     /** 行の削除（行の区間もまとめて削除） */
@@ -363,7 +377,19 @@ class GanttController extends Controller
 
     private function withRows(GanttChart $chart): GanttChart
     {
-        return $chart->load('rows.tasks');
+        return $chart->load(['rows.tasks', 'rows.subject']);
+    }
+
+    /** 行に紐づける科目 ID の検証（生徒自身の科目のみ。null は「科目なし」） */
+    private function subjectIdOf(GanttChart $chart, mixed $id): ?int
+    {
+        if ($id === null || $id === '' || (int) $id === 0) {
+            return null;
+        }
+        $subject = Subject::where('user_id', $chart->user_id)->whereKey((int) $id)->first();
+        abort_if($subject === null, 422, '科目が見つかりません。');
+
+        return $subject->id;
     }
 
     private function exportName(GanttChart $chart, string $ext): string
@@ -394,10 +420,16 @@ class GanttController extends Controller
 
     private function rowPayload(GanttRow $r): array
     {
+        $subject = $r->subject;
+
         return [
             'id' => $r->id,
             'title' => $r->title,
             'group' => $r->group_name,
+            'subjectId' => $subject?->id,
+            'subjectName' => $subject?->name,
+            'colorSoft' => $subject?->color_soft,
+            'colorVivid' => $subject?->color_vivid,
             'sortOrder' => (int) $r->sort_order,
             'tasks' => $r->tasks->map(fn (GanttTask $t) => $this->taskPayload($t))->values()->all(),
         ];

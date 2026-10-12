@@ -2,20 +2,43 @@
 /**
  * ガントチャートの行（科目・学習分野）の追加・編集モーダル。row が null のときは新規追加。
  * グループ（数学・英語など）が変わる所には太い区切り線が入る。
+ * 科目を選ぶと行の名前が科目のイメージカラーで表示される（新規は名前から自動で推定）。
  */
 import { computed, reactive } from 'vue'
+import { useStudyStore } from '@/stores/study'
+import { useUiStore } from '@/stores/ui'
 import type { GanttRow } from '@/types'
 
 const props = defineProps<{ row: GanttRow | null; groups: string[] }>()
-const emit = defineEmits<{ save: [payload: { title: string; group: string | null }]; delete: [id: number]; close: [] }>()
+const emit = defineEmits<{ save: [payload: { title: string; group: string | null; subjectId?: number | null }]; delete: [id: number]; close: [] }>()
 
-const form = reactive({ title: props.row?.title ?? '', group: props.row?.group ?? (props.groups[props.groups.length - 1] ?? '') })
+const study = useStudyStore()
+const ui = useUiStore()
+
+/** 科目の候補（学習項目データから、名前で重複を除く） */
+const subjects = computed(() => {
+  const m = new Map<string, { id: number; name: string; color: string }>()
+  for (const it of study.items) {
+    if (!m.has(it.subjectName)) m.set(it.subjectName, { id: it.subjectId, name: it.subjectName, color: ui.colorOf(it.colorSoft, it.colorVivid) })
+  }
+  return Array.from(m.values())
+})
+
+const AUTO = -1 // 新規: 名前から自動で推定
+const form = reactive({
+  title: props.row?.title ?? '',
+  group: props.row?.group ?? (props.groups[props.groups.length - 1] ?? ''),
+  subjectId: props.row ? (props.row.subjectId ?? 0) : AUTO,
+})
 const isNew = computed(() => props.row === null)
 const canSave = computed(() => !!form.title.trim())
+const preview = computed(() => subjects.value.find((s) => s.id === form.subjectId)?.color)
 
 function submit() {
   if (!canSave.value) return
-  emit('save', { title: form.title.trim(), group: form.group.trim() || null })
+  const payload: { title: string; group: string | null; subjectId?: number | null } = { title: form.title.trim(), group: form.group.trim() || null }
+  if (form.subjectId !== AUTO) payload.subjectId = form.subjectId || null
+  emit('save', payload)
 }
 </script>
 
@@ -26,7 +49,15 @@ function submit() {
       <div style="display: flex; flex-direction: column; gap: 13px">
         <label class="fld">
           <span>科目・学習分野</span>
-          <input v-model="form.title" placeholder="例: 英語③ 英文解釈" @keydown.enter="submit" />
+          <input v-model="form.title" placeholder="例: 英語③ 英文解釈" :style="{ color: preview, fontWeight: preview ? 700 : undefined }" @keydown.enter="submit" />
+        </label>
+        <label class="fld">
+          <span>科目（名前の文字色）</span>
+          <select v-model.number="form.subjectId" :style="{ color: preview, fontWeight: preview ? 700 : undefined }">
+            <option v-if="isNew" :value="AUTO">名前から自動で判定</option>
+            <option :value="0">科目なし（通常の文字色）</option>
+            <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
         </label>
         <label class="fld">
           <span>グループ（任意・同じグループをまとめて表示）</span>
@@ -76,7 +107,8 @@ function submit() {
   display: block;
   margin-bottom: 5px;
 }
-.fld input {
+.fld input,
+.fld select {
   width: 100%;
   padding: 9px 11px;
   border: 1px solid #e3e6ea;
@@ -85,7 +117,8 @@ function submit() {
   outline: none;
   background: #fff;
 }
-.fld input:focus {
+.fld input:focus,
+.fld select:focus {
   border-color: #b9c2f2;
 }
 .chips {

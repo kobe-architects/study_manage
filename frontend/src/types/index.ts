@@ -758,6 +758,11 @@ export interface GanttRow {
   title: string
   /** 科目のまとまり（数学・英語など）。変わる所に太い区切り線が入る */
   group: string | null
+  /** 行の科目（名前の文字色にイメージカラーを使う）。未設定は null */
+  subjectId: number | null
+  subjectName: string | null
+  colorSoft: string | null
+  colorVivid: string | null
   sortOrder: number
   tasks: GanttTask[]
 }

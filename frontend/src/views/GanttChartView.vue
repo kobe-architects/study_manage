@@ -76,7 +76,7 @@ function openEditRow(r: GanttRow) {
   rowModal.row = r
   rowModal.open = true
 }
-async function saveRow(payload: { title: string; group: string | null }) {
+async function saveRow(payload: { title: string; group: string | null; subjectId?: number | null }) {
   if (!chart.value) return
   try {
     if (rowModal.row) {
@@ -206,12 +206,16 @@ const exportItems = [
 function baseName(): string {
   return (chart.value?.title ?? 'gantt').replace(/[\\/:*?"<>|]/g, '-')
 }
+/** 出力画像でも行の名前を科目のイメージカラー（画面と同じ表示色）にする */
+const renderOpts = {
+  rowColor: (r: GanttRow) => (r.colorSoft && r.colorVivid ? ui.colorOf(r.colorSoft, r.colorVivid) : undefined),
+}
 async function onExport(key: string) {
   if (!chart.value || exporting.value) return
   exporting.value = true
   try {
     if (key === 'image') {
-      const blob = await renderGanttImage(chart.value, 'image/png')
+      const blob = await renderGanttImage(chart.value, 'image/png', 0.92, renderOpts)
       await saveFile(blob, `${baseName()}.png`, { preferShare: true })
     } else if (key === 'excel') {
       const blob = await ganttApi.excel(chart.value.id)
@@ -233,7 +237,7 @@ async function openPdf() {
   if (!chart.value) return
   const w = useInAppViewer ? null : window.open('', '_blank')
   try {
-    const image = await renderGanttImage(chart.value, 'image/jpeg', 0.92)
+    const image = await renderGanttImage(chart.value, 'image/jpeg', 0.92, renderOpts)
     const pdf = await ganttApi.pdf(chart.value.id, image)
     const name = `${baseName()}.pdf`
     if (useInAppViewer) {
