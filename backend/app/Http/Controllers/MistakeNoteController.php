@@ -173,6 +173,28 @@ class MistakeNoteController extends Controller
         return response()->json(['data' => $this->imagePayload($image)], 201);
     }
 
+    /**
+     * 画像の役割の変更。role=problem にすると、その画像が対象の問題の写真になり、それまでの問題の写真は説明用（extra）になる。
+     * 問題の写真を extra にすることはできない（問題の写真は必ず 1 枚）。
+     */
+    public function updateImage(Request $request, MistakeNoteImage $image): JsonResponse
+    {
+        $note = $image->note;
+        $this->authorizeNote($request, $note);
+        $data = $request->validate(['role' => ['required', 'string', 'in:problem,extra']]);
+        if ($data['role'] === 'extra') {
+            abort_if($image->role === 'problem', 422, '対象の問題の写真は必ず 1 枚必要です。別の画像を「問題」にしてください。');
+        } elseif ($image->role !== 'problem') {
+            DB::transaction(function () use ($note, $image) {
+                $note->images()->where('role', 'problem')->update(['role' => 'extra']);
+                $image->update(['role' => 'problem']);
+            });
+        }
+        $note->touch();
+
+        return response()->json(['data' => $note->fresh('images')->images->map(fn (MistakeNoteImage $i) => $this->imagePayload($i))->values()]);
+    }
+
     public function destroyImage(Request $request, MistakeNoteImage $image): JsonResponse
     {
         $note = $image->note;

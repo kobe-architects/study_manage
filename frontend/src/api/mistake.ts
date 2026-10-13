@@ -67,6 +67,12 @@ export const mistakeApi = {
     await client.delete(`/mistake-note-images/${imageId}`)
   },
 
+  /** 画像の役割の変更。problem にすると、それまでの問題の写真は説明用になる。戻り値はノートの全画像 */
+  async setImageRole(imageId: number, role: 'problem' | 'extra'): Promise<MistakeImage[]> {
+    const { data } = await client.put(`/mistake-note-images/${imageId}`, { role })
+    return data.data
+  },
+
   /** 画像の実体（認証つき）。thumb=true でサムネイル */
   async imageBlob(imageId: number, thumb = false): Promise<Blob> {
     const res = await client.get(`/mistake-note-images/${imageId}`, { params: thumb ? { v: 'thumb' } : undefined, responseType: 'blob' })

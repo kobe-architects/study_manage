@@ -21,7 +21,7 @@ import type { MistakeLayout, MistakeLayoutItem, MistakeStroke } from '@/types'
 type Tool = 'select' | 'pen' | 'eraser' | 'text'
 
 const props = defineProps<{ layout: MistakeLayout; urls: Record<number, string>; hasProblem: boolean; busy?: boolean; canAddProblem?: boolean }>()
-const emit = defineEmits<{ 'update:layout': [layout: MistakeLayout]; removeImage: [imageId: number]; requestProblem: []; requestExtra: [] }>()
+const emit = defineEmits<{ 'update:layout': [layout: MistakeLayout]; removeImage: [imageId: number]; requestProblem: []; requestExtra: []; makeProblem: [imageId: number] }>()
 
 const ui = useUiStore()
 const gid = newItemId('g') // 方眼パターンの id（画面内で一意に）
@@ -37,6 +37,8 @@ watch(fingerDraw, (f) => localStorage.setItem('sm_mn_finger', f ? '1' : '0'))
 const selectedId = ref<string | null>(null)
 const selected = computed(() => props.layout.items.find((i) => i.id === selectedId.value) ?? null)
 const canDelete = computed(() => !!selected.value && !(selected.value.type === 'image' && selected.value.role === 'problem'))
+/** 選択中の説明用の画像を「問題」にできるか */
+const canMakeProblem = computed(() => !!selected.value && selected.value.type === 'image' && selected.value.role !== 'problem' && !!selected.value.imageId)
 
 // ---- ステージ（表示枠）と拡大縮小・移動 ----
 const stage = ref<HTMLElement | null>(null)
@@ -509,6 +511,9 @@ onBeforeUnmount(() => {
         <button class="rb" title="見えている範囲の真ん中に文字の枠を作る" @click="addTextBox">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M9 6v12M6 18h6" /><path d="M18 10v8M14 14h8" /></svg><span>文字枠</span>
         </button>
+        <button v-if="canMakeProblem" class="rb accent" :disabled="busy" title="選択中の画像を対象の問題の写真にする（今の問題の写真は説明用になります）" @click="emit('makeProblem', selected!.imageId!)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z" /></svg><span>問題に</span>
+        </button>
         <button class="rb danger" :disabled="!canDelete" :title="selected?.type === 'text' ? '文字の枠を削除' : '画像を削除'" @click="deleteSelected">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg><span>削除</span>
         </button>
@@ -684,6 +689,10 @@ onBeforeUnmount(() => {
 }
 .rb.danger:not(:disabled) {
   color: #c0444f;
+}
+.rb.accent:not(:disabled) {
+  color: var(--primary);
+  background: #eef0f8;
 }
 .rb .big {
   font-size: 16px;

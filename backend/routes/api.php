@@ -116,6 +116,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/mistake-notes/{note}', [MistakeNoteController::class, 'destroy']);
         Route::post('/mistake-notes/{note}/images', [MistakeNoteController::class, 'storeImage']);
         Route::get('/mistake-note-images/{image}', [MistakeNoteController::class, 'image']);
+        Route::put('/mistake-note-images/{image}', [MistakeNoteController::class, 'updateImage']); // 役割の変更（問題 / 説明用）
         Route::delete('/mistake-note-images/{image}', [MistakeNoteController::class, 'destroyImage']);
 
         // ===== 家庭教師アカウント管理 =====

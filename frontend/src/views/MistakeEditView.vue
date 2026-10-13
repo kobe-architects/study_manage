@@ -260,6 +260,33 @@ async function addExtra(file: Blob) {
   }
 }
 
+/** 説明用の画像を対象の問題の写真にする（位置・大きさはそのまま。前の問題の写真は説明用になる） */
+async function makeProblem(imageId: number) {
+  if (!note.value || busy.value) return
+  busy.value = true
+  try {
+    const images = await mistakeApi.setImageRole(imageId, 'problem')
+    note.value.images = images
+    onLayout({
+      items: layout.value.items.map((it) => {
+        if (it.type !== 'image') return it
+        if (it.imageId === imageId) return { ...it, role: 'problem' as const }
+        if (it.role === 'problem') {
+          const { role: _r, ...rest } = it
+          return rest
+        }
+        return it
+      }),
+      ink: layout.value.ink,
+    })
+    ui.notify('この画像を対象の問題にしました')
+  } catch (e) {
+    ui.notify(errorMessage(e, '変更に失敗しました'))
+  } finally {
+    busy.value = false
+  }
+}
+
 async function removeImage(imageId: number) {
   try {
     await mistakeApi.removeImage(imageId)
@@ -354,7 +381,7 @@ const saveLabel = computed(
           </button>
           <div class="ttl">{{ note ? '間違いノートを編集' : '問題を追加' }}</div>
           <HelpTip
-            text="科目・大分類・中分類（学習項目データの分類）を選んでから、対象の問題の写真を登録します（小分類は任意）。スマホ・iPad では「撮影する」でカメラ、PC では画像をコピーして Ctrl+V、またはファイルをドラッグ＆ドロップで登録できます。「文字」を選んで空いている所をクリックすると、その位置に文字の枠ができます。iPad では「ペン」で手書きできます（Apple Pencil 推奨。指で書くときは「指で書く」を ON）。画像や文字の枠は「選択」でドラッグして移動、右下のつまみで大きさを変えられます（置く範囲に制限はありません。印刷や閲覧のときは全体が 1 ページに収まるよう自動で縮小されます）。ホイールで拡縮、ホイールボタンのドラッグで表示位置を動かせます。変更は自動で保存されます。"
+            text="科目・大分類・中分類（学習項目データの分類）を選んでから、対象の問題の写真を登録します（小分類は任意）。スマホ・iPad では「撮影する」でカメラ、PC では画像をコピーして Ctrl+V、またはファイルをドラッグ＆ドロップで登録できます。「文字」を選んで空いている所をクリックすると、その位置に文字の枠ができます。iPad では「ペン」で手書きできます（Apple Pencil 推奨。指で書くときは「指で書く」を ON）。画像や文字の枠は「選択」でドラッグして移動、右下のつまみで大きさを変えられます。説明用に追加した画像を選んで「問題に」を押すと、その画像が対象の問題の写真になります（置く範囲に制限はありません。印刷や閲覧のときは全体が 1 ページに収まるよう自動で縮小されます）。ホイールで拡縮、ホイールボタンのドラッグで表示位置を動かせます。変更は自動で保存されます。"
           />
         </div>
         <div class="right">
@@ -438,6 +465,7 @@ const saveLabel = computed(
           @remove-image="removeImage"
           @request-problem="problemInput?.click()"
           @request-extra="extraInput?.click()"
+          @make-problem="makeProblem"
         />
       </div>
     </template>
