@@ -8,7 +8,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ActionMenu, { type ActionMenuItem } from '@/components/ActionMenu.vue'
-import AuthImage from '@/components/AuthImage.vue'
 import HelpTip from '@/components/HelpTip.vue'
 import MistakeBinder from '@/components/MistakeBinder.vue'
 import { mistakeApi } from '@/api/mistake'
@@ -381,10 +380,9 @@ async function exportPdf() {
           <thead>
             <tr>
               <th class="c-drag"></th>
-              <th class="c-thumb">問題</th>
               <th class="c-cat">大分類</th>
               <th class="c-cat">中分類</th>
-              <th>小分類 ／ タイトル</th>
+              <th>小分類</th>
               <th class="c-src">出典</th>
               <th class="c-date">日付</th>
               <th class="c-img r">画像</th>
@@ -406,18 +404,9 @@ async function exportPdf() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7" /><circle cx="15" cy="6" r="1.7" /><circle cx="9" cy="12" r="1.7" /><circle cx="15" cy="12" r="1.7" /><circle cx="9" cy="18" r="1.7" /><circle cx="15" cy="18" r="1.7" /></svg>
                 </button>
               </td>
-              <td class="c-thumb">
-                <button class="thumb tap" title="編集" @click="edit(r.n)">
-                  <AuthImage v-if="r.n.problemThumbUrl" :src="r.n.problemThumbUrl" alt="" />
-                  <span v-else class="nothumb">なし</span>
-                </button>
-              </td>
               <td class="c-cat">{{ r.n.majorName || '–' }}</td>
               <td class="c-cat">{{ r.n.midName || '–' }}</td>
-              <td class="c-title">
-                <div class="t1">{{ r.n.studyItemName || '—' }}</div>
-                <div class="t2">{{ r.n.title || '（無題）' }}</div>
-              </td>
+              <td class="c-title">{{ r.n.studyItemName || '–' }}</td>
               <td class="c-src">{{ r.n.source || '–' }}</td>
               <td class="c-date nowrap">{{ fmtDate(r.n.notedOn) }}</td>
               <td class="c-img r">{{ r.n.imageCount }}</td>
@@ -618,7 +607,7 @@ async function exportPdf() {
 }
 .tbl {
   width: 100%;
-  min-width: 820px;
+  min-width: 760px;
   border-collapse: collapse;
   font-size: 12.5px;
 }
@@ -701,45 +690,9 @@ async function exportPdf() {
   background: #e9ecf1;
   color: #8a919c;
 }
-.c-thumb {
-  width: 1%;
-}
-.thumb {
-  display: block;
-  width: 64px;
-  height: 48px;
-  border: none;
-  border-radius: 6px;
-  background: #f1f2f4;
-  padding: 0;
-  cursor: pointer;
-  overflow: hidden;
-}
-.thumb :deep(img) {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.nothumb {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  font-size: 11px;
-  color: var(--faint);
-}
 .c-title {
-  min-width: 180px;
-}
-.t1 {
-  font-size: 12.5px;
+  min-width: 140px;
   font-weight: 700;
-}
-.t2 {
-  font-size: 12px;
-  color: var(--mut);
 }
 .c-src {
   color: var(--mut);
