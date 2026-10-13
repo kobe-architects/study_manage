@@ -845,6 +845,9 @@ export interface MistakeNoteSummary {
   problemImageId: number | null
   problemThumbUrl: string | null
   imageCount: number
+  /** 置いたもの全体の大きさ（ページ座標）。ページ割りの判定に使う。空なら 0 */
+  contentW: number
+  contentH: number
   updatedAt: string | null
 }
 

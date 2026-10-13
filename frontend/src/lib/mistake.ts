@@ -114,6 +114,67 @@ export function fitToPage(layout: MistakeLayout): { scale: number; dx: number; d
   return { scale, dx: -b.x, dy: -b.y }
 }
 
+// ---- ページ割り（1 ページに複数の問題を収める） ----
+
+/** 問題ごとの見出し行の高さ（分野・タイトル・出典・日付） */
+export const ENTRY_HEAD = 46
+/** 問題と問題の間（真ん中に罫線を引く） */
+export const ENTRY_GAP = 28
+
+export interface PageEntry {
+  note: MistakeNoteSummary
+  /** ノート本体の中での位置（見出し行の上端） */
+  y: number
+  /** 見出し行を含む高さ */
+  h: number
+  /** 描画の倍率（幅がページに収まるように。1 問でページに収まらないときはさらに縮小） */
+  scale: number
+  /** 描画部分の高さ（倍率を掛けた後） */
+  contentH: number
+}
+
+export interface BinderPage {
+  index: number
+  subjectId: number | null
+  subjectName: string
+  color: string | null
+  entries: PageEntry[]
+}
+
+/**
+ * ノート（バインダー順）をページに割り付ける。
+ * 置いたもの全体の大きさ（contentW/H）から高さを決め、ページに収まるうちは同じページに続けて置く。
+ * 科目が変わるところでページを改める。1 問だけでページに収まらないときはその問題を縮小して 1 ページに収める。
+ */
+export function paginate(notes: MistakeNoteSummary[]): BinderPage[] {
+  const pages: BinderPage[] = []
+  let cur: BinderPage | null = null
+  let y = 0
+  for (const n of notes) {
+    const cw = n.contentW > 0 ? n.contentW : NOTE_W
+    const ch = n.contentH > 0 ? n.contentH : 400
+    let scale = Math.min(1, NOTE_W / cw)
+    let h = ENTRY_HEAD + ch * scale
+    if (h > NOTE_H) {
+      scale = (NOTE_H - ENTRY_HEAD) / ch
+      h = NOTE_H
+    }
+    if (!cur || (cur.subjectId ?? 0) !== (n.subjectId ?? 0) || (cur.entries.length > 0 && y + h > NOTE_H)) {
+      cur = { index: pages.length, subjectId: n.subjectId, subjectName: n.subjectName ?? '科目なし', color: n.colorSoft, entries: [] }
+      pages.push(cur)
+      y = 0
+    }
+    cur.entries.push({ note: n, y, h, scale, contentH: ch * scale })
+    y += h + ENTRY_GAP
+  }
+  return pages
+}
+
+/** その問題が載っているページ（0 始まり）。無ければ -1 */
+export function pageIndexOf(pages: BinderPage[], noteId: number): number {
+  return pages.findIndex((p) => p.entries.some((e) => e.note.id === noteId))
+}
+
 /**
  * 撮影した写真・貼り付けた画像を、向きを直して長辺 maxSide px の JPEG にする（アップロード容量を抑える）。
  */

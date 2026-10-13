@@ -343,12 +343,64 @@ class MistakeNoteController extends Controller
         return $notes->sort(fn (MistakeNote $a, MistakeNote $b) => $key($a) <=> $key($b))->values();
     }
 
+    /**
+     * 置いたもの（画像・文字・手書き）全体の大きさ。ページ割り（1 ページに複数の問題を収める）の判定に使う。
+     * 空の文字枠は数えない。何も無ければ 0×0。
+     *
+     * @return array{w: int, h: int}
+     */
+    private function contentSize(?array $layout): array
+    {
+        $x1 = INF;
+        $y1 = INF;
+        $x2 = -INF;
+        $y2 = -INF;
+        foreach ($layout['items'] ?? [] as $it) {
+            if (! is_array($it)) {
+                continue;
+            }
+            if (($it['type'] ?? '') === 'text' && trim((string) ($it['text'] ?? '')) === '') {
+                continue;
+            }
+            $x = (float) ($it['x'] ?? 0);
+            $y = (float) ($it['y'] ?? 0);
+            $x1 = min($x1, $x);
+            $y1 = min($y1, $y);
+            $x2 = max($x2, $x + (float) ($it['w'] ?? 0));
+            $y2 = max($y2, $y + (float) ($it['h'] ?? 0));
+        }
+        foreach ($layout['ink'] ?? [] as $st) {
+            if (! is_array($st)) {
+                continue;
+            }
+            $r = ((float) ($st['width'] ?? 0)) / 2;
+            $pts = is_array($st['points'] ?? null) ? $st['points'] : [];
+            $cnt = count($pts);
+            for ($i = 0; $i + 1 < $cnt; $i += 2) {
+                $x = (float) $pts[$i];
+                $y = (float) $pts[$i + 1];
+                $x1 = min($x1, $x - $r);
+                $y1 = min($y1, $y - $r);
+                $x2 = max($x2, $x + $r);
+                $y2 = max($y2, $y + $r);
+            }
+        }
+        if (! is_finite($x1) || ! is_finite($y1)) {
+            return ['w' => 0, 'h' => 0];
+        }
+
+        return ['w' => max(1, (int) ceil($x2 - $x1)), 'h' => max(1, (int) ceil($y2 - $y1))];
+    }
+
     private function summary(MistakeNote $n): array
     {
         $problem = $n->images->firstWhere('role', 'problem');
         $field = implode(' ／ ', array_filter([$n->major?->name, $n->mid?->name], fn ($v) => $v !== null && $v !== ''));
+        $size = $this->contentSize($n->layout);
 
         return [
+            'contentW' => $size['w'],
+            'contentH' => $size['h'],
             'id' => $n->id,
             'subjectId' => $n->subject_id,
             'subjectName' => $n->subject?->name,

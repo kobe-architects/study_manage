@@ -1,29 +1,32 @@
 <script setup lang="ts">
 /**
- * 間違いノートの一覧（生徒）。科目 → 分野ごとに問題のブロックを並べ、ブロックのドラッグで並び替え、
- * 編集・非表示・削除ができる。「ノートを開く」で全画面のバインダー表示、「PDF 出力」で両面印刷用の PDF を作る
- * （目次つき・奇数ページは左、偶数ページは右にパンチ穴の余白）。
+ * 間違いノートの一覧（生徒）。小テスト一覧と同じく、科目のバッジ → 分野（大分類 ／ 中分類）ごとのテーブルで表示する。
+ * 行の取っ手のドラッグ（同じ分野の中）や矢印で並び替え、編集・非表示・削除ができる。
+ * 「ノートを開く」で全画面のバインダー表示、「PDF 出力」で両面印刷用の PDF を作る
+ * （目次つき・1 ページに複数の問題を収め、奇数ページは左、偶数ページは右にパンチ穴の余白）。
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import ActionMenu, { type ActionMenuItem } from '@/components/ActionMenu.vue'
 import AuthImage from '@/components/AuthImage.vue'
 import HelpTip from '@/components/HelpTip.vue'
 import MistakeBinder from '@/components/MistakeBinder.vue'
 import { mistakeApi } from '@/api/mistake'
 import { appConfirm } from '@/lib/dialog'
 import { showPdf, useInAppViewer } from '@/lib/docViewer'
-import { fmtDate, groupNotes, type MistakeGroup } from '@/lib/mistake'
-import { canvasToJpeg, renderIndexPages, renderNotePage, type IndexEntry } from '@/lib/mistakeRender'
-import { haptic } from '@/lib/native'
+import { fmtDate, groupNotes, pageIndexOf, paginate, type MistakeGroup } from '@/lib/mistake'
+import { canvasToJpeg, renderBinderPage, renderIndexPages, type IndexEntry } from '@/lib/mistakeRender'
+import { haptic, viewportWidth } from '@/lib/native'
 import { jpegsToPdf } from '@/lib/pdfWriter'
 import { useUiStore } from '@/stores/ui'
-import type { MistakeNoteSummary } from '@/types'
+import type { MistakeNoteDetail, MistakeNoteSummary } from '@/types'
 
 const router = useRouter()
 const ui = useUiStore()
 
 const notes = ref<MistakeNoteSummary[]>([])
 const loading = ref(true)
+const compact = computed(() => viewportWidth.value <= 900)
 
 async function load() {
   loading.value = true
@@ -91,9 +94,33 @@ const visible = computed(() =>
   ),
 )
 const groups = computed(() => groupNotes(visible.value))
+/** 科目 → 分野ごとのテーブル（小テスト一覧と同じ構成） */
+const subjectBlocks = computed(() => {
+  const out: { key: string; name: string; color: string; groups: MistakeGroup[] }[] = []
+  for (const g of groups.value) {
+    const key = String(g.subjectId ?? 0)
+    let s = out.find((x) => x.key === key)
+    if (!s) {
+      const n = g.notes[0]!
+      s = { key, name: g.subjectName, color: ui.colorOf(n.colorSoft ?? '#5b6b8c', n.colorVivid ?? '#5b6b8c'), groups: [] }
+      out.push(s)
+    }
+    s.groups.push(g)
+  }
+  return out
+})
 const shownCount = computed(() => visible.value.filter((n) => !n.hidden).length)
 
-// ---- ブロックの操作 ----
+/** バッジの背景色に対して読める文字色 */
+function textOn(bg: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(bg.trim())
+  if (!m) return '#fff'
+  const n = parseInt(m[1]!, 16)
+  const lum = (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255
+  return lum > 0.6 ? '#1c2024' : '#fff'
+}
+
+// ---- 行の操作 ----
 function edit(n: MistakeNoteSummary) {
   router.push({ name: 'mistake-edit', params: { id: n.id } })
 }
@@ -107,7 +134,7 @@ async function toggleHidden(n: MistakeNoteSummary) {
   }
 }
 async function remove(n: MistakeNoteSummary) {
-  if (!(await appConfirm(`「${n.title || '（無題）'}」を削除しますか？`, { danger: true, okText: '削除' }))) return
+  if (!(await appConfirm(`「${[n.studyItemName, n.title].filter(Boolean).join('　') || '（無題）'}」を削除しますか？`, { danger: true, okText: '削除' }))) return
   try {
     await mistakeApi.remove(n.id)
     notes.value = notes.value.filter((x) => x.id !== n.id)
@@ -117,7 +144,7 @@ async function remove(n: MistakeNoteSummary) {
   }
 }
 
-/** 同じ科目・分野の中で前後へ */
+/** 同じ分野の中で前後へ */
 async function move(n: MistakeNoteSummary, dir: -1 | 1) {
   const g = groups.value.find((x) => x.notes.includes(n))
   if (!g) return
@@ -132,7 +159,7 @@ async function reorderWithin(g: MistakeGroup, from: number, to: number) {
   const [moved] = ids.splice(from, 1)
   if (moved === undefined) return
   ids.splice(to, 0, moved)
-  // 全体の並びの中で、このグループの位置に新しい順で入れ直す
+  // 全体の並びの中で、この分野の位置に新しい順で入れ直す
   const positions = list.map((x, idx) => (g.notes.includes(x) ? idx : -1)).filter((x) => x >= 0)
   const byId = new Map(list.map((x) => [x.id, x]))
   positions.forEach((p, k) => (list[p] = byId.get(ids[k]!)!))
@@ -147,7 +174,25 @@ async function reorderWithin(g: MistakeGroup, from: number, to: number) {
   }
 }
 
-// ブロックのドラッグ（取っ手を持って同じ科目・分野の中で動かす）
+type ActionKey = 'open' | 'up' | 'down' | 'hide' | 'delete'
+function secondary(n: MistakeNoteSummary, i: number, g: MistakeGroup): (ActionMenuItem & { key: ActionKey })[] {
+  const items: (ActionMenuItem & { key: ActionKey })[] = []
+  if (!n.hidden) items.push({ key: 'open', label: 'ノートで開く' })
+  if (i > 0) items.push({ key: 'up', label: '上へ' })
+  if (i < g.notes.length - 1) items.push({ key: 'down', label: '下へ' })
+  items.push({ key: 'hide', label: n.hidden ? '表示に戻す' : '非表示にする' })
+  items.push({ key: 'delete', label: '削除', danger: true })
+  return items
+}
+function onAction(n: MistakeNoteSummary, key: string) {
+  if (key === 'open') openBinder(n.id)
+  else if (key === 'up') move(n, -1)
+  else if (key === 'down') move(n, 1)
+  else if (key === 'hide') toggleHidden(n)
+  else if (key === 'delete') remove(n)
+}
+
+// 行のドラッグ（取っ手を持って同じ分野の中で動かす）
 const drag = reactive<{ id: number; groupKey: string; over: number | null; after: boolean; active: boolean; x0: number; y0: number }>({ id: 0, groupKey: '', over: null, after: false, active: false, x0: 0, y0: 0 })
 function onHandleDown(e: PointerEvent, n: MistakeNoteSummary, g: MistakeGroup) {
   if (e.pointerType === 'mouse' && e.button !== 0) return
@@ -158,14 +203,14 @@ function onHandleMove(e: PointerEvent) {
   if (!drag.id) return
   if (!drag.active && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) return
   drag.active = true
-  const el = document.elementsFromPoint(e.clientX, e.clientY).find((x) => (x as HTMLElement).classList?.contains('mblock')) as HTMLElement | undefined
+  const el = document.elementsFromPoint(e.clientX, e.clientY).find((x) => (x as HTMLElement).classList?.contains('mrow')) as HTMLElement | undefined
   if (!el || el.dataset.group !== drag.groupKey) {
     drag.over = null
     return
   }
   const r = el.getBoundingClientRect()
   drag.over = Number(el.dataset.id)
-  drag.after = e.clientX > r.left + r.width / 2
+  drag.after = e.clientY > r.top + r.height / 2
 }
 async function onHandleUp() {
   if (!drag.id) return
@@ -197,7 +242,7 @@ function openBinder(startId: number | null = null) {
   binderOpen.value = true
 }
 
-// ---- PDF 出力（目次 + 各ページ。両面印刷でとじ側にパンチの余白） ----
+// ---- PDF 出力（目次 + ページ割りした各ページ。両面印刷でとじ側にパンチの余白） ----
 const pdfProgress = ref<{ done: number; total: number } | null>(null)
 async function exportPdf() {
   const list = binderNotes.value
@@ -207,7 +252,8 @@ async function exportPdf() {
   }
   if (pdfProgress.value) return
   const w = useInAppViewer ? null : window.open('', '_blank')
-  pdfProgress.value = { done: 0, total: list.length + 1 }
+  const pages = paginate(list)
+  pdfProgress.value = { done: 0, total: pages.length + 1 }
   try {
     const SCALE = 1.4
     const subjectName = filter.subject === 'all' ? '' : (subjectTabs.value.find((t) => t.key === filter.subject)?.name ?? '')
@@ -218,36 +264,39 @@ async function exportPdf() {
     let indexCount = 1
     let indexPages: HTMLCanvasElement[] = []
     for (let pass = 0; pass < 4; pass++) {
-      const entries: IndexEntry[] = list.map((n, i) => ({
+      const entries: IndexEntry[] = list.map((n) => ({
         subjectName: n.subjectName ?? '科目なし',
         color: n.colorSoft,
         field: n.field || '（分野なし）',
         title: [n.studyItemName, n.title].filter(Boolean).join('　') || n.source || fmtDate(n.notedOn),
-        pageNo: indexCount + i + 1,
+        pageNo: indexCount + pageIndexOf(pages, n.id) + 1,
       }))
       indexPages = renderIndexPages(entries, 1, title, SCALE)
       if (indexPages.length === indexCount) break
       indexCount = indexPages.length
     }
-    const pages = [...indexPages]
-    pdfProgress.value = { done: 1, total: list.length + 1 }
-    for (let i = 0; i < list.length; i++) {
-      const d = await mistakeApi.show(list[i]!.id)
-      pages.push(await renderNotePage(d, { pageNo: indexCount + i + 1, scale: SCALE }))
-      pdfProgress.value = { done: i + 2, total: list.length + 1 }
+    const out = [...indexPages]
+    pdfProgress.value = { done: 1, total: pages.length + 1 }
+    // 各問題の詳細（配置）を読み込みながらページを描く
+    const details = new Map<number, MistakeNoteDetail>()
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i]!
+      await Promise.all(page.entries.map((e) => (details.has(e.note.id) ? Promise.resolve() : mistakeApi.show(e.note.id).then((d) => details.set(e.note.id, d)))))
+      out.push(await renderBinderPage(page, details, { pageNo: indexCount + i + 1, scale: SCALE }))
+      pdfProgress.value = { done: i + 2, total: pages.length + 1 }
     }
     // 両面印刷で最後の裏が白紙になるよう、奇数枚なら白紙を足す
-    if (pages.length % 2 === 1) {
+    if (out.length % 2 === 1) {
       const blank = document.createElement('canvas')
-      blank.width = pages[0]!.width
-      blank.height = pages[0]!.height
+      blank.width = out[0]!.width
+      blank.height = out[0]!.height
       const x = blank.getContext('2d')!
       x.fillStyle = '#fff'
       x.fillRect(0, 0, blank.width, blank.height)
-      pages.push(blank)
+      out.push(blank)
     }
     const images = []
-    for (const c of pages) images.push({ blob: await canvasToJpeg(c, 0.86), width: c.width, height: c.height })
+    for (const c of out) images.push({ blob: await canvasToJpeg(c, 0.86), width: c.width, height: c.height })
     const pdf = await jpegsToPdf(images)
     const name = `${title}.pdf`
     if (useInAppViewer) {
@@ -272,7 +321,7 @@ async function exportPdf() {
       <div class="ttl">
         <span>間違いノート</span>
         <HelpTip
-          text="間違えた問題を写真に撮って、間違えた部分や解説を書き込んだ 1 ページにまとめます。科目 → 大分類 → 中分類（学習項目データの分類）ごとに整理され、「ノートを開く」で実際のバインダーのように見開きで閲覧、「PDF 出力」で両面印刷用の PDF（目次つき・とじ側にパンチ穴の余白）を作れます。ブロックは取っ手のドラッグや矢印で並び替え、「非表示」でノート・PDF から外せます。"
+          text="間違えた問題を写真に撮って、間違えた部分や解説を書き込んでまとめます。科目 → 大分類 → 中分類（学習項目データの分類）ごとに整理され、「ノートを開く」で実際のバインダーのように見開きで閲覧、「PDF 出力」で両面印刷用の PDF（目次つき・とじ側にパンチ穴の余白）を作れます。ページには収まる限り複数の問題を続けて載せ、問題の間に罫線が入ります。行は取っ手のドラッグや「上へ」「下へ」で並び替え、「非表示」でノート・PDF から外せます。"
         />
       </div>
       <div class="actions">
@@ -315,41 +364,67 @@ async function exportPdf() {
     </div>
     <div v-else-if="!visible.length" class="hint" style="text-align: center">この絞り込みに当てはまる問題はありません。</div>
 
-    <div v-for="g in groups" :key="g.key" class="group">
-      <div class="ghead">
-        <span class="gname" :style="{ color: g.color ? ui.colorOf(g.color, g.color) : undefined }">{{ g.subjectName }}</span>
-        <span v-if="g.field" class="gfield">／ {{ g.field }}</span>
-        <span class="gcount">{{ g.notes.length }}問</span>
+    <!-- 科目 → 分野ごとのテーブル -->
+    <div v-for="s in subjectBlocks" :key="s.key" class="group">
+      <div class="subj">
+        <span class="subj-badge" :style="{ background: s.color, color: textOn(s.color) }">{{ s.name }}</span>
       </div>
-      <div class="blocks">
-        <div
-          v-for="(n, i) in g.notes"
-          :key="n.id"
-          class="mblock card"
-          :class="{ hidden: n.hidden, lifted: drag.active && drag.id === n.id, 'ins-before': drag.active && drag.over === n.id && !drag.after, 'ins-after': drag.active && drag.over === n.id && drag.after }"
-          :data-id="n.id"
-          :data-group="g.key"
-        >
-          <button class="thumb tap" title="編集" @click="edit(n)">
-            <AuthImage v-if="n.problemThumbUrl" :src="n.problemThumbUrl" alt="" />
-            <div v-else class="nothumb">写真なし</div>
-            <span v-if="n.hidden" class="hid">非表示</span>
-          </button>
-          <div class="body">
-            <div class="btitle">{{ [n.studyItemName, n.title].filter(Boolean).join('　') || '（無題）' }}</div>
-            <div class="bsub">{{ fmtDate(n.notedOn) }}<template v-if="n.source">・{{ n.source }}</template><template v-if="n.imageCount > 1">・画像 {{ n.imageCount }}</template></div>
-          </div>
-          <div class="bact">
-            <button class="handle" title="ドラッグで並び替え" aria-label="並び替え" @pointerdown="onHandleDown($event, n, g)" @pointermove="onHandleMove" @pointerup="onHandleUp" @pointercancel="onHandleUp">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7" /><circle cx="15" cy="6" r="1.7" /><circle cx="9" cy="12" r="1.7" /><circle cx="15" cy="12" r="1.7" /><circle cx="9" cy="18" r="1.7" /><circle cx="15" cy="18" r="1.7" /></svg>
-            </button>
-            <button class="mini" :disabled="i === 0" title="前へ" @click="move(n, -1)">↑</button>
-            <button class="mini" :disabled="i === g.notes.length - 1" title="後ろへ" @click="move(n, 1)">↓</button>
-            <button class="mini" @click="edit(n)">編集</button>
-            <button class="mini" :disabled="n.hidden" @click="openBinder(n.id)">開く</button>
-            <button class="mini" @click="toggleHidden(n)">{{ n.hidden ? '表示' : '非表示' }}</button>
-            <button class="mini danger" @click="remove(n)">削除</button>
-          </div>
+      <div v-for="g in s.groups" :key="g.key" class="book-block">
+        <div class="book-head">{{ g.field || '（分野なし）' }}<span class="gcount">{{ g.notes.length }}問</span></div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th class="c-drag"></th>
+                <th class="c-thumb">問題</th>
+                <th>小分類 ／ タイトル</th>
+                <th class="c-src">出典</th>
+                <th class="c-date">日付</th>
+                <th class="c-img r">画像</th>
+                <th class="c-state">状態</th>
+                <th class="c-actions"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(n, i) in g.notes"
+                :key="n.id"
+                class="mrow"
+                :class="{ hidden: n.hidden, lifted: drag.active && drag.id === n.id, 'ins-before': drag.active && drag.over === n.id && !drag.after, 'ins-after': drag.active && drag.over === n.id && drag.after }"
+                :data-id="n.id"
+                :data-group="g.key"
+              >
+                <td class="c-drag">
+                  <button class="handle" title="ドラッグで並び替え（同じ分野の中）" aria-label="並び替え" @pointerdown="onHandleDown($event, n, g)" @pointermove="onHandleMove" @pointerup="onHandleUp" @pointercancel="onHandleUp">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7" /><circle cx="15" cy="6" r="1.7" /><circle cx="9" cy="12" r="1.7" /><circle cx="15" cy="12" r="1.7" /><circle cx="9" cy="18" r="1.7" /><circle cx="15" cy="18" r="1.7" /></svg>
+                  </button>
+                </td>
+                <td class="c-thumb">
+                  <button class="thumb tap" title="編集" @click="edit(n)">
+                    <AuthImage v-if="n.problemThumbUrl" :src="n.problemThumbUrl" alt="" />
+                    <span v-else class="nothumb">なし</span>
+                  </button>
+                </td>
+                <td class="c-title">
+                  <div class="t1">{{ n.studyItemName || '—' }}</div>
+                  <div class="t2">{{ n.title || '（無題）' }}</div>
+                </td>
+                <td class="c-src">{{ n.source || '–' }}</td>
+                <td class="c-date nowrap">{{ fmtDate(n.notedOn) }}</td>
+                <td class="c-img r">{{ n.imageCount }}</td>
+                <td class="c-state"><span class="badge" :class="n.hidden ? 'off' : 'on'">{{ n.hidden ? '非表示' : '表示' }}</span></td>
+                <td class="c-actions">
+                  <div class="acts">
+                    <button class="btn primary" @click="edit(n)">編集</button>
+                    <ActionMenu v-if="compact" :items="secondary(n, i, g)" @select="onAction(n, $event)" />
+                    <template v-else>
+                      <button v-for="it in secondary(n, i, g)" :key="it.key" class="btn" :class="{ danger: it.danger }" @click="onAction(n, it.key)">{{ it.label }}</button>
+                    </template>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -497,118 +572,121 @@ async function exportPdf() {
   border-color: #c1c8f0;
   color: #3b50cc;
 }
+
+/* ---- 科目 → 分野ごとのテーブル（小テスト一覧と同じ見た目） ---- */
 .group {
-  margin-bottom: 18px;
-}
-.ghead {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin: 0 2px 8px;
-}
-.gname {
-  font-size: 14px;
-  font-weight: 700;
-}
-.gfield {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--mut);
-}
-.gcount {
-  font-size: 11.5px;
-  color: var(--faint);
-  margin-left: 4px;
-}
-.blocks {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 12px;
-}
-.mblock {
-  position: relative;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  transition: box-shadow 0.15s ease, opacity 0.15s ease;
+  gap: 6px;
+  margin-bottom: 18px;
 }
-.mblock.hidden {
-  opacity: 0.55;
-}
-.mblock.lifted {
-  opacity: 0.4;
-}
-.mblock.ins-before {
-  box-shadow: -4px 0 0 0 var(--primary);
-}
-.mblock.ins-after {
-  box-shadow: 4px 0 0 0 var(--primary);
-}
-.thumb {
-  position: relative;
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  border: none;
-  background: #f1f2f4;
-  padding: 0;
-  cursor: pointer;
-  overflow: hidden;
-}
-.thumb :deep(img) {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.nothumb {
-  position: absolute;
-  inset: 0;
+.subj {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--faint);
-  font-size: 12px;
+  gap: 8px;
+  padding: 0 2px;
 }
-.hid {
-  position: absolute;
-  left: 8px;
-  top: 8px;
+.subj-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.book-block {
+  margin-bottom: 8px;
+}
+.book-block:last-child {
+  margin-bottom: 0;
+}
+.book-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.book-head::before {
+  content: '';
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: #c9cfd8;
+}
+.gcount {
   font-size: 10.5px;
   font-weight: 700;
-  color: #fff;
-  background: rgba(28, 32, 36, 0.75);
-  border-radius: 5px;
-  padding: 2px 7px;
+  background: #f1f2f4;
+  color: var(--mut);
+  padding: 1px 7px;
+  border-radius: 999px;
 }
-.body {
-  padding: 10px 12px 6px;
+.tbl-wrap {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow-x: auto;
 }
-.btitle {
-  font-size: 13.5px;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.tbl {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 12.5px;
 }
-.bsub {
+.tbl th {
+  padding: 7px 10px;
+  text-align: left;
   font-size: 11px;
-  color: var(--faint);
-  margin-top: 2px;
+  font-weight: 700;
+  color: var(--mut);
+  background: #f8f9fb;
+  border-bottom: 1px solid var(--line);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.bact {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-  padding: 4px 8px 10px;
+.tbl td {
+  padding: 5px 10px;
+  border-bottom: 1px solid #f1f2f4;
+  vertical-align: middle;
+  line-height: 1.35;
+}
+.tbl tbody tr:nth-child(even) {
+  background: #eef2f9;
+}
+.tbl tr:last-child td {
+  border-bottom: none;
+}
+.tbl tbody tr:hover {
+  background: #e3e9f6;
+}
+.r {
+  text-align: right;
+}
+.nowrap {
+  white-space: nowrap;
+}
+.mrow.hidden td {
+  opacity: 0.55;
+}
+.mrow.lifted td {
+  opacity: 0.4;
+}
+.mrow.ins-before td {
+  box-shadow: inset 0 3px 0 0 var(--primary);
+}
+.mrow.ins-after td {
+  box-shadow: inset 0 -3px 0 0 var(--primary);
+}
+.c-drag {
+  width: 1%;
+  padding-left: 6px;
+  padding-right: 0;
 }
 .handle {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 30px;
   border: none;
   border-radius: 7px;
   background: transparent;
@@ -621,25 +699,117 @@ async function exportPdf() {
   padding: 0;
 }
 .handle:hover {
-  background: #f1f2f4;
+  background: #e9ecf1;
   color: #8a919c;
 }
-.mini {
-  padding: 4px 9px;
-  border: 1px solid #e3e6ea;
-  border-radius: 99px;
-  background: #fff;
+.c-thumb {
+  width: 1%;
+}
+.thumb {
+  display: block;
+  width: 64px;
+  height: 48px;
+  border: none;
+  border-radius: 6px;
+  background: #f1f2f4;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+}
+.thumb :deep(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.nothumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
   font-size: 11px;
+  color: var(--faint);
+}
+.c-title {
+  min-width: 180px;
+}
+.t1 {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.t2 {
+  font-size: 12px;
+  color: var(--mut);
+}
+.c-src {
+  color: var(--mut);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.c-date {
+  width: 84px;
+  color: var(--mut);
+}
+.c-img {
+  width: 48px;
+}
+.c-state {
+  width: 72px;
+  white-space: nowrap;
+}
+.badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badge.on {
+  background: #e6f5ec;
+  color: #2f7a4f;
+}
+.badge.off {
+  background: #f1f2f4;
+  color: var(--mut);
+}
+.c-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+.acts {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn {
+  padding: 5px 10px;
+  border: 1px solid #e3e6ea;
+  border-radius: 7px;
+  background: #fff;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--mut);
   cursor: pointer;
+  white-space: nowrap;
 }
-.mini:disabled {
-  opacity: 0.35;
-  cursor: default;
+.btn:hover {
+  background: #f6f7f9;
+  color: var(--ink);
 }
-.mini.danger {
+.btn.primary {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
+}
+.btn.danger {
   color: #c0444f;
   border-color: #f0c3c8;
+}
+.btn.danger:hover {
+  background: #fdf3f4;
 }
 </style>

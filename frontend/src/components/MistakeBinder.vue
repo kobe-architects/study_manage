@@ -1,14 +1,14 @@
 <script setup lang="ts">
 /**
- * 間違いノートの全画面閲覧。印刷と同じページ（見出し・とじ代・ページ番号つき）を見開きで表示し、
+ * 間違いノートの全画面閲覧。印刷と同じページ（見出し・とじ代・ページ番号つき。1 ページに複数の問題）を見開きで表示し、
  * 右端の科目・分野のインデックス（タブ）から該当ページへ飛べる。
  * ページ 1 は右側（奇数ページ = とじ側が左）。スマホ幅では 1 ページずつ表示する。
  * ←→ キー・画面の左右タップ・スワイプでめくる。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { mistakeApi } from '@/api/mistake'
-import { PAGE_H, PAGE_W, groupKeyOf, groupNotes } from '@/lib/mistake'
-import { renderNotePage } from '@/lib/mistakeRender'
+import { PAGE_H, PAGE_W, groupKeyOf, groupNotes, pageIndexOf, paginate } from '@/lib/mistake'
+import { renderBinderPage } from '@/lib/mistakeRender'
 import { viewportWidth } from '@/lib/native'
 import type { MistakeNoteDetail, MistakeNoteSummary } from '@/types'
 
@@ -16,7 +16,9 @@ const props = defineProps<{ notes: MistakeNoteSummary[]; startId?: number | null
 const emit = defineEmits<{ close: [] }>()
 
 const single = computed(() => viewportWidth.value < 760)
-const total = computed(() => props.notes.length)
+/** ページ割り（1 ページに複数の問題） */
+const pages = computed(() => paginate(props.notes))
+const total = computed(() => pages.value.length)
 
 /** 右ページ（見開き）または表示ページ（1 ページ表示）の 0 始まりの番号 */
 const pos = ref(0)
@@ -26,7 +28,7 @@ function spreadOf(i: number): number {
 const leftIdx = computed(() => (single.value ? -1 : pos.value - 1))
 const rightIdx = computed(() => pos.value)
 const canPrev = computed(() => pos.value > 0)
-const canNext = computed(() => (single.value ? pos.value < total.value - 1 : pos.value + 2 <= total.value - 1 || pos.value + 1 <= total.value - 1))
+const canNext = computed(() => (single.value ? pos.value < total.value - 1 : pos.value + 1 <= total.value - 1))
 
 function go(i: number) {
   pos.value = Math.max(0, Math.min(total.value - 1, spreadOf(i)))
@@ -41,11 +43,10 @@ function prev() {
 }
 watch(single, () => go(pos.value))
 
-// ---- ページの描画（印刷と同じ見た目）。結果は note の id ごとにキャッシュ ----
+// ---- ページの描画（印刷と同じ見た目）。結果はページ番号ごとにキャッシュ ----
 const detailCache = new Map<number, Promise<MistakeNoteDetail>>()
 const pageCache = new Map<number, Promise<string>>()
 const urls = ref<Record<number, string>>({})
-const loadingIds = ref<Set<number>>(new Set())
 
 function detailOf(id: number): Promise<MistakeNoteDetail> {
   let p = detailCache.get(id)
@@ -57,23 +58,19 @@ function detailOf(id: number): Promise<MistakeNoteDetail> {
   return p
 }
 async function ensurePage(i: number) {
-  const n = props.notes[i]
-  if (!n || urls.value[n.id] || pageCache.has(n.id)) return
-  loadingIds.value = new Set(loadingIds.value).add(n.id)
+  const page = pages.value[i]
+  if (!page || urls.value[i] || pageCache.has(i)) return
   const p = (async () => {
-    const d = await detailOf(n.id)
-    const c = await renderNotePage(d, { pageNo: i + 1, scale: 1 })
+    const details = new Map<number, MistakeNoteDetail>()
+    await Promise.all(page.entries.map((e) => detailOf(e.note.id).then((d) => details.set(e.note.id, d)).catch(() => {})))
+    const c = await renderBinderPage(page, details, { pageNo: i + 1, scale: 1 })
     return c.toDataURL('image/jpeg', 0.85)
   })()
-  pageCache.set(n.id, p)
+  pageCache.set(i, p)
   try {
-    urls.value = { ...urls.value, [n.id]: await p }
+    urls.value = { ...urls.value, [i]: await p }
   } catch {
-    pageCache.delete(n.id)
-  } finally {
-    const s = new Set(loadingIds.value)
-    s.delete(n.id)
-    loadingIds.value = s
+    pageCache.delete(i)
   }
 }
 watch(
@@ -85,27 +82,38 @@ watch(
   { immediate: true },
 )
 
-const pageUrl = (i: number) => (i >= 0 && i < total.value ? urls.value[props.notes[i]!.id] : undefined)
-const pageNote = (i: number) => (i >= 0 && i < total.value ? props.notes[i] : undefined)
+const pageUrl = (i: number) => (i >= 0 && i < total.value ? urls.value[i] : undefined)
+const pageAt = (i: number) => (i >= 0 && i < total.value ? pages.value[i] : undefined)
 
 // ---- インデックス（科目 → 分野） ----
 const groups = computed(() => groupNotes(props.notes))
 const subjects = computed(() => {
   const out: { key: string; name: string; color: string | null; first: number }[] = []
-  props.notes.forEach((n, i) => {
-    const key = String(n.subjectId ?? 0)
-    if (!out.some((x) => x.key === key)) out.push({ key, name: n.subjectName ?? '科目なし', color: n.colorSoft, first: i })
+  pages.value.forEach((p, i) => {
+    const key = String(p.subjectId ?? 0)
+    if (!out.some((x) => x.key === key)) out.push({ key, name: p.subjectName, color: p.color, first: i })
   })
   return out
 })
-const current = computed(() => pageNote(rightIdx.value) ?? pageNote(leftIdx.value))
+const current = computed(() => pageAt(rightIdx.value) ?? pageAt(leftIdx.value))
 const activeSubjectKey = computed(() => String(current.value?.subjectId ?? 0))
 const fieldsOfActive = computed(() =>
   groups.value
     .filter((g) => String(g.subjectId ?? 0) === activeSubjectKey.value)
-    .map((g) => ({ key: g.key, field: g.field || '（分野なし）', first: props.notes.indexOf(g.notes[0]!) })),
+    .map((g) => ({ key: g.key, field: g.field || '（分野なし）', first: pageIndexOf(pages.value, g.notes[0]!.id) })),
 )
-const activeFieldKey = computed(() => (current.value ? groupKeyOf(current.value) : ''))
+/** 見開きに載っている分野（タブの強調用） */
+const activeFieldKeys = computed(() => {
+  const keys = new Set<string>()
+  for (const i of [leftIdx.value, rightIdx.value]) for (const e of pageAt(i)?.entries ?? []) keys.add(groupKeyOf(e.note))
+  return keys
+})
+const currentLabel = computed(() => {
+  const c = current.value
+  if (!c) return ''
+  const fields = Array.from(new Set(c.entries.map((e) => e.note.field).filter(Boolean)))
+  return fields.length ? `${c.subjectName} ／ ${fields.join('・')}` : c.subjectName
+})
 
 // ---- 操作 ----
 function onKey(e: KeyboardEvent) {
@@ -144,7 +152,7 @@ function onPointerUp(e: PointerEvent) {
 
 onMounted(() => {
   if (props.startId != null) {
-    const i = props.notes.findIndex((n) => n.id === props.startId)
+    const i = pageIndexOf(pages.value, props.startId)
     if (i >= 0) go(i)
   }
   window.addEventListener('keydown', onKey)
@@ -172,7 +180,7 @@ const ratio = PAGE_H / PAGE_W
     <div class="bar">
       <div class="bar-title">
         間違いノート
-        <span v-if="current" class="bar-sub">{{ current.subjectName ?? '科目なし' }}<template v-if="current.field"> ／ {{ current.field }}</template></span>
+        <span v-if="currentLabel" class="bar-sub">{{ currentLabel }}</span>
       </div>
       <div class="bar-pos dm">{{ Math.min(total, pos + 1) }} / {{ total }}</div>
       <button class="x" aria-label="閉じる" @click="emit('close')">
@@ -202,7 +210,7 @@ const ratio = PAGE_H / PAGE_W
         <template v-for="sb in subjects" :key="sb.key">
           <button class="tab subj" :class="{ on: sb.key === activeSubjectKey }" :style="{ '--c': sb.color ?? '#5b6b8c' }" @click="go(sb.first)">{{ sb.name }}</button>
           <template v-if="sb.key === activeSubjectKey">
-            <button v-for="f in fieldsOfActive" :key="f.key" class="tab field" :class="{ on: f.key === activeFieldKey }" :style="{ '--c': sb.color ?? '#5b6b8c' }" @click="go(f.first)">{{ f.field }}</button>
+            <button v-for="f in fieldsOfActive" :key="f.key" class="tab field" :class="{ on: activeFieldKeys.has(f.key) }" :style="{ '--c': sb.color ?? '#5b6b8c' }" @click="go(f.first)">{{ f.field }}</button>
           </template>
         </template>
       </div>
