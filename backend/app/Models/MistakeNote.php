@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** 間違いノートの 1 ページ（1 問）。科目 → 大分類 → 中分類（→ 小分類）に紐づき、問題の写真・説明用の画像・手書き・入力した解説を持つ */
 class MistakeNote extends Model
 {
-    protected $fillable = ['user_id', 'subject_id', 'major_category_id', 'mid_category_id', 'study_item_id', 'title', 'source', 'noted_on', 'layout', 'hidden', 'sort_order'];
+    protected $fillable = ['user_id', 'subject_id', 'major_category_id', 'mid_category_id', 'study_item_id', 'resource_book_id', 'title', 'source', 'noted_on', 'layout', 'hidden', 'sort_order'];
 
     protected $casts = ['noted_on' => 'date', 'layout' => 'array', 'hidden' => 'boolean', 'sort_order' => 'integer'];
 
@@ -37,6 +37,12 @@ class MistakeNote extends Model
     public function item(): BelongsTo
     {
         return $this->belongsTo(StudyItem::class, 'study_item_id');
+    }
+
+    /** 出典の教材（個別学習一覧データ・任意） */
+    public function book(): BelongsTo
+    {
+        return $this->belongsTo(ResourceBook::class, 'resource_book_id');
     }
 
     public function images(): HasMany

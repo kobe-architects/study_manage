@@ -12,6 +12,7 @@ import { mistakeApi } from '@/api/mistake'
 import { iso } from '@/lib/design'
 import { bottomOf, ensureLayout, fileToJpeg, fitExtra, fitProblem, forgetImageUrl, imageObjectUrl, newItemId, registerImageUrl } from '@/lib/mistake'
 import { isTouch } from '@/lib/native'
+import { useResourceStore } from '@/stores/resource'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
 import type { MistakeLayout, MistakeLayoutItem, MistakeNoteDetail } from '@/types'
@@ -20,12 +21,13 @@ const route = useRoute()
 const router = useRouter()
 const ui = useUiStore()
 const study = useStudyStore()
+const resource = useResourceStore()
 
 const noteId = computed(() => (route.name === 'mistake-edit' ? Number(route.params.id) : null))
 const note = ref<MistakeNoteDetail | null>(null)
 const layout = ref<MistakeLayout>(ensureLayout())
 const urls = reactive<Record<number, string>>({})
-const meta = reactive({ subjectId: 0, majorId: 0, midId: 0, studyItemId: 0, title: '', source: '', notedOn: iso(new Date()) })
+const meta = reactive({ subjectId: 0, majorId: 0, midId: 0, studyItemId: 0, resourceBookId: 0, title: '', notedOn: iso(new Date()) })
 /** 科目・大分類・中分類が選ばれている（登録・保存の条件） */
 const categoriesReady = computed(() => meta.subjectId > 0 && meta.majorId > 0 && meta.midId > 0)
 const loading = ref(true)
@@ -51,6 +53,23 @@ const mids = computed(() => {
 })
 const subs = computed(() => study.items.filter((it) => it.midId === meta.midId).map((it) => ({ id: it.id, name: it.sub })))
 const subjectColor = computed(() => subjects.value.find((s) => s.id === meta.subjectId)?.color)
+
+/** 出典の候補: 個別学習一覧データ（教材）。選んだ科目の教材を種別（講義・問題集・教科書）ごとに。科目の教材が無ければ全部 */
+const bookGroups = computed(() => {
+  const all = resource.books
+  const mine = all.filter((b) => b.subjectId === meta.subjectId)
+  const list = mine.length ? mine : all
+  const groups: { type: string; books: typeof list }[] = []
+  for (const b of list) {
+    let g = groups.find((x) => x.type === b.type)
+    if (!g) {
+      g = { type: b.type, books: [] }
+      groups.push(g)
+    }
+    g.books.push(b)
+  }
+  return groups
+})
 
 // 上の階層を変えたら下の階層を選び直す
 watch(
@@ -86,7 +105,10 @@ watch(
 async function load() {
   loading.value = true
   try {
-    if (!study.items.length) await study.fetchItems().catch(() => {})
+    await Promise.all([
+      study.items.length ? Promise.resolve() : study.fetchItems().catch(() => {}),
+      resource.books.length ? Promise.resolve() : resource.fetchBooks().catch(() => {}),
+    ])
     if (noteId.value) {
       const d = await mistakeApi.show(noteId.value)
       note.value = d
@@ -95,8 +117,8 @@ async function load() {
       meta.majorId = d.majorId ?? 0
       meta.midId = d.midId ?? 0
       meta.studyItemId = d.studyItemId ?? 0
+      meta.resourceBookId = d.resourceBookId ?? 0
       meta.title = d.title ?? ''
-      meta.source = d.source ?? ''
       meta.notedOn = d.notedOn
       await Promise.all(d.images.map((im) => imageObjectUrl(im.id).then((u) => (urls[im.id] = u)).catch(() => {})))
       saveState.value = 'saved'
@@ -135,8 +157,8 @@ function metaPayload() {
     majorId: meta.majorId || null,
     midId: meta.midId || null,
     studyItemId: meta.studyItemId || null,
+    resourceBookId: meta.resourceBookId || null,
     title: meta.title.trim() || null,
-    source: meta.source.trim() || null,
     notedOn: meta.notedOn,
   }
 }
@@ -385,7 +407,7 @@ const saveLabel = computed(
           />
         </div>
         <div class="right">
-          <span v-if="!showMeta && note" class="crumb">{{ [note.subjectName, note.field, note.studyItemName, note.title].filter(Boolean).join(' ／ ') }}</span>
+          <span v-if="!showMeta && note" class="crumb">{{ [note.subjectName, note.field, note.studyItemName, note.title, note.source].filter(Boolean).join(' ／ ') }}</span>
           <span class="save" :class="saveState">{{ saveLabel }}</span>
           <button v-if="note && saveState !== 'saved'" class="btn-ghost" :disabled="saveState === 'saving'" @click="saveNow">今すぐ保存</button>
           <button class="btn-ghost" :title="showMeta ? '科目・タイトルなどの欄を隠してキャンバスを広くする' : '科目・タイトルなどの欄を表示する'" @click="showMeta = !showMeta">{{ showMeta ? '項目を隠す' : '項目を表示' }}</button>
@@ -428,8 +450,13 @@ const saveLabel = computed(
           <input v-model="meta.title" placeholder="例: 例題12 判別式の利用" />
         </label>
         <label class="fld grow">
-          <span>出典（任意）</span>
-          <input v-model="meta.source" placeholder="例: Focus Gold p.120" />
+          <span>出典（個別学習一覧データ・任意）</span>
+          <select v-model.number="meta.resourceBookId">
+            <option :value="0">指定しない</option>
+            <optgroup v-for="g in bookGroups" :key="g.type" :label="g.type">
+              <option v-for="b in g.books" :key="b.id" :value="b.id">{{ b.title }}</option>
+            </optgroup>
+          </select>
         </label>
         <label class="fld">
           <span>日付</span>

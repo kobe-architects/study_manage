@@ -6,6 +6,7 @@ export interface MistakeMetaInput {
   majorId?: number | null
   midId?: number | null
   studyItemId?: number | null
+  resourceBookId?: number | null
   title?: string | null
   source?: string | null
   notedOn?: string
@@ -27,6 +28,7 @@ export const mistakeApi = {
     if (meta.majorId) fd.append('majorId', String(meta.majorId))
     if (meta.midId) fd.append('midId', String(meta.midId))
     if (meta.studyItemId) fd.append('studyItemId', String(meta.studyItemId))
+    if (meta.resourceBookId) fd.append('resourceBookId', String(meta.resourceBookId))
     if (meta.title) fd.append('title', meta.title)
     if (meta.source) fd.append('source', meta.source)
     if (meta.notedOn) fd.append('notedOn', meta.notedOn)

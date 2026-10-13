@@ -838,6 +838,9 @@ export interface MistakeNoteSummary {
   /** 表示用「大分類 ／ 中分類」 */
   field: string | null
   title: string | null
+  /** 出典の教材（個別学習一覧データ）。未選択は null */
+  resourceBookId: number | null
+  /** 出典の表示（教材名。教材が未選択なら旧来の自由入力） */
   source: string | null
   notedOn: string // ISO
   hidden: boolean

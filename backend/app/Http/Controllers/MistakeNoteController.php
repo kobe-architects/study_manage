@@ -6,6 +6,7 @@ use App\Models\MajorCategory;
 use App\Models\MidCategory;
 use App\Models\MistakeNote;
 use App\Models\MistakeNoteImage;
+use App\Models\ResourceBook;
 use App\Models\StudyItem;
 use App\Models\Subject;
 use App\Support\ImageTools;
@@ -33,7 +34,7 @@ class MistakeNoteController extends Controller
         return response()->json(['data' => $this->sortForBinder($notes)->map(fn (MistakeNote $n) => $this->summary($n))->values()]);
     }
 
-    private const WITH = ['subject', 'major', 'mid', 'item', 'images'];
+    private const WITH = ['subject', 'major', 'mid', 'item', 'book', 'images'];
 
     /** 新規作成。対象の問題の写真（image）と 科目・大分類・中分類 が必須。layout は JSON 文字列 */
     public function store(Request $request): JsonResponse
@@ -45,16 +46,19 @@ class MistakeNoteController extends Controller
             'majorId' => ['required', 'integer'],
             'midId' => ['required', 'integer'],
             'studyItemId' => ['nullable', 'integer'],
+            'resourceBookId' => ['nullable', 'integer'],
             'title' => ['nullable', 'string', 'max:255'],
             'source' => ['nullable', 'string', 'max:255'],
             'notedOn' => ['nullable', 'date'],
             'layout' => ['nullable', 'string'],
         ]);
         $cats = $this->categoriesOf($userId, $data);
+        $bookId = $this->bookIdOf($userId, $data['resourceBookId'] ?? null);
 
-        $note = DB::transaction(function () use ($request, $userId, $data, $cats) {
+        $note = DB::transaction(function () use ($request, $userId, $data, $cats, $bookId) {
             $note = MistakeNote::create($cats + [
                 'user_id' => $userId,
+                'resource_book_id' => $bookId,
                 'title' => $this->nullable($data['title'] ?? null),
                 'source' => $this->nullable($data['source'] ?? null),
                 'noted_on' => $data['notedOn'] ?? now()->toDateString(),
@@ -84,6 +88,7 @@ class MistakeNoteController extends Controller
             'majorId' => ['sometimes', 'required', 'integer'],
             'midId' => ['sometimes', 'required', 'integer'],
             'studyItemId' => ['sometimes', 'nullable', 'integer'],
+            'resourceBookId' => ['sometimes', 'nullable', 'integer'],
             'title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'source' => ['sometimes', 'nullable', 'string', 'max:255'],
             'notedOn' => ['sometimes', 'required', 'date'],
@@ -92,6 +97,9 @@ class MistakeNoteController extends Controller
         ]);
 
         $attrs = [];
+        if (array_key_exists('resourceBookId', $data)) {
+            $attrs['resource_book_id'] = $this->bookIdOf($note->user_id, $data['resourceBookId']);
+        }
         // 分野はまとめて検証する（指定のない項目は今の値を使う）
         if (array_key_exists('subjectId', $data) || array_key_exists('majorId', $data) || array_key_exists('midId', $data) || array_key_exists('studyItemId', $data)) {
             $attrs = $this->categoriesOf($note->user_id, [
@@ -257,6 +265,18 @@ class MistakeNoteController extends Controller
         ];
     }
 
+    /** 出典の教材（個別学習一覧データ）の検証。生徒自身の教材のみ。null は未選択 */
+    private function bookIdOf(int $userId, mixed $id): ?int
+    {
+        if ($id === null || $id === '' || (int) $id === 0) {
+            return null;
+        }
+        $book = ResourceBook::where('user_id', $userId)->whereKey((int) $id)->first();
+        abort_if($book === null, 422, '出典の教材が見つかりません。');
+
+        return $book->id;
+    }
+
     private function nullable(?string $v): ?string
     {
         $v = $v === null ? null : trim($v);
@@ -414,7 +434,9 @@ class MistakeNoteController extends Controller
             'studyItemName' => $n->item?->name,
             'field' => $field !== '' ? $field : null,
             'title' => $n->title,
-            'source' => $n->source,
+            'resourceBookId' => $n->resource_book_id,
+            // 出典の表示: 教材が選ばれていればその名前、なければ旧来の自由入力
+            'source' => $n->book?->title ?? $n->source,
             'notedOn' => $n->noted_on->toDateString(),
             'hidden' => (bool) $n->hidden,
             'sortOrder' => (int) $n->sort_order,
