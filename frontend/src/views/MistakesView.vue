@@ -94,18 +94,24 @@ const visible = computed(() =>
   ),
 )
 const groups = computed(() => groupNotes(visible.value))
-/** 科目 → 分野ごとのテーブル（小テスト一覧と同じ構成） */
+/** 科目ごとに 1 つのテーブル（行は分野＝大分類・中分類の順。並び替えは同じ分野の中だけ） */
+interface SubjectRow {
+  n: MistakeNoteSummary
+  g: MistakeGroup
+  /** 分野の中での位置 */
+  i: number
+}
 const subjectBlocks = computed(() => {
-  const out: { key: string; name: string; color: string; groups: MistakeGroup[] }[] = []
+  const out: { key: string; name: string; color: string; rows: SubjectRow[] }[] = []
   for (const g of groups.value) {
     const key = String(g.subjectId ?? 0)
     let s = out.find((x) => x.key === key)
     if (!s) {
       const n = g.notes[0]!
-      s = { key, name: g.subjectName, color: ui.colorOf(n.colorSoft ?? '#5b6b8c', n.colorVivid ?? '#5b6b8c'), groups: [] }
+      s = { key, name: g.subjectName, color: ui.colorOf(n.colorSoft ?? '#5b6b8c', n.colorVivid ?? '#5b6b8c'), rows: [] }
       out.push(s)
     }
-    s.groups.push(g)
+    g.notes.forEach((n, i) => s!.rows.push({ n, g, i }))
   }
   return out
 })
@@ -364,68 +370,70 @@ async function exportPdf() {
     </div>
     <div v-else-if="!visible.length" class="hint" style="text-align: center">この絞り込みに当てはまる問題はありません。</div>
 
-    <!-- 科目 → 分野ごとのテーブル -->
+    <!-- 科目ごとに 1 つのテーブル（大分類・中分類は列） -->
     <div v-for="s in subjectBlocks" :key="s.key" class="group">
       <div class="subj">
         <span class="subj-badge" :style="{ background: s.color, color: textOn(s.color) }">{{ s.name }}</span>
+        <span class="gcount">{{ s.rows.length }}問</span>
       </div>
-      <div v-for="g in s.groups" :key="g.key" class="book-block">
-        <div class="book-head">{{ g.field || '（分野なし）' }}<span class="gcount">{{ g.notes.length }}問</span></div>
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead>
-              <tr>
-                <th class="c-drag"></th>
-                <th class="c-thumb">問題</th>
-                <th>小分類 ／ タイトル</th>
-                <th class="c-src">出典</th>
-                <th class="c-date">日付</th>
-                <th class="c-img r">画像</th>
-                <th class="c-state">状態</th>
-                <th class="c-actions"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(n, i) in g.notes"
-                :key="n.id"
-                class="mrow"
-                :class="{ hidden: n.hidden, lifted: drag.active && drag.id === n.id, 'ins-before': drag.active && drag.over === n.id && !drag.after, 'ins-after': drag.active && drag.over === n.id && drag.after }"
-                :data-id="n.id"
-                :data-group="g.key"
-              >
-                <td class="c-drag">
-                  <button class="handle" title="ドラッグで並び替え（同じ分野の中）" aria-label="並び替え" @pointerdown="onHandleDown($event, n, g)" @pointermove="onHandleMove" @pointerup="onHandleUp" @pointercancel="onHandleUp">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7" /><circle cx="15" cy="6" r="1.7" /><circle cx="9" cy="12" r="1.7" /><circle cx="15" cy="12" r="1.7" /><circle cx="9" cy="18" r="1.7" /><circle cx="15" cy="18" r="1.7" /></svg>
-                  </button>
-                </td>
-                <td class="c-thumb">
-                  <button class="thumb tap" title="編集" @click="edit(n)">
-                    <AuthImage v-if="n.problemThumbUrl" :src="n.problemThumbUrl" alt="" />
-                    <span v-else class="nothumb">なし</span>
-                  </button>
-                </td>
-                <td class="c-title">
-                  <div class="t1">{{ n.studyItemName || '—' }}</div>
-                  <div class="t2">{{ n.title || '（無題）' }}</div>
-                </td>
-                <td class="c-src">{{ n.source || '–' }}</td>
-                <td class="c-date nowrap">{{ fmtDate(n.notedOn) }}</td>
-                <td class="c-img r">{{ n.imageCount }}</td>
-                <td class="c-state"><span class="badge" :class="n.hidden ? 'off' : 'on'">{{ n.hidden ? '非表示' : '表示' }}</span></td>
-                <td class="c-actions">
-                  <div class="acts">
-                    <button class="btn primary" @click="edit(n)">編集</button>
-                    <ActionMenu v-if="compact" :items="secondary(n, i, g)" @select="onAction(n, $event)" />
-                    <template v-else>
-                      <button v-for="it in secondary(n, i, g)" :key="it.key" class="btn" :class="{ danger: it.danger }" @click="onAction(n, it.key)">{{ it.label }}</button>
-                    </template>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th class="c-drag"></th>
+              <th class="c-thumb">問題</th>
+              <th class="c-cat">大分類</th>
+              <th class="c-cat">中分類</th>
+              <th>小分類 ／ タイトル</th>
+              <th class="c-src">出典</th>
+              <th class="c-date">日付</th>
+              <th class="c-img r">画像</th>
+              <th class="c-state">状態</th>
+              <th class="c-actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="r in s.rows"
+              :key="r.n.id"
+              class="mrow"
+              :class="{ hidden: r.n.hidden, lifted: drag.active && drag.id === r.n.id, 'ins-before': drag.active && drag.over === r.n.id && !drag.after, 'ins-after': drag.active && drag.over === r.n.id && drag.after, 'group-start': r.i === 0 }"
+              :data-id="r.n.id"
+              :data-group="r.g.key"
+            >
+              <td class="c-drag">
+                <button class="handle" title="ドラッグで並び替え（同じ大分類・中分類の中）" aria-label="並び替え" @pointerdown="onHandleDown($event, r.n, r.g)" @pointermove="onHandleMove" @pointerup="onHandleUp" @pointercancel="onHandleUp">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7" /><circle cx="15" cy="6" r="1.7" /><circle cx="9" cy="12" r="1.7" /><circle cx="15" cy="12" r="1.7" /><circle cx="9" cy="18" r="1.7" /><circle cx="15" cy="18" r="1.7" /></svg>
+                </button>
+              </td>
+              <td class="c-thumb">
+                <button class="thumb tap" title="編集" @click="edit(r.n)">
+                  <AuthImage v-if="r.n.problemThumbUrl" :src="r.n.problemThumbUrl" alt="" />
+                  <span v-else class="nothumb">なし</span>
+                </button>
+              </td>
+              <td class="c-cat">{{ r.n.majorName || '–' }}</td>
+              <td class="c-cat">{{ r.n.midName || '–' }}</td>
+              <td class="c-title">
+                <div class="t1">{{ r.n.studyItemName || '—' }}</div>
+                <div class="t2">{{ r.n.title || '（無題）' }}</div>
+              </td>
+              <td class="c-src">{{ r.n.source || '–' }}</td>
+              <td class="c-date nowrap">{{ fmtDate(r.n.notedOn) }}</td>
+              <td class="c-img r">{{ r.n.imageCount }}</td>
+              <td class="c-state"><span class="badge" :class="r.n.hidden ? 'off' : 'on'">{{ r.n.hidden ? '非表示' : '表示' }}</span></td>
+              <td class="c-actions">
+                <div class="acts">
+                  <button class="btn primary" @click="edit(r.n)">編集</button>
+                  <ActionMenu v-if="compact" :items="secondary(r.n, r.i, r.g)" @select="onAction(r.n, $event)" />
+                  <template v-else>
+                    <button v-for="it in secondary(r.n, r.i, r.g)" :key="it.key" class="btn" :class="{ danger: it.danger }" @click="onAction(r.n, it.key)">{{ it.label }}</button>
+                  </template>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -594,28 +602,6 @@ async function exportPdf() {
   font-weight: 700;
   line-height: 1.5;
 }
-.book-block {
-  margin-bottom: 8px;
-}
-.book-block:last-child {
-  margin-bottom: 0;
-}
-.book-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 6px 5px;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--ink);
-}
-.book-head::before {
-  content: '';
-  width: 3px;
-  height: 12px;
-  border-radius: 2px;
-  background: #c9cfd8;
-}
 .gcount {
   font-size: 10.5px;
   font-weight: 700;
@@ -632,9 +618,22 @@ async function exportPdf() {
 }
 .tbl {
   width: 100%;
-  min-width: 640px;
+  min-width: 820px;
   border-collapse: collapse;
   font-size: 12.5px;
+}
+/* 分野（大分類・中分類）が変わる行の上は少し濃い線で区切る */
+.tbl tbody tr.group-start:not(:first-child) td {
+  border-top: 1px solid #d4d8de;
+}
+.c-cat {
+  width: 120px;
+  max-width: 160px;
+  color: var(--mut);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .tbl th {
   padding: 7px 10px;

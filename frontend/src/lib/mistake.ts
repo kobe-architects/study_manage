@@ -118,8 +118,8 @@ export function fitToPage(layout: MistakeLayout): { scale: number; dx: number; d
 
 /** 問題ごとの見出し行の高さ（分野・タイトル・出典・日付） */
 export const ENTRY_HEAD = 46
-/** 問題と問題の間（真ん中に罫線を引く） */
-export const ENTRY_GAP = 28
+/** 問題と問題の間（真ん中に罫線を引く）。上下に十分な余白を取る */
+export const ENTRY_GAP = 64
 
 export interface PageEntry {
   note: MistakeNoteSummary
