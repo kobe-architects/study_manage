@@ -5,7 +5,7 @@
  * 方眼の下敷き（SVG のパターン）は画面に固定し、置いたものだけを拡縮・移動して見る。
  * 置ける範囲に壁はなく（ページの外でもよい）、印刷・閲覧のときに全体がページ（NOTE_W × NOTE_H）に収まるよう自動で調整する。
  * - 拡縮: マウスホイール（カーソル位置を中心・1 目盛り約 5%）、ピンチ、「−」「＋」（10% ずつ）「全体」「幅」
- * - 移動: ホイールボタン（中ボタン）のドラッグ、指 1 本（書く設定でないとき）／指 2 本のドラッグ
+ * - 移動: ホイールボタン（中ボタン）のドラッグ、指 1 本（書く設定でないとき。画像・文字の枠の上ならその枠だけを動かす）／指 2 本のドラッグ
  * - 選択: 画像・文字の枠をドラッグで移動、右下のつまみで大きさ変更
  * - ペン / 消しゴム: Apple Pencil・マウスで書く。指は既定では移動（「指で書く」を ON にすると指でも書ける）
  *   線を引いたまま少し止める（ホールド）と直線・円／楕円・長方形に整える（図形補正。lib/inkShapes.ts。「図形補正」で OFF にできる）
@@ -197,6 +197,22 @@ function startPan(e: PointerEvent, textAt?: { x: number; y: number }) {
   drag = { kind: 'pan', id: '', ...baseDrag(e, { x: 0, y: 0 }), textAt }
   panning.value = true
 }
+/** 画像・文字の枠の移動（handle = 右下のつまみなら大きさ変更）を始める */
+function startMove(e: PointerEvent, p: { x: number; y: number }, it: MistakeLayoutItem, handle = false) {
+  selectedId.value = it.id
+  stage.value!.setPointerCapture(e.pointerId)
+  drag = { kind: handle ? 'resize' : 'move', id: it.id, ...baseDrag(e, p), ox: it.x, oy: it.y, ow: it.w, oh: it.h, aspect: it.h > 0 ? it.w / it.h : 1 }
+  preview.value = { id: it.id, x: it.x, y: it.y, w: it.w, h: it.h }
+}
+/** ページ座標 p にある一番上の画像・文字の枠（ペン・消しゴムのときは枠がポインタを受けないので座標で探す） */
+function itemAt(p: { x: number; y: number }): MistakeLayoutItem | undefined {
+  const items = props.layout.items
+  for (let i = items.length - 1; i >= 0; i--) {
+    const it = items[i]!
+    if (p.x >= it.x && p.x <= it.x + it.w && p.y >= it.y && p.y <= it.y + it.h) return it
+  }
+  return undefined
+}
 function cancelDrag() {
   clearHold()
   drag = null
@@ -237,7 +253,10 @@ function onDown(e: PointerEvent) {
 
   if (tool.value === 'pen' || tool.value === 'eraser') {
     if (finger && !fingerDraw.value) {
-      startPan(e)
+      // 指は動かす役: 画像・文字の枠の上ならその枠だけを、空いている所ならページ全体を動かす
+      const it = itemAt(p)
+      if (it) startMove(e, p, it)
+      else startPan(e)
       return
     }
     stage.value!.setPointerCapture(e.pointerId)
@@ -261,10 +280,7 @@ function onDown(e: PointerEvent) {
   const id = (handle ?? itemEl)?.dataset.item
   const it = id ? props.layout.items.find((x) => x.id === id) : undefined
   if (it && id) {
-    selectedId.value = id
-    stage.value!.setPointerCapture(e.pointerId)
-    drag = { kind: handle ? 'resize' : 'move', id, ...baseDrag(e, p), ox: it.x, oy: it.y, ow: it.w, oh: it.h, aspect: it.h > 0 ? it.w / it.h : 1 }
-    preview.value = { id, x: it.x, y: it.y, w: it.w, h: it.h }
+    startMove(e, p, it, !!handle)
     return
   }
   selectedId.value = null
@@ -721,7 +737,7 @@ onBeforeUnmount(() => {
       ></div>
       <div class="stage-hint">
         <template v-if="tool === 'text'">空いている所をクリックすると、その位置に文字の枠ができます　</template>
-        {{ isTouch ? '2 本の指で拡縮・移動' : 'ホイールで拡縮・ホイールボタンのドラッグで移動' }}
+        {{ isTouch ? '指で画像を動かす・空いている所でページを動かす・2 本の指で拡縮' : 'ホイールで拡縮・ホイールボタンのドラッグで移動' }}
       </div>
     </div>
   </div>
