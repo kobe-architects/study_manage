@@ -11,7 +11,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { mistakeApi } from '@/api/mistake'
 import { PAGE_H, PAGE_W, groupKeyOf, groupNotes, pageIndexOf, paginate } from '@/lib/mistake'
 import { renderBinderPage } from '@/lib/mistakeRender'
-import { blockDoubleTapZoom, isTouch, viewportWidth } from '@/lib/native'
+import { blockDoubleTapZoom, blockUiTextSelection, isTouch, viewportWidth } from '@/lib/native'
 import type { MistakeNoteDetail, MistakeNoteSummary } from '@/types'
 
 const props = defineProps<{ notes: MistakeNoteSummary[]; startId?: number | null }>()
@@ -27,7 +27,7 @@ const single = computed(() => viewportWidth.value < 760 || (isTouch && !landscap
 const immersive = isTouch
 const idxOpen = ref(false)
 const root = ref<HTMLElement | null>(null)
-let unblockTap: (() => void) | undefined
+const unblock: (() => void)[] = []
 /** ページ割り（1 ページに複数の問題） */
 const pages = computed(() => paginate(props.notes))
 const total = computed(() => pages.value.length)
@@ -178,7 +178,10 @@ onMounted(() => {
   }
   window.addEventListener('keydown', onKey)
   landscapeMq.addEventListener('change', onOrient)
-  if (isTouch && root.value) unblockTap = blockDoubleTapZoom(root.value)
+  if (root.value) {
+    unblock.push(blockUiTextSelection(root.value))
+    if (isTouch) unblock.push(blockDoubleTapZoom(root.value))
+  }
   // PC ではブラウザも全画面にする（対応していなければそのまま）
   try {
     if (!('ontouchstart' in window) && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {})
@@ -189,7 +192,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
   landscapeMq.removeEventListener('change', onOrient)
-  unblockTap?.()
+  unblock.forEach((f) => f())
   try {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
   } catch {

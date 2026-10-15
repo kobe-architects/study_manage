@@ -205,6 +205,42 @@ export function blockDoubleTapZoom(el: HTMLElement): () => void {
   return () => el.removeEventListener('touchend', onEnd)
 }
 
+/**
+ * el の中の UI の文字が選択されないようにする（iPad で Apple Pencil で書いている最中や長押しで、
+ * CSS の user-select: none を無視してボタンの文字が選ばれ「コピー」などのメニューが出るのを防ぐ）。
+ * selectstart を止め、それでも選択されたら即座に解除する。入力欄（input / textarea / contenteditable）の中は対象外。
+ * 戻り値を呼ぶと解除する。
+ */
+export function blockUiTextSelection(el: HTMLElement): () => void {
+  const editable = (n: Node | null | undefined): boolean => {
+    const e = n instanceof Element ? n : n?.parentElement
+    return !!e?.closest('input, textarea, [contenteditable]')
+  }
+  const onSelectStart = (e: Event) => {
+    if (!editable(e.target as Node)) e.preventDefault()
+  }
+  const onSelectionChange = () => {
+    const a = document.activeElement
+    if (a && a.matches('input, textarea, [contenteditable]')) return
+    const sel = document.getSelection()
+    if (!sel || !sel.rangeCount || sel.isCollapsed) return
+    if (!el.contains(sel.anchorNode) && !el.contains(sel.focusNode)) return
+    if (editable(sel.anchorNode)) return
+    sel.removeAllRanges()
+  }
+  const onContextMenu = (e: Event) => {
+    if (!editable(e.target as Node)) e.preventDefault()
+  }
+  el.addEventListener('selectstart', onSelectStart)
+  el.addEventListener('contextmenu', onContextMenu)
+  document.addEventListener('selectionchange', onSelectionChange)
+  return () => {
+    el.removeEventListener('selectstart', onSelectStart)
+    el.removeEventListener('contextmenu', onContextMenu)
+    document.removeEventListener('selectionchange', onSelectionChange)
+  }
+}
+
 export function installNativeFeel() {
   preventInputZoom()
   installSheetSwipe()
