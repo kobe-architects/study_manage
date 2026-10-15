@@ -793,6 +793,14 @@ export interface MistakeImage {
   thumbUrl: string
 }
 
+/** 画像のトリミング範囲（元の画像に対する割合 0〜1） */
+export interface ImageCrop {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 /** ページ内に置くもの（問題の写真・説明用の画像・文字）。座標はページ内容の座標系（NOTE_W × NOTE_H） */
 export interface MistakeLayoutItem {
   id: string
@@ -801,6 +809,8 @@ export interface MistakeLayoutItem {
   imageId?: number
   /** 対象の問題の写真 */
   role?: 'problem'
+  /** 画像の見せる範囲（元の画像に対する割合 0〜1。無ければ全体）。枠の縦横比はこの範囲に合わせる */
+  crop?: ImageCrop
   /** type=text のとき */
   text?: string
   fontSize?: number

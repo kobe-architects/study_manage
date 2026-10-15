@@ -61,7 +61,9 @@ export async function drawNoteContent(ctx: CanvasRenderingContext2D, layout: Mis
     if (it.type !== 'image' || !it.imageId) continue
     try {
       const img = await loadImageEl(it.imageId)
-      ctx.drawImage(img, it.x, it.y, it.w, it.h)
+      const c = it.crop
+      if (c) ctx.drawImage(img, c.x * img.naturalWidth, c.y * img.naturalHeight, c.w * img.naturalWidth, c.h * img.naturalHeight, it.x, it.y, it.w, it.h)
+      else ctx.drawImage(img, it.x, it.y, it.w, it.h)
       ctx.strokeStyle = 'rgba(0,0,0,0.12)'
       ctx.lineWidth = 1
       ctx.strokeRect(it.x + 0.5, it.y + 0.5, it.w - 1, it.h - 1)

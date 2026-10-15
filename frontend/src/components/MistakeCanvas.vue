@@ -8,6 +8,7 @@
  * 置ける範囲に壁はなく（ページの外でもよい）、印刷・閲覧のときに全体がページ（NOTE_W × NOTE_H）に収まるよう自動で調整する。
  * - 拡縮: マウスホイール（カーソル位置を中心・1 目盛り約 5%）、ピンチ、「−」「＋」（10% ずつ）「全体」「幅」
  * - 移動: ホイールボタン（中ボタン）のドラッグ、指 1 本（書く設定でないとき。画像・文字の枠の上ならその枠だけを動かす）／指 2 本のドラッグ
+ * - トリミング: 画像を選んで「トリミング」→ ImageCropper で見せる範囲を決める（layout の crop に割合で保存。元の画像はそのまま）
  * - 選択: 画像・文字の枠をドラッグで移動、右下のつまみで大きさ変更。
  *   iPad: 枠を選んでから（タップ）、その枠の上で 2 本指のピンチをするとその枠だけを拡縮（＋移動）できる。選んでいない所のピンチはキャンバスの拡縮
  * - ペン / 消しゴム: Apple Pencil・マウスで書く。指は既定では移動（「指で書く」を ON にすると指でも書ける）
@@ -20,13 +21,14 @@
  * 変更はひとまとまりごとに update:layout で親へ渡す（親が自動保存する）。写真の登録・画像の追加は親に頼む（requestProblem / requestExtra）。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import ImageCropper from '@/components/ImageCropper.vue'
 import { DEFAULT_FONT, FONT_SIZES, LINE_HEIGHT, NOTE_H, NOTE_W, PEN_COLORS, PEN_WIDTHS, contentBox, newItemId } from '@/lib/mistake'
 import { clipStroke, strokeHits } from '@/lib/inkErase'
 import { STROKE_KINDS, kindOf, svgPathAttrs } from '@/lib/inkRender'
 import { recognizeShape, straightLine, type InkShape } from '@/lib/inkShapes'
 import { haptic, isTouch } from '@/lib/native'
 import { useUiStore } from '@/stores/ui'
-import type { MistakeLayout, MistakeLayoutItem, MistakeStroke, StrokeKind } from '@/types'
+import type { ImageCrop, MistakeLayout, MistakeLayoutItem, MistakeStroke, StrokeKind } from '@/types'
 
 type Tool = 'select' | 'pen' | 'eraser' | 'text'
 
@@ -581,6 +583,31 @@ function addTextBox() {
   const cy = (stageH.value / 2 - ty.value) / z.value - TEXT_H / 2
   createTextAt(cx, cy)
 }
+// ---- 画像のトリミング（元の画像は残し、見せる範囲を枠に持たせる。枠の縦横比は範囲に合わせる） ----
+const cropping = ref<MistakeLayoutItem | null>(null)
+function applyCrop(crop: ImageCrop | null, nat: { w: number; h: number }) {
+  const it = cropping.value
+  cropping.value = null
+  if (!it) return
+  const cw = (crop?.w ?? 1) * nat.w
+  const ch = (crop?.h ?? 1) * nat.h
+  const h = cw > 0 ? round((it.w * ch) / cw) : it.h
+  commit({
+    items: props.layout.items.map((x) => {
+      if (x.id !== it.id) return x
+      const { crop: _old, ...rest } = x
+      return crop ? { ...rest, crop, h } : { ...rest, h }
+    }),
+    ink: props.layout.ink,
+  })
+}
+/** トリミングした画像: 枠の中に元の画像全体を拡大して置き、見せる範囲だけが枠に収まるようにずらす */
+function imgStyle(it: MistakeLayoutItem) {
+  const c = it.crop
+  if (!c) return undefined
+  return { left: `${(-c.x / c.w) * 100}%`, top: `${(-c.y / c.h) * 100}%`, width: `${100 / c.w}%`, height: `${100 / c.h}%` }
+}
+
 function deleteSelected() {
   const it = selected.value
   if (!it || !canDelete.value) return
@@ -714,6 +741,9 @@ onBeforeUnmount(() => {
           <button class="tb" title="見えている範囲の真ん中に文字の枠を作る" @click="addTextBox">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M9 6v12M6 18h6" /><path d="M18 10v8M14 14h8" /></svg><span>文字枠</span>
           </button>
+          <button v-if="selected?.type === 'image' && selected.imageId" class="tb" title="画像をトリミング（元の画像は残り、何度でも変えられます）" @click="cropping = selected">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14" /><path d="M18 22V8a2 2 0 0 0-2-2H2" /></svg><span>トリミング</span>
+          </button>
           <button v-if="canMakeProblem" class="tb accent" :disabled="busy" title="選択中の画像を対象の問題の写真にする（今の問題の写真は説明用になります）" @click="emit('makeProblem', selected!.imageId!)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z" /></svg><span>問題に</span>
           </button>
@@ -774,7 +804,9 @@ onBeforeUnmount(() => {
           :data-item="it.id"
           :style="box(it)"
         >
-          <img v-if="it.type === 'image'" :src="urls[it.imageId ?? 0]" draggable="false" alt="" />
+          <div v-if="it.type === 'image'" class="imgbox">
+            <img :src="urls[it.imageId ?? 0]" draggable="false" alt="" :style="imgStyle(it)" />
+          </div>
           <textarea
             v-else
             :value="it.text ?? ''"
@@ -808,6 +840,7 @@ onBeforeUnmount(() => {
         class="ecur"
         :style="{ left: hover.x - ERASE_PX + 'px', top: hover.y - ERASE_PX + 'px', width: ERASE_PX * 2 + 'px', height: ERASE_PX * 2 + 'px' }"
       ></div>
+      <ImageCropper v-if="cropping" :src="urls[cropping.imageId ?? 0]" :crop="cropping.crop ?? null" @done="applyCrop" @cancel="cropping = null" />
       <!-- ロック（拡縮・移動を止める）。文字は出さず南京錠だけ -->
       <button
         class="lock"
@@ -1055,12 +1088,21 @@ onBeforeUnmount(() => {
   position: absolute;
   box-sizing: border-box;
 }
-.item img {
+.imgbox {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+.imgbox img {
+  position: absolute;
+  left: 0;
+  top: 0;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: fill;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
   pointer-events: none;
 }
 .item textarea {
