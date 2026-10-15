@@ -100,14 +100,14 @@ class MistakeNoteController extends Controller
         if (array_key_exists('resourceBookId', $data)) {
             $attrs['resource_book_id'] = $this->bookIdOf($note->user_id, $data['resourceBookId']);
         }
-        // 分野はまとめて検証する（指定のない項目は今の値を使う）
+        // 分野はまとめて検証する（指定のない項目は今の値を使う）。先に入れた出典を消さないよう追加する
         if (array_key_exists('subjectId', $data) || array_key_exists('majorId', $data) || array_key_exists('midId', $data) || array_key_exists('studyItemId', $data)) {
-            $attrs = $this->categoriesOf($note->user_id, [
+            $attrs = array_merge($attrs, $this->categoriesOf($note->user_id, [
                 'subjectId' => $data['subjectId'] ?? $note->subject_id,
                 'majorId' => $data['majorId'] ?? $note->major_category_id,
                 'midId' => $data['midId'] ?? $note->mid_category_id,
                 'studyItemId' => array_key_exists('studyItemId', $data) ? $data['studyItemId'] : $note->study_item_id,
-            ]);
+            ]));
         }
         foreach (['title', 'source'] as $k) {
             if (array_key_exists($k, $data)) {
