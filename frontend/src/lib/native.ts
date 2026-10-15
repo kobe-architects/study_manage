@@ -188,6 +188,23 @@ export function reloadOnce(url?: string) {
   else window.location.reload()
 }
 
+/**
+ * iOS のダブルタップ拡大を止める（html の touch-action: manipulation だけでは効かない端末向けの保険）。
+ * el の中で短い間隔の 2 回目のタップの既定動作を止める。ボタン・入力欄などは除く（2 回目のクリックまで消えないように）。
+ * 戻り値を呼ぶと解除する。
+ */
+export function blockDoubleTapZoom(el: HTMLElement): () => void {
+  let last = 0
+  const onEnd = (e: TouchEvent) => {
+    const t = e.target as HTMLElement | null
+    if (t?.closest('button, a, input, select, textarea, label, [contenteditable]')) return
+    if (e.timeStamp - last < 350) e.preventDefault()
+    last = e.timeStamp
+  }
+  el.addEventListener('touchend', onEnd, { passive: false })
+  return () => el.removeEventListener('touchend', onEnd)
+}
+
 export function installNativeFeel() {
   preventInputZoom()
   installSheetSwipe()

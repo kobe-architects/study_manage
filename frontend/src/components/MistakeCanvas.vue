@@ -8,13 +8,19 @@
  * - 移動: ホイールボタン（中ボタン）のドラッグ、指 1 本（書く設定でないとき）／指 2 本のドラッグ
  * - 選択: 画像・文字の枠をドラッグで移動、右下のつまみで大きさ変更
  * - ペン / 消しゴム: Apple Pencil・マウスで書く。指は既定では移動（「指で書く」を ON にすると指でも書ける）
+ *   線を引いたまま少し止める（ホールド）と直線・円／楕円・長方形に整える（図形補正。lib/inkShapes.ts。「図形補正」で OFF にできる）
+ * - 戻す / 進む: 道具の一番上。Ctrl+Z / Ctrl+Shift+Z（Ctrl+Y）
+ * - 消しゴム: ピクセル消し（なぞった所だけ消す）／オブジェクト消し（触れた線をまるごと消す）を切り替えられる。
+ *   消える範囲は小テストの添削と同じ赤い円で表示（画面上で一定の大きさ。拡大するほど細かく消せる。lib/inkErase.ts）
  * - 文字: 空いている所をクリック（タップ）するとその位置に文字の枠ができ、枠の中で入力。枠の縁をつまむと入力中でも移動できる。
  *   何も入力しないまま枠から離れると、その枠は自動で消える
  * 変更はひとまとまりごとに update:layout で親へ渡す（親が自動保存する）。写真の登録・画像の追加は親に頼む（requestProblem / requestExtra）。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { DEFAULT_FONT, FONT_SIZES, LINE_HEIGHT, NOTE_H, NOTE_W, PEN_COLORS, PEN_WIDTHS, contentBox, newItemId } from '@/lib/mistake'
-import { isTouch } from '@/lib/native'
+import { clipStroke, strokeHits } from '@/lib/inkErase'
+import { recognizeShape, straightLine, type InkShape } from '@/lib/inkShapes'
+import { haptic, isTouch } from '@/lib/native'
 import { useUiStore } from '@/stores/ui'
 import type { MistakeLayout, MistakeLayoutItem, MistakeStroke } from '@/types'
 
@@ -34,6 +40,12 @@ const fingerDraw = ref(localStorage.getItem('sm_mn_finger') === '1')
 watch(color, (c) => localStorage.setItem('sm_mn_color', c))
 watch(width, (w) => localStorage.setItem('sm_mn_width', String(w)))
 watch(fingerDraw, (f) => localStorage.setItem('sm_mn_finger', f ? '1' : '0'))
+/** 図形補正（線を引いたまま止めると直線・円／楕円・長方形に整える）。既定は ON */
+const shapeSnap = ref(localStorage.getItem('sm_mn_shape') !== '0')
+watch(shapeSnap, (s) => localStorage.setItem('sm_mn_shape', s ? '1' : '0'))
+/** 消しゴム: pixel = なぞった所だけ消す、stroke = 触れた線をまるごと消す（オブジェクト消し） */
+const eraseMode = ref<'pixel' | 'stroke'>(localStorage.getItem('sm_mn_erase') === 'stroke' ? 'stroke' : 'pixel')
+watch(eraseMode, (m) => localStorage.setItem('sm_mn_erase', m))
 const selectedId = ref<string | null>(null)
 const selected = computed(() => props.layout.items.find((i) => i.id === selectedId.value) ?? null)
 const canDelete = computed(() => !!selected.value && !(selected.value.type === 'image' && selected.value.role === 'problem'))
@@ -103,15 +115,30 @@ const pageStyle = computed(() => ({
   '--inv': String(1 / z.value),
 }))
 
-// ---- 取り消し ----
+// ---- 戻す・進む ----
 const undoStack = ref<MistakeLayout[]>([])
+const redoStack = ref<MistakeLayout[]>([])
+const clone = (l: MistakeLayout): MistakeLayout => JSON.parse(JSON.stringify(l))
+/** 変更の前に呼ぶ（新しい変更をすると「進む」の履歴は消える） */
 function snapshot() {
-  undoStack.value.push(JSON.parse(JSON.stringify(props.layout)))
+  undoStack.value.push(clone(props.layout))
   if (undoStack.value.length > 40) undoStack.value.shift()
+  redoStack.value = []
 }
 function undo() {
   const prev = undoStack.value.pop()
-  if (prev) emit('update:layout', prev)
+  if (!prev) return
+  redoStack.value.push(clone(props.layout))
+  textSnapshotFor = null
+  emit('update:layout', prev)
+}
+function redo() {
+  const next = redoStack.value.pop()
+  if (!next) return
+  undoStack.value.push(clone(props.layout))
+  if (undoStack.value.length > 40) undoStack.value.shift()
+  textSnapshotFor = null
+  emit('update:layout', next)
 }
 function commit(next: MistakeLayout) {
   snapshot()
@@ -137,11 +164,17 @@ interface Drag {
   startY: number
   /** 文字モードで空いている所を押した位置（動かさずに離したら文字の枠を作る） */
   textAt?: { x: number; y: number }
+  /** ペンの線をホールドで図形に整えた後（直線は終点だけペンに追わせる。閉じた図形はそのまま） */
+  snap?: InkShape
 }
 let drag: Drag | null = null
 const preview = ref<{ id: string; x: number; y: number; w: number; h: number } | null>(null)
 const live = ref<MistakeStroke | null>(null)
-const erased = ref<Set<number>>(new Set())
+/** 消している最中の線（消した結果を順に反映。離したときに確定する） */
+const eraseInk = ref<MistakeStroke[] | null>(null)
+const shownInk = computed(() => eraseInk.value ?? props.layout.ink)
+/** 消しゴムの範囲表示用のポインタ位置（ステージ内の座標） */
+const hover = ref<{ x: number; y: number } | null>(null)
 const panning = ref(false)
 
 /** タッチ中の指（ピンチ用） */
@@ -165,9 +198,11 @@ function startPan(e: PointerEvent, textAt?: { x: number; y: number }) {
   panning.value = true
 }
 function cancelDrag() {
+  clearHold()
   drag = null
   live.value = null
-  erased.value = new Set()
+  eraseInk.value = null
+  eraseLast = null
   preview.value = null
   panning.value = false
 }
@@ -209,8 +244,11 @@ function onDown(e: PointerEvent) {
     if (tool.value === 'pen') {
       live.value = { color: color.value, width: width.value, points: [round(p.x), round(p.y)] }
       drag = { kind: 'stroke', id: '', ...baseDrag(e, p) }
+      armHold(e)
     } else {
-      erased.value = new Set()
+      eraseInk.value = props.layout.ink
+      eraseChanged = false
+      eraseLast = null
       drag = { kind: 'erase', id: '', ...baseDrag(e, p) }
       eraseAt(p)
     }
@@ -240,6 +278,8 @@ function onDown(e: PointerEvent) {
 
 function onMove(e: PointerEvent) {
   if (e.pointerType === 'touch' && touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  // 消しゴムの範囲はポインタ（ホバー中・消している最中とも）に追従して表示する。指で動かすだけのときは出さない
+  if (tool.value === 'eraser' && !pinch && (e.pointerType !== 'touch' || fingerDraw.value)) hover.value = stageXY(e)
   if (pinch) {
     if (touches.size < 2) return
     const [a, b] = Array.from(touches.values())
@@ -269,10 +309,16 @@ function onMove(e: PointerEvent) {
   if (!drag.moved && Math.abs(dx) * z.value < 2 && Math.abs(dy) * z.value < 2) return
   drag.moved = true
   if (drag.kind === 'stroke' && live.value) {
+    if (drag.snap) {
+      if (drag.snap === 'line') live.value.points = straightLine({ x: live.value.points[0]!, y: live.value.points[1]! }, p)
+      return
+    }
     const pts = live.value.points
     const lx = pts[pts.length - 2]!
     const ly = pts[pts.length - 1]!
     if (Math.hypot(p.x - lx, p.y - ly) >= 1.5) pts.push(round(p.x), round(p.y))
+    // 画面上で 5px 以上動いたら「止まっている」時間を測り直す（Pencil のわずかな揺れでは測り直さない）
+    if (Math.hypot(e.clientX - holdAt.x, e.clientY - holdAt.y) > 5) armHold(e)
   } else if (drag.kind === 'erase') {
     eraseAt(p)
   } else if (drag.kind === 'move') {
@@ -295,6 +341,7 @@ function onUp(e: PointerEvent) {
     touches.delete(e.pointerId)
     if (pinch && touches.size < 2) pinch = null
   }
+  if (e.pointerType !== 'mouse') hover.value = null // ペン・指はホバーがないので離したら消す
   if (!drag || drag.pointerId !== e.pointerId) return
   const d = drag
   drag = null
@@ -304,6 +351,7 @@ function onUp(e: PointerEvent) {
     return
   }
   if (d.kind === 'stroke') {
+    clearHold()
     const st = live.value
     live.value = null
     if (!st) return
@@ -312,9 +360,10 @@ function onUp(e: PointerEvent) {
     return
   }
   if (d.kind === 'erase') {
-    const set = erased.value
-    erased.value = new Set()
-    if (set.size) commit({ items: props.layout.items, ink: props.layout.ink.filter((_, i) => !set.has(i)) })
+    const ink = eraseInk.value
+    eraseInk.value = null
+    eraseLast = null
+    if (ink && eraseChanged) commit({ items: props.layout.items, ink })
     return
   }
   const pv = preview.value
@@ -326,23 +375,72 @@ function onUp(e: PointerEvent) {
   })
 }
 
+/** 消しゴムの半径（画面 px）。ページ上の半径は倍率で割る（拡大するほど細かく消せる） */
+const ERASE_PX = 16
+let eraseLast: { x: number; y: number } | null = null
+let eraseChanged = false
 function eraseAt(p: { x: number; y: number }) {
-  const R = 18
-  props.layout.ink.forEach((st, i) => {
-    if (erased.value.has(i)) return
-    const pts = st.points
-    const tol = R + st.width / 2
-    for (let k = 0; k + 1 < pts.length; k += 2) {
-      if (Math.hypot(pts[k]! - p.x, pts[k + 1]! - p.y) <= tol) {
-        erased.value = new Set(erased.value).add(i)
-        return
+  const ink = eraseInk.value
+  if (!ink) return
+  const r = ERASE_PX / z.value
+  // 速く動かしても途切れないよう、前回の位置から r 間隔で円を置いていく
+  const from = eraseLast ?? p
+  const steps = Math.max(1, Math.ceil(Math.hypot(p.x - from.x, p.y - from.y) / r))
+  let cur = ink
+  let changed = false
+  for (let s = 1; s <= steps; s++) {
+    const cx = from.x + ((p.x - from.x) * s) / steps
+    const cy = from.y + ((p.y - from.y) * s) / steps
+    const next: MistakeStroke[] = []
+    for (const st of cur) {
+      const tol = r + st.width / 2 // 線の太さの分だけ広く（円に触れた所が消える）
+      if (eraseMode.value === 'stroke') {
+        if (strokeHits(st.points, cx, cy, tol)) changed = true
+        else next.push(st)
+      } else {
+        const pieces = clipStroke(st.points, cx, cy, tol)
+        if (!pieces) next.push(st)
+        else {
+          changed = true
+          for (const points of pieces) next.push({ ...st, points })
+        }
       }
     }
-  })
+    cur = next
+  }
+  eraseLast = p
+  if (changed) {
+    eraseInk.value = cur
+    eraseChanged = true
+  }
 }
 
 const round = (n: number) => Math.round(n * 10) / 10
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+
+// ---- 図形補正: ペンを止めたまま HOLD_MS 経つと、書きかけの線を直線・円／楕円・長方形に整える ----
+const HOLD_MS = 600
+let holdTimer: number | undefined
+let holdAt = { x: 0, y: 0 }
+function armHold(e: PointerEvent) {
+  holdAt = { x: e.clientX, y: e.clientY }
+  window.clearTimeout(holdTimer)
+  holdTimer = shapeSnap.value ? window.setTimeout(snapLiveStroke, HOLD_MS) : undefined
+}
+function clearHold() {
+  window.clearTimeout(holdTimer)
+  holdTimer = undefined
+}
+function snapLiveStroke() {
+  holdTimer = undefined
+  const st = live.value
+  if (!drag || drag.kind !== 'stroke' || drag.snap || !st) return
+  const shape = recognizeShape(st.points)
+  if (!shape) return
+  st.points = shape.points
+  drag.snap = shape.kind
+  haptic()
+}
 
 // ---- 文字 ----
 const TEXT_W = 560
@@ -432,7 +530,11 @@ function onKey(e: KeyboardEvent) {
   if (typing) return
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
     e.preventDefault()
-    undo()
+    if (e.shiftKey) redo()
+    else undo()
+  } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+    e.preventDefault()
+    redo()
   } else if ((e.key === 'Delete' || e.key === 'Backspace') && selected.value) {
     e.preventDefault()
     deleteSelected()
@@ -468,6 +570,16 @@ onBeforeUnmount(() => {
   <div class="mc">
     <!-- 縦型の道具（左） -->
     <div class="rail">
+      <!-- 戻す・進む（一番上） -->
+      <div class="group row">
+        <button class="rb" :disabled="!undoStack.length" title="戻す（Ctrl+Z）" @click="undo">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4-4 4-4" /><path d="M5 10h9a5 5 0 0 1 0 10h-3" /></svg><span>戻す</span>
+        </button>
+        <button class="rb" :disabled="!redoStack.length" title="進む（Ctrl+Shift+Z）" @click="redo">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l4-4-4-4" /><path d="M19 10h-9a5 5 0 0 0 0 10h3" /></svg><span>進む</span>
+        </button>
+      </div>
+
       <div class="group">
         <button class="rb" :class="{ on: tool === 'select' }" title="選択・移動" @click="tool = 'select'">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 3l14 8-6 2-3 6z" /></svg><span>選択</span>
@@ -492,8 +604,11 @@ onBeforeUnmount(() => {
           <span class="dotw" :style="{ height: Math.min(10, w.width) + 'px' }"></span><span>{{ w.label }}</span>
         </button>
         <label v-if="isTouch" class="chk" title="OFF のときは指で動かし、Apple Pencil で書きます"><input v-model="fingerDraw" type="checkbox" /><span>指で書く</span></label>
+        <label class="chk" title="線を引いたまま少し止めると、直線・円／楕円・長方形に整えます"><input v-model="shapeSnap" type="checkbox" /><span>図形補正</span></label>
       </div>
       <div v-else-if="tool === 'eraser'" class="group sub">
+        <button class="rb small" :class="{ on: eraseMode === 'pixel' }" title="ピクセル消し: なぞった所だけ消す" @click="eraseMode = 'pixel'"><span>ピクセル</span></button>
+        <button class="rb small" :class="{ on: eraseMode === 'stroke' }" title="オブジェクト消し: 触れた線をまるごと消す" @click="eraseMode = 'stroke'"><span>線ごと</span></button>
         <button class="rb small" :disabled="!layout.ink.length" @click="clearInk"><span>全部消す</span></button>
         <label v-if="isTouch" class="chk"><input v-model="fingerDraw" type="checkbox" /><span>指で消す</span></label>
       </div>
@@ -517,9 +632,6 @@ onBeforeUnmount(() => {
         <button class="rb danger" :disabled="!canDelete" :title="selected?.type === 'text' ? '文字の枠を削除' : '画像を削除'" @click="deleteSelected">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg><span>削除</span>
         </button>
-        <button class="rb" :disabled="!undoStack.length" title="取り消し（Ctrl+Z）" @click="undo">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4-4 4-4" /><path d="M5 10h9a5 5 0 0 1 0 10h-3" /></svg><span>戻す</span>
-        </button>
       </div>
 
       <div class="group zoom" title="ホイールで拡縮（約 5% ずつ）、ホイールボタンのドラッグで移動">
@@ -542,6 +654,7 @@ onBeforeUnmount(() => {
       @pointermove="onMove"
       @pointerup="onUp"
       @pointercancel="onUp"
+      @pointerleave="hover = null"
       @contextmenu.prevent
     >
       <!-- 方眼の下敷き（SVG のパターン。画面に固定） -->
@@ -596,12 +709,16 @@ onBeforeUnmount(() => {
         </div>
 
         <svg class="ink" :viewBox="`0 0 ${NOTE_W} ${NOTE_H}`" preserveAspectRatio="none">
-          <template v-for="(st, i) in layout.ink" :key="i">
-            <path v-if="!erased.has(i)" :d="pathOf(st)" :stroke="st.color" :stroke-width="st.width" fill="none" stroke-linecap="round" stroke-linejoin="round" />
-          </template>
+          <path v-for="(st, i) in shownInk" :key="i" :d="pathOf(st)" :stroke="st.color" :stroke-width="st.width" fill="none" stroke-linecap="round" stroke-linejoin="round" />
           <path v-if="live" :d="pathOf(live)" :stroke="live.color" :stroke-width="live.width" fill="none" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
+      <!-- 消しゴムの範囲（画面上で一定の大きさ） -->
+      <div
+        v-if="tool === 'eraser' && hover"
+        class="ecur"
+        :style="{ left: hover.x - ERASE_PX + 'px', top: hover.y - ERASE_PX + 'px', width: ERASE_PX * 2 + 'px', height: ERASE_PX * 2 + 'px' }"
+      ></div>
       <div class="stage-hint">
         <template v-if="tool === 'text'">空いている所をクリックすると、その位置に文字の枠ができます　</template>
         {{ isTouch ? '2 本の指で拡縮・移動' : 'ホイールで拡縮・ホイールボタンのドラッグで移動' }}
@@ -618,6 +735,10 @@ onBeforeUnmount(() => {
   flex: 1;
   min-height: 0;
   min-width: 0;
+  /* 長押しで文字が選択されたり iOS のメニューが出たりしないように（入力欄は除く） */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 /* ---- 縦型の道具 ---- */
 .rail {
@@ -633,6 +754,8 @@ onBeforeUnmount(() => {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
+  /* ダブルタップで画面が拡大されないように（スクロールはできる） */
+  touch-action: manipulation;
 }
 .rail::-webkit-scrollbar {
   display: none;
@@ -647,6 +770,14 @@ onBeforeUnmount(() => {
 .group:last-child {
   border-bottom: none;
   padding-bottom: 0;
+}
+.group.row {
+  flex-direction: row;
+  gap: 2px;
+}
+.group.row .rb {
+  flex: 1;
+  padding: 6px 0 5px;
 }
 .group.sub {
   background: #f6f7f9;
@@ -761,6 +892,15 @@ onBeforeUnmount(() => {
   height: 100%;
   pointer-events: none;
 }
+/* 消しゴムの範囲（小テストの添削と同じ赤い破線の円） */
+.ecur {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px dashed #e5322d;
+  background: rgba(229, 50, 45, 0.12);
+  pointer-events: none;
+  z-index: 2;
+}
 .stage-hint {
   position: absolute;
   right: 10px;
@@ -824,6 +964,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   pointer-events: none;
   word-break: break-all;
+  -webkit-user-select: text;
+  user-select: text;
 }
 .tool-text .item textarea {
   pointer-events: auto;

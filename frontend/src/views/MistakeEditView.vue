@@ -11,7 +11,7 @@ import HelpTip from '@/components/HelpTip.vue'
 import { mistakeApi } from '@/api/mistake'
 import { iso } from '@/lib/design'
 import { bottomOf, ensureLayout, fileToJpeg, fitExtra, fitProblem, forgetImageUrl, imageObjectUrl, newItemId, registerImageUrl } from '@/lib/mistake'
-import { isTouch } from '@/lib/native'
+import { blockDoubleTapZoom, isTouch } from '@/lib/native'
 import { useResourceStore } from '@/stores/resource'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
@@ -380,6 +380,14 @@ onBeforeUnmount(() => {
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
 })
 
+// iPad: ダブルタップで画面が拡大されないようにする（CSS の touch-action に加えての保険）
+const root = ref<HTMLElement | null>(null)
+let unblockTap: (() => void) | undefined
+onMounted(() => {
+  if (isTouch && root.value) unblockTap = blockDoubleTapZoom(root.value)
+})
+onBeforeUnmount(() => unblockTap?.())
+
 const saveLabel = computed(
   () =>
     ({
@@ -393,7 +401,7 @@ const saveLabel = computed(
 </script>
 
 <template>
-  <div class="ed ui-fullscreen">
+  <div ref="root" class="ed ui-fullscreen">
     <div v-if="loading" class="hint" style="text-align: center; margin: 40px">読み込み中…</div>
     <template v-else>
       <div class="top">
@@ -403,7 +411,7 @@ const saveLabel = computed(
           </button>
           <div class="ttl">{{ note ? '間違いノートを編集' : '問題を追加' }}</div>
           <HelpTip
-            text="科目・大分類・中分類（学習項目データの分類）を選んでから、対象の問題の写真を登録します（小分類は任意）。スマホ・iPad では「撮影する」でカメラ、PC では画像をコピーして Ctrl+V、またはファイルをドラッグ＆ドロップで登録できます。「文字」を選んで空いている所をクリックすると、その位置に文字の枠ができます。iPad では「ペン」で手書きできます（Apple Pencil 推奨。指で書くときは「指で書く」を ON）。画像や文字の枠は「選択」でドラッグして移動、右下のつまみで大きさを変えられます。説明用に追加した画像を選んで「問題に」を押すと、その画像が対象の問題の写真になります（置く範囲に制限はありません。印刷や閲覧のときは全体が 1 ページに収まるよう自動で縮小されます）。ホイールで拡縮、ホイールボタンのドラッグで表示位置を動かせます。変更は自動で保存されます。"
+            text="科目・大分類・中分類（学習項目データの分類）を選んでから、対象の問題の写真を登録します（小分類は任意）。スマホ・iPad では「撮影する」でカメラ、PC では画像をコピーして Ctrl+V、またはファイルをドラッグ＆ドロップで登録できます。「文字」を選んで空いている所をクリックすると、その位置に文字の枠ができます。iPad では「ペン」で手書きできます（Apple Pencil 推奨。指で書くときは「指で書く」を ON）。線を引いたまま少し止めると直線・円・長方形に整います（「図形補正」で OFF にできます）。道具の一番上の「戻す」「進む」で変更を取り消し・やり直しできます。消しゴムは「ピクセル」（なぞった所だけ消す）と「線ごと」（オブジェクト消し。触れた線をまるごと消す）を選べ、消える範囲は赤い円で表示されます。画像や文字の枠は「選択」でドラッグして移動、右下のつまみで大きさを変えられます。説明用に追加した画像を選んで「問題に」を押すと、その画像が対象の問題の写真になります（置く範囲に制限はありません。印刷や閲覧のときは全体が 1 ページに収まるよう自動で縮小されます）。ホイールで拡縮、ホイールボタンのドラッグで表示位置を動かせます。変更は自動で保存されます。"
           />
         </div>
         <div class="right">
@@ -511,6 +519,15 @@ const saveLabel = computed(
   padding: calc(6px + env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
   background: var(--bg);
   overflow: hidden;
+  /* iPad: 長押しで文字が選択されたりメニューが出たりしない・ダブルタップで拡大しない（入力欄は除く） */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+.ed :is(input, textarea) {
+  -webkit-user-select: text;
+  user-select: text;
 }
 .canvas-wrap {
   flex: 1;

@@ -4,18 +4,30 @@
  * 右端の科目・分野のインデックス（タブ）から該当ページへ飛べる。
  * ページ 1 は右側（奇数ページ = とじ側が左）。スマホ幅では 1 ページずつ表示する。
  * ←→ キー・画面の左右タップ・スワイプでめくる。
+ * iPad・スマホの横向き（immersive）では上のバーとタブを出さず、浮かせた ×・≡ だけにしてノートを大きく見せる（インデックスは ≡ のメニュー）。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { mistakeApi } from '@/api/mistake'
 import { PAGE_H, PAGE_W, groupKeyOf, groupNotes, pageIndexOf, paginate } from '@/lib/mistake'
 import { renderBinderPage } from '@/lib/mistakeRender'
-import { viewportWidth } from '@/lib/native'
+import { blockDoubleTapZoom, isTouch, viewportWidth } from '@/lib/native'
 import type { MistakeNoteDetail, MistakeNoteSummary } from '@/types'
 
 const props = defineProps<{ notes: MistakeNoteSummary[]; startId?: number | null }>()
 const emit = defineEmits<{ close: [] }>()
 
 const single = computed(() => viewportWidth.value < 760)
+/** iPad・スマホの横向き: 上のバーと右端のインデックスを出さず、ノートを大きく見せる（インデックスは右上の ≡ から） */
+const landscapeMq = window.matchMedia('(orientation: landscape)')
+const landscape = ref(landscapeMq.matches)
+const onOrient = () => (landscape.value = landscapeMq.matches)
+const immersive = computed(() => isTouch && landscape.value && !single.value)
+const idxOpen = ref(false)
+watch(immersive, (v) => {
+  if (!v) idxOpen.value = false
+})
+const root = ref<HTMLElement | null>(null)
+let unblockTap: (() => void) | undefined
 /** ページ割り（1 ページに複数の問題） */
 const pages = computed(() => paginate(props.notes))
 const total = computed(() => pages.value.length)
@@ -97,11 +109,19 @@ const subjects = computed(() => {
 })
 const current = computed(() => pageAt(rightIdx.value) ?? pageAt(leftIdx.value))
 const activeSubjectKey = computed(() => String(current.value?.subjectId ?? 0))
-const fieldsOfActive = computed(() =>
-  groups.value
-    .filter((g) => String(g.subjectId ?? 0) === activeSubjectKey.value)
-    .map((g) => ({ key: g.key, field: g.field || '（分野なし）', first: pageIndexOf(pages.value, g.notes[0]!.id) })),
-)
+function fieldsOf(subjectKey: string) {
+  return groups.value
+    .filter((g) => String(g.subjectId ?? 0) === subjectKey)
+    .map((g) => ({ key: g.key, field: g.field || '（分野なし）', first: pageIndexOf(pages.value, g.notes[0]!.id) }))
+}
+const fieldsOfActive = computed(() => fieldsOf(activeSubjectKey.value))
+/** ≡ のメニュー用: 科目ごとの分野（全部） */
+const index = computed(() => subjects.value.map((sb) => ({ ...sb, fields: fieldsOf(sb.key) })))
+/** メニューから選んだページへ（メニューは閉じる） */
+function pick(i: number) {
+  go(i)
+  idxOpen.value = false
+}
 /** 見開きに載っている分野（タブの強調用） */
 const activeFieldKeys = computed(() => {
   const keys = new Set<string>()
@@ -124,7 +144,8 @@ function onKey(e: KeyboardEvent) {
     e.preventDefault()
     prev()
   } else if (e.key === 'Escape') {
-    emit('close')
+    if (idxOpen.value) idxOpen.value = false
+    else emit('close')
   }
 }
 let sw: { x: number; y: number; t: number } | null = null
@@ -156,6 +177,8 @@ onMounted(() => {
     if (i >= 0) go(i)
   }
   window.addEventListener('keydown', onKey)
+  landscapeMq.addEventListener('change', onOrient)
+  if (isTouch && root.value) unblockTap = blockDoubleTapZoom(root.value)
   // PC ではブラウザも全画面にする（対応していなければそのまま）
   try {
     if (!('ontouchstart' in window) && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {})
@@ -165,6 +188,8 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
+  landscapeMq.removeEventListener('change', onOrient)
+  unblockTap?.()
   try {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
   } catch {
@@ -176,8 +201,17 @@ const ratio = PAGE_H / PAGE_W
 </script>
 
 <template>
-  <div class="binder ui-fullscreen">
-    <div class="bar">
+  <div ref="root" class="binder ui-fullscreen" :class="{ immersive }">
+    <!-- 横向き（iPad・スマホ）はバーを出さず、浮かせた × と ≡ だけにする -->
+    <template v-if="immersive">
+      <button class="fab x-fab" aria-label="閉じる" @click="emit('close')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+      <button class="fab menu-fab" aria-label="インデックス" :aria-expanded="idxOpen" @click="idxOpen = true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16" /><path d="M4 12h16" /><path d="M4 17h16" /></svg>
+      </button>
+    </template>
+    <div v-else class="bar">
       <div class="bar-title">
         間違いノート
         <span v-if="currentLabel" class="bar-sub">{{ currentLabel }}</span>
@@ -205,8 +239,8 @@ const ratio = PAGE_H / PAGE_W
         <div v-if="!single" class="spine"></div>
       </div>
 
-      <!-- インデックス（右端のタブ） -->
-      <div class="tabs" @pointerdown.stop @pointerup.stop>
+      <!-- インデックス（右端のタブ。横向きのタッチ端末では ≡ のメニューに） -->
+      <div v-if="!immersive" class="tabs" @pointerdown.stop @pointerup.stop>
         <template v-for="sb in subjects" :key="sb.key">
           <button class="tab subj" :class="{ on: sb.key === activeSubjectKey }" :style="{ '--c': sb.color ?? '#5b6b8c' }" @click="go(sb.first)">{{ sb.name }}</button>
           <template v-if="sb.key === activeSubjectKey">
@@ -219,6 +253,32 @@ const ratio = PAGE_H / PAGE_W
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7" /></svg>
       </button>
     </div>
+
+    <!-- インデックスのメニュー（横向き。≡ で右から出す。背景タップ・×・Esc で閉じる） -->
+    <Transition name="idx" :duration="{ enter: 320, leave: 240 }">
+      <div v-if="idxOpen" class="idx">
+        <div class="idx-scrim" @click="idxOpen = false"></div>
+        <div class="idx-panel">
+          <div class="idx-head">
+            <div class="idx-title">
+              間違いノート
+              <div v-if="currentLabel" class="idx-sub">{{ currentLabel }}</div>
+            </div>
+            <div class="idx-pos dm">{{ Math.min(total, pos + 1) }} / {{ total }}</div>
+            <button class="x" aria-label="メニューを閉じる" @click="idxOpen = false">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          </div>
+          <div class="idx-list">
+            <template v-for="sb in index" :key="sb.key">
+              <button class="tab subj" :class="{ on: sb.key === activeSubjectKey }" :style="{ '--c': sb.color ?? '#5b6b8c' }" @click="pick(sb.first)">{{ sb.name }}</button>
+              <button v-for="f in sb.fields" :key="f.key" class="tab field" :class="{ on: activeFieldKeys.has(f.key) }" :style="{ '--c': sb.color ?? '#5b6b8c' }" @click="pick(f.first)">{{ f.field }}</button>
+            </template>
+          </div>
+          <button class="idx-close" @click="emit('close')">ノートを閉じる</button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -233,6 +293,8 @@ const ratio = PAGE_H / PAGE_W
   color: #fff;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 .bar {
   display: flex;
@@ -348,6 +410,9 @@ const ratio = PAGE_H / PAGE_W
   width: 100%;
   height: 100%;
   object-fit: contain;
+  /* 長押しで「画像を保存」などのメニューが出ないように */
+  -webkit-touch-callout: none;
+  pointer-events: none;
 }
 .loading {
   position: absolute;
@@ -413,6 +478,137 @@ const ratio = PAGE_H / PAGE_W
 }
 .tab.field.on {
   opacity: 1;
+}
+
+/* ---- 横向き（iPad・スマホ）: バーとタブを出さずノートを大きく。× と ≡ を浮かせる ---- */
+.fab {
+  position: absolute;
+  top: calc(8px + env(safe-area-inset-top));
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(28, 32, 36, 0.78);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  z-index: 5;
+}
+.x-fab {
+  left: calc(8px + env(safe-area-inset-left));
+}
+.menu-fab {
+  right: calc(8px + env(safe-area-inset-right));
+}
+.immersive .stage {
+  padding: calc(8px + env(safe-area-inset-top)) 56px calc(8px + env(safe-area-inset-bottom));
+}
+.immersive .nav.r {
+  right: 8px;
+}
+.immersive .spread {
+  height: min(100%, calc((100vw - 120px) / 2 * var(--ratio)));
+}
+.idx {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+.idx-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+.idx-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(80vw, 300px);
+  display: flex;
+  flex-direction: column;
+  background: #1c2024;
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.4);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) 0;
+  overscroll-behavior: contain;
+}
+.idx-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.idx-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+.idx-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #b7bcc5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.idx-pos {
+  font-size: 12.5px;
+  color: #b7bcc5;
+}
+.idx-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.idx-list .tab {
+  border-radius: 8px;
+  font-size: 13.5px;
+  padding: 10px 12px;
+}
+.idx-list .tab.field {
+  font-size: 12.5px;
+  padding: 8px 12px;
+}
+.idx-close {
+  margin: 8px 12px 10px;
+  padding: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: transparent;
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+/* 開閉: 背景はフェード、メニューは右からスライド */
+.idx-enter-active .idx-scrim,
+.idx-leave-active .idx-scrim {
+  transition: opacity 0.24s ease;
+}
+.idx-enter-from .idx-scrim,
+.idx-leave-to .idx-scrim {
+  opacity: 0;
+}
+.idx-enter-active .idx-panel {
+  transition: transform 0.32s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.idx-leave-active .idx-panel {
+  transition: transform 0.22s cubic-bezier(0.4, 0, 1, 1);
+}
+.idx-enter-from .idx-panel,
+.idx-leave-to .idx-panel {
+  transform: translateX(100%);
 }
 @media (max-width: 760px) {
   .stage {
