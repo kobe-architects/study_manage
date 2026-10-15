@@ -1,12 +1,15 @@
 <script setup lang="ts">
 /**
  * 間違いノートのページ編集。問題の写真・説明用の画像を動かす／大きさを変える、文字を入力する、ペンで手書きする。
- * 左に縦型の道具（小テストの添削と同じ並び）、右の残り全部がキャンバス。
+ * 道具は親のヘッダー中央に横並びで出す（toolbarTo に Teleport。はみ出す分は横スクロール）。残り全部がキャンバス。
+ * キャンバス右上の南京錠で拡縮・移動をロックできる（ロック中はホイール・ピンチ・ドラッグでの拡縮・移動をしない。書く・動かすはできる）。
+ * ペンの種類（ペン・平型・マーカー・鉛筆）は lib/inkRender.ts。線の width は種類の倍率を掛けた実際の太さで保存する。
  * 方眼の下敷き（SVG のパターン）は画面に固定し、置いたものだけを拡縮・移動して見る。
  * 置ける範囲に壁はなく（ページの外でもよい）、印刷・閲覧のときに全体がページ（NOTE_W × NOTE_H）に収まるよう自動で調整する。
  * - 拡縮: マウスホイール（カーソル位置を中心・1 目盛り約 5%）、ピンチ、「−」「＋」（10% ずつ）「全体」「幅」
  * - 移動: ホイールボタン（中ボタン）のドラッグ、指 1 本（書く設定でないとき。画像・文字の枠の上ならその枠だけを動かす）／指 2 本のドラッグ
- * - 選択: 画像・文字の枠をドラッグで移動、右下のつまみで大きさ変更
+ * - 選択: 画像・文字の枠をドラッグで移動、右下のつまみで大きさ変更。
+ *   iPad: 枠を選んでから（タップ）、その枠の上で 2 本指のピンチをするとその枠だけを拡縮（＋移動）できる。選んでいない所のピンチはキャンバスの拡縮
  * - ペン / 消しゴム: Apple Pencil・マウスで書く。指は既定では移動（「指で書く」を ON にすると指でも書ける）
  *   線を引いたまま少し止める（ホールド）と直線・円／楕円・長方形に整える（図形補正。lib/inkShapes.ts。「図形補正」で OFF にできる）
  * - 戻す / 進む: 道具の一番上。Ctrl+Z / Ctrl+Shift+Z（Ctrl+Y）
@@ -19,14 +22,15 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { DEFAULT_FONT, FONT_SIZES, LINE_HEIGHT, NOTE_H, NOTE_W, PEN_COLORS, PEN_WIDTHS, contentBox, newItemId } from '@/lib/mistake'
 import { clipStroke, strokeHits } from '@/lib/inkErase'
+import { STROKE_KINDS, kindOf, svgPathAttrs } from '@/lib/inkRender'
 import { recognizeShape, straightLine, type InkShape } from '@/lib/inkShapes'
 import { haptic, isTouch } from '@/lib/native'
 import { useUiStore } from '@/stores/ui'
-import type { MistakeLayout, MistakeLayoutItem, MistakeStroke } from '@/types'
+import type { MistakeLayout, MistakeLayoutItem, MistakeStroke, StrokeKind } from '@/types'
 
 type Tool = 'select' | 'pen' | 'eraser' | 'text'
 
-const props = defineProps<{ layout: MistakeLayout; urls: Record<number, string>; hasProblem: boolean; busy?: boolean; canAddProblem?: boolean }>()
+const props = defineProps<{ layout: MistakeLayout; urls: Record<number, string>; hasProblem: boolean; busy?: boolean; canAddProblem?: boolean; toolbarTo?: HTMLElement | null }>()
 const emit = defineEmits<{ 'update:layout': [layout: MistakeLayout]; removeImage: [imageId: number]; requestProblem: []; requestExtra: []; makeProblem: [imageId: number] }>()
 
 const ui = useUiStore()
@@ -46,6 +50,13 @@ watch(shapeSnap, (s) => localStorage.setItem('sm_mn_shape', s ? '1' : '0'))
 /** 消しゴム: pixel = なぞった所だけ消す、stroke = 触れた線をまるごと消す（オブジェクト消し） */
 const eraseMode = ref<'pixel' | 'stroke'>(localStorage.getItem('sm_mn_erase') === 'stroke' ? 'stroke' : 'pixel')
 watch(eraseMode, (m) => localStorage.setItem('sm_mn_erase', m))
+/** ペンの種類（ペン・平型・マーカー・鉛筆） */
+const savedKind = localStorage.getItem('sm_mn_kind')
+const penKind = ref<StrokeKind>(STROKE_KINDS.some((k) => k.kind === savedKind) ? (savedKind as StrokeKind) : 'pen')
+watch(penKind, (k) => localStorage.setItem('sm_mn_kind', k))
+/** ロック: ON の間はホイール・ピンチ・ドラッグでの拡縮・移動をしない（書く・動かすはできる） */
+const locked = ref(localStorage.getItem('sm_mn_lock') === '1')
+watch(locked, (l) => localStorage.setItem('sm_mn_lock', l ? '1' : '0'))
 const selectedId = ref<string | null>(null)
 const selected = computed(() => props.layout.items.find((i) => i.id === selectedId.value) ?? null)
 const canDelete = computed(() => !!selected.value && !(selected.value.type === 'image' && selected.value.role === 'problem'))
@@ -103,6 +114,7 @@ function zoomStep(dir: 1 | -1) {
   zoomAt(dir > 0 ? 1.1 : 1 / 1.1, stageW.value / 2, stageH.value / 2)
 }
 function onWheel(e: WheelEvent) {
+  if (locked.value) return
   const r = stage.value!.getBoundingClientRect()
   // 1 目盛り（deltaY 100）でおよそ 5%。トラックパッドのピンチ（ctrlKey）は少し強めに
   const factor = Math.exp(-e.deltaY * (e.ctrlKey ? 0.002 : 0.0005))
@@ -179,7 +191,13 @@ const panning = ref(false)
 
 /** タッチ中の指（ピンチ用） */
 const touches = new Map<number, { x: number; y: number }>()
-let pinch: { d0: number; z0: number; px: number; py: number } | null = null
+/** 2 本指のピンチ: view = キャンバスの拡縮・移動、item = 選択中の枠だけの拡縮（＋移動） */
+type Pinch =
+  | { kind: 'view'; d0: number; z0: number; px: number; py: number }
+  | { kind: 'item'; id: string; d0: number; ox: number; oy: number; ow: number; oh: number; mx: number; my: number; aspect: number; text: boolean }
+let pinch: Pinch | null = null
+/** 1 本目の指を置いた時点で選ばれていた枠（その枠の上で 2 本目を置くと、枠のピンチになる） */
+let pinchTarget: string | null = null
 
 function stageXY(e: PointerEvent): { x: number; y: number } {
   const r = stage.value!.getBoundingClientRect()
@@ -195,7 +213,7 @@ function baseDrag(e: PointerEvent, p: { x: number; y: number }) {
 function startPan(e: PointerEvent, textAt?: { x: number; y: number }) {
   stage.value!.setPointerCapture(e.pointerId)
   drag = { kind: 'pan', id: '', ...baseDrag(e, { x: 0, y: 0 }), textAt }
-  panning.value = true
+  panning.value = !locked.value
 }
 /** 画像・文字の枠の移動（handle = 右下のつまみなら大きさ変更）を始める */
 function startMove(e: PointerEvent, p: { x: number; y: number }, it: MistakeLayoutItem, handle = false) {
@@ -209,9 +227,29 @@ function itemAt(p: { x: number; y: number }): MistakeLayoutItem | undefined {
   const items = props.layout.items
   for (let i = items.length - 1; i >= 0; i--) {
     const it = items[i]!
-    if (p.x >= it.x && p.x <= it.x + it.w && p.y >= it.y && p.y <= it.y + it.h) return it
+    if (inItem(p, it)) return it
   }
   return undefined
+}
+function inItem(p: { x: number; y: number }, it: MistakeLayoutItem): boolean {
+  return p.x >= it.x && p.x <= it.x + it.w && p.y >= it.y && p.y <= it.y + it.h
+}
+/** ポインタが枠の右下のつまみ（画面上で半径 24px）の上にあるか */
+function nearHandle(e: PointerEvent, it: MistakeLayoutItem): boolean {
+  const s = stageXY(e)
+  return Math.hypot(s.x - (tx.value + (it.x + it.w) * z.value), s.y - (ty.value + (it.y + it.h) * z.value)) <= 24
+}
+/** 動かしている最中の枠（preview）を確定する */
+function commitPreview() {
+  const pv = preview.value
+  preview.value = null
+  if (!pv) return
+  const it = props.layout.items.find((x) => x.id === pv.id)
+  if (!it || (it.x === pv.x && it.y === pv.y && it.w === pv.w && it.h === pv.h)) return
+  commit({
+    items: props.layout.items.map((x) => (x.id === pv.id ? { ...x, x: round(pv.x), y: round(pv.y), w: round(pv.w), h: round(pv.h) } : x)),
+    ink: props.layout.ink,
+  })
 }
 function cancelDrag() {
   clearHold()
@@ -226,15 +264,28 @@ function cancelDrag() {
 function onDown(e: PointerEvent) {
   if (e.pointerType === 'touch') {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (touches.size === 1) pinchTarget = selectedId.value
     if (touches.size === 2) {
-      // 2 本目の指: 書きかけ・動かしかけは捨ててピンチ（拡縮・移動）にする
+      // 2 本目の指: 書きかけ・動かしかけは捨ててピンチにする
       cancelDrag()
       stage.value!.setPointerCapture(e.pointerId)
       const [a, b] = Array.from(touches.values())
       const r = stage.value!.getBoundingClientRect()
       const cx = (a!.x + b!.x) / 2 - r.left
       const cy = (a!.y + b!.y) / 2 - r.top
-      pinch = { d0: Math.max(1, Math.hypot(a!.x - b!.x, a!.y - b!.y)), z0: z.value, px: (cx - tx.value) / z.value, py: (cy - ty.value) / z.value }
+      const d0 = Math.max(1, Math.hypot(a!.x - b!.x, a!.y - b!.y))
+      const mx = (cx - tx.value) / z.value
+      const my = (cy - ty.value) / z.value
+      // 選択中の枠の上で 2 本指を置いたら、その枠だけを拡縮（＋移動）する
+      const it = pinchTarget ? props.layout.items.find((x) => x.id === pinchTarget) : undefined
+      if (it && inItem({ x: mx, y: my }, it)) {
+        selectedId.value = it.id
+        pinch = { kind: 'item', id: it.id, d0, ox: it.x, oy: it.y, ow: it.w, oh: it.h, mx, my, aspect: it.h > 0 ? it.w / it.h : 1, text: it.type === 'text' }
+        preview.value = { id: it.id, x: it.x, y: it.y, w: it.w, h: it.h }
+        return
+      }
+      if (locked.value) return // ロック中はキャンバスの拡縮・移動はしない
+      pinch = { kind: 'view', d0, z0: z.value, px: mx, py: my }
       return
     }
   }
@@ -253,7 +304,12 @@ function onDown(e: PointerEvent) {
 
   if (tool.value === 'pen' || tool.value === 'eraser') {
     if (finger && !fingerDraw.value) {
-      // 指は動かす役: 画像・文字の枠の上ならその枠だけを、空いている所ならページ全体を動かす
+      // 指は動かす役: 選択中の枠の右下のつまみなら大きさ変更、画像・文字の枠の上ならその枠だけを、空いている所ならページ全体を動かす
+      const sel = selected.value
+      if (sel && nearHandle(e, sel)) {
+        startMove(e, p, sel, true)
+        return
+      }
       const it = itemAt(p)
       if (it) startMove(e, p, it)
       else startPan(e)
@@ -261,7 +317,7 @@ function onDown(e: PointerEvent) {
     }
     stage.value!.setPointerCapture(e.pointerId)
     if (tool.value === 'pen') {
-      live.value = { color: color.value, width: width.value, points: [round(p.x), round(p.y)] }
+      live.value = { color: color.value, width: round(width.value * kindOf({ kind: penKind.value }).scale), kind: penKind.value, points: [round(p.x), round(p.y)] }
       drag = { kind: 'stroke', id: '', ...baseDrag(e, p) }
       armHold(e)
     } else {
@@ -303,6 +359,17 @@ function onMove(e: PointerEvent) {
     const cx = (a!.x + b!.x) / 2 - r.left
     const cy = (a!.y + b!.y) / 2 - r.top
     const d = Math.max(1, Math.hypot(a!.x - b!.x, a!.y - b!.y))
+    if (pinch.kind === 'item') {
+      // 枠の拡縮: 最初に指の間にあった点が、今の指の間に来るように位置も動かす
+      const s = d / pinch.d0
+      const w = pinch.text ? Math.max(140, pinch.ow * s) : Math.max(60, Math.min(NOTE_W * 1.5, pinch.ow * s))
+      const h = pinch.text ? Math.max(60, pinch.oh * s) : w / pinch.aspect
+      const k = w / pinch.ow
+      const mx = (cx - tx.value) / z.value
+      const my = (cy - ty.value) / z.value
+      preview.value = { id: pinch.id, x: mx - (pinch.mx - pinch.ox) * k, y: my - (pinch.my - pinch.oy) * k, w, h }
+      return
+    }
     const nz = clamp((pinch.z0 * d) / pinch.d0, Z_MIN, Z_MAX)
     z.value = nz
     tx.value = cx - pinch.px * nz
@@ -313,6 +380,7 @@ function onMove(e: PointerEvent) {
   if (drag.kind === 'pan') {
     if (!drag.moved && Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < 6) return
     drag.moved = true
+    if (locked.value) return // ロック中はページを動かさない（動かした判定だけ残し、離しても文字の枠は作らない）
     tx.value += e.clientX - drag.lastX
     ty.value += e.clientY - drag.lastY
     drag.lastX = e.clientX
@@ -355,7 +423,11 @@ function onMove(e: PointerEvent) {
 function onUp(e: PointerEvent) {
   if (e.pointerType === 'touch') {
     touches.delete(e.pointerId)
-    if (pinch && touches.size < 2) pinch = null
+    if (pinch && touches.size < 2) {
+      if (pinch.kind === 'item') commitPreview()
+      pinch = null
+    }
+    if (!touches.size) pinchTarget = null
   }
   if (e.pointerType !== 'mouse') hover.value = null // ペン・指はホバーがないので離したら消す
   if (!drag || drag.pointerId !== e.pointerId) return
@@ -382,13 +454,11 @@ function onUp(e: PointerEvent) {
     if (ink && eraseChanged) commit({ items: props.layout.items, ink })
     return
   }
-  const pv = preview.value
-  preview.value = null
-  if (!d.moved || !pv) return
-  commit({
-    items: props.layout.items.map((it) => (it.id === pv.id ? { ...it, x: round(pv.x), y: round(pv.y), w: round(pv.w), h: round(pv.h) } : it)),
-    ink: props.layout.ink,
-  })
+  if (!d.moved) {
+    preview.value = null
+    return
+  }
+  commitPreview()
 }
 
 /** 消しゴムの半径（画面 px）。ページ上の半径は倍率で割る（拡大するほど細かく消せる） */
@@ -529,13 +599,6 @@ function box(it: MistakeLayoutItem) {
   const b = preview.value?.id === it.id ? preview.value : it
   return { left: b.x + 'px', top: b.y + 'px', width: b.w + 'px', height: b.h + 'px' }
 }
-function pathOf(st: MistakeStroke): string {
-  const p = st.points
-  if (p.length < 2) return ''
-  let d = `M${p[0]} ${p[1]}`
-  for (let i = 2; i + 1 < p.length; i += 2) d += ` L${p[i]} ${p[i + 1]}`
-  return d
-}
 const cursor = computed(() => (panning.value ? 'grabbing' : { select: 'default', pen: 'crosshair', eraser: 'cell', text: 'text' }[tool.value]))
 const zoomLabel = computed(() => `${Math.round(z.value * 100)}%`)
 
@@ -584,80 +647,90 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="mc">
-    <!-- 縦型の道具（左） -->
-    <div class="rail">
-      <!-- 戻す・進む（一番上） -->
-      <div class="group row">
-        <button class="rb" :disabled="!undoStack.length" title="戻す（Ctrl+Z）" @click="undo">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4-4 4-4" /><path d="M5 10h9a5 5 0 0 1 0 10h-3" /></svg><span>戻す</span>
-        </button>
-        <button class="rb" :disabled="!redoStack.length" title="進む（Ctrl+Shift+Z）" @click="redo">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l4-4-4-4" /><path d="M19 10h-9a5 5 0 0 0 0 10h3" /></svg><span>進む</span>
-        </button>
-      </div>
-
-      <div class="group">
-        <button class="rb" :class="{ on: tool === 'select' }" title="選択・移動" @click="tool = 'select'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 3l14 8-6 2-3 6z" /></svg><span>選択</span>
-        </button>
-        <button class="rb" :class="{ on: tool === 'pen' }" title="ペン" @click="tool = 'pen'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg><span>ペン</span>
-        </button>
-        <button class="rb" :class="{ on: tool === 'eraser' }" title="消しゴム（手書きを消す）" @click="tool = 'eraser'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 20l-4-4 10-10 6 6-8 8z" /><path d="M9 20h12" /></svg><span>消す</span>
-        </button>
-        <button class="rb" :class="{ on: tool === 'text' }" title="文字の挿入: 空いている所をクリックすると文字の枠ができます" @click="tool = 'text'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6h14M12 6v13M9 19h6" /></svg><span>文字</span>
-        </button>
-      </div>
-
-      <!-- 道具ごとの設定 -->
-      <div v-if="tool === 'pen'" class="group sub">
-        <div class="colors">
-          <button v-for="c in PEN_COLORS" :key="c" class="sw" :class="{ on: color === c }" :style="{ '--c': c }" :aria-label="c" @click="color = c"></button>
+    <!-- 道具（親のヘッダー中央へ Teleport。横に並べ、はみ出す分は横スクロール） -->
+    <Teleport v-if="toolbarTo" :to="toolbarTo">
+      <div class="tools">
+        <div class="tg">
+          <button class="tb" :disabled="!undoStack.length" title="戻す（Ctrl+Z）" @click="undo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4-4 4-4" /><path d="M5 10h9a5 5 0 0 1 0 10h-3" /></svg><span>戻す</span>
+          </button>
+          <button class="tb" :disabled="!redoStack.length" title="進む（Ctrl+Shift+Z）" @click="redo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l4-4-4-4" /><path d="M19 10h-9a5 5 0 0 0 0 10h3" /></svg><span>進む</span>
+          </button>
         </div>
-        <button v-for="w in PEN_WIDTHS" :key="w.width" class="rb small" :class="{ on: width === w.width }" @click="width = w.width">
-          <span class="dotw" :style="{ height: Math.min(10, w.width) + 'px' }"></span><span>{{ w.label }}</span>
-        </button>
-        <label v-if="isTouch" class="chk" title="OFF のときは指で動かし、Apple Pencil で書きます"><input v-model="fingerDraw" type="checkbox" /><span>指で書く</span></label>
-        <label class="chk" title="線を引いたまま少し止めると、直線・円／楕円・長方形に整えます"><input v-model="shapeSnap" type="checkbox" /><span>図形補正</span></label>
-      </div>
-      <div v-else-if="tool === 'eraser'" class="group sub">
-        <button class="rb small" :class="{ on: eraseMode === 'pixel' }" title="ピクセル消し: なぞった所だけ消す" @click="eraseMode = 'pixel'"><span>ピクセル</span></button>
-        <button class="rb small" :class="{ on: eraseMode === 'stroke' }" title="オブジェクト消し: 触れた線をまるごと消す" @click="eraseMode = 'stroke'"><span>線ごと</span></button>
-        <button class="rb small" :disabled="!layout.ink.length" @click="clearInk"><span>全部消す</span></button>
-        <label v-if="isTouch" class="chk"><input v-model="fingerDraw" type="checkbox" /><span>指で消す</span></label>
-      </div>
-      <div v-else-if="tool === 'text' && selected?.type === 'text'" class="group sub">
-        <button v-for="f in FONT_SIZES" :key="f.size" class="rb small" :class="{ on: (selected.fontSize ?? DEFAULT_FONT) === f.size }" @click="setFontSize(f.size)"><span>{{ f.label }}</span></button>
-      </div>
 
-      <div class="group">
-        <button class="rb" :disabled="busy || (!hasProblem && !canAddProblem)" :title="hasProblem ? '問題の写真を差し替える' : '問題の写真を登録する'" @click="emit('requestProblem')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.2" /></svg><span>{{ hasProblem ? '写真' : '問題' }}</span>
-        </button>
-        <button class="rb" :disabled="busy || !hasProblem" title="説明用の画像を追加" @click="emit('requestExtra')">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 16l5-5 4 4 3-3 6 6" /><circle cx="16" cy="9" r="1.5" /></svg><span>画像</span>
-        </button>
-        <button class="rb" title="見えている範囲の真ん中に文字の枠を作る" @click="addTextBox">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M9 6v12M6 18h6" /><path d="M18 10v8M14 14h8" /></svg><span>文字枠</span>
-        </button>
-        <button v-if="canMakeProblem" class="rb accent" :disabled="busy" title="選択中の画像を対象の問題の写真にする（今の問題の写真は説明用になります）" @click="emit('makeProblem', selected!.imageId!)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z" /></svg><span>問題に</span>
-        </button>
-        <button class="rb danger" :disabled="!canDelete" :title="selected?.type === 'text' ? '文字の枠を削除' : '画像を削除'" @click="deleteSelected">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg><span>削除</span>
-        </button>
-      </div>
+        <div class="tg">
+          <button class="tb" :class="{ on: tool === 'select' }" title="選択・移動" @click="tool = 'select'">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 3l14 8-6 2-3 6z" /></svg><span>選択</span>
+          </button>
+          <button class="tb" :class="{ on: tool === 'pen' }" title="ペン" @click="tool = 'pen'">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg><span>ペン</span>
+          </button>
+          <button class="tb" :class="{ on: tool === 'eraser' }" title="消しゴム（手書きを消す）" @click="tool = 'eraser'">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 20l-4-4 10-10 6 6-8 8z" /><path d="M9 20h12" /></svg><span>消す</span>
+          </button>
+          <button class="tb" :class="{ on: tool === 'text' }" title="文字の挿入: 空いている所をクリックすると文字の枠ができます" @click="tool = 'text'">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 6h14M12 6v13M9 19h6" /></svg><span>文字</span>
+          </button>
+        </div>
 
-      <div class="group zoom" title="ホイールで拡縮（約 5% ずつ）、ホイールボタンのドラッグで移動">
-        <button class="rb small" aria-label="拡大" @click="zoomStep(1)"><span class="big">＋</span></button>
-        <span class="zl dm">{{ zoomLabel }}</span>
-        <button class="rb small" aria-label="縮小" @click="zoomStep(-1)"><span class="big">−</span></button>
-        <button class="rb small" @click="fitAll"><span>全体</span></button>
-        <button class="rb small" @click="fitWidth"><span>幅</span></button>
+        <!-- 道具ごとの設定 -->
+        <div v-if="tool === 'pen'" class="tg sub">
+          <button v-for="k in STROKE_KINDS" :key="k.kind" class="tb" :class="{ on: penKind === k.kind }" :title="k.label" @click="penKind = k.kind">
+            <svg width="22" height="18" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-linejoin="round">
+              <path v-if="k.kind === 'pen'" d="M3 14c4-9 8 9 12 0s4-4 6-2" stroke-width="2" stroke-linecap="round" />
+              <path v-else-if="k.kind === 'flat'" d="M6 17L18 3" stroke-width="6" stroke-linecap="butt" />
+              <path v-else-if="k.kind === 'marker'" d="M4 10h16" stroke-width="9" stroke-linecap="square" opacity="0.45" />
+              <path v-else d="M3 15c5-7 10 6 18-5" stroke-width="1.6" stroke-linecap="round" opacity="0.75" />
+            </svg>
+            <span>{{ k.label }}</span>
+          </button>
+          <div class="colors">
+            <button v-for="c in PEN_COLORS" :key="c" class="sw" :class="{ on: color === c }" :style="{ '--c': c }" :aria-label="c" @click="color = c"></button>
+          </div>
+          <button v-for="w in PEN_WIDTHS" :key="w.width" class="tb" :class="{ on: width === w.width }" @click="width = w.width">
+            <span class="dotw" :style="{ height: Math.min(10, w.width) + 'px' }"></span><span>{{ w.label }}</span>
+          </button>
+          <label v-if="isTouch" class="chk" title="OFF のときは指で動かし、Apple Pencil で書きます"><input v-model="fingerDraw" type="checkbox" /><span>指で書く</span></label>
+          <label class="chk" title="線を引いたまま少し止めると、直線・円／楕円・長方形に整えます"><input v-model="shapeSnap" type="checkbox" /><span>図形補正</span></label>
+        </div>
+        <div v-else-if="tool === 'eraser'" class="tg sub">
+          <button class="tb txt" :class="{ on: eraseMode === 'pixel' }" title="ピクセル消し: なぞった所だけ消す" @click="eraseMode = 'pixel'"><span>ピクセル</span></button>
+          <button class="tb txt" :class="{ on: eraseMode === 'stroke' }" title="オブジェクト消し: 触れた線をまるごと消す" @click="eraseMode = 'stroke'"><span>線ごと</span></button>
+          <button class="tb txt" :disabled="!layout.ink.length" @click="clearInk"><span>全部消す</span></button>
+          <label v-if="isTouch" class="chk"><input v-model="fingerDraw" type="checkbox" /><span>指で消す</span></label>
+        </div>
+        <div v-else-if="tool === 'text' && selected?.type === 'text'" class="tg sub">
+          <button v-for="f in FONT_SIZES" :key="f.size" class="tb txt" :class="{ on: (selected.fontSize ?? DEFAULT_FONT) === f.size }" @click="setFontSize(f.size)"><span>{{ f.label }}</span></button>
+        </div>
+
+        <div class="tg">
+          <button class="tb" :disabled="busy || (!hasProblem && !canAddProblem)" :title="hasProblem ? '問題の写真を差し替える' : '問題の写真を登録する'" @click="emit('requestProblem')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.2" /></svg><span>{{ hasProblem ? '写真' : '問題' }}</span>
+          </button>
+          <button class="tb" :disabled="busy || !hasProblem" title="説明用の画像を追加" @click="emit('requestExtra')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 16l5-5 4 4 3-3 6 6" /><circle cx="16" cy="9" r="1.5" /></svg><span>画像</span>
+          </button>
+          <button class="tb" title="見えている範囲の真ん中に文字の枠を作る" @click="addTextBox">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M9 6v12M6 18h6" /><path d="M18 10v8M14 14h8" /></svg><span>文字枠</span>
+          </button>
+          <button v-if="canMakeProblem" class="tb accent" :disabled="busy" title="選択中の画像を対象の問題の写真にする（今の問題の写真は説明用になります）" @click="emit('makeProblem', selected!.imageId!)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z" /></svg><span>問題に</span>
+          </button>
+          <button class="tb danger" :disabled="!canDelete" :title="selected?.type === 'text' ? '文字の枠を削除' : '画像を削除'" @click="deleteSelected">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg><span>削除</span>
+          </button>
+        </div>
+
+        <div class="tg" title="ホイールで拡縮（約 5% ずつ）、ホイールボタンのドラッグで移動">
+          <button class="tb" aria-label="拡大" @click="zoomStep(1)"><span class="big">＋</span></button>
+          <span class="zl dm">{{ zoomLabel }}</span>
+          <button class="tb" aria-label="縮小" @click="zoomStep(-1)"><span class="big">−</span></button>
+          <button class="tb txt" @click="fitAll"><span>全体</span></button>
+          <button class="tb txt" @click="fitWidth"><span>幅</span></button>
+        </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- ステージ（方眼は固定。中のページだけを拡縮・移動） -->
     <div
@@ -725,8 +798,8 @@ onBeforeUnmount(() => {
         </div>
 
         <svg class="ink" :viewBox="`0 0 ${NOTE_W} ${NOTE_H}`" preserveAspectRatio="none">
-          <path v-for="(st, i) in shownInk" :key="i" :d="pathOf(st)" :stroke="st.color" :stroke-width="st.width" fill="none" stroke-linecap="round" stroke-linejoin="round" />
-          <path v-if="live" :d="pathOf(live)" :stroke="live.color" :stroke-width="live.width" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+          <path v-for="(st, i) in shownInk" :key="i" v-bind="svgPathAttrs(st)" />
+          <path v-if="live" v-bind="svgPathAttrs(live)" />
         </svg>
       </div>
       <!-- 消しゴムの範囲（画面上で一定の大きさ） -->
@@ -735,10 +808,20 @@ onBeforeUnmount(() => {
         class="ecur"
         :style="{ left: hover.x - ERASE_PX + 'px', top: hover.y - ERASE_PX + 'px', width: ERASE_PX * 2 + 'px', height: ERASE_PX * 2 + 'px' }"
       ></div>
-      <div class="stage-hint">
-        <template v-if="tool === 'text'">空いている所をクリックすると、その位置に文字の枠ができます　</template>
-        {{ isTouch ? '指で画像を動かす・空いている所でページを動かす・2 本の指で拡縮' : 'ホイールで拡縮・ホイールボタンのドラッグで移動' }}
-      </div>
+      <!-- ロック（拡縮・移動を止める）。文字は出さず南京錠だけ -->
+      <button
+        class="lock"
+        :class="{ on: locked }"
+        :title="locked ? '拡縮・移動のロックを解除' : '拡縮・移動をロック'"
+        :aria-label="locked ? 'ロック解除' : 'ロック'"
+        @pointerdown.stop
+        @pointerup.stop
+        @pointercancel.stop
+        @click="locked = !locked"
+      >
+        <svg v-if="locked" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+        <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 7.6-1.8" /></svg>
+      </button>
     </div>
   </div>
 </template>
@@ -756,92 +839,87 @@ onBeforeUnmount(() => {
   user-select: none;
   -webkit-touch-callout: none;
 }
-/* ---- 縦型の道具 ---- */
-.rail {
-  flex-shrink: 0;
-  width: 64px;
+/* ---- 道具（親のヘッダー中央。横並び・はみ出す分は横スクロール） ---- */
+.tools {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 6px 5px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  align-items: center;
+  gap: 4px;
+  height: 48px;
+  padding: 0 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  /* ダブルタップで画面が拡大されないように（スクロールはできる） */
-  touch-action: manipulation;
+  touch-action: pan-x;
 }
-.rail::-webkit-scrollbar {
+.tools::-webkit-scrollbar {
   display: none;
 }
-.group {
+.tg {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eef0f3;
-}
-.group:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-.group.row {
-  flex-direction: row;
+  align-items: center;
   gap: 2px;
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 5px;
+  border-right: 1px solid #e3e6ea;
 }
-.group.row .rb {
-  flex: 1;
-  padding: 6px 0 5px;
+.tg:last-child {
+  border-right: none;
 }
-.group.sub {
+.tg.sub {
   background: #f6f7f9;
   border-radius: 9px;
-  padding: 6px 3px;
-  border-bottom: none;
+  border-right: none;
+  padding: 0 6px;
 }
-.rb {
+.tb {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 6px 2px 5px;
+  justify-content: center;
+  gap: 1px;
+  min-width: 42px;
+  height: 42px;
+  padding: 0 4px;
   border: none;
   border-radius: 8px;
   background: transparent;
   color: var(--mut);
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 600;
-  cursor: pointer;
   line-height: 1.1;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
 }
-.rb.small {
-  flex-direction: row;
-  justify-content: center;
-  gap: 4px;
-  padding: 5px 2px;
+.tb.txt {
   font-size: 11px;
 }
-.rb:hover {
-  background: #f1f2f4;
+@media (hover: hover) {
+  .tb:hover {
+    background: #f1f2f4;
+  }
 }
-.rb.on {
+.tb.on {
   background: #1c2024;
   color: #fff;
 }
-.rb:disabled {
+.tb:disabled {
   opacity: 0.35;
   cursor: default;
 }
-.rb.danger:not(:disabled) {
+.tb.danger:not(:disabled) {
   color: #c0444f;
 }
-.rb.accent:not(:disabled) {
+.tb.accent:not(:disabled) {
   color: var(--primary);
   background: #eef0f8;
 }
-.rb .big {
+.tb .big {
   font-size: 16px;
   font-weight: 700;
 }
@@ -851,11 +929,10 @@ onBeforeUnmount(() => {
   background: currentColor;
 }
 .colors {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
-  justify-items: center;
-  padding: 2px 0 5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
 }
 .sw {
   width: 20px;
@@ -866,6 +943,7 @@ onBeforeUnmount(() => {
   box-shadow: 0 0 0 1px #e3e6ea;
   cursor: pointer;
   padding: 0;
+  flex-shrink: 0;
 }
 .sw.on {
   box-shadow: 0 0 0 2px var(--c);
@@ -874,18 +952,24 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  font-size: 10px;
+  gap: 1px;
+  min-width: 44px;
+  font-size: 9.5px;
   color: var(--mut);
   font-weight: 600;
-  padding-top: 4px;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.chk input {
+  margin: 0;
 }
 .zl {
+  min-width: 36px;
   text-align: center;
   font-size: 11px;
   font-weight: 700;
   color: var(--mut);
-  padding: 2px 0;
 }
 /* ---- ステージ ---- */
 .stage {
@@ -917,16 +1001,29 @@ onBeforeUnmount(() => {
   pointer-events: none;
   z-index: 2;
 }
-.stage-hint {
+/* ロック（キャンバス右上の南京錠） */
+.lock {
   position: absolute;
   right: 10px;
-  bottom: 8px;
-  font-size: 11px;
-  color: #7c838d;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 6px;
-  padding: 2px 8px;
-  pointer-events: none;
+  top: 10px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #d4d8de;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--mut);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 3;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  touch-action: none;
+}
+.lock.on {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
 }
 /* ページ本体。枠は描かず、置いたものだけが見える（ページの外にも置ける。印刷時に全体を収める） */
 .mpage {
@@ -1058,6 +1155,15 @@ onBeforeUnmount(() => {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   cursor: nwse-resize;
   touch-action: none;
+}
+/* 指では大きめに（ペン・消しゴムのときは座標で判定するので、見た目と同じ半径で掴める） */
+@media (pointer: coarse) {
+  .hdl {
+    right: calc(-15px * var(--inv, 1));
+    bottom: calc(-15px * var(--inv, 1));
+    width: calc(30px * var(--inv, 1));
+    height: calc(30px * var(--inv, 1));
+  }
 }
 .ink {
   position: absolute;

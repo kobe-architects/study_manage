@@ -810,10 +810,14 @@ export interface MistakeLayoutItem {
   h: number
 }
 
-/** ペンの線。points は [x0, y0, x1, y1, ...] */
+/** ペンの種類（lib/inkRender.ts）。無ければ pen */
+export type StrokeKind = 'pen' | 'flat' | 'marker' | 'pencil'
+
+/** ペンの線。points は [x0, y0, x1, y1, ...]、width は実際に描く太さ */
 export interface MistakeStroke {
   color: string
   width: number
+  kind?: StrokeKind
   points: number[]
 }
 

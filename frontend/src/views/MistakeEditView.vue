@@ -7,7 +7,6 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MistakeCanvas from '@/components/MistakeCanvas.vue'
-import HelpTip from '@/components/HelpTip.vue'
 import { mistakeApi } from '@/api/mistake'
 import { iso } from '@/lib/design'
 import { bottomOf, ensureLayout, fileToJpeg, fitExtra, fitProblem, forgetImageUrl, imageObjectUrl, newItemId, registerImageUrl } from '@/lib/mistake'
@@ -358,27 +357,11 @@ function errorMessage(e: unknown, fallback: string): string {
   return r?.data?.message || (e instanceof Error && e.message) || fallback
 }
 
-// ---- 全画面（編集画面は画面全体に表示。さらにブラウザの全画面にもできる） ----
+// ---- 全画面（編集画面は画面全体に表示） ----
 // 科目などの欄は、写真を登録するまで（新規）は表示、それ以外は畳んでキャンバスを最大にする
 const showMeta = ref(true)
-const browserFs = ref(false)
-const canBrowserFs = typeof document !== 'undefined' && !!document.fullscreenEnabled && !isTouch
-async function toggleBrowserFs() {
-  try {
-    if (document.fullscreenElement) await document.exitFullscreen()
-    else await document.documentElement.requestFullscreen()
-  } catch {
-    // 対応していないブラウザでは何もしない
-  }
-}
-function onFsChange() {
-  browserFs.value = !!document.fullscreenElement
-}
-onMounted(() => document.addEventListener('fullscreenchange', onFsChange))
-onBeforeUnmount(() => {
-  document.removeEventListener('fullscreenchange', onFsChange)
-  if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
-})
+/** 道具（MistakeCanvas が Teleport で出す）の置き場所: ヘッダーの中央 */
+const toolsEl = ref<HTMLElement | null>(null)
 
 // iPad: ダブルタップで画面が拡大されないようにする（CSS の touch-action に加えての保険）
 const root = ref<HTMLElement | null>(null)
@@ -388,39 +371,19 @@ onMounted(() => {
 })
 onBeforeUnmount(() => unblockTap?.())
 
-const saveLabel = computed(
-  () =>
-    ({
-      none: hasProblem.value ? '' : '問題の写真を登録すると保存が始まります',
-      dirty: '変更あり…',
-      saving: '保存中…',
-      saved: '保存済み',
-      error: '保存に失敗（再試行します）',
-    })[saveState.value],
-)
 </script>
 
 <template>
   <div ref="root" class="ed ui-fullscreen">
     <div v-if="loading" class="hint" style="text-align: center; margin: 40px">読み込み中…</div>
     <template v-else>
+      <!-- ヘッダー: 左端に一覧、中央に道具（MistakeCanvas が Teleport で出す。はみ出す分は横スクロール）、右端に項目の表示切替 -->
       <div class="top">
-        <div class="left">
-          <button class="back" @click="router.push({ name: 'mistakes' })">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7" /></svg>一覧
-          </button>
-          <div class="ttl">{{ note ? '間違いノートを編集' : '問題を追加' }}</div>
-          <HelpTip
-            text="科目・大分類・中分類（学習項目データの分類）を選んでから、対象の問題の写真を登録します（小分類は任意）。スマホ・iPad では「撮影する」でカメラ、PC では画像をコピーして Ctrl+V、またはファイルをドラッグ＆ドロップで登録できます。「文字」を選んで空いている所をクリックすると、その位置に文字の枠ができます。iPad では「ペン」で手書きできます（Apple Pencil 推奨。指で書くときは「指で書く」を ON）。線を引いたまま少し止めると直線・円・長方形に整います（「図形補正」で OFF にできます）。道具の一番上の「戻す」「進む」で変更を取り消し・やり直しできます。消しゴムは「ピクセル」（なぞった所だけ消す）と「線ごと」（オブジェクト消し。触れた線をまるごと消す）を選べ、消える範囲は赤い円で表示されます。画像や文字の枠は「選択」でドラッグして移動、右下のつまみで大きさを変えられます（iPad ではペンのままでも、指で画像に触れて動かせます。空いている所を指で動かすとページ全体が動きます）。説明用に追加した画像を選んで「問題に」を押すと、その画像が対象の問題の写真になります（置く範囲に制限はありません。印刷や閲覧のときは全体が 1 ページに収まるよう自動で縮小されます）。ホイールで拡縮、ホイールボタンのドラッグで表示位置を動かせます。変更は自動で保存されます。"
-          />
-        </div>
-        <div class="right">
-          <span v-if="!showMeta && note" class="crumb">{{ [note.subjectName, note.field, note.studyItemName, note.title, note.source].filter(Boolean).join(' ／ ') }}</span>
-          <span class="save" :class="saveState">{{ saveLabel }}</span>
-          <button v-if="note && saveState !== 'saved'" class="btn-ghost" :disabled="saveState === 'saving'" @click="saveNow">今すぐ保存</button>
-          <button class="btn-ghost" :title="showMeta ? '科目・タイトルなどの欄を隠してキャンバスを広くする' : '科目・タイトルなどの欄を表示する'" @click="showMeta = !showMeta">{{ showMeta ? '項目を隠す' : '項目を表示' }}</button>
-          <button v-if="canBrowserFs" class="btn-ghost" :title="browserFs ? 'ブラウザの全画面を終了' : 'ブラウザも全画面にする'" @click="toggleBrowserFs">{{ browserFs ? '全画面を終了' : 'ブラウザ全画面' }}</button>
-        </div>
+        <button class="back" @click="router.push({ name: 'mistakes' })">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7" /></svg>一覧
+        </button>
+        <div ref="toolsEl" class="tools-slot"></div>
+        <button class="btn-ghost" :title="showMeta ? '科目・タイトルなどの欄を隠してキャンバスを広くする' : '科目・タイトルなどの欄を表示する'" @click="showMeta = !showMeta">{{ showMeta ? '項目を隠す' : '項目を表示' }}</button>
       </div>
 
       <!-- 科目・分野・タイトルなど -->
@@ -496,6 +459,7 @@ const saveLabel = computed(
           :has-problem="hasProblem"
           :busy="busy"
           :can-add-problem="!!note || categoriesReady"
+          :toolbar-to="toolsEl"
           @update:layout="onLayout"
           @remove-image="removeImage"
           @request-problem="problemInput?.click()"
@@ -541,18 +505,22 @@ const saveLabel = computed(
 }
 .top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 8px;
   flex-shrink: 0;
+  min-height: 48px;
 }
-.left,
-.right {
+/* 道具の置き場所（中身は MistakeCanvas が出す。横スクロールは中身側） */
+.tools-slot {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
+}
+.top > .back,
+.top > .btn-ghost {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .back {
   display: flex;
@@ -566,29 +534,6 @@ const saveLabel = computed(
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-}
-.ttl {
-  font-size: 17px;
-  font-weight: 700;
-}
-.crumb {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--mut);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 48vw;
-}
-.save {
-  font-size: 12px;
-  color: var(--faint);
-}
-.save.saved {
-  color: #2e9d62;
-}
-.save.error {
-  color: #cf5563;
 }
 .meta {
   display: flex;

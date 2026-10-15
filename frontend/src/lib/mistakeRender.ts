@@ -1,5 +1,6 @@
 // 間違いノートのページを canvas に描く（全画面の閲覧・PDF 出力で共通。印刷したものと同じ見た目になる）。
 // 1 ページには複数の問題を置ける（lib/mistake.ts の paginate が割り付ける）。問題と問題の間には罫線を引く。
+import { drawStroke } from '@/lib/inkRender'
 import { ENTRY_GAP, ENTRY_HEAD, GUTTER, HEADER_GAP, HEADER_H, LINE_HEIGHT, NOTE_H, NOTE_W, OUTER, PAGE_H, PAGE_TOP, PAGE_W, contentBox, fmtDate, loadImageEl, type BinderPage } from '@/lib/mistake'
 import type { MistakeLayout, MistakeNoteDetail } from '@/types'
 
@@ -91,20 +92,8 @@ export async function drawNoteContent(ctx: CanvasRenderingContext2D, layout: Mis
     })
     ctx.restore()
   }
-  // ペンの線
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-  for (const st of layout.ink) {
-    const p = st.points
-    if (p.length < 2) continue
-    ctx.strokeStyle = st.color
-    ctx.lineWidth = st.width
-    ctx.beginPath()
-    ctx.moveTo(p[0]!, p[1]!)
-    if (p.length === 2) ctx.lineTo(p[0]!, p[1]!)
-    for (let i = 2; i + 1 < p.length; i += 2) ctx.lineTo(p[i]!, p[i + 1]!)
-    ctx.stroke()
-  }
+  // ペンの線（種類ごとの見た目は lib/inkRender.ts）
+  for (const st of layout.ink) drawStroke(ctx, st)
   ctx.restore()
 }
 
