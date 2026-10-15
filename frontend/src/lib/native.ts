@@ -190,19 +190,39 @@ export function reloadOnce(url?: string) {
 
 /**
  * iOS のダブルタップ拡大を止める（html の touch-action: manipulation だけでは効かない端末向けの保険）。
- * el の中で短い間隔の 2 回目のタップの既定動作を止める。ボタン・入力欄などは除く（2 回目のクリックまで消えないように）。
- * 戻り値を呼ぶと解除する。
+ * el の中では touchend の既定動作をすべて止める（ブラウザの合成クリックも出なくなる）ので、
+ * ボタン・ラベル・リンク・[data-tap] のタップは自前で click() を起こす（1 本指で、動かさず、長押しでないとき）。
+ * 入力欄（input / select / textarea / contenteditable）はブラウザに任せる。戻り値を呼ぶと解除する。
  */
 export function blockDoubleTapZoom(el: HTMLElement): () => void {
-  let last = 0
-  const onEnd = (e: TouchEvent) => {
-    const t = e.target as HTMLElement | null
-    if (t?.closest('button, a, input, select, textarea, label, [contenteditable]')) return
-    if (e.timeStamp - last < 350) e.preventDefault()
-    last = e.timeStamp
+  const starts = new Map<number, { x: number; y: number; t: number }>()
+  const onStart = (e: TouchEvent) => {
+    for (const t of Array.from(e.changedTouches)) starts.set(t.identifier, { x: t.clientX, y: t.clientY, t: e.timeStamp })
   }
+  const onEnd = (e: TouchEvent) => {
+    const target = e.target as Element | null
+    if (target?.closest('input, select, textarea, [contenteditable]')) return
+    e.preventDefault()
+    const t = e.changedTouches[0]
+    const s = t ? starts.get(t.identifier) : undefined
+    if (t) starts.delete(t.identifier)
+    const ctl = target?.closest<HTMLElement>('button, label, a, [data-tap]')
+    if (!ctl || !t || !s) return
+    if (e.touches.length) return // 他の指が残っている（ピンチなど）
+    if (Math.hypot(t.clientX - s.x, t.clientY - s.y) > 12 || e.timeStamp - s.t > 700) return // 動かした・長押し
+    ctl.click()
+  }
+  const onCancel = (e: TouchEvent) => {
+    for (const t of Array.from(e.changedTouches)) starts.delete(t.identifier)
+  }
+  el.addEventListener('touchstart', onStart, { passive: true })
   el.addEventListener('touchend', onEnd, { passive: false })
-  return () => el.removeEventListener('touchend', onEnd)
+  el.addEventListener('touchcancel', onCancel, { passive: true })
+  return () => {
+    el.removeEventListener('touchstart', onStart)
+    el.removeEventListener('touchend', onEnd)
+    el.removeEventListener('touchcancel', onCancel)
+  }
 }
 
 /**
@@ -238,6 +258,55 @@ export function blockUiTextSelection(el: HTMLElement): () => void {
     el.removeEventListener('selectstart', onSelectStart)
     el.removeEventListener('contextmenu', onContextMenu)
     document.removeEventListener('selectionchange', onSelectionChange)
+  }
+}
+
+/**
+ * 手書き画面向けのタッチの保険（iPad）。Apple Pencil で書いている最中に手のひらが画面に触れると、iOS がそれを長押しと解釈して
+ * 近くの文字を選択し、手を離したときに「コピー」などのメニューを出す。これを止める。
+ * - ボタン・入力欄以外では touchstart の既定動作を止める（長押しの選択・Pencil のドラッグ選択・スクロールを防ぐ。
+ *   道具の横スクロールは MistakeCanvas が pointer イベントで自前で動かす）
+ * - Pencil が触れている間と離して 1 秒以内は、指（手のひら）がボタン等に当たっても既定動作を止める（パームリジェクション）
+ * - 接触面の大きいタッチ（手のひら）も止める
+ * Pencil 自体のタップはボタン等で普通に効く（クリックは blockDoubleTapZoom が自前で起こす）。戻り値を呼ぶと解除する。
+ */
+export function installInkTouchGuard(el: HTMLElement): () => void {
+  let penDown = false
+  let penUpAt = 0
+  const penActive = () => penDown || performance.now() - penUpAt < 1000
+  const onPointerDown = (e: PointerEvent) => {
+    if (e.pointerType === 'pen') penDown = true
+  }
+  const onPointerUp = (e: PointerEvent) => {
+    if (e.pointerType === 'pen') {
+      penDown = false
+      penUpAt = performance.now()
+    }
+  }
+  const onTouchStart = (e: TouchEvent) => {
+    const t = e.target as Element | null
+    const interactive = !!t?.closest('button, a, input, select, textarea, label, [contenteditable]')
+    let stylus = false
+    let palm = false
+    for (const x of Array.from(e.changedTouches)) {
+      if ((x as Touch & { touchType?: string }).touchType === 'stylus') stylus = true
+      if (x.radiusX > 30 || x.radiusY > 30) palm = true
+    }
+    if (stylus) {
+      if (!interactive) e.preventDefault()
+      return
+    }
+    if (!interactive || palm || penActive()) e.preventDefault()
+  }
+  document.addEventListener('pointerdown', onPointerDown, true)
+  document.addEventListener('pointerup', onPointerUp, true)
+  document.addEventListener('pointercancel', onPointerUp, true)
+  el.addEventListener('touchstart', onTouchStart, { passive: false })
+  return () => {
+    document.removeEventListener('pointerdown', onPointerDown, true)
+    document.removeEventListener('pointerup', onPointerUp, true)
+    document.removeEventListener('pointercancel', onPointerUp, true)
+    el.removeEventListener('touchstart', onTouchStart)
   }
 }
 

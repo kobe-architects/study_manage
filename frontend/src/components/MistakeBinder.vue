@@ -260,7 +260,7 @@ const ratio = PAGE_H / PAGE_W
     <!-- インデックスのメニュー（横向き。≡ で右から出す。背景タップ・×・Esc で閉じる） -->
     <Transition name="idx" :duration="{ enter: 320, leave: 240 }">
       <div v-if="idxOpen" class="idx">
-        <div class="idx-scrim" @click="idxOpen = false"></div>
+        <div class="idx-scrim" data-tap @click="idxOpen = false"></div>
         <div class="idx-panel">
           <div class="idx-head">
             <div class="idx-title">

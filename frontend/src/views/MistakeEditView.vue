@@ -10,7 +10,7 @@ import MistakeCanvas from '@/components/MistakeCanvas.vue'
 import { mistakeApi } from '@/api/mistake'
 import { iso } from '@/lib/design'
 import { bottomOf, ensureLayout, fileToJpeg, fitExtra, fitProblem, forgetImageUrl, imageObjectUrl, newItemId, registerImageUrl } from '@/lib/mistake'
-import { blockDoubleTapZoom, blockUiTextSelection, isTouch } from '@/lib/native'
+import { blockDoubleTapZoom, blockUiTextSelection, installInkTouchGuard, isTouch } from '@/lib/native'
 import { useResourceStore } from '@/stores/resource'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
@@ -363,13 +363,13 @@ const showMeta = ref(true)
 /** 道具（MistakeCanvas が Teleport で出す）の置き場所: ヘッダーの中央 */
 const toolsEl = ref<HTMLElement | null>(null)
 
-// iPad: ダブルタップで画面が拡大されない・書いている最中に UI の文字が選択されない（CSS に加えての保険）
+// iPad: ダブルタップで画面が拡大されない・書いている最中に UI の文字が選択されない・手のひらのタッチを無視する（CSS に加えての保険）
 const root = ref<HTMLElement | null>(null)
 const unblock: (() => void)[] = []
 onMounted(() => {
   if (!root.value) return
   unblock.push(blockUiTextSelection(root.value))
-  if (isTouch) unblock.push(blockDoubleTapZoom(root.value))
+  if (isTouch) unblock.push(blockDoubleTapZoom(root.value), installInkTouchGuard(root.value))
 })
 onBeforeUnmount(() => unblock.forEach((f) => f()))
 

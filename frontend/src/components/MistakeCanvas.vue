@@ -12,6 +12,7 @@
  * - 選択: 画像・文字の枠をドラッグで移動、右下のつまみで大きさ変更。
  *   iPad: 枠を選んでから（タップ）、その枠の上で 2 本指のピンチをするとその枠だけを拡縮（＋移動）できる。選んでいない所のピンチはキャンバスの拡縮
  * - ペン / 消しゴム: Apple Pencil・マウスで書く。指は既定では移動（「指で書く」を ON にすると指でも書ける）
+ *   パームリジェクション: Pencil が触れている間と離して 0.8 秒以内は指（手のひら）のタッチを無視する（親の installInkTouchGuard と併用）
  *   線を引いたまま少し止める（ホールド）と直線・円／楕円・長方形に整える（図形補正。lib/inkShapes.ts。「図形補正」で OFF にできる）
  * - 戻す / 進む: 道具の一番上。Ctrl+Z / Ctrl+Shift+Z（Ctrl+Y）
  * - 消しゴム: ピクセル消し（なぞった所だけ消す）／オブジェクト消し（触れた線をまるごと消す）を切り替えられる。
@@ -200,6 +201,10 @@ type Pinch =
 let pinch: Pinch | null = null
 /** 1 本目の指を置いた時点で選ばれていた枠（その枠の上で 2 本目を置くと、枠のピンチになる） */
 let pinchTarget: string | null = null
+/** パームリジェクション: Pencil が触れている間と離して少しの間は、指（手のひら）のタッチを無視する */
+let penDown = false
+let penUpAt = 0
+const palmRejected = (e: PointerEvent) => e.pointerType === 'touch' && (penDown || performance.now() - penUpAt < 800)
 
 function stageXY(e: PointerEvent): { x: number; y: number } {
   const r = stage.value!.getBoundingClientRect()
@@ -264,6 +269,8 @@ function cancelDrag() {
 }
 
 function onDown(e: PointerEvent) {
+  if (e.pointerType === 'pen') penDown = true
+  else if (palmRejected(e)) return
   if (e.pointerType === 'touch') {
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
     if (touches.size === 1) pinchTarget = selectedId.value
@@ -423,6 +430,10 @@ function onMove(e: PointerEvent) {
 }
 
 function onUp(e: PointerEvent) {
+  if (e.pointerType === 'pen') {
+    penDown = false
+    penUpAt = performance.now()
+  }
   if (e.pointerType === 'touch') {
     touches.delete(e.pointerId)
     if (pinch && touches.size < 2) {
@@ -583,6 +594,22 @@ function addTextBox() {
   const cy = (stageH.value / 2 - ty.value) / z.value - TEXT_H / 2
   createTextAt(cx, cy)
 }
+// ---- 道具の横スクロール（iPad ではタッチの既定動作を止めているので、指・Pencil のドラッグで自前でスクロールする） ----
+const toolsEl = ref<HTMLElement | null>(null)
+let tscroll: { id: number; x: number; left: number } | null = null
+function onToolsDown(e: PointerEvent) {
+  if (e.pointerType === 'mouse' || !toolsEl.value) return
+  tscroll = { id: e.pointerId, x: e.clientX, left: toolsEl.value.scrollLeft }
+  toolsEl.value.setPointerCapture(e.pointerId)
+}
+function onToolsMove(e: PointerEvent) {
+  if (!tscroll || tscroll.id !== e.pointerId || !toolsEl.value) return
+  toolsEl.value.scrollLeft = tscroll.left - (e.clientX - tscroll.x)
+}
+function onToolsUp(e: PointerEvent) {
+  if (tscroll?.id === e.pointerId) tscroll = null
+}
+
 // ---- 画像のトリミング（元の画像は残し、見せる範囲を枠に持たせる。枠の縦横比は範囲に合わせる） ----
 const cropping = ref<MistakeLayoutItem | null>(null)
 function applyCrop(crop: ImageCrop | null, nat: { w: number; h: number }) {
@@ -676,7 +703,7 @@ onBeforeUnmount(() => {
   <div class="mc">
     <!-- 道具（親のヘッダー中央へ Teleport。横に並べ、はみ出す分は横スクロール） -->
     <Teleport v-if="toolbarTo" :to="toolbarTo">
-      <div class="tools">
+      <div ref="toolsEl" class="tools" @pointerdown="onToolsDown" @pointermove="onToolsMove" @pointerup="onToolsUp" @pointercancel="onToolsUp">
         <div class="tg">
           <button class="tb" :disabled="!undoStack.length" title="戻す（Ctrl+Z）" @click="undo">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4-4 4-4" /><path d="M5 10h9a5 5 0 0 1 0 10h-3" /></svg><span>戻す</span>
