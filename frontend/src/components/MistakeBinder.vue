@@ -4,7 +4,8 @@
  * 右端の科目・分野のインデックス（タブ）から該当ページへ飛べる。
  * ページ 1 は右側（奇数ページ = とじ側が左）。スマホ幅では 1 ページずつ表示する。
  * ←→ キー・画面の左右タップ・スワイプでめくる。
- * iPad・スマホの横向き（immersive）では上のバーとタブを出さず、浮かせた ×・≡ だけにしてノートを大きく見せる（インデックスは ≡ のメニュー）。
+ * タッチ端末（iPad・スマホ。immersive）では縦横とも上のバーとタブを出さず、浮かせた ×・≡ だけにしてノートを大きく見せる（インデックスは ≡ のメニュー）。
+ * 縦向きのときは見開きにせず 1 ページずつ表示する。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { mistakeApi } from '@/api/mistake'
@@ -16,16 +17,15 @@ import type { MistakeNoteDetail, MistakeNoteSummary } from '@/types'
 const props = defineProps<{ notes: MistakeNoteSummary[]; startId?: number | null }>()
 const emit = defineEmits<{ close: [] }>()
 
-const single = computed(() => viewportWidth.value < 760)
-/** iPad・スマホの横向き: 上のバーと右端のインデックスを出さず、ノートを大きく見せる（インデックスは右上の ≡ から） */
+/** 画面の向き（タッチ端末は縦向きだと 1 ページずつ表示） */
 const landscapeMq = window.matchMedia('(orientation: landscape)')
 const landscape = ref(landscapeMq.matches)
 const onOrient = () => (landscape.value = landscapeMq.matches)
-const immersive = computed(() => isTouch && landscape.value && !single.value)
+/** 1 ページずつ表示: スマホ幅、またはタッチ端末の縦向き */
+const single = computed(() => viewportWidth.value < 760 || (isTouch && !landscape.value))
+/** タッチ端末（iPad・スマホ）: 縦横とも上のバーと右端のインデックスを出さず、ノートを大きく見せる（インデックスは右上の ≡ から） */
+const immersive = isTouch
 const idxOpen = ref(false)
-watch(immersive, (v) => {
-  if (!v) idxOpen.value = false
-})
 const root = ref<HTMLElement | null>(null)
 let unblockTap: (() => void) | undefined
 /** ページ割り（1 ページに複数の問題） */
@@ -512,6 +512,9 @@ const ratio = PAGE_H / PAGE_W
 .immersive .spread {
   height: min(100%, calc((100vw - 120px) / 2 * var(--ratio)));
 }
+.immersive .spread.single {
+  height: min(100%, calc((100vw - 120px) * var(--ratio)));
+}
 .idx {
   position: absolute;
   inset: 0;
@@ -613,6 +616,13 @@ const ratio = PAGE_H / PAGE_W
 @media (max-width: 760px) {
   .stage {
     padding: 10px 12px 96px;
+  }
+  /* スマホ: タブが無い分、下はめくるボタンの高さだけ空ける */
+  .immersive .stage {
+    padding: calc(8px + env(safe-area-inset-top)) 12px calc(76px + env(safe-area-inset-bottom));
+  }
+  .immersive .spread.single {
+    height: min(100%, calc((100vw - 24px) * var(--ratio)));
   }
   .nav.l {
     left: 6px;
