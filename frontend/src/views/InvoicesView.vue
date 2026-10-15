@@ -83,7 +83,7 @@ const defaultDate = () => {
 function isoDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
-const form = reactive({ workOn: defaultDate(), startMin: 18 * 60, endMin: 19 * 60 + 30, note: '' })
+const form = reactive({ workOn: defaultDate(), startMin: 21 * 60, endMin: 22 * 60, note: '' })
 watch(ym, () => (form.workOn = defaultDate()))
 
 const startOpts = Array.from({ length: 48 }, (_, i) => i * 30)
