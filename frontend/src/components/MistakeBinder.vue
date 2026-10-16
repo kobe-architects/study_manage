@@ -6,6 +6,7 @@
  * ←→ キー・画面の左右タップ・スワイプでめくる。
  * タッチ端末（iPad・スマホ。immersive）では縦横とも上のバーとタブを出さず、浮かせた ×・≡ だけにしてノートを大きく見せる（インデックスは ≡ のメニュー）。
  * 縦向きのときは見開きにせず 1 ページずつ表示する。
+ * 右上の目のボタンで「問題だけ表示」（説明用の画像・文字・手書きを隠す。位置はそのまま）と「すべて表示」を切り替える（端末に記憶）。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { mistakeApi } from '@/api/mistake'
@@ -59,6 +60,14 @@ watch(single, () => go(pos.value))
 const detailCache = new Map<number, Promise<MistakeNoteDetail>>()
 const pageCache = new Map<number, Promise<string>>()
 const urls = ref<Record<number, string>>({})
+/** 問題だけ表示（説明用の画像・文字・手書きを隠す。位置はそのまま）。右上の目のボタンで切替。端末に記憶 */
+const problemOnly = ref(localStorage.getItem('sm_mn_ponly') === '1')
+watch(problemOnly, (v) => {
+  localStorage.setItem('sm_mn_ponly', v ? '1' : '0')
+  // 描いたページは表示の種類ごとに違うので、切り替えたら描き直す
+  pageCache.clear()
+  urls.value = {}
+})
 
 function detailOf(id: number): Promise<MistakeNoteDetail> {
   let p = detailCache.get(id)
@@ -75,7 +84,7 @@ async function ensurePage(i: number) {
   const p = (async () => {
     const details = new Map<number, MistakeNoteDetail>()
     await Promise.all(page.entries.map((e) => detailOf(e.note.id).then((d) => details.set(e.note.id, d)).catch(() => {})))
-    const c = await renderBinderPage(page, details, { pageNo: i + 1, scale: 1 })
+    const c = await renderBinderPage(page, details, { pageNo: i + 1, scale: 1, problemOnly: problemOnly.value })
     return c.toDataURL('image/jpeg', 0.85)
   })()
   pageCache.set(i, p)
@@ -86,7 +95,7 @@ async function ensurePage(i: number) {
   }
 }
 watch(
-  [pos, single],
+  [pos, single, problemOnly],
   async () => {
     const want = single.value ? [pos.value, pos.value + 1, pos.value - 1] : [pos.value, pos.value - 1, pos.value + 1, pos.value + 2, pos.value - 2, pos.value - 3]
     for (const i of want) if (i >= 0 && i < total.value) await ensurePage(i)
@@ -210,6 +219,11 @@ const ratio = PAGE_H / PAGE_W
       <button class="fab x-fab" aria-label="閉じる" @click="emit('close')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
       </button>
+      <!-- 問題だけ表示 ⇄ すべて表示（目のアイコン。文字なし） -->
+      <button class="fab ponly-fab" :class="{ on: problemOnly }" :aria-pressed="problemOnly" :title="problemOnly ? 'すべて表示（説明・手書きも見せる）' : '問題だけ表示（説明・手書きを隠す）'" :aria-label="problemOnly ? 'すべて表示' : '問題だけ表示'" @click="problemOnly = !problemOnly">
+        <svg v-if="problemOnly" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" /><circle cx="12" cy="12" r="3" /><path d="M3 3l18 18" /></svg>
+        <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+      </button>
       <button class="fab menu-fab" aria-label="インデックス" :aria-expanded="idxOpen" @click="idxOpen = true">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16" /><path d="M4 12h16" /><path d="M4 17h16" /></svg>
       </button>
@@ -220,6 +234,10 @@ const ratio = PAGE_H / PAGE_W
         <span v-if="currentLabel" class="bar-sub">{{ currentLabel }}</span>
       </div>
       <div class="bar-pos dm">{{ Math.min(total, pos + 1) }} / {{ total }}</div>
+      <button class="x" :class="{ on: problemOnly }" :aria-pressed="problemOnly" :title="problemOnly ? 'すべて表示（説明・手書きも見せる）' : '問題だけ表示（説明・手書きを隠す）'" :aria-label="problemOnly ? 'すべて表示' : '問題だけ表示'" @click="problemOnly = !problemOnly">
+        <svg v-if="problemOnly" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" /><circle cx="12" cy="12" r="3" /><path d="M3 3l18 18" /></svg>
+        <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+      </button>
       <button class="x" aria-label="閉じる" @click="emit('close')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
       </button>
@@ -505,6 +523,15 @@ const ratio = PAGE_H / PAGE_W
 }
 .menu-fab {
   right: calc(8px + env(safe-area-inset-right));
+}
+.ponly-fab {
+  right: calc(56px + env(safe-area-inset-right));
+}
+/* 問題だけ表示のとき（目のボタンが押された状態） */
+.fab.on,
+.x.on {
+  background: #fff;
+  color: #1c2024;
 }
 .immersive .stage {
   padding: calc(8px + env(safe-area-inset-top)) 56px calc(8px + env(safe-area-inset-bottom));

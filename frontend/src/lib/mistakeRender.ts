@@ -44,9 +44,10 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number): str
 
 /**
  * 置いたもの（画像・文字・手書き）を ctx の (ox, oy) に描く。
- * 置いたもの全体の左上を (ox, oy) に合わせ、scale 倍にして clipW × clipH に切り抜く。
+* 置いたもの全体の左上を (ox, oy) に合わせ、scale 倍にして clipW × clipH に切り抜く。
+ * problemOnly のときは対象の問題の写真だけを描く（説明用の画像・文字・手書きは描かない。位置・大きさはそのまま）。
  */
-export async function drawNoteContent(ctx: CanvasRenderingContext2D, layout: MistakeLayout, ox: number, oy: number, scale: number, clipW = NOTE_W, clipH = NOTE_H) {
+export async function drawNoteContent(ctx: CanvasRenderingContext2D, layout: MistakeLayout, ox: number, oy: number, scale: number, clipW = NOTE_W, clipH = NOTE_H, problemOnly = false) {
   const box = contentBox(layout)
   ctx.save()
   ctx.translate(ox, oy)
@@ -58,7 +59,7 @@ export async function drawNoteContent(ctx: CanvasRenderingContext2D, layout: Mis
 
   // 画像（配置の順に）
   for (const it of layout.items) {
-    if (it.type !== 'image' || !it.imageId) continue
+    if (it.type !== 'image' || !it.imageId || (problemOnly && it.role !== 'problem')) continue
     try {
       const img = await loadImageEl(it.imageId)
       const c = it.crop
@@ -74,7 +75,7 @@ export async function drawNoteContent(ctx: CanvasRenderingContext2D, layout: Mis
   }
   // 文字
   for (const it of layout.items) {
-    if (it.type !== 'text' || !it.text) continue
+    if (it.type !== 'text' || !it.text || problemOnly) continue
     const fs = it.fontSize ?? 30
     ctx.font = `400 ${fs}px ${FONT}`
     ctx.fillStyle = INK
@@ -95,7 +96,7 @@ export async function drawNoteContent(ctx: CanvasRenderingContext2D, layout: Mis
     ctx.restore()
   }
   // ペンの線（種類ごとの見た目は lib/inkRender.ts）
-  for (const st of layout.ink) drawStroke(ctx, st)
+  if (!problemOnly) for (const st of layout.ink) drawStroke(ctx, st)
   ctx.restore()
 }
 
@@ -106,6 +107,8 @@ export interface PageOptions {
   scale?: number
   /** パンチ穴の目印を描くか */
   punchMarks?: boolean
+  /** 対象の問題の写真だけを描く（説明用の画像・文字・手書きは描かない） */
+  problemOnly?: boolean
 }
 
 /** とじ側（パンチ穴）が左のページか */
@@ -209,7 +212,7 @@ export async function renderBinderPage(page: BinderPage, details: Map<number, Mi
     // 描画部分
     const d = details.get(n.id)
     if (d) {
-      await drawNoteContent(x, d.layout, ox, top + ENTRY_HEAD, e.scale, NOTE_W, e.contentH + 2)
+      await drawNoteContent(x, d.layout, ox, top + ENTRY_HEAD, e.scale, NOTE_W, e.contentH + 2, opts.problemOnly)
     } else {
       x.fillStyle = '#f6f7f9'
       x.fillRect(ox, top + ENTRY_HEAD, NOTE_W, e.contentH)
