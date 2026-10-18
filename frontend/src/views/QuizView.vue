@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { examplesOf, splitByWord } from '@/lib/vocabExamples'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { examplesOf } from '@/lib/vocabExamples'
 import { useRouter } from 'vue-router'
 import { shuffle, speak } from '@/lib/design'
 import { playResultSound } from '@/lib/sound'
@@ -17,7 +17,8 @@ import type {
 import FlashcardPlayer from '@/components/FlashcardPlayer.vue'
 import VocabResourceSwitch from '@/components/VocabResourceSwitch.vue'
 import TestSheetPrint from '@/components/TestSheetPrint.vue'
-import AuthImage from '@/components/AuthImage.vue'
+import QuizFullscreen from '@/components/QuizFullscreen.vue'
+import VocabExplainModal from '@/components/VocabExplainModal.vue'
 
 const router = useRouter()
 const vocab = useVocabularyStore()
@@ -161,6 +162,7 @@ function onResourceChange() {
 }
 
 onMounted(async () => {
+  window.addEventListener('keydown', onQuizKey)
   if (!vocab.resource) await vocab.fetchResources()
   if (resourceId.value) {
     await Promise.all([vocab.fetchByResource(resourceId.value), vocab.fetchStats(resourceId.value)])
@@ -236,8 +238,7 @@ const revealed = ref(false)
 const selected = ref<number | null>(null)
 const inputVal = ref('')
 const choicesShown = ref(false) // 4択の段階表示
-const transShown = ref<Record<number, boolean>>({}) // 例文ごとの和訳トグル
-const showExpl = ref(false) // 例文説明トグル
+const explainOpen = ref(false) // 「解説」モーダル
 
 function primeDisplay() {
   const q = vocab.currentQuestion
@@ -247,8 +248,7 @@ function primeDisplay() {
   selected.value = ans?.selected ?? null
   inputVal.value = ans?.input ?? ''
   choicesShown.value = !!ans // 回答済みなら選択肢を復元表示
-  transShown.value = {}
-  showExpl.value = false
+  explainOpen.value = false
   if (!ans && displayed.value) speak(displayed.value.vocab.word)
 }
 
@@ -382,7 +382,7 @@ function dontKnow() {
   if (revealed.value) return
   selected.value = -1
   revealed.value = true
-  vocab.submitAnswer({ isCorrect: false, selected: -1 })
+  vocab.submitAnswer(quizType.value === 'choice' ? { isCorrect: false, selected: -1 } : { isCorrect: false, input: inputVal.value })
   playResultSound(false)
 }
 function submitInput() {
@@ -434,9 +434,6 @@ function retryIncorrect() {
 
 // derived display for current question
 const examples = computed(() => examplesOf(displayed.value?.vocab))
-function exParts(sentence: string) {
-  return splitByWord(sentence, displayed.value?.vocab.word ?? '')
-}
 
 // セクションID→名称
 const sectionNameMap = computed(() => {
@@ -493,10 +490,6 @@ const resultColor = computed(() => (resultPct.value >= 80 ? '#2e9d62' : resultPc
 const showResultMeaning = ref(true) // 誤答一覧の意味表示トグル
 
 const curLabel = computed(() => (displayed.value ? labelMap[displayed.value.vocab.label] : labelMap.normal))
-const curProf = computed(() => {
-  const p = displayed.value?.vocab.proficiency
-  return p ? profMap[p].t : '未設定'
-})
 const feedback = computed(() => {
   const ans = vocab.currentAnswer
   if (!ans) return { text: '', color: '', bg: '' }
@@ -504,6 +497,38 @@ const feedback = computed(() => {
     ? { text: '正解！', color: '#1f7a45', bg: '#eaf7ef' }
     : { text: '不正解', color: '#c0444f', bg: '#fdeef0' }
 })
+
+// ---- 全画面出題の下部ボタン（前へ・わからない／解説・解答／次の問題へ） ----
+const isLastQ = computed(() => vocab.quizIndex + 1 >= vocab.quizQuestions.length)
+const primaryLabel = computed(() => (revealed.value ? (isLastQ.value ? '結果を見る' : '次の問題へ') : quizType.value === 'input' ? '解答' : '次の問題へ'))
+const primaryDisabled = computed(() => (revealed.value ? false : quizType.value === 'input' ? !inputVal.value.trim() : true))
+function primary() {
+  if (revealed.value) nextQ()
+  else if (quizType.value === 'input') submitInput()
+}
+/** キーボード（PC）: 1〜4 で選択（選択肢が隠れていれば表示）、解答後は Enter／→ で次へ、← で前へ、Esc で解説を閉じる */
+function onQuizKey(e: KeyboardEvent) {
+  if (phase.value !== 'quiz' || !displayed.value) return
+  const t = e.target as HTMLElement | null
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return
+  if (explainOpen.value || memoOpen.value) {
+    if (e.key === 'Escape' || (e.key === 'Enter' && !memoOpen.value)) {
+      e.preventDefault()
+      explainOpen.value = false
+    }
+    return
+  }
+  if (e.key === 'ArrowLeft') {
+    if (vocab.quizIndex > 0) prevQ()
+  } else if (revealed.value && (e.key === 'Enter' || e.key === 'ArrowRight')) {
+    e.preventDefault()
+    nextQ()
+  } else if (!revealed.value && quizType.value === 'choice' && /^[1-5]$/.test(e.key)) {
+    if (!choicesShown.value) choicesShown.value = true
+    else answerChoice(Number(e.key) - 1)
+  }
+}
+onBeforeUnmount(() => window.removeEventListener('keydown', onQuizKey))
 
 function allSec() {
   const sel: Record<number, boolean> = {}
@@ -520,8 +545,8 @@ function toggleSec(id: number) {
 
 <template>
   <div>
-    <!-- ============ HOME ============ -->
-    <template v-if="phase === 'home'">
+    <!-- ============ HOME（出題中は全画面の下に残しておく） ============ -->
+    <template v-if="phase === 'home' || phase === 'quiz'">
       <!-- stats -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); gap: 12px; margin-bottom: 18px">
         <div class="card vstat"><div class="vstat-l">総単語数</div><div class="dm vstat-n">{{ stats.totalWords }}</div></div>
@@ -671,34 +696,72 @@ function toggleSec(id: number) {
       </div>
     </template>
 
-    <!-- ============ QUIZ ============ -->
-    <template v-else-if="phase === 'quiz' && displayed">
-      <div style="max-width: 620px; margin: 0 auto">
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px">
-          <button class="sq-btn" title="中断" @click="exitQuiz">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18" /></svg>
-          </button>
-          <div class="track" style="flex: 1; height: 7px"><div :style="{ height: '100%', width: progress + '%', background: '#3b50cc', borderRadius: '99px' }"></div></div>
-          <span style="font-size: 12.5px; color: var(--mut)">{{ vocab.quizIndex + 1 }}/{{ vocab.quizQuestions.length }}</span>
-        </div>
-
-        <div class="card" style="padding: 28px 26px; border-radius: 18px">
+    <!-- ============ QUIZ（全画面。上: 進み具合 / 中: 単語 / 下: 固定の選択肢とボタン） ============ -->
+    <Transition name="ui-modal">
+      <QuizFullscreen
+        v-if="phase === 'quiz' && displayed"
+        :progress="progress"
+        :counter="`${vocab.quizIndex + 1}/${vocab.quizQuestions.length}`"
+        :fixed="quizType === 'choice'"
+        @close="exitQuiz"
+      >
+        <div class="card" style="padding: 24px 24px 26px; border-radius: 18px">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap">
             <span style="font-size: 11px; font-weight: 600; color: #5b6b8c; background: #eef1f6; padding: 2px 8px; border-radius: 99px">{{ displayed.vocab.partOfSpeech }}</span>
             <span style="font-size: 12px; color: #e0a93b">{{ '★'.repeat(displayed.vocab.importance) }}</span>
             <span :style="{ fontSize: '11px', fontWeight: 600, color: curLabel.fg, background: curLabel.bg, padding: '2px 8px', borderRadius: '99px' }">{{ curLabel.t }}</span>
           </div>
 
-          <!-- choice -->
+          <!-- choice: 単語（選択肢は下部固定） -->
           <template v-if="quizType === 'choice'">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px">
-              <button class="bare dm word-tap" style="font-size: 34px; font-weight: 700" title="タップで発音" @click="speak(displayed.vocab.word)">{{ displayed.vocab.word }}</button>
+            <div style="display: flex; align-items: center; gap: 10px">
+              <button class="bare dm word-tap" style="font-size: 36px; font-weight: 700" title="タップで発音" @click="speak(displayed.vocab.word)">{{ displayed.vocab.word }}</button>
               <button class="sq-btn" title="発音" @click="speak(displayed.vocab.word)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></svg>
               </button>
             </div>
+          </template>
+
+          <!-- input: 意味 → 英単語を入力（「解答」は下部のボタン） -->
+          <template v-else>
+            <div style="font-size: 22px; font-weight: 700; margin-bottom: 6px">{{ displayed.vocab.meaning }}</div>
+            <div style="font-size: 12px; color: var(--faint); margin-bottom: 14px">意味に合う英単語を入力してください</div>
+            <input
+              v-model="inputVal"
+              placeholder="英単語を入力"
+              autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"
+              enterkeyhint="done"
+              :disabled="revealed"
+              class="dm"
+              :style="{
+                width: '100%',
+                padding: '12px 14px',
+                border: '1.5px solid ' + (revealed ? (vocab.currentAnswer?.isCorrect ? '#9ed4b3' : '#f0b8be') : '#d8dce1'),
+                borderRadius: '11px',
+                fontSize: '16px',
+                outline: 'none',
+              }"
+              @keydown.enter="submitInput"
+            />
+          </template>
+
+          <!-- 解答後: 正誤と単語・意味だけ（例文などは下の「解説」） -->
+          <div v-if="revealed" style="margin-top: 18px; padding-top: 16px; border-top: 1px solid #f0f1f3">
+            <div :style="{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '5px 12px', borderRadius: '99px', background: feedback.bg, color: feedback.color, fontSize: '13px', fontWeight: 700, marginBottom: '10px' }">{{ feedback.text }}</div>
+            <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
+              <button class="bare dm word-tap" style="font-size: 22px; font-weight: 700" title="タップで発音" @click="speak(displayed.vocab.word)">{{ displayed.vocab.word }}</button>
+              <span style="font-size: 14px; color: #4b5563">{{ displayed.vocab.meaning }}</span>
+              <span v-if="displayed.vocab.meaningSupplement" style="font-size: 12.5px; color: #9aa1ab">{{ displayed.vocab.meaningSupplement }}</span>
+            </div>
+            <div v-if="examples.length" class="dm" style="margin-top: 8px; font-size: 13.5px; color: #4b5563; line-height: 1.6">{{ examples[0]?.sentence }}</div>
+          </div>
+        </div>
+
+        <!-- 下部固定: 4択の選択肢 -->
+        <template #fixed>
+          <template v-if="quizType === 'choice'">
             <button v-if="!choicesShown" class="reveal-btn" @click="choicesShown = true">選択肢を表示</button>
-            <div v-else style="display: flex; flex-direction: column; gap: 10px">
+            <div v-else style="display: flex; flex-direction: column; gap: 8px">
               <button
                 v-for="(c, i) in displayed.choices"
                 :key="i"
@@ -715,104 +778,40 @@ function toggleSec(id: number) {
                 <span style="font-weight: 700">{{ revealed ? (c.isCorrect ? '○' : i === selected ? '×' : '') : '' }}</span>
               </button>
             </div>
-            <button v-if="choicesShown && !revealed" class="dont-know" @click="dontKnow">わからない</button>
           </template>
+        </template>
 
-          <!-- input -->
-          <template v-else>
-            <div style="font-size: 21px; font-weight: 700; margin-bottom: 6px">{{ displayed.vocab.meaning }}</div>
-            <div style="font-size: 12px; color: var(--faint); margin-bottom: 16px">意味に合う英単語を入力してください</div>
-            <div style="display: flex; gap: 10px">
-              <input
-                v-model="inputVal"
-                placeholder="英単語を入力"
-                autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false"
-                enterkeyhint="done"
-                :disabled="revealed"
-                class="dm"
-                :style="{
-                  flex: 1,
-                  padding: '12px 14px',
-                  border: '1.5px solid ' + (revealed ? (vocab.currentAnswer?.isCorrect ? '#9ed4b3' : '#f0b8be') : '#d8dce1'),
-                  borderRadius: '11px',
-                  fontSize: '16px',
-                  outline: 'none',
-                }"
-                @keydown.enter="submitInput"
-              />
-              <button v-if="!revealed" class="answer-btn" @click="submitInput">解答</button>
-            </div>
-          </template>
+        <!-- 下部固定: ボタン -->
+        <template #footer>
+          <button class="qf-ghost" :disabled="vocab.quizIndex === 0" @click="prevQ">前へ</button>
+          <button v-if="revealed" class="qf-ghost" @click="explainOpen = true">解説</button>
+          <button v-else class="qf-ghost" @click="dontKnow">わからない</button>
+          <button class="qf-main" :disabled="primaryDisabled" @click="primary">{{ primaryLabel }}</button>
+        </template>
 
-          <!-- revealed -->
-          <div v-if="revealed" style="margin-top: 18px; padding-top: 18px; border-top: 1px solid #f0f1f3">
-            <div :style="{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '5px 12px', borderRadius: '99px', background: feedback.bg, color: feedback.color, fontSize: '13px', fontWeight: 700, marginBottom: '12px' }">{{ feedback.text }}</div>
-            <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap">
-              <button class="bare dm word-tap" style="font-size: 22px; font-weight: 700" title="タップで発音" @click="speak(displayed.vocab.word)">{{ displayed.vocab.word }}</button>
-              <span style="font-size: 14px; color: #4b5563">{{ displayed.vocab.meaning }}</span>
-              <span v-if="displayed.vocab.meaningSupplement" style="font-size: 12.5px; color: #9aa1ab">{{ displayed.vocab.meaningSupplement }}</span>
-            </div>
-            <div v-if="examples.length || displayed.vocab.referenceNote" style="background: #f8f9fb; border-radius: 12px; padding: 13px 15px; margin-bottom: 14px">
-              <!-- 例文（複数可）。①②は意味の番号に対応 -->
-              <div v-for="(e, ei) in examples" :key="ei" :style="{ marginTop: ei ? '8px' : '0' }">
-                <div class="ex-tap" style="font-size: 13.5px; line-height: 1.6" title="タップで例文を読み上げ" @click="speak(e.sentence)">
-                  <span v-if="e.label" class="ex-label">{{ e.label }}</span>{{ exParts(e.sentence).before }}<span style="font-weight: 700; color: #3b50cc">{{ exParts(e.sentence).word }}</span>{{ exParts(e.sentence).after }}
-                  <button class="bare" style="color: #9aa1ab; vertical-align: middle; margin-left: 4px" @click.stop="speak(e.sentence)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>
-                  </button>
-                </div>
-                <!-- 和訳は例文ごとに表示を切り替える -->
-                <div v-if="e.translation" style="margin-top: 2px">
-                  <button v-if="!transShown[ei]" class="mini-link" @click="transShown[ei] = true">和訳を表示</button>
-                  <div v-else style="font-size: 12px; color: var(--faint); margin-top: 3px"><span v-if="e.label" class="ex-label" style="color: var(--faint)">{{ e.label }}</span>{{ e.translation }}</div>
-                </div>
-              </div>
-              <div v-if="displayed.vocab.exampleExplanation" style="margin-top: 6px">
-                <button v-if="!showExpl" class="mini-link" @click="showExpl = true">例文の説明を表示</button>
-                <div v-else style="font-size: 12px; color: #4b5563; margin-top: 4px; line-height: 1.55; white-space: pre-wrap">{{ displayed.vocab.exampleExplanation }}</div>
-              </div>
-              <div v-if="displayed.vocab.referenceNote" style="margin-top: 8px; font-size: 12px; color: #4b5563; line-height: 1.55; white-space: pre-wrap"><span class="ref-tag">参考</span>{{ displayed.vocab.referenceNote }}</div>
-              <!-- 例文中に登場する登録済み単語（セクション・意味・意味の補足） -->
-              <div v-if="exampleMatches.length" style="margin-top: 10px; border-top: 1px dashed #e3e6ea; padding-top: 10px">
-                <div style="font-size: 11px; color: var(--faint); margin-bottom: 6px">例文中の登録単語</div>
-                <div v-for="m in exampleMatches" :key="m.id" style="display: flex; align-items: baseline; gap: 8px; padding: 3px 0; flex-wrap: wrap">
-                  <span v-if="m.section" style="font-size: 10.5px; font-weight: 600; color: #5b6b8c; background: #eef1f6; padding: 1px 7px; border-radius: 99px">{{ m.section }}</span>
-                  <button class="bare dm word-tap" style="font-size: 13px; font-weight: 700" title="タップで発音" @click="speak(m.word)">{{ m.word }}</button>
-                  <span style="font-size: 12.5px; color: #4b5563">{{ m.meaning }}</span>
-                  <span v-if="m.supplement" style="font-size: 11.5px; color: #9aa1ab">{{ m.supplement }}</span>
+        <template #modals>
+          <Transition name="ui-modal">
+            <VocabExplainModal v-if="explainOpen" :vocab="displayed.vocab" :matches="exampleMatches" @close="explainOpen = false" @prof="setProf" @memo="openMemo" />
+          </Transition>
+          <!-- メモ編集モーダル -->
+          <Transition name="ui-modal">
+            <div v-if="memoOpen" class="overlay ui-overlay ui-sheet ui-swipe" @click="memoOpen = false">
+              <div class="memo-modal ui-panel" @click.stop>
+                <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px">メモを編集</div>
+                <textarea v-model="memoText" rows="4" class="memo-area" placeholder="覚え方・補足など"></textarea>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px">
+                  <button class="prev-btn" @click="memoOpen = false">キャンセル</button>
+                  <button class="answer-btn" @click="saveMemo">保存</button>
                 </div>
               </div>
             </div>
-
-            <div v-if="displayed.vocab.imageUrl" style="margin-bottom: 14px">
-              <AuthImage :src="displayed.vocab.imageUrl" style="max-width: 100%; max-height: 220px; border-radius: 12px; border: 1px solid #e3e6ea" />
-            </div>
-
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap">
-              <span style="font-size: 12px; color: var(--mut)">習熟度</span>
-              <button class="prof-btn" style="color: #2e9d62" @click="setProf('high')">高</button>
-              <button class="prof-btn" style="color: #d98a2b" @click="setProf('medium')">中</button>
-              <button class="prof-btn" style="color: #cf5563" @click="setProf('low')">低</button>
-              <span style="font-size: 11px; color: var(--faint); margin-left: auto">現在: {{ curProf }}</span>
-            </div>
-
-            <div style="margin-bottom: 16px">
-              <button class="memo-chip" @click="openMemo">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
-                {{ displayed.vocab.memo ? displayed.vocab.memo : 'メモを追加' }}
-              </button>
-            </div>
-            <div style="display: flex; gap: 10px">
-              <button class="prev-btn" :disabled="vocab.quizIndex === 0" @click="prevQ">前へ</button>
-              <button class="next-btn" @click="nextQ">{{ vocab.quizIndex + 1 >= vocab.quizQuestions.length ? '結果を見る' : '次の問題へ' }}</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </template>
+          </Transition>
+        </template>
+      </QuizFullscreen>
+    </Transition>
 
     <!-- ============ RESULTS ============ -->
-    <template v-else-if="phase === 'results'">
+    <template v-if="phase === 'results'">
       <div style="max-width: 520px; margin: 0 auto">
         <div class="card" style="padding: 30px 26px; text-align: center; margin-bottom: 16px; border-radius: 18px">
           <div style="font-size: 13px; color: var(--faint); margin-bottom: 8px">クイズ結果</div>
@@ -864,7 +863,7 @@ function toggleSec(id: number) {
     </template>
 
     <!-- ============ FLASHCARD ============ -->
-    <template v-else-if="phase === 'flash'">
+    <template v-if="phase === 'flash'">
       <FlashcardPlayer
         :words="printWords"
         :ordered="ordered"
@@ -904,19 +903,6 @@ function toggleSec(id: number) {
       </div>
     </Transition>
 
-    <!-- メモ編集モーダル -->
-    <Transition name="ui-modal">
-      <div v-if="memoOpen" class="overlay ui-overlay ui-sheet ui-swipe" @click="memoOpen = false">
-        <div class="memo-modal ui-panel" @click.stop>
-          <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px">メモを編集</div>
-          <textarea v-model="memoText" rows="4" class="memo-area" placeholder="覚え方・補足など"></textarea>
-          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px">
-            <button class="prev-btn" @click="memoOpen = false">キャンセル</button>
-            <button class="answer-btn" @click="saveMemo">保存</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
 
     <!-- 小テスト印刷 -->
     <Transition name="ui-modal">

@@ -1,12 +1,15 @@
 <script setup lang="ts">
 /**
  * 英文法・語法 問題演習（スクランブル英文法・語法）。
- * 設定（問題集・章・形式・重要度・出題対象・出題順・問題数）→ 1 問ずつ画面で解答 → 結果。
+ * 設定（問題集・章・形式・重要度・出題対象・出題順・問題数）→ 全画面で 1 問ずつ解答 → 結果。
+ * 出題中は QuizFullscreen（上: 進み具合、中: 問題、下: 固定の選択肢とボタン）。解説は下部の「解説」でモーダル表示。
  * 問題は 1 冊分をまとめて取得し、絞り込み・出題順は画面側で決める。回答は 1 問ごとにサーバーへ記録する。
  */
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import GrammarExplain from '@/components/GrammarExplain.vue'
 import GrammarQuestionCard, { type GrammarAnswerResult } from '@/components/GrammarQuestionCard.vue'
 import HelpTip from '@/components/HelpTip.vue'
+import QuizFullscreen from '@/components/QuizFullscreen.vue'
 import { shuffle } from '@/lib/design'
 import { CIRCLED, FORMATS, FORMAT_INFO, chapterParts, questionPreview, statusOf } from '@/lib/grammar'
 import { playResultSound } from '@/lib/sound'
@@ -22,6 +25,7 @@ const phase = ref<Phase>('home')
 const loading = ref(true)
 
 onMounted(async () => {
+  window.addEventListener('keydown', onKey)
   try {
     await Promise.all([g.fetchBooks(), g.fetchQuestions()])
     loadChapterSel()
@@ -31,6 +35,7 @@ onMounted(async () => {
     loading.value = false
   }
 })
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 async function selectBook(key: GrammarBookKey) {
   if (g.book === key) return
@@ -194,16 +199,23 @@ interface QuizResult extends GrammarAnswerResult {
 const quiz = reactive<{ list: GrammarQuestion[]; index: number; results: (QuizResult | undefined)[] }>({ list: [], index: 0, results: [] })
 /** 「順番」×問題数指定のとき、続きを出すための情報 */
 const session = ref<{ pool: GrammarQuestion[]; offset: number; size: number } | null>(null)
+const cardRef = ref<InstanceType<typeof GrammarQuestionCard> | null>(null)
+const canSubmit = ref(false) // 整序・空所補充で「解答」を押せるか（カードから通知）
+const explainOpen = ref(false)
 
 function scrollTop() {
   document.querySelector('.app-scroll')?.scrollTo({ top: 0 })
+}
+function scrollQuizTop() {
+  document.querySelector('.qf-body')?.scrollTo({ top: 0 })
 }
 function runQuiz(list: GrammarQuestion[]) {
   quiz.list = list
   quiz.index = 0
   quiz.results = []
+  explainOpen.value = false
+  canSubmit.value = false
   phase.value = 'quiz'
-  scrollTop()
 }
 function start() {
   const base = ordered.value ? pool.value : shuffle(pool.value)
@@ -238,6 +250,18 @@ function continueSession() {
 const current = computed(() => quiz.list[quiz.index])
 const currentResult = computed<QuizResult | null>(() => quiz.results[quiz.index] ?? null)
 const progress = computed(() => (quiz.list.length ? Math.round(((quiz.index + 1) / quiz.list.length) * 100) : 0))
+const isLast = computed(() => quiz.index + 1 >= quiz.list.length)
+/** 整序・空所補充は「解答」ボタンで採点（選択・誤り指摘はタップで即採点） */
+const needsSubmit = computed(() => current.value?.format === 'order' || current.value?.format === 'fill')
+const primaryLabel = computed(() => (currentResult.value ? (isLast.value ? '結果を見る' : '次の問題へ') : needsSubmit.value ? '解答' : '次の問題へ'))
+const primaryDisabled = computed(() => (currentResult.value ? false : needsSubmit.value ? !canSubmit.value : true))
+function primary() {
+  if (currentResult.value) next()
+  else if (needsSubmit.value) cardRef.value?.submit()
+}
+function giveUp() {
+  cardRef.value?.giveUp()
+}
 
 async function onAnswer(payload: { isCorrect: boolean; answer: string | null }) {
   const q = current.value
@@ -256,21 +280,46 @@ async function onOverride(isCorrect: boolean) {
   r.attemptId = await g.overrideAttempt(q, r.attemptId, isCorrect)
 }
 function next() {
+  explainOpen.value = false
   if (quiz.index + 1 >= quiz.list.length) {
     phase.value = 'results'
     scrollTop()
     return
   }
+  canSubmit.value = false
   quiz.index++
-  scrollTop()
+  scrollQuizTop()
 }
 function prev() {
-  if (quiz.index > 0) quiz.index--
+  if (quiz.index === 0) return
+  explainOpen.value = false
+  canSubmit.value = false
+  quiz.index--
+  scrollQuizTop()
 }
 function exitQuiz() {
   phase.value = 'home'
+  explainOpen.value = false
   session.value = null
   g.fetchBooks().catch(() => {})
+}
+/** キーボード（PC）: 解答後は Enter／→ で次へ、← で前へ。解説が開いていれば Esc／Enter で閉じる（選択や解答はカード側） */
+function onKey(e: KeyboardEvent) {
+  if (phase.value !== 'quiz') return
+  const t = e.target as HTMLElement | null
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return
+  if (explainOpen.value) {
+    if (e.key === 'Escape' || e.key === 'Enter') {
+      e.preventDefault()
+      explainOpen.value = false
+    }
+    return
+  }
+  if (e.key === 'ArrowLeft') prev()
+  else if (currentResult.value && (e.key === 'Enter' || e.key === 'ArrowRight')) {
+    e.preventDefault()
+    next()
+  }
 }
 const score = computed(() => ({ correct: quiz.results.filter((r) => r?.isCorrect).length, total: quiz.list.length }))
 const resultPct = computed(() => (score.value.total ? Math.round((score.value.correct / score.value.total) * 100) : 0))
@@ -309,8 +358,8 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
 
 <template>
   <div>
-    <!-- ============ HOME ============ -->
-    <template v-if="phase === 'home'">
+    <!-- ============ HOME（出題中は全画面の下に残しておく） ============ -->
+    <template v-if="phase !== 'results'">
       <!-- 問題集の切替 -->
       <div class="row-between" style="margin-bottom: 14px; flex-wrap: wrap; gap: 10px">
         <div v-seg class="book-switch" role="tablist" aria-label="問題集">
@@ -335,7 +384,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
         <div class="card" style="padding: 20px">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px">
             <div style="font-size: 15px; font-weight: 700">出題設定</div>
-            <HelpTip text="章・形式・重要度・出題対象で絞り込み、「開始」で 1 問ずつ解答します。&#10;一覧の問題をタップすると、その問題から順番に始められます。&#10;選択・誤り指摘はタップで即採点。整序は語句を順にタップ、空所補充は入力して「解答」。&#10;PC: 1〜5 キーで選択、Enter で解答・次へ、← → で前後、Backspace で整序を 1 つ戻す。" />
+            <HelpTip text="章・形式・重要度・出題対象で絞り込み、「開始」で全画面で 1 問ずつ解答します。&#10;一覧の問題をタップすると、その問題から順番に始められます。&#10;選択・誤り指摘は下の選択肢をタップで即採点。整序は下の語句を順にタップ（並べた語句はドラッグで前後に移動）、空所補充は空所に入力して「解答」。&#10;解答後は下の「解説」で和訳・出典などを表示。&#10;PC: 1〜5 キーで選択、Enter で解答・次へ、← → で前後、Backspace で整序を 1 つ戻す。" />
           </div>
 
           <div class="row-between" style="margin-bottom: 6px">
@@ -436,35 +485,8 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
       </div>
     </template>
 
-    <!-- ============ QUIZ ============ -->
-    <template v-else-if="phase === 'quiz' && current">
-      <div class="quiz-wrap">
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px">
-          <button class="sq-btn" title="中断" @click="exitQuiz">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18" /></svg>
-          </button>
-          <div class="track" style="flex: 1; height: 7px"><div :style="{ height: '100%', width: progress + '%', background: '#3b50cc', borderRadius: '99px' }"></div></div>
-          <span style="font-size: 12.5px; color: var(--mut)">{{ quiz.index + 1 }}/{{ quiz.list.length }}</span>
-        </div>
-        <GrammarQuestionCard
-          :key="current.id"
-          :question="current"
-          :result="currentResult"
-          :has-prev="quiz.index > 0"
-          :is-last="quiz.index + 1 >= quiz.list.length"
-          @answer="onAnswer"
-          @override="onOverride"
-          @next="next"
-          @prev="prev"
-        />
-        <div v-if="!currentResult && quiz.index > 0" style="margin-top: 10px; text-align: center">
-          <button class="link-btn" style="color: #9aa1ab" @click="prev">前の問題に戻る</button>
-        </div>
-      </div>
-    </template>
-
     <!-- ============ RESULTS ============ -->
-    <template v-else-if="phase === 'results'">
+    <template v-else>
       <div style="max-width: 560px; margin: 0 auto">
         <div class="card" style="padding: 30px 26px; text-align: center; margin-bottom: 16px; border-radius: 18px">
           <div style="font-size: 13px; color: var(--faint); margin-bottom: 8px">結果</div>
@@ -496,6 +518,37 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
         </div>
       </div>
     </template>
+
+    <!-- ============ QUIZ（全画面） ============ -->
+    <Transition name="ui-modal">
+      <QuizFullscreen
+        v-if="phase === 'quiz' && current"
+        :progress="progress"
+        :counter="`${quiz.index + 1}/${quiz.list.length}`"
+        :fixed="current.format !== 'fill'"
+        @close="exitQuiz"
+      >
+        <GrammarQuestionCard
+          ref="cardRef"
+          :key="current.id"
+          :question="current"
+          :result="currentResult"
+          @answer="onAnswer"
+          @can-submit="canSubmit = $event"
+        />
+        <template #footer>
+          <button class="qf-ghost" :disabled="quiz.index === 0" @click="prev">前へ</button>
+          <button v-if="currentResult" class="qf-ghost" @click="explainOpen = true">解説</button>
+          <button v-else class="qf-ghost" @click="giveUp">わからない</button>
+          <button class="qf-main" :disabled="primaryDisabled" @click="primary">{{ primaryLabel }}</button>
+        </template>
+        <template #modals>
+          <Transition name="ui-modal">
+            <GrammarExplain v-if="explainOpen" :question="current" :result="currentResult" @close="explainOpen = false" @override="onOverride" />
+          </Transition>
+        </template>
+      </QuizFullscreen>
+    </Transition>
   </div>
 </template>
 
@@ -810,28 +863,6 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-}
-.quiz-wrap {
-  max-width: 680px;
-  margin: 0 auto;
-}
-.track {
-  background: #eef0f3;
-  border-radius: 99px;
-  overflow: hidden;
-}
-.sq-btn {
-  border: 1px solid #e3e6ea;
-  background: #fff;
-  border-radius: 9px;
-  width: 30px;
-  height: 30px;
-  cursor: pointer;
-  color: #6b7280;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 }
 .res-row {
   padding: 10px 0;
