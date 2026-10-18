@@ -16,6 +16,7 @@ const router = createRouter({
         { path: 'resource', name: 'resource', component: () => import('@/views/ResourceDataView.vue') },
         { path: 'record', name: 'record', component: () => import('@/views/RecordView.vue') },
         { path: 'quiz', name: 'quiz', component: () => import('@/views/QuizView.vue') },
+        { path: 'grammar', name: 'grammar', component: () => import('@/views/GrammarView.vue') },
         { path: 'goals', name: 'goals', component: () => import('@/views/GoalsView.vue') },
         { path: 'gantt', name: 'gantt', component: () => import('@/views/GanttView.vue'), meta: { wide: true } },
         { path: 'gantt/:id', name: 'gantt-chart', component: () => import('@/views/GanttChartView.vue'), meta: { wide: true, depth: 2, parent: 'gantt', title: 'ガントチャート' } },

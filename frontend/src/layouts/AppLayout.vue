@@ -85,6 +85,7 @@ const activeKey = computed(() => {
     vocabulary: 'quiz',
     review: 'quiz',
     flashcard: 'quiz',
+    grammar: 'grammar',
     goals: 'goal',
     gantt: 'gantt',
     'gantt-chart': 'gantt',

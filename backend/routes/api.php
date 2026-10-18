@@ -6,6 +6,7 @@ use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\GanttController;
 use App\Http\Controllers\MistakeNoteController;
 use App\Http\Controllers\GoalController;
+use App\Http\Controllers\GrammarController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\ResourceBookController;
@@ -165,6 +166,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/quizzes/{quiz}/pages/{page}/render-image', [QuizController::class, 'renderImage']);
         Route::post('/quizzes/{quiz}/pages/{page}/answer', [QuizController::class, 'uploadAnswer']);
         Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit']);
+
+        // ===== 英文法・語法 問題演習（スクランブル。問題は共通データ・回答履歴は生徒ごと。採点は画面側） =====
+        Route::get('/grammar/books', [GrammarController::class, 'books']);
+        Route::get('/grammar/questions', [GrammarController::class, 'questions']);
+        Route::post('/grammar/questions/{question}/attempt', [GrammarController::class, 'attempt']);
+        Route::put('/grammar/attempts/{attempt}', [GrammarController::class, 'updateAttempt']);
 
         // ===== 英単語クイズ サブシステム =====
         Route::get('/study-resources', [StudyResourceController::class, 'index']);

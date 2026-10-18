@@ -872,3 +872,55 @@ export interface MistakeNoteDetail extends MistakeNoteSummary {
   layout: MistakeLayout
   images: MistakeImage[]
 }
+
+// ===== 英文法・語法 問題演習（スクランブル英文法・語法） =====
+export type GrammarBookKey = 'grammar' | 'usage'
+/** choice=選択（不適切選択・同意語選択を含む） / error=誤り指摘 / order=語句整序・並べ替え / fill=空所補充・共通語補充 */
+export type GrammarFormat = 'choice' | 'error' | 'order' | 'fill'
+
+export interface GrammarStat {
+  correct: number
+  incorrect: number
+  /** 最新の回答の正誤（未回答は null） */
+  last: boolean | null
+  lastAt: string | null
+  lastAnswer: string | null
+}
+
+export interface GrammarQuestion {
+  id: number
+  book: GrammarBookKey
+  no: number
+  chapterNo: number
+  chapter: string
+  theme: number
+  format: GrammarFormat
+  formatLabel: string
+  importance: string | null
+  /** 日本文・指示（整序は和文、選択は〔同じ用法のものを選べ〕など） */
+  instruction: string | null
+  question: string
+  /** choice: 選択肢 / error: 下線部の語句 / order: 並べる語句 */
+  choices: string[] | null
+  answerIndex: number | null
+  /** choice: 正解の語句 / error: 訂正（a → b） / order: 完成文 / fill: 正解（生の表記） */
+  answerText: string | null
+  /** fill: 空所ごとの正答候補 / order: [[括弧内を並べた正答]] */
+  answers: string[][] | null
+  answerNote: string | null
+  missing: string[]
+  unneeded: string[]
+  translation: string | null
+  source: string | null
+  note: string | null
+  stat: GrammarStat | null
+}
+
+export interface GrammarBook {
+  key: GrammarBookKey
+  name: string
+  total: number
+  correct: number
+  incorrect: number
+  unanswered: number
+}
