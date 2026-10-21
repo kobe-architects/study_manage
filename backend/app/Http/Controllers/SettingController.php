@@ -22,6 +22,7 @@ class SettingController extends Controller
             'startScreen' => ['sometimes', 'in:home,record,goal'],
             'tutorQuizEnabled' => ['sometimes', 'boolean'],
             'tutorSubjectsEnabled' => ['sometimes', 'boolean'],
+            'prefs' => ['sometimes', 'array'], // 画面側の好み。渡したキーだけを上書き（他のキーは残す）
         ]);
 
         $map = [
@@ -36,6 +37,11 @@ class SettingController extends Controller
             if (array_key_exists($in, $data)) {
                 $payload[$col] = $data[$in];
             }
+        }
+
+        if (array_key_exists('prefs', $data)) {
+            $current = UserSetting::where('user_id', $userId)->first()?->prefs; // キャスト済み（配列）
+            $payload['prefs'] = array_merge(is_array($current) ? $current : [], $data['prefs']);
         }
 
         $settings = UserSetting::updateOrCreate(['user_id' => $userId], $payload);
@@ -56,6 +62,7 @@ class SettingController extends Controller
             'startScreen' => $settings->start_screen,
             'tutorQuizEnabled' => (bool) $settings->tutor_quiz_enabled,
             'tutorSubjectsEnabled' => (bool) $settings->tutor_subjects_enabled,
+            'prefs' => $settings->prefs ?: null,
         ]]);
     }
 }

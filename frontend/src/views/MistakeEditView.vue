@@ -343,6 +343,35 @@ function onPaste(e: ClipboardEvent) {
   if (!hasProblem.value) setProblem(f)
   else addExtra(f)
 }
+/** 「貼り付け」ボタン: クリップボードの画像を登録する（iPad・iPhone は Ctrl+V が使えないのでこれで。PC でも使える）。
+ *  iOS では初回に「ペースト」の許可が出るので、ボタンの操作の中ですぐ読む */
+async function pasteFromClipboard() {
+  if (busy.value) return
+  if (!navigator.clipboard?.read) {
+    ui.notify('この端末のブラウザはクリップボードの読み取りに対応していません')
+    return
+  }
+  let items: ClipboardItem[]
+  try {
+    items = await navigator.clipboard.read()
+  } catch {
+    ui.notify('貼り付けが許可されませんでした。画像をコピーしてからもう一度お試しください')
+    return
+  }
+  for (const item of items) {
+    const type = item.types.find((t) => t.startsWith('image/'))
+    if (!type) continue
+    try {
+      const blob = await item.getType(type)
+      if (!hasProblem.value) await setProblem(blob)
+      else await addExtra(blob)
+    } catch (e) {
+      ui.notify(errorMessage(e, '画像の読み取りに失敗しました'))
+    }
+    return
+  }
+  ui.notify('クリップボードに画像がありません')
+}
 function onDrop(e: DragEvent) {
   e.preventDefault()
   const f = Array.from(e.dataTransfer?.files ?? []).find((x) => x.type.startsWith('image/'))
@@ -450,7 +479,8 @@ onBeforeUnmount(() => unblock.forEach((f) => f()))
         <button v-if="isTouch" class="btn-ghost" :disabled="busy || (!note && !categoriesReady)" @click="pickProblemFromLibrary">写真から選ぶ</button>
         <span class="sep"></span>
         <button class="btn-ghost" :disabled="busy || !hasProblem" @click="extraInput?.click()">＋ 説明用の画像を追加</button>
-        <span v-if="!isTouch" class="paste-hint">画像をコピーして Ctrl+V、またはページへドラッグ＆ドロップでも登録できます</span>
+        <button class="btn-ghost" :disabled="busy || (!hasProblem && !note && !categoriesReady)" title="コピーした画像を登録（最初は対象の問題の写真、以降は説明用の画像）" @click="pasteFromClipboard">貼り付け</button>
+        <span class="paste-hint">{{ isTouch ? 'コピーした画像は「貼り付け」で登録できます' : '画像をコピーして「貼り付け」か Ctrl+V、またはページへドラッグ＆ドロップでも登録できます' }}</span>
         <span v-if="busy" class="paste-hint">画像を処理中…</span>
       </div>
 
@@ -466,6 +496,7 @@ onBeforeUnmount(() => unblock.forEach((f) => f()))
           @remove-image="removeImage"
           @request-problem="problemInput?.click()"
           @request-extra="extraInput?.click()"
+          @request-paste="pasteFromClipboard"
           @make-problem="makeProblem"
         />
       </div>

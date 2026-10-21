@@ -108,6 +108,7 @@ class AuthController extends Controller
             'hideEmpty' => $s->hide_empty,
             'startScreen' => $s->start_screen,
             'tutorQuizEnabled' => (bool) $s->tutor_quiz_enabled,
+            'prefs' => $s->prefs ?: null,
             'tutorSubjectsEnabled' => (bool) $s->tutor_subjects_enabled,
         ];
     }

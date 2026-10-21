@@ -246,6 +246,18 @@ export interface UserSettings {
   tutorQuizEnabled: boolean
   /** 講師メニューに「科目別学習状況」を表示するか（既定は表示） */
   tutorSubjectsEnabled: boolean
+  /** 画面側の好み（サーバーにも保存。渡したキーだけ上書き） */
+  prefs?: UserPrefs | null
+}
+
+/** 間違いノートのペン設定（端末の localStorage と両方に保存。別の端末でも同じ設定になる） */
+export interface MistakePenPrefs {
+  width: number
+  kind: string
+  color: string
+}
+export interface UserPrefs {
+  mistakePen?: MistakePenPrefs
 }
 
 export type UserRole = 'owner' | 'tutor'

@@ -28,21 +28,29 @@ import { clipStroke, strokeHits } from '@/lib/inkErase'
 import { STROKE_KINDS, kindOf, svgPathAttrs } from '@/lib/inkRender'
 import { recognizeShape, straightLine, type InkShape } from '@/lib/inkShapes'
 import { haptic, isTouch } from '@/lib/native'
+import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import type { ImageCrop, MistakeLayout, MistakeLayoutItem, MistakeStroke, StrokeKind } from '@/types'
 
 type Tool = 'select' | 'pen' | 'eraser' | 'text'
 
 const props = defineProps<{ layout: MistakeLayout; urls: Record<number, string>; hasProblem: boolean; busy?: boolean; canAddProblem?: boolean; toolbarTo?: HTMLElement | null }>()
-const emit = defineEmits<{ 'update:layout': [layout: MistakeLayout]; removeImage: [imageId: number]; requestProblem: []; requestExtra: []; makeProblem: [imageId: number] }>()
+const emit = defineEmits<{ 'update:layout': [layout: MistakeLayout]; removeImage: [imageId: number]; requestProblem: []; requestExtra: []; requestPaste: []; makeProblem: [imageId: number] }>()
 
 const ui = useUiStore()
 const gid = newItemId('g') // 方眼パターンの id（画面内で一意に）
 
 // ---- 道具 ----
 const tool = ref<Tool>(isTouch ? 'pen' : 'select')
-const color = ref(localStorage.getItem('sm_mn_color') ?? PEN_COLORS[0]!)
-const width = ref(Number(localStorage.getItem('sm_mn_width') ?? PEN_WIDTHS[1]!.width))
+/** ペンの太さ・種類・色は端末（localStorage）とユーザー設定（prefs.mistakePen。別の端末でも同じになる）の両方に保存する。
+ *  端末に記憶がなければサーバーの設定、それもなければ既定（細字・ペン・黒） */
+const auth = useAuthStore()
+const serverPen = auth.settings?.prefs?.mistakePen
+const color = ref(localStorage.getItem('sm_mn_color') ?? serverPen?.color ?? PEN_COLORS[0]!)
+const WIDTH_MIN = 1
+const WIDTH_MAX = 14
+const savedWidth = Number(localStorage.getItem('sm_mn_width') ?? serverPen?.width ?? PEN_WIDTHS[0]!.width)
+const width = ref(Number.isFinite(savedWidth) && savedWidth > 0 ? Math.min(WIDTH_MAX, Math.max(WIDTH_MIN, savedWidth)) : PEN_WIDTHS[0]!.width)
 const fingerDraw = ref(localStorage.getItem('sm_mn_finger') === '1')
 watch(color, (c) => localStorage.setItem('sm_mn_color', c))
 watch(width, (w) => localStorage.setItem('sm_mn_width', String(w)))
@@ -54,9 +62,17 @@ watch(shapeSnap, (s) => localStorage.setItem('sm_mn_shape', s ? '1' : '0'))
 const eraseMode = ref<'pixel' | 'stroke'>(localStorage.getItem('sm_mn_erase') === 'stroke' ? 'stroke' : 'pixel')
 watch(eraseMode, (m) => localStorage.setItem('sm_mn_erase', m))
 /** ペンの種類（ペン・平型・マーカー・鉛筆） */
-const savedKind = localStorage.getItem('sm_mn_kind')
+const savedKind = localStorage.getItem('sm_mn_kind') ?? serverPen?.kind ?? null
 const penKind = ref<StrokeKind>(STROKE_KINDS.some((k) => k.kind === savedKind) ? (savedKind as StrokeKind) : 'pen')
 watch(penKind, (k) => localStorage.setItem('sm_mn_kind', k))
+// サーバーのユーザー設定にも保存（少し待ってまとめて送る。失敗しても端末の記憶は残る）
+let penSaveTimer: ReturnType<typeof setTimeout> | undefined
+watch([width, penKind, color], () => {
+  clearTimeout(penSaveTimer)
+  penSaveTimer = setTimeout(() => {
+    auth.updateSettings({ prefs: { mistakePen: { width: width.value, kind: penKind.value, color: color.value } } }).catch(() => {})
+  }, 800)
+})
 /** ロック: ON の間はホイール・ピンチ・ドラッグでの拡縮・移動をしない（書く・動かすはできる） */
 const locked = ref(localStorage.getItem('sm_mn_lock') === '1')
 watch(locked, (l) => localStorage.setItem('sm_mn_lock', l ? '1' : '0'))
@@ -599,6 +615,8 @@ const toolsEl = ref<HTMLElement | null>(null)
 let tscroll: { id: number; x: number; left: number } | null = null
 function onToolsDown(e: PointerEvent) {
   if (e.pointerType === 'mouse' || !toolsEl.value) return
+  // スライダー・チェックボックスの操作は横スクロールにしない
+  if ((e.target as HTMLElement).closest('input, label')) return
   tscroll = { id: e.pointerId, x: e.clientX, left: toolsEl.value.scrollLeft }
   toolsEl.value.setPointerCapture(e.pointerId)
 }
@@ -742,9 +760,13 @@ onBeforeUnmount(() => {
           <div class="colors">
             <button v-for="c in PEN_COLORS" :key="c" class="sw" :class="{ on: color === c }" :style="{ '--c': c }" :aria-label="c" @click="color = c"></button>
           </div>
-          <button v-for="w in PEN_WIDTHS" :key="w.width" class="tb" :class="{ on: width === w.width }" @click="width = w.width">
-            <span class="dotw" :style="{ height: Math.min(10, w.width) + 'px' }"></span><span>{{ w.label }}</span>
-          </button>
+          <div class="wslider" title="ペンの太さ（スライダーで細かく調整。設定は記憶されます）">
+            <span class="wlab">細</span>
+            <input v-model.number="width" type="range" :min="WIDTH_MIN" :max="WIDTH_MAX" step="0.5" aria-label="ペンの太さ" />
+            <span class="wlab">太</span>
+            <span class="wprev"><span class="dotw" :style="{ width: Math.min(14, Math.max(2, width)) + 'px', height: Math.min(14, Math.max(2, width)) + 'px', background: color }"></span></span>
+            <span class="wval dm">{{ width }}</span>
+          </div>
           <label v-if="isTouch" class="chk" title="OFF のときは指で動かし、Apple Pencil で書きます"><input v-model="fingerDraw" type="checkbox" /><span>指で書く</span></label>
           <label class="chk" title="線を引いたまま少し止めると、直線・円／楕円・長方形に整えます"><input v-model="shapeSnap" type="checkbox" /><span>図形補正</span></label>
         </div>
@@ -764,6 +786,9 @@ onBeforeUnmount(() => {
           </button>
           <button class="tb" :disabled="busy || !hasProblem" title="説明用の画像を追加" @click="emit('requestExtra')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 16l5-5 4 4 3-3 6 6" /><circle cx="16" cy="9" r="1.5" /></svg><span>画像</span>
+          </button>
+          <button class="tb" :disabled="busy || (!hasProblem && !canAddProblem)" title="コピーした画像を貼り付ける（最初は対象の問題の写真、以降は説明用の画像）" @click="emit('requestPaste')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2.5" width="8" height="3.5" rx="1" /><path d="M16 4.5h2.5a1.5 1.5 0 0 1 1.5 1.5v14a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 20V6a1.5 1.5 0 0 1 1.5-1.5H8" /><path d="M9 12h6M9 16h4" /></svg><span>貼り付け</span>
           </button>
           <button class="tb" title="見えている範囲の真ん中に文字の枠を作る" @click="addTextBox">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M9 6v12M6 18h6" /><path d="M18 10v8M14 14h8" /></svg><span>文字枠</span>
@@ -820,7 +845,7 @@ onBeforeUnmount(() => {
       <div class="mpage" :style="pageStyle">
         <div v-if="!hasProblem" class="placeholder">
           <div>まず対象の問題の写真を登録してください</div>
-          <div class="ph-sub">左の「問題」ボタンか、PC では画像をコピーして Ctrl+V、またはここへドラッグ＆ドロップ</div>
+          <div class="ph-sub">上の「問題」で撮影・選択するか、コピーした画像を「貼り付け」（PC は Ctrl+V・ドラッグ＆ドロップでも）</div>
         </div>
 
         <div
@@ -987,6 +1012,43 @@ onBeforeUnmount(() => {
   width: 16px;
   border-radius: 3px;
   background: currentColor;
+}
+/* ペンの太さのスライダー */
+.wslider {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 0 6px;
+}
+.wslider input[type='range'] {
+  width: 104px;
+  margin: 0;
+  accent-color: #1c2024;
+  touch-action: none;
+  cursor: pointer;
+}
+.wlab {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--mut);
+}
+.wprev {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+.wprev .dotw {
+  border-radius: 50%;
+}
+.wval {
+  min-width: 24px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mut);
 }
 .colors {
   display: flex;
