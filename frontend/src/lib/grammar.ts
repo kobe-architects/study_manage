@@ -9,8 +9,9 @@ export const FORMAT_INFO: Record<GrammarFormat, { label: string; short: string; 
   error: { label: '誤り指摘', short: '誤り', bg: '#fdeef0', fg: '#cf5563' },
   order: { label: '語句整序', short: '整序', bg: '#eef7f0', fg: '#3a8a5c' },
   fill: { label: '空所補充', short: '補充', bg: '#fff4e5', fg: '#b7681a' },
+  image: { label: '画像', short: '画像', bg: '#f1f3fb', fg: '#3b50cc' },
 }
-export const FORMATS: GrammarFormat[] = ['choice', 'order', 'fill', 'error']
+export const FORMATS: GrammarFormat[] = ['choice', 'order', 'fill', 'error', 'image']
 
 /** 空所「( )」 */
 const BLANK_RE = /\(\s*\)/g
@@ -161,6 +162,7 @@ export function fillSentence(text: string, parts: string[]): string {
 
 /** 読み上げ用の完成文（指示の〔 〕・（下線部 …）は除く） */
 export function completedSentence(q: GrammarQuestion): string {
+  if (q.format === 'image') return q.question
   let s = q.question
   if (q.format === 'choice') {
     const parts = choiceFillParts(q)

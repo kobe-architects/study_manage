@@ -251,9 +251,10 @@ const current = computed(() => quiz.list[quiz.index])
 const currentResult = computed<QuizResult | null>(() => quiz.results[quiz.index] ?? null)
 const progress = computed(() => (quiz.list.length ? Math.round(((quiz.index + 1) / quiz.list.length) * 100) : 0))
 const isLast = computed(() => quiz.index + 1 >= quiz.list.length)
-/** 整序・空所補充は「解答」ボタンで採点（選択・誤り指摘はタップで即採点） */
-const needsSubmit = computed(() => current.value?.format === 'order' || current.value?.format === 'fill')
-const primaryLabel = computed(() => (currentResult.value ? (isLast.value ? '結果を見る' : '次の問題へ') : needsSubmit.value ? '解答' : '次の問題へ'))
+/** 整序・空所補充は「解答」ボタンで採点（選択・誤り指摘はタップで即採点）。画像出題（自己判定）は「答えを見る」 */
+const imageSelfJudge = computed(() => current.value?.format === 'image' && !(current.value.choiceCount && current.value.answerIndex !== null))
+const needsSubmit = computed(() => current.value?.format === 'order' || current.value?.format === 'fill' || imageSelfJudge.value)
+const primaryLabel = computed(() => (currentResult.value ? (isLast.value ? '結果を見る' : '次の問題へ') : imageSelfJudge.value ? '答えを見る' : needsSubmit.value ? '解答' : '次の問題へ'))
 const primaryDisabled = computed(() => (currentResult.value ? false : needsSubmit.value ? !canSubmit.value : true))
 function primary() {
   if (currentResult.value) next()
@@ -303,18 +304,13 @@ function exitQuiz() {
   session.value = null
   g.fetchBooks().catch(() => {})
 }
-/** キーボード（PC）: 解答後は Enter／→ で次へ、← で前へ。解説が開いていれば Esc／Enter で閉じる（選択や解答はカード側） */
+/** キーボード（PC）: 解答後は Enter／→ で次へ、← で前へ（選択や解答はカード側。解説が開いている間は何もしない） */
 function onKey(e: KeyboardEvent) {
   if (phase.value !== 'quiz') return
   const t = e.target as HTMLElement | null
   if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return
-  if (explainOpen.value) {
-    if (e.key === 'Escape' || e.key === 'Enter') {
-      e.preventDefault()
-      explainOpen.value = false
-    }
-    return
-  }
+  // 解説モーダルは「閉じる」でだけ閉じる（キーでは閉じない）
+  if (explainOpen.value) return
   if (e.key === 'ArrowLeft') prev()
   else if (currentResult.value && (e.key === 'Enter' || e.key === 'ArrowRight')) {
     e.preventDefault()
@@ -334,6 +330,7 @@ function answerLabel(q: GrammarQuestion): string {
   if (q.format === 'choice') return `${CIRCLED[q.answerIndex ?? 0]} ${q.answerText ?? ''}`
   if (q.format === 'error') return `${CIRCLED[q.answerIndex ?? 0]} ${q.answerText ?? ''}`
   if (q.format === 'order') return (q.answerText ?? '').replace(/[()]/g, '')
+  if (q.format === 'image') return q.answerIndex !== null && q.choiceCount ? (CIRCLED[q.answerIndex] ?? '') : (q.answerText ?? '解答欄を参照')
   return (q.answers ?? []).map((a) => a.join(' / ')).join('，')
 }
 
@@ -560,6 +557,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
 }
 .book-switch {
   display: inline-flex;
+  flex-wrap: wrap;
   border: 1px solid #e3e6ea;
   border-radius: 10px;
   overflow: hidden;

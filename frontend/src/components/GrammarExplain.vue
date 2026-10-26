@@ -3,9 +3,13 @@
  * 英文法・語法の「解説」モーダル（解答後に下部の「解説」で開く）。
  * 完成した英文（読み上げ可）・正解の詳細・注記・あなたの答え・和訳・出典・備考を表示し、
  * 整序・空所補充は自動採点が合わないときの自己判定（正解にする／不正解にする）もここでできる。
+ * 「詳細解説」を押すと、教材の解説ページの文章（PDF を OCR したもの。別 API で取得）をさらに上のモーダルで表示する。
+ * どちらのモーダルも「閉じる」（または右上の ×）でだけ閉じる（背景のタップやスワイプでは閉じない）。
  */
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import AuthImage from '@/components/AuthImage.vue'
 import type { GrammarAnswerResult } from '@/components/GrammarQuestionCard.vue'
+import { grammarApi } from '@/api/grammar'
 import { speak } from '@/lib/design'
 import { CIRCLED, answerSegments, completedSentence, splitCorrection } from '@/lib/grammar'
 import type { GrammarQuestion } from '@/types'
@@ -22,11 +26,40 @@ const canOverride = computed(() => q.value.format === 'order' || q.value.format 
 const showMyAnswer = computed(
   () => !!props.result && !props.result.isCorrect && !!props.result.answer && props.result.answer !== 'わからない' && (q.value.format === 'order' || q.value.format === 'fill'),
 )
+
+// ---- 詳細解説（教材の解説ページ。開いたときに取得してキャッシュ） ----
+const detailOpen = ref(false)
+const detailText = ref<string | null>(null)
+const detailLoading = ref(false)
+const detailError = ref(false)
+const cache = new Map<number, string | null>()
+async function openDetail() {
+  detailOpen.value = true
+  if (cache.has(q.value.id)) {
+    detailText.value = cache.get(q.value.id) ?? null
+    return
+  }
+  detailLoading.value = true
+  detailError.value = false
+  try {
+    const r = await grammarApi.explanation(q.value.id)
+    cache.set(q.value.id, r.explanation)
+    detailText.value = r.explanation
+  } catch {
+    detailError.value = true
+  } finally {
+    detailLoading.value = false
+  }
+}
+watch(() => q.value.id, () => {
+  detailOpen.value = false
+  detailText.value = null
+})
 </script>
 
 <template>
-  <div class="overlay ui-overlay ui-sheet ui-swipe" @click="emit('close')">
-    <div class="ex-modal ui-panel" @click.stop>
+  <div class="overlay ui-overlay ui-sheet">
+    <div class="ex-modal ui-panel">
       <div class="ex-head">
         <span class="ex-title">解説</span>
         <span class="ex-no dm">No.{{ q.no }}</span>
@@ -37,8 +70,13 @@ const showMyAnswer = computed(
       </div>
 
       <div class="ex-body">
+        <!-- 画像出題: 解答欄の画像 -->
+        <div v-if="q.format === 'image' && q.hasAnswerImage" class="ex-imgbox">
+          <div class="ex-imglab">解答欄（No.{{ q.no }} の行）</div>
+          <AuthImage :src="grammarApi.imageUrl(q.id, 'answer')" class="ex-img" alt="解答" />
+        </div>
         <!-- 完成文（タップで読み上げ） -->
-        <div class="ex-sent dm" title="タップで読み上げ" @click="speak(sentence)">
+        <div v-if="q.format !== 'image'" class="ex-sent dm" title="タップで読み上げ" @click="speak(sentence)">
           {{ sentence }}
           <button class="bare ex-spk" aria-label="読み上げ" @click.stop="speak(sentence)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></svg>
@@ -48,7 +86,7 @@ const showMyAnswer = computed(
         <div v-else-if="q.instruction && q.format === 'order'" class="ex-trans">{{ q.instruction.replace(/〔.*?〕/g, '').trim() }}</div>
 
         <!-- 正解 -->
-        <div class="ex-row">
+        <div v-if="q.format !== 'image' || q.answerText || (q.choiceCount && q.answerIndex !== null)" class="ex-row">
           <span class="ex-lab">正解</span>
           <template v-if="q.format === 'choice'"><span class="dm ex-strong">{{ CIRCLED[q.answerIndex ?? 0] }} {{ q.answerText }}</span></template>
           <template v-else-if="q.format === 'error'">
@@ -58,6 +96,7 @@ const showMyAnswer = computed(
           <template v-else-if="q.format === 'order'">
             <span class="dm"><template v-for="(s, i) in orderAnswer" :key="i"><span :class="{ 'ex-strong': s.hl }">{{ s.text }}</span></template></span>
           </template>
+          <template v-else-if="q.format === 'image'"><span class="dm ex-strong">{{ q.choiceCount && q.answerIndex !== null ? CIRCLED[q.answerIndex] : q.answerText }}</span></template>
           <template v-else><span class="dm ex-strong">{{ fillAnswerLabel }}</span></template>
         </div>
         <div v-if="q.answerNote" class="ex-note">〔{{ q.answerNote }}〕</div>
@@ -80,8 +119,47 @@ const showMyAnswer = computed(
         </div>
       </div>
 
-      <button class="ex-close" @click="emit('close')">閉じる</button>
+      <div class="ex-btns">
+        <button v-if="q.hasExplanation" class="ex-detail" @click="openDetail">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h13a1.5 1.5 0 0 1 1.5 1.5v12.5H5.5A1.5 1.5 0 0 1 4 18z" /><path d="M8 9.5h7M8 13h5" /></svg>
+          詳細解説
+        </button>
+        <button class="ex-close" @click="emit('close')">閉じる</button>
+      </div>
     </div>
+
+    <!-- 詳細解説（教材の解説ページ）。解説モーダルのさらに上に重ねる -->
+    <Transition name="ui-modal">
+      <div v-if="detailOpen" class="overlay overlay-top ui-overlay ui-sheet">
+        <div class="ex-modal ui-panel">
+          <div class="ex-head">
+            <span class="ex-title">詳細解説</span>
+            <span class="ex-no dm">No.{{ q.no }}</span>
+            <span class="ex-ch">{{ q.chapter }} / Theme {{ q.theme }}</span>
+            <button class="ex-x" aria-label="閉じる" @click="detailOpen = false">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          </div>
+          <div class="ex-body">
+            <!-- 教材の解説ページの画像（確実に読めるのはこちら） -->
+            <div v-if="q.hasExplanationImage" class="ex-imgbox">
+              <AuthImage :src="grammarApi.imageUrl(q.id, 'explanation')" class="ex-img" alt="解説" />
+            </div>
+            <div v-if="detailLoading" class="dt-msg">読み込み中…</div>
+            <div v-else-if="detailError" class="dt-msg">解説の取得に失敗しました</div>
+            <div v-else-if="!detailText && !q.hasExplanationImage" class="dt-msg">この問題の解説はありません</div>
+            <template v-else-if="detailText">
+              <div class="dt-lab">文字（OCR）</div>
+              <div class="dt-text">{{ detailText }}</div>
+              <div class="dt-src">解説ページを OCR で読み取った文章です。読み取りの誤り（丸数字・記号など）が残っていることがあります。正確には上の画像を見てください</div>
+            </template>
+          </div>
+          <div class="ex-btns">
+            <button class="ex-close" @click="detailOpen = false">閉じる</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -95,6 +173,10 @@ const showMyAnswer = computed(
   justify-content: center;
   z-index: 50;
   padding: 20px;
+}
+.overlay-top {
+  z-index: 60;
+  background: rgba(20, 24, 32, 0.45);
 }
 .ex-modal {
   background: #fff;
@@ -252,8 +334,28 @@ const showMyAnswer = computed(
 .ex-remark {
   color: #b7681a;
 }
-.ex-close {
+.ex-btns {
+  display: flex;
+  gap: 10px;
   margin-top: 16px;
+}
+.ex-detail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  padding: 12px;
+  border: 1.5px solid #3b50cc;
+  border-radius: 11px;
+  background: #fff;
+  color: #3b50cc;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ex-close {
+  flex: 1;
   padding: 12px;
   border: none;
   border-radius: 11px;
@@ -262,5 +364,48 @@ const showMyAnswer = computed(
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+}
+.ex-imgbox {
+  margin-bottom: 12px;
+}
+.ex-imglab {
+  font-size: 11.5px;
+  color: var(--mut);
+  margin-bottom: 6px;
+}
+.ex-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid #eceef1;
+}
+.dt-lab {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b6b8c;
+}
+/* 詳細解説の本文（教材の改行をそのまま） */
+.dt-text {
+  font-size: 14.5px;
+  line-height: 1.85;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.dt-msg {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--faint);
+  font-size: 13px;
+}
+.dt-src {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed #e3e6ea;
+  font-size: 11px;
+  color: var(--faint);
+  line-height: 1.6;
 }
 </style>

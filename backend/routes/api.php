@@ -170,6 +170,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // ===== 英文法・語法 問題演習（スクランブル。問題は共通データ・回答履歴は生徒ごと。採点は画面側） =====
         Route::get('/grammar/books', [GrammarController::class, 'books']);
         Route::get('/grammar/questions', [GrammarController::class, 'questions']);
+        Route::get('/grammar/questions/{question}/explanation', [GrammarController::class, 'explanation']);
+        Route::get('/grammar/questions/{question}/image/{kind}', [GrammarController::class, 'image'])->where('kind', 'problem|answer|explanation');
         Route::post('/grammar/questions/{question}/attempt', [GrammarController::class, 'attempt']);
         Route::put('/grammar/attempts/{attempt}', [GrammarController::class, 'updateAttempt']);
 

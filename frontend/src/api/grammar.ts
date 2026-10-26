@@ -14,6 +14,17 @@ export const grammarApi = {
     return data.data
   },
 
+  /** 問題・解答欄・解説の画像 URL（要 Bearer。AuthImage で表示） */
+  imageUrl(questionId: number, kind: 'problem' | 'answer' | 'explanation'): string {
+    return `/grammar/questions/${questionId}/image/${kind}`
+  },
+
+  /** 教材の解説ページの文章（詳細解説） */
+  async explanation(questionId: number): Promise<{ id: number; explanation: string | null; explanationPage: number | null }> {
+    const { data } = await client.get(`/grammar/questions/${questionId}/explanation`)
+    return data.data
+  },
+
   async attempt(questionId: number, payload: { isCorrect: boolean; answer: string | null }): Promise<{ attemptId: number; stat: GrammarStat }> {
     const { data } = await client.post(`/grammar/questions/${questionId}/attempt`, payload)
     return data.data

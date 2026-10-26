@@ -6,6 +6,8 @@ use App\Models\GrammarAttempt;
 use App\Models\GrammarQuestion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * 英文法・語法 問題演習（スクランブル英文法・語法）。
@@ -52,12 +54,36 @@ class GrammarController extends Controller
         $book = (string) $request->query('book', 'grammar');
         abort_unless(isset(GrammarQuestion::BOOKS[$book]), 404);
 
-        $questions = GrammarQuestion::query()->where('book', $book)->orderBy('no')->get();
+        // 解説の本文は大きいので一覧には含めない（有無だけ。本文は explanation() で 1 問ずつ）
+        $questions = GrammarQuestion::query()->where('book', $book)->orderBy('no')
+            ->select(['*', DB::raw('explanation IS NOT NULL AND explanation <> "" AS has_explanation')])
+            ->get();
         $stats = $this->stats($request->user()->id, $questions->pluck('id')->all());
 
         return response()->json([
             'data' => $questions->map(fn (GrammarQuestion $q) => $this->format($q, $stats[$q->id] ?? null))->values(),
         ]);
+    }
+
+    /** 問題・解答欄・解説の画像（PDF から切り出した JPEG。storage/app/private/grammar/ 以下） */
+    public function image(GrammarQuestion $question, string $kind): BinaryFileResponse
+    {
+        $col = ['problem' => 'problem_image', 'answer' => 'answer_image', 'explanation' => 'explanation_image'][$kind] ?? null;
+        abort_unless($col !== null && $question->{$col}, 404);
+        $path = storage_path('app/private/grammar/'.$question->{$col});
+        abort_unless(is_file($path), 404);
+
+        return response()->file($path, ['Content-Type' => 'image/jpeg', 'Cache-Control' => 'private, max-age=86400']);
+    }
+
+    /** 教材の解説ページの文章（詳細解説） */
+    public function explanation(GrammarQuestion $question): JsonResponse
+    {
+        return response()->json(['data' => [
+            'id' => $question->id,
+            'explanation' => $question->explanation,
+            'explanationPage' => $question->explanation_page,
+        ]]);
     }
 
     /** 回答を記録する */
@@ -155,6 +181,11 @@ class GrammarController extends Controller
             'translation' => $q->translation,
             'source' => $q->source,
             'note' => $q->note,
+            'hasExplanation' => (bool) ($q->has_explanation ?? ($q->explanation !== null && $q->explanation !== '')) || $q->explanation_image !== null,
+            'choiceCount' => $q->choice_count,
+            'hasProblemImage' => $q->problem_image !== null,
+            'hasAnswerImage' => $q->answer_image !== null,
+            'hasExplanationImage' => $q->explanation_image !== null,
             'stat' => $stat,
         ];
     }

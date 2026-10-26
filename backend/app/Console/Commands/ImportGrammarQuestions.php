@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\DB;
  * JSON 形式: { "books": [ { "key": "grammar", "name": "英文法", "questions": [ { "no": 1, "chapterNo": 1,
  *   "chapter": "第1章 時制", "theme": 1, "format": "choice", "formatLabel": "選択", "importance": null,
  *   "instruction": null, "question": "...", "choices": ["..."], "answerIndex": 1, "answerText": "...",
- *   "answers": null, "answerNote": null, "missing": [], "unneeded": [], "translation": "...", "source": "...", "note": null } ] } ] }
+ *   "answers": null, "answerNote": null, "missing": [], "unneeded": [], "translation": "...", "source": "...", "note": null,
+ *   "explanation": "解説ページの文章（任意）", "explanationPage": 2 } ] } ] }
  * （JSON の生成は docs/other の Excel から。変換スクリプトはこのコマンドの説明に従う形式で出力する）
  */
 class ImportGrammarQuestions extends Command
@@ -68,6 +69,12 @@ class ImportGrammarQuestions extends Command
                         'translation' => $q['translation'] ?? null,
                         'source' => isset($q['source']) ? mb_substr((string) $q['source'], 0, 100) : null,
                         'note' => $q['note'] ?? null,
+                        'explanation' => $q['explanation'] ?? null, // 教材の解説ページ（OCR）
+                        'explanation_page' => $q['explanationPage'] ?? null,
+                        'problem_image' => $q['problemImage'] ?? null,
+                        'answer_image' => $q['answerImage'] ?? null,
+                        'explanation_image' => $q['explanationImage'] ?? null,
+                        'choice_count' => $q['choiceCount'] ?? null,
                         'created_at' => $now,
                         'updated_at' => $now,
                     ];
