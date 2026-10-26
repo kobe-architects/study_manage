@@ -3,7 +3,7 @@
  * 英文法・語法の「解説」モーダル（解答後に下部の「解説」で開く）。
  * 完成した英文（読み上げ可）・正解の詳細・注記・あなたの答え・和訳・出典・備考を表示し、
  * 整序・空所補充は自動採点が合わないときの自己判定（正解にする／不正解にする）もここでできる。
- * 「詳細解説」を押すと、教材の解説ページの文章（PDF を OCR したもの。別 API で取得）をさらに上のモーダルで表示する。
+ * 「詳細解説」を押すと、教材の解説ページの該当部分の画像をさらに上の横広のモーダルで表示する（OCR の文字は出さない）。
  * どちらのモーダルも「閉じる」（または右上の ×）でだけ閉じる（背景のタップやスワイプでは閉じない）。
  */
 import { computed, ref, watch } from 'vue'
@@ -27,33 +27,10 @@ const showMyAnswer = computed(
   () => !!props.result && !props.result.isCorrect && !!props.result.answer && props.result.answer !== 'わからない' && (q.value.format === 'order' || q.value.format === 'fill'),
 )
 
-// ---- 詳細解説（教材の解説ページ。開いたときに取得してキャッシュ） ----
+// ---- 詳細解説（教材の解説ページの画像） ----
 const detailOpen = ref(false)
-const detailText = ref<string | null>(null)
-const detailLoading = ref(false)
-const detailError = ref(false)
-const cache = new Map<number, string | null>()
-async function openDetail() {
-  detailOpen.value = true
-  if (cache.has(q.value.id)) {
-    detailText.value = cache.get(q.value.id) ?? null
-    return
-  }
-  detailLoading.value = true
-  detailError.value = false
-  try {
-    const r = await grammarApi.explanation(q.value.id)
-    cache.set(q.value.id, r.explanation)
-    detailText.value = r.explanation
-  } catch {
-    detailError.value = true
-  } finally {
-    detailLoading.value = false
-  }
-}
 watch(() => q.value.id, () => {
   detailOpen.value = false
-  detailText.value = null
 })
 </script>
 
@@ -120,7 +97,7 @@ watch(() => q.value.id, () => {
       </div>
 
       <div class="ex-btns">
-        <button v-if="q.hasExplanation" class="ex-detail" @click="openDetail">
+        <button v-if="q.hasExplanationImage" class="ex-detail" @click="detailOpen = true">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h13a1.5 1.5 0 0 1 1.5 1.5v12.5H5.5A1.5 1.5 0 0 1 4 18z" /><path d="M8 9.5h7M8 13h5" /></svg>
           詳細解説
         </button>
@@ -131,7 +108,7 @@ watch(() => q.value.id, () => {
     <!-- 詳細解説（教材の解説ページ）。解説モーダルのさらに上に重ねる -->
     <Transition name="ui-modal">
       <div v-if="detailOpen" class="overlay overlay-top ui-overlay ui-sheet">
-        <div class="ex-modal ui-panel">
+        <div class="ex-modal wide ui-panel">
           <div class="ex-head">
             <span class="ex-title">詳細解説</span>
             <span class="ex-no dm">No.{{ q.no }}</span>
@@ -141,18 +118,11 @@ watch(() => q.value.id, () => {
             </button>
           </div>
           <div class="ex-body">
-            <!-- 教材の解説ページの画像（確実に読めるのはこちら） -->
-            <div v-if="q.hasExplanationImage" class="ex-imgbox">
+            <!-- 教材の解説ページの該当部分（画像） -->
+            <div v-if="q.hasExplanationImage" class="ex-imgbox big">
               <AuthImage :src="grammarApi.imageUrl(q.id, 'explanation')" class="ex-img" alt="解説" />
             </div>
-            <div v-if="detailLoading" class="dt-msg">読み込み中…</div>
-            <div v-else-if="detailError" class="dt-msg">解説の取得に失敗しました</div>
-            <div v-else-if="!detailText && !q.hasExplanationImage" class="dt-msg">この問題の解説はありません</div>
-            <template v-else-if="detailText">
-              <div class="dt-lab">文字（OCR）</div>
-              <div class="dt-text">{{ detailText }}</div>
-              <div class="dt-src">解説ページを OCR で読み取った文章です。読み取りの誤り（丸数字・記号など）が残っていることがあります。正確には上の画像を見てください</div>
-            </template>
+            <div v-else class="dt-msg">この問題の解説画像はありません</div>
           </div>
           <div class="ex-btns">
             <button class="ex-close" @click="detailOpen = false">閉じる</button>
@@ -188,6 +158,21 @@ watch(() => q.value.id, () => {
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+/* 詳細解説: 画像を大きく見せるため横に広げる（画面幅いっぱい近くまで） */
+.ex-modal.wide {
+  max-width: min(1240px, 96vw);
+  max-height: 94vh;
+  padding: 14px 18px 16px;
+}
+.overlay-top {
+  padding: 12px;
+}
+.ex-imgbox.big {
+  margin-bottom: 0;
+}
+.ex-imgbox.big .ex-img {
+  border-radius: 6px;
 }
 .ex-head {
   display: flex;
@@ -380,32 +365,10 @@ watch(() => q.value.id, () => {
   border-radius: 8px;
   border: 1px solid #eceef1;
 }
-.dt-lab {
-  margin-top: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #5b6b8c;
-}
-/* 詳細解説の本文（教材の改行をそのまま） */
-.dt-text {
-  font-size: 14.5px;
-  line-height: 1.85;
-  color: var(--ink);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
 .dt-msg {
   padding: 24px 0;
   text-align: center;
   color: var(--faint);
   font-size: 13px;
-}
-.dt-src {
-  margin-top: 14px;
-  padding-top: 10px;
-  border-top: 1px dashed #e3e6ea;
-  font-size: 11px;
-  color: var(--faint);
-  line-height: 1.6;
 }
 </style>
