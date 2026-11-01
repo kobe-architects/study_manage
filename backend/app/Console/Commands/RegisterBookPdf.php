@@ -10,7 +10,9 @@ use Illuminate\Support\Str;
 
 /**
  * サーバー上のファイルパスから教材に PDF を紐づける（大容量 PDF を SFTP で配置した後の登録用）。
- *   php artisan quiz:register-pdf {教材ID} {PDFパス} --title="例題のみ" --map=seq --offset=0 [--move]
+ *   php artisan quiz:register-pdf {教材ID} {PDFパス} --title="例題のみ" --map=seq --offset=0 [--move] [--links=対応表.json]
+ * --links は {出題ページ: 解答ページ} の JSON（page_links）。解答つき PDF が別にあればそのページ、
+ * 問題と解説が 1 冊の教材なら同じ PDF 内の解答ページを指す（採点・添削画面で自動表示）。
  */
 class RegisterBookPdf extends Command
 {
@@ -18,6 +20,7 @@ class RegisterBookPdf extends Command
                             {--title= : 表示名（省略時はファイル名）}
                             {--map=seq : ページ対応 seq(番号=ページ+オフセット) / none(手動)}
                             {--offset=0 : ページオフセット}
+                            {--links= : 出題ページ→解答ページの対応表（JSON ファイル）}
                             {--move : コピーではなく移動する}';
 
     protected $description = '教材に PDF を紐づける（小テスト出題用）';
@@ -41,6 +44,17 @@ class RegisterBookPdf extends Command
             $this->error('--map は seq か none を指定してください');
 
             return self::FAILURE;
+        }
+
+        $links = null;
+        if ($this->option('links')) {
+            $links = json_decode((string) @file_get_contents((string) $this->option('links')), true);
+            if (! is_array($links) || $links === []) {
+                $this->error('--links の JSON が読めません: '.$this->option('links'));
+
+                return self::FAILURE;
+            }
+            $links = array_map('intval', $links);
         }
 
         try {
@@ -68,6 +82,7 @@ class RegisterBookPdf extends Command
             'size_bytes' => filesize($dst),
             'page_map' => $map,
             'page_offset' => (int) $this->option('offset'),
+            'page_links' => $links,
             'sort_order' => (int) $book->pdfs()->max('sort_order') + 1,
             'created_by' => null,
         ]);

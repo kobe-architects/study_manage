@@ -530,6 +530,8 @@ export interface QuizRow {
   lastRate: number | null
   /** PDF ID → 対応ページ（番号=ページ対応の PDF のみ） */
   pages: Record<string, number>
+  /** 目安時間（分）。教材の目標時間（meta.目標時間）か ★×5分。複数ページに展開される行は先頭ページだけ */
+  guideMinutes: number | null
 }
 
 export interface QuizSummary {
@@ -595,6 +597,8 @@ export interface QuizPageDetail {
   ansPdfId: number | null
   ansPage: number | null
   ansPdfTitle: string | null
+  /** 解答 PDF のページ数（解答ページの前後に移動できる範囲） */
+  ansPdfPageCount: number | null
   label: string | null
   pdfId: number | null
   pdfTitle: string | null

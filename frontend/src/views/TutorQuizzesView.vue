@@ -10,7 +10,7 @@ import VocabTestDialog from '@/components/VocabTestDialog.vue'
 import { renderQuizCover, renderTimeStamp } from '@/lib/pdfCover'
 import { renderVocabSheet, TEST_FORMAT_LABEL, TEST_TYPE_LABEL } from '@/lib/vocabTest'
 import { quizApi } from '@/api/quiz'
-import { guideMinutesOf, iso } from '@/lib/design'
+import { iso, pageGuideMinutes } from '@/lib/design'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import type { BookPdf, QuizBook, QuizPageSpec, QuizRow, QuizStats as QuizStatsT, QuizSummary } from '@/types'
@@ -227,6 +227,8 @@ async function openWizard(edit?: QuizSummary) {
                   bookTitle: detail.bookTitle ?? '',
                   refPdfId: p.refPdfId,
                   refPage: p.refPage,
+                  difficulty: p.difficulty,
+                  guideMinutes: p.guideMinutes,
                 },
         )
     }
@@ -339,7 +341,7 @@ function totalGuideMinutes(pages: SelectedPage[]): number | null {
   let sum = 0
   let any = false
   for (const p of pages) {
-    const m = guideMinutesOf(p.difficulty)
+    const m = pageGuideMinutes(p)
     if (m !== null) {
       sum += m
       any = true
@@ -352,7 +354,7 @@ function totalGuideMinutes(pages: SelectedPage[]): number | null {
 async function buildStamps(pages: SelectedPage[]): Promise<Record<number, Blob>> {
   const out: Record<number, Blob> = {}
   for (const p of pages) {
-    const m = guideMinutesOf(p.difficulty)
+    const m = pageGuideMinutes(p)
     if (m !== null && !out[m]) out[m] = await renderTimeStamp(m)
   }
   return out

@@ -153,16 +153,18 @@ class QuizController extends Controller
             ];
 
             // 章行に出題用ページ（STEP① など）が定義されていれば展開する
-            // meta.quiz_pages = [[冊子ページ, ラベル], ...]（学習記録は章単位・出題はページ単位の両立用）
-            $specs = $r->meta['quiz_pages'] ?? null;
-            if (is_array($specs) && $specs !== []) {
-                foreach (array_values($specs) as $i => $spec) {
-                    $seq = (string) ($spec[0] ?? '');
+            // meta.quiz_pages = [[冊子ページ, ラベル, 表示番号(任意)], ...]（学習記録は章単位・出題はページ単位の両立用）
+            // 表示番号（「UNIT 1」など）を指定すると、一覧とラベルでは冊子ページの代わりにそれを番号として表示する
+            $specs = $r->quizPageSpecs();
+            if ($specs !== []) {
+                foreach ($specs as $i => $spec) {
+                    $seq = $spec[0];
                     $data[] = $base + [
                         'key' => $r->id.'-'.$i,
-                        'seqNo' => $seq,
-                        'title' => (string) ($spec[1] ?? ''),
+                        'seqNo' => $spec[2] ?? $seq,
+                        'title' => $spec[1],
                         'pages' => $pagesFor($seq),
+                        'guideMinutes' => $r->guideMinutesForQuizPage($i),
                     ];
                 }
             } elseif (($rowPages = $rowPagesFor($r->id)) !== []) {
@@ -173,6 +175,7 @@ class QuizController extends Controller
                         'seqNo' => $r->seq_no,
                         'title' => (string) $r->title.(count($rowPages) > 1 ? ' '.mb_substr('①②③④⑤⑥⑦⑧⑨⑩', $i, 1) : ''),
                         'pages' => (object) $pages,
+                        'guideMinutes' => $r->guideMinutes(),
                     ];
                 }
             } else {
@@ -181,6 +184,7 @@ class QuizController extends Controller
                     'seqNo' => $r->seq_no,
                     'title' => $r->title,
                     'pages' => $pagesFor($r->seq_no),
+                    'guideMinutes' => $r->guideMinutes(),
                 ];
             }
         }
@@ -263,7 +267,7 @@ class QuizController extends Controller
     public function show(Request $request, Quiz $quiz): JsonResponse
     {
         $this->authorizeQuiz($request, $quiz);
-        $quiz->load(['creator:id,name', 'book:id,title,subject_id', 'book.subject:id,name,sort_order,color_vivid', 'pages.pdf:id,title,resource_book_id,page_count,page_links', 'pages.refPdf:id,title', 'pages.item']);
+        $quiz->load(['creator:id,name', 'book:id,title,subject_id', 'book.subject:id,name,sort_order,color_vivid', 'pages.pdf:id,title,resource_book_id,page_count,page_links', 'pages.refPdf:id,title,page_count', 'pages.item']);
         $quiz->loadCount(['pages', 'pages as answered_count' => fn ($q) => $q->whereNotNull('answer_path')]);
 
         $data = $this->summary($quiz, $this->scoreSums([$quiz->id])->get($quiz->id), Carbon::today());
@@ -1034,7 +1038,8 @@ class QuizController extends Controller
                 'resource_book_pdf_id' => $pdf->id,
                 'pdf_page' => $pageNo,
                 'resource_book_item_id' => $item?->id,
-                'guide_minutes' => self::guideMinutes($item?->difficulty),
+                // 目安時間（教材の目標時間、または ★×5分）。複数ページに展開される行は先頭ページにだけ付ける
+                'guide_minutes' => $item?->guideMinutesForQuizPage($item->quizPageIndexOf($pdf, $pageNo)),
                 'label' => mb_substr($label, 0, 255),
                 'ref_pdf_id' => $refPdf?->id,
                 'ref_page' => $refPdf && ! empty($p['refPage']) ? min((int) $p['refPage'], $refPdf->page_count) : null,
@@ -1042,17 +1047,6 @@ class QuizController extends Controller
         }
 
         return $out;
-    }
-
-    /** 教材行の難易度（'***' や '★★★'）から目安時間（分）を求める。★1つ = 5分。★が無ければ null */
-    public static function guideMinutes(?string $difficulty): ?int
-    {
-        if ($difficulty === null) {
-            return null;
-        }
-        $stars = preg_match_all('/[*★]/u', $difficulty);
-
-        return $stars > 0 ? $stars * 5 : null;
     }
 
     /**
@@ -1237,10 +1231,12 @@ class QuizController extends Controller
         $item = $p->item;
 
         // 採点・添削時に表示する解答ページ。出題時の指定（ref）があればそれを、
-        // なければ同じ教材の「解答」を含むタイトルの PDF の同ページを自動で使う（解答つき版とページが揃っている前提）
+        // なければ同じ教材の「解答」を含むタイトルの PDF の同ページを自動で使う（解答つき版とページが揃っている前提）。
+        // 解答つき PDF が無くても、出題用 PDF の page_links に対応があれば同じ PDF 内の解答ページを使う（問題と解説が 1 冊の教材）
         $ansPdfId = $p->ref_pdf_id;
         $ansPage = $p->ref_page;
         $ansPdfTitle = $p->refPdf?->title;
+        $ansPdfPageCount = $p->refPdf?->page_count;
         if ($ansPdfId === null && $p->pdf !== null && $p->pdf_page !== null) {
             $sibling = ResourceBookPdf::where('resource_book_id', $p->pdf->resource_book_id)
                 ->where('id', '!=', $p->resource_book_pdf_id)
@@ -1248,11 +1244,18 @@ class QuizController extends Controller
                 ->orderBy('id')
                 ->first();
             // ページ数が揃っていない教材は出題用 PDF の page_links（ページ → 解答ページ）で読み替える
-            $linked = (int) (($p->pdf->page_links ?? [])[(string) $p->pdf_page] ?? $p->pdf_page);
+            $link = ($p->pdf->page_links ?? [])[(string) $p->pdf_page] ?? null;
+            $linked = (int) ($link ?? $p->pdf_page);
             if ($sibling !== null && $linked >= 1 && $linked <= $sibling->page_count) {
                 $ansPdfId = $sibling->id;
                 $ansPage = $linked;
                 $ansPdfTitle = $sibling->title;
+                $ansPdfPageCount = $sibling->page_count;
+            } elseif ($sibling === null && $link !== null && $linked >= 1 && $linked <= $p->pdf->page_count) {
+                $ansPdfId = $p->pdf->id;
+                $ansPage = $linked;
+                $ansPdfTitle = $p->pdf->title;
+                $ansPdfPageCount = $p->pdf->page_count;
             }
         }
 
@@ -1260,6 +1263,8 @@ class QuizController extends Controller
             'ansPdfId' => $ansPdfId,
             'ansPage' => $ansPage,
             'ansPdfTitle' => $ansPdfTitle,
+            // 解答ページの前後に移動できる範囲（解説が複数ページに渡る教材用）
+            'ansPdfPageCount' => $ansPdfPageCount,
             'id' => $p->id,
             'pageNo' => $p->page_no,
             'kind' => $p->kind,

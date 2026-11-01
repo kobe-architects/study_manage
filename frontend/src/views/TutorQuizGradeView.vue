@@ -334,7 +334,18 @@ const hasVocab = computed(() => quiz.value?.pages.some((p) => p.kind === 'vocab'
 const sheetOpen = ref(false)
 /** 解答ページ（解答つき PDF）の拡大表示 */
 const ansOpen = ref(false)
-watch(pageIdx, () => (ansOpen.value = false))
+/** 解答ページの前後移動（解説が複数ページに渡る教材用）。ページを切り替えるとリセット */
+const ansShift = ref(0)
+watch(pageIdx, () => {
+  ansOpen.value = false
+  ansShift.value = 0
+})
+const ansPageNo = computed(() => (page.value?.ansPage ? page.value.ansPage + ansShift.value : null))
+const ansPageMax = computed(() => page.value?.ansPdfPageCount ?? page.value?.ansPage ?? 0)
+function shiftAns(d: -1 | 1) {
+  const n = (ansPageNo.value ?? 0) + d
+  if (n >= 1 && n <= ansPageMax.value) ansShift.value += d
+}
 async function downloadAnswers() {
   if (!quiz.value) return
   try {
@@ -528,11 +539,15 @@ async function downloadResult() {
       <!-- 解答ページ（解答つき PDF がある場合に自動表示） -->
       <div v-if="page && page.kind === 'pdf' && page.ansPdfId && page.ansPage" class="card ref">
         <div class="ref-head">
-          <div style="font-size: 12.5px; font-weight: 700">解答（{{ page.ansPdfTitle }} p.{{ page.ansPage }}）</div>
-          <button class="btn" style="padding: 5px 10px; font-size: 11.5px" @click="ansOpen = true">拡大</button>
+          <div style="font-size: 12.5px; font-weight: 700">解答（{{ page.ansPdfTitle }} p.{{ ansPageNo }}）</div>
+          <div class="ans-nav">
+            <button class="btn ans-pg" :disabled="(ansPageNo ?? 0) <= 1" title="解答の前のページ" @click="shiftAns(-1)">‹</button>
+            <button class="btn ans-pg" :disabled="(ansPageNo ?? 0) >= ansPageMax" title="解答の次のページ" @click="shiftAns(1)">›</button>
+            <button class="btn" style="padding: 5px 10px; font-size: 11.5px" @click="ansOpen = true">拡大</button>
+          </div>
         </div>
         <div class="ref-body ans-click" title="クリックで拡大表示" @click="ansOpen = true">
-          <PdfThumb :key="'ans' + page.id" :pdf-id="page.ansPdfId" :page="page.ansPage" :width="560" eager />
+          <PdfThumb :key="'ans' + page.id + ':' + ansPageNo" :pdf-id="page.ansPdfId" :page="ansPageNo!" :width="560" eager />
         </div>
       </div>
 
@@ -605,8 +620,14 @@ async function downloadResult() {
           <div class="fs-divider" title="ドラッグで境界を移動" @pointerdown="onDivDown" @pointermove="onDivMove" @pointerup="onDivUp" @pointercancel="onDivUp"><span></span></div>
           <div class="fs-answer">
             <div v-if="page.kind === 'pdf' && page.ansPdfId && page.ansPage" class="fs-ans-pdf">
-              <div class="fs-ans-title">解答（{{ page.ansPdfTitle }} p.{{ page.ansPage }}）</div>
-              <PdfThumb :key="'fsans' + page.id" :pdf-id="page.ansPdfId" :page="page.ansPage" :width="1400" eager />
+              <div class="fs-ans-title">
+                解答（{{ page.ansPdfTitle }} p.{{ ansPageNo }}）
+                <span class="ans-nav">
+                  <button class="btn ans-pg" :disabled="(ansPageNo ?? 0) <= 1" title="解答の前のページ" @click="shiftAns(-1)">‹</button>
+                  <button class="btn ans-pg" :disabled="(ansPageNo ?? 0) >= ansPageMax" title="解答の次のページ" @click="shiftAns(1)">›</button>
+                </span>
+              </div>
+              <PdfThumb :key="'fsans' + page.id + ':' + ansPageNo" :pdf-id="page.ansPdfId" :page="ansPageNo!" :width="1400" eager />
             </div>
             <div v-else class="fs-ans-pdf">
               <div class="fs-ans-title">解答一覧（{{ vocabAnswers.length }}問）</div>
@@ -651,7 +672,14 @@ async function downloadResult() {
     <div v-if="ansOpen && page && page.ansPdfId && page.ansPage" class="sheet-overlay ui-overlay" @click="ansOpen = false">
       <div class="sheet-modal ui-panel" @click.stop>
         <button class="sheet-x" @click="ansOpen = false">×</button>
-        <div class="ans-zoom"><PdfThumb :key="'ansz' + page.id" :pdf-id="page.ansPdfId" :page="page.ansPage" :width="1400" eager /></div>
+        <div class="ans-zoom-head">
+          <span>解答（{{ page.ansPdfTitle }} p.{{ ansPageNo }}）</span>
+          <span class="ans-nav">
+            <button class="btn ans-pg" :disabled="(ansPageNo ?? 0) <= 1" title="解答の前のページ" @click="shiftAns(-1)">‹</button>
+            <button class="btn ans-pg" :disabled="(ansPageNo ?? 0) >= ansPageMax" title="解答の次のページ" @click="shiftAns(1)">›</button>
+          </span>
+        </div>
+        <div class="ans-zoom"><PdfThumb :key="'ansz' + page.id + ':' + ansPageNo" :pdf-id="page.ansPdfId" :page="ansPageNo!" :width="1400" eager /></div>
       </div>
     </div>
   </Transition>
@@ -1348,6 +1376,31 @@ textarea {
 }
 .ans-click {
   cursor: zoom-in;
+}
+/* 解答ページの前後移動（‹ ›） */
+.ans-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.ans-pg {
+  padding: 3px 9px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+.fs-ans-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ans-zoom-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 36px 6px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
 }
 .ans-zoom :deep(.thumb) {
   width: 100% !important;

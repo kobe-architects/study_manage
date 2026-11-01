@@ -4,7 +4,7 @@ import HelpTip from '@/components/HelpTip.vue'
 import PdfPagePicker, { type SelectedPage } from '@/components/PdfPagePicker.vue'
 import { quizApi, type PrintSource } from '@/api/quiz'
 import { renderChapterCover, renderTimeStamp } from '@/lib/pdfCover'
-import { guideMinutesOf } from '@/lib/design'
+import { pageGuideMinutes } from '@/lib/design'
 import { useUiStore } from '@/stores/ui'
 import type { BookPdf, QuizBook, QuizRow } from '@/types'
 
@@ -99,7 +99,7 @@ async function buildSources(): Promise<{ sources: PrintSource[]; images: Blob[] 
       let total = 0
       let any = false
       for (const p of g.pages) {
-        const m = guideMinutesOf(p.difficulty)
+        const m = pageGuideMinutes(p)
         if (m !== null) {
           total += m
           any = true
@@ -110,7 +110,7 @@ async function buildSources(): Promise<{ sources: PrintSource[]; images: Blob[] 
       count++
     }
     for (const p of g.pages) {
-      const m = guideMinutesOf(p.difficulty)
+      const m = pageGuideMinutes(p)
       sources.push({ type: 'pdf', pdfId: p.pdfId!, page: p.page!, ...(m !== null ? { stamp: await stampFor(m) } : {}) })
       count++
     }

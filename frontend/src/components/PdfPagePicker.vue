@@ -17,6 +17,8 @@ export interface SelectedPage extends QuizPageSpec {
   pdfTitle: string
   /** 教材行の難易度（'***' など）。目安時間（★×5分）の計算に使う */
   difficulty?: string | null
+  /** 行の目安時間（分）。教材の目標時間がある行はサーバーが返す（複数ページの行は先頭ページだけ） */
+  guideMinutes?: number | null
   /** 出題元の教材（英単語テストは null）。教材ごとに別パート（別提出）として出題される */
   bookId?: number | null
   bookTitle?: string
@@ -128,6 +130,23 @@ function rowLabel(r: QuizRow): string {
   return `${prefix}${seqLabel(r)} ${r.title ?? ''}`.trim()
 }
 
+/** カートに入れるページ（行に対応するページは行のラベル・難易度・目安時間を引き継ぐ） */
+function pageItem(pdf: BookPdf, page: number, row: QuizRow | null): SelectedPage {
+  return {
+    key: keyOf(pdf.id, page),
+    kind: 'pdf',
+    pdfId: pdf.id,
+    page,
+    itemId: row?.id ?? null,
+    difficulty: row?.difficulty ?? null,
+    guideMinutes: row?.guideMinutes ?? null,
+    label: row ? rowLabel(row) : `${pdf.title} p.${page}`,
+    pdfTitle: pdf.title,
+    bookId: props.bookId ?? null,
+    bookTitle: props.bookTitle ?? '',
+  }
+}
+
 function toggle(pdf: BookPdf, page: number, row: QuizRow | null) {
   if (refTarget.value) {
     setRef(refTarget.value, pdf.id, page)
@@ -141,19 +160,7 @@ function toggle(pdf: BookPdf, page: number, row: QuizRow | null) {
     )
     return
   }
-  const item: SelectedPage = {
-    key,
-    kind: 'pdf',
-    pdfId: pdf.id,
-    page,
-    itemId: row?.id ?? null,
-    difficulty: row?.difficulty ?? null,
-    label: row ? rowLabel(row) : `${pdf.title} p.${page}`,
-    pdfTitle: pdf.title,
-    bookId: props.bookId ?? null,
-    bookTitle: props.bookTitle ?? '',
-  }
-  emit('update:modelValue', [...props.modelValue, item])
+  emit('update:modelValue', [...props.modelValue, pageItem(pdf, page, row)])
   preview.value = { pdfId: pdf.id, page }
 }
 
@@ -176,19 +183,7 @@ function toggleChapter(rows: QuizRow[]) {
     const key = keyOf(pdf.id, page)
     const has = list.some((s) => s.key === key)
     if (all && has) list = list.filter((s) => s.key !== key)
-    else if (!all && !has) {
-      list.push({
-        key,
-        kind: 'pdf',
-        pdfId: pdf.id,
-        page,
-        itemId: r.id,
-        label: rowLabel(r),
-        pdfTitle: pdf.title,
-        bookId: props.bookId ?? null,
-        bookTitle: props.bookTitle ?? '',
-      })
-    }
+    else if (!all && !has) list.push(pageItem(pdf, page, r))
   }
   emit('update:modelValue', list)
 }
@@ -210,9 +205,8 @@ function toggleRow(r: QuizRow, e?: MouseEvent) {
       for (const x of list.slice(from, to + 1)) {
         const pg = pageOfRow(x)
         if (pg === null) continue
-        const key = keyOf(pdf.id, pg)
-        if (next.some((s) => s.key === key)) continue
-        next.push({ key, kind: 'pdf', pdfId: pdf.id, page: pg, itemId: x.id, difficulty: x.difficulty, label: rowLabel(x), pdfTitle: pdf.title, bookId: props.bookId ?? null, bookTitle: props.bookTitle ?? '' })
+        if (next.some((s) => s.key === keyOf(pdf.id, pg))) continue
+        next.push(pageItem(pdf, pg, x))
       }
       emit('update:modelValue', next)
       lastClickedKey = r.key
@@ -403,7 +397,7 @@ function showPreview(pdfId: number, page: number | null) {
             <PdfThumb v-if="activePdf" :pdf-id="activePdf.id" :page="pg" :width="120" />
             <div class="cell-cap">
               <span>p.{{ pg }}</span>
-              <span v-if="rowByPage.get(pg)" class="cell-no">No.{{ rowByPage.get(pg)!.seqNo }}</span>
+              <span v-if="rowByPage.get(pg)" class="cell-no">{{ seqLabel(rowByPage.get(pg)!) }}</span>
             </div>
             <span v-if="selectedKeys.has(keyOf(activePdfId, pg))" class="badge">{{ modelValue.findIndex((s) => s.key === keyOf(activePdfId, pg)) + 1 }}</span>
           </div>

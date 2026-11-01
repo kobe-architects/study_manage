@@ -295,6 +295,11 @@ php artisan config:cache && php artisan route:cache
   php artisan quiz:register-pdf {教材ID} /path/to/file.pdf --title="例題のみ（例題No.=ページ）" --map=seq --offset=0 --move
   ```
   `--map=seq` は「一覧データの番号 + オフセット = PDF ページ」の対応、`--map=none` は手動選択。
+  `--links=対応表.json`（{出題ページ: 解答ページ}）を付けると採点・添削画面で解答ページを自動表示する
+  （解答つき PDF が別にあればそのページ、問題と解説が 1 冊の教材なら同じ PDF 内のページ）。
+- 本番のシェル（csh）では日本語の引数が化けるため、教材データ JSON に `pdf` 設定（表示名・map・offset・links）を持たせて
+  `php database/data/register_book_pdf.php {教材JSON} /path/to/file.pdf --move` で登録する（2026-11-02 の英語長文ハイパートレーニングから）。
+  行の登録は `php database/data/create_study_items_under_major.php {構造JSON}` → `php database/data/import_lecture_studysapuri.php {教材JSON}`。
 - 教材 ID は `php artisan tinker --execute='print_r(\App\Models\ResourceBook::pluck("title","id")->all());'` で確認できる。
 
 ## 13. 英単語帳「LEAP basic」・英単語小テスト（2026-09-10 追加）の運用メモ

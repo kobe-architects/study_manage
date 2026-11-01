@@ -65,6 +65,11 @@ export function guideMinutesOf(difficulty: string | null | undefined): number | 
   return stars > 0 ? stars * 5 : null
 }
 
+/** 出題ページの目安時間（分）。行の目標時間（サーバーが meta.目標時間から求めた値）があればそれ、なければ ★×5分 */
+export function pageGuideMinutes(p: { guideMinutes?: number | null; difficulty?: string | null }): number | null {
+  return p.guideMinutes ?? guideMinutesOf(p.difficulty)
+}
+
 /** 課題の表示タイトル。未設定（空）の場合は期限をタイトルにする */
 export function assignmentTitle(title: string | null, dueOn: string): string {
   if (title && title.trim()) return title

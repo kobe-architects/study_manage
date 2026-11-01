@@ -217,10 +217,12 @@ const visibleCols = computed(() => ({
 }))
 // インポートで取り込んだ教材固有の追加列（meta）を出現順に列挙。
 // 「Think」は Check と同じ○印列としてタイトルの左に別途表示するため、ここからは除外する。
+// 「quiz_pages」は小テスト出題用のページ定義（内部データ）なので表示しない。
+const HIDDEN_META_KEYS = ['Think', 'quiz_pages']
 const metaKeys = computed(() => {
   const keys: string[] = []
   for (const r of resource.rows) {
-    if (r.meta) for (const k of Object.keys(r.meta)) if (k !== 'Think' && !keys.includes(k)) keys.push(k)
+    if (r.meta) for (const k of Object.keys(r.meta)) if (!HIDDEN_META_KEYS.includes(k) && !keys.includes(k)) keys.push(k)
   }
   return keys
 })
@@ -228,7 +230,8 @@ const metaKeys = computed(() => {
 const hasThink = computed(() => resource.rows.some((r) => r.meta?.Think))
 
 // ---- 章グルーピング（章がある教材は章を親項目として折りたたみ表示） ----
-const grouped = computed(() => visibleCols.value.chapter)
+// どの章も 1 行しかない教材（UNIT ごとに 1 行の長文問題集など）は、章見出しが行と同じ意味になるので折りたたまない
+const grouped = computed(() => visibleCols.value.chapter && chapterGroups.value.some((g) => g.rows.length > 1))
 
 interface ChapterGroup {
   key: string
