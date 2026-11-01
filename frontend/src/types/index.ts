@@ -441,6 +441,10 @@ export interface QuizAnswerRecord {
   isCorrect: boolean
   selected?: number | null
   input?: string
+  /** 「あいまい」（正解だったが自信がない）を付けた */
+  unsure?: boolean
+  /** サーバーに記録した回答の ID（記録が終わるまで undefined、失敗なら null） */
+  attemptId?: number | null
 }
 
 // ===== 講師請求管理 =====
@@ -899,6 +903,8 @@ export interface GrammarStat {
   incorrect: number
   /** 最新の回答の正誤（未回答は null） */
   last: boolean | null
+  /** 最新の回答が「あいまい」（正解だったが自信がない） */
+  lastUnsure: boolean
   lastAt: string | null
   lastAnswer: string | null
 }

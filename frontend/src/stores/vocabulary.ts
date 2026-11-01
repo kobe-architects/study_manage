@@ -11,6 +11,8 @@ import type {
 } from '@/types'
 
 const RESOURCE_KEY = 'sm_vocab_resource' // 選択中の単語帳（端末に記憶）
+/** 回答の記録（POST）の完了待ち（問題の位置 → 記録した回答の ID）。「あいまい」を付けるときに記録の完了を待つ */
+const pendingAttempts = new Map<number, Promise<number | null>>()
 
 interface State {
   resource: StudyResource | null
@@ -129,14 +131,49 @@ export const useVocabularyStore = defineStore('vocabulary', {
     submitAnswer(answer: QuizAnswerRecord) {
       const q = this.quizQuestions[this.quizIndex]
       if (!q) return
-      this.quizResults[this.quizIndex] = answer
-      // バックグラウンド送信
-      client
+      const index = this.quizIndex
+      this.quizResults[index] = answer
+      // バックグラウンド送信（記録した回答の ID は「あいまい」の付け外しに使う）
+      const p = client
         .post(`/vocabularies/${q.vocabulary.id}/attempt`, {
           is_correct: answer.isCorrect,
           quiz_type: this.quizType,
         })
-        .catch(() => {})
+        .then((res) => {
+          const id = Number(res.data?.data?.id) || null
+          const rec = this.quizResults[index]
+          if (rec) rec.attemptId = id
+          return id
+        })
+        .catch(() => {
+          const rec = this.quizResults[index]
+          if (rec) rec.attemptId = null
+          return null
+        })
+      pendingAttempts.set(index, p)
+    },
+
+    /** 今の問題の回答に「あいまい」（正解だったが自信がない）を付け外しする。記録がまだなら待ってから送る */
+    async setUnsure(unsure: boolean) {
+      const index = this.quizIndex
+      const rec = this.quizResults[index]
+      if (!rec || !rec.isCorrect) return
+      rec.unsure = unsure
+      const id = rec.attemptId !== undefined ? rec.attemptId : await pendingAttempts.get(index)
+      if (!id) return
+      try {
+        await client.put(`/vocabulary-attempts/${id}`, { is_unsure: unsure })
+      } catch {
+        // 付け外しに失敗しても出題は続ける
+      }
+    },
+
+    /** チェックシート用: 単語帳 1 冊の日ごとの結果（単語 ID → [[日付, 0=不正解|1=正解|2=あいまい], ...]） */
+    async fetchChecksheet(resourceId: number): Promise<Record<string, [string, 0 | 1 | 2][]>> {
+      const { data } = await client.get(`/study-resources/${resourceId}/vocabularies/checksheet`, {
+        params: { tz: -new Date().getTimezoneOffset() },
+      })
+      return data.data.marks ?? {}
     },
 
     advanceQuiz() {

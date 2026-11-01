@@ -322,3 +322,12 @@ php artisan config:cache && php artisan route:cache
   ページ数分の画像（1 枚 200〜400KB）を multipart で POST する。`post_max_size=8M` に収まるよう 1 小テストの
   英単語テストは数ページ程度に留める。保存先は `storage/app/private/quizzes/{ID}/vocab/`。
 
+
+## 14. チェックシート・「あいまい」（2026-11-02 追加）の運用メモ
+
+- マイグレーション `2026_11_02_000001_add_is_unsure_to_attempts` で `grammar_attempts` と `vocabulary_attempts` に
+  `is_unsure`（正解だったが自信がない＝あいまい）を追加する（`php artisan migrate --force` で自動適用）。
+- チェックシート（英文法・語法は付属 PDF と同じ並び、英単語はセクション → 単語）は画面側で HTML を組み立てて印刷する
+  （`frontend/src/lib/checkSheet.ts`）。サーバーは日ごとの結果だけを返す（`/grammar/checksheet`・
+  `/study-resources/{id}/vocabularies/checksheet`。`tz` は端末のタイムゾーンのずれ・分。既定 540＝日本時間）。
+- 英文法・語法の章・Theme 名・形式・区分は `frontend/src/data/scrambleSheet.ts`（PDF から起こした固定データ）。

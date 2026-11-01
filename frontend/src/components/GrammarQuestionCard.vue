@@ -40,6 +40,8 @@ export interface GrammarAnswerResult {
   answer: string | null
   /** 自己判定で変更した */
   overridden: boolean
+  /** 「あいまい」（正解だったが自信がない）を付けた。チェックシートでは青の日付になる */
+  unsure: boolean
 }
 
 const props = defineProps<{
@@ -50,6 +52,8 @@ const emit = defineEmits<{
   answer: [payload: { isCorrect: boolean; answer: string | null }]
   /** 「解答」ボタンを押せる状態か（整序・空所補充） */
   canSubmit: [ok: boolean]
+  /** 正解のときの「あいまい」の付け外し */
+  unsure: [unsure: boolean]
 }>()
 
 const q = computed(() => props.question)
@@ -358,7 +362,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
     <!-- ============ 解答後（正誤と正解だけ。解説は下の「解説」） ============ -->
     <div v-if="revealed && result" class="gq-reveal">
-      <span class="rv-badge" :class="result.isCorrect ? 'ok' : 'ng'">{{ result.isCorrect ? '正解！' : '不正解' }}</span>
+      <div class="rv-top">
+        <span class="rv-badge" :class="result.isCorrect ? (result.unsure ? 'un' : 'ok') : 'ng'">{{ result.isCorrect ? (result.unsure ? '正解（あいまい）' : '正解！') : '不正解' }}</span>
+        <!-- 正解のときだけ: 自信がなければ「あいまい」を付ける（チェックシートで青の日付になる） -->
+        <button v-if="result.isCorrect" class="rv-unsure" :class="{ on: result.unsure }" :aria-pressed="result.unsure" @click="emit('unsure', !result.unsure)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 18H3z" /></svg>
+          あいまい
+        </button>
+      </div>
       <div class="rv-ans">
         <span class="rv-lab">正解</span>
         <template v-if="q.format === 'choice'"><span class="dm rv-strong">{{ CIRCLED[q.answerIndex ?? 0] }} {{ q.answerText }}</span></template>
@@ -817,6 +828,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   padding-top: 14px;
   border-top: 1px solid #f0f1f3;
 }
+.rv-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
 .rv-badge {
   display: inline-flex;
   align-items: center;
@@ -824,7 +842,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   border-radius: 99px;
   font-size: 13px;
   font-weight: 700;
-  margin-bottom: 10px;
 }
 .rv-badge.ok {
   background: #eaf7ef;
@@ -833,6 +850,30 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .rv-badge.ng {
   background: #fdeef0;
   color: #c0444f;
+}
+.rv-badge.un {
+  background: #e8effb;
+  color: #2f5fc4;
+}
+/* 「あいまい」切替（正解のときだけ） */
+.rv-unsure {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 5px 12px;
+  border: 1.5px solid #c9d6f2;
+  border-radius: 99px;
+  background: #fff;
+  color: #2f5fc4;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rv-unsure.on {
+  background: #2f5fc4;
+  border-color: #2f5fc4;
+  color: #fff;
 }
 .rv-ans {
   display: flex;

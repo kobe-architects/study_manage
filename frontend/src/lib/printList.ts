@@ -98,14 +98,19 @@ function buildHtml(o: PrintListOptions): string {
 
 /** 一覧を新規ウィンドウで画面表示する（印刷ボタンでPDF保存可能）。成功時 true。 */
 export function openListPrint(o: PrintListOptions): boolean {
+  return openPrintHtml(buildHtml(o), o.title)
+}
+
+/** 印刷用の HTML を新規ウィンドウで表示する（タッチ端末はアプリ内ビューア）。成功時 true。 */
+export function openPrintHtml(html: string, title: string): boolean {
   // ホーム画面から起動したアプリでは別ウィンドウが使えないため、アプリ内のビューアで表示する
   if (useInAppViewer) {
-    showHtml(buildHtml(o), o.title)
+    showHtml(html, title)
     return true
   }
   const win = window.open('', '_blank')
   if (!win) return false
-  win.document.write(buildHtml(o))
+  win.document.write(html)
   win.document.close()
   return true
 }

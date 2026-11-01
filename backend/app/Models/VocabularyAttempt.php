@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class VocabularyAttempt extends Model
 {
-    protected $fillable = ['vocabulary_id', 'user_id', 'is_correct', 'quiz_type', 'answered_at'];
+    protected $fillable = ['vocabulary_id', 'user_id', 'is_correct', 'is_unsure', 'quiz_type', 'answered_at'];
 
     protected $casts = [
         'is_correct' => 'boolean',
+        'is_unsure' => 'boolean', // 正解だったが自信がない（あいまい）。正解のときだけ true
         'answered_at' => 'datetime',
     ];
 

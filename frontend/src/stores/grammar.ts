@@ -64,8 +64,21 @@ export const useGrammarStore = defineStore('grammar', {
     async overrideAttempt(q: GrammarQuestion, attemptId: number | null, isCorrect: boolean) {
       try {
         const res = attemptId
-          ? await grammarApi.updateAttempt(attemptId, isCorrect)
+          ? await grammarApi.updateAttempt(attemptId, { isCorrect })
           : await grammarApi.attempt(q.id, { isCorrect, answer: null })
+        this.applyStat(q.id, res.stat)
+        return res.attemptId
+      } catch {
+        return attemptId
+      }
+    },
+
+    /** 「あいまい」（正解だったが自信がない）を付け外しする。記録に失敗していた回答は正解として記録し直す */
+    async setUnsure(q: GrammarQuestion, attemptId: number | null, unsure: boolean) {
+      try {
+        const res = attemptId
+          ? await grammarApi.updateAttempt(attemptId, { isUnsure: unsure })
+          : await grammarApi.attempt(q.id, { isCorrect: true, answer: null, isUnsure: unsure })
         this.applyStat(q.id, res.stat)
         return res.attemptId
       } catch {

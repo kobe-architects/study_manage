@@ -4,6 +4,8 @@ import { examplesOf } from '@/lib/vocabExamples'
 import { useRouter } from 'vue-router'
 import { shuffle, speak } from '@/lib/design'
 import { playResultSound } from '@/lib/sound'
+import { openVocabCheckSheet } from '@/lib/vocabSheet'
+import { useAuthStore } from '@/stores/auth'
 import { useVocabularyStore } from '@/stores/vocabulary'
 import { useUiStore } from '@/stores/ui'
 import type {
@@ -15,6 +17,7 @@ import type {
   VocabularyLabel,
 } from '@/types'
 import FlashcardPlayer from '@/components/FlashcardPlayer.vue'
+import HelpTip from '@/components/HelpTip.vue'
 import VocabResourceSwitch from '@/components/VocabResourceSwitch.vue'
 import TestSheetPrint from '@/components/TestSheetPrint.vue'
 import QuizFullscreen from '@/components/QuizFullscreen.vue'
@@ -23,6 +26,7 @@ import VocabExplainModal from '@/components/VocabExplainModal.vue'
 const router = useRouter()
 const vocab = useVocabularyStore()
 const ui = useUiStore()
+const auth = useAuthStore()
 
 type Phase = 'home' | 'quiz' | 'results' | 'flash'
 const phase = ref<Phase>('home')
@@ -104,6 +108,32 @@ function openPrint() {
     return
   }
   printOpen.value = true
+}
+
+// ---- チェックシート（解いた日を単語ごとに一覧。選択中のセクション／番号範囲、未選択なら全単語） ----
+const sheetBusy = ref(false)
+async function openSheet() {
+  if (sheetBusy.value || !resourceId.value) return
+  sheetBusy.value = true
+  try {
+    const marks = await vocab.fetchChecksheet(resourceId.value)
+    const targets = printWords.value.length ? new Set(printWords.value.map((w) => w.id)) : null
+    const d = new Date()
+    const ok = openVocabCheckSheet(
+      vocab.resource?.name ?? '英単語',
+      sections.value,
+      vocab.items,
+      targets,
+      marks,
+      auth.user?.name ?? '',
+      `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`,
+    )
+    if (!ok) ui.notify('ポップアップがブロックされました。ブラウザ設定で許可してください。')
+  } catch {
+    ui.notify('チェックシートの作成に失敗しました')
+  } finally {
+    sheetBusy.value = false
+  }
 }
 
 const resourceId = computed(() => vocab.resource?.id ?? 0)
@@ -494,9 +524,17 @@ const feedback = computed(() => {
   const ans = vocab.currentAnswer
   if (!ans) return { text: '', color: '', bg: '' }
   return ans.isCorrect
-    ? { text: '正解！', color: '#1f7a45', bg: '#eaf7ef' }
+    ? ans.unsure
+      ? { text: '正解（あいまい）', color: '#2f5fc4', bg: '#e8effb' }
+      : { text: '正解！', color: '#1f7a45', bg: '#eaf7ef' }
     : { text: '不正解', color: '#c0444f', bg: '#fdeef0' }
 })
+/** 正解のときの「あいまい」（自信がない）の付け外し。チェックシートでは青の日付になる */
+function toggleUnsure() {
+  const ans = vocab.currentAnswer
+  if (!ans || !ans.isCorrect) return
+  vocab.setUnsure(!ans.unsure)
+}
 
 // ---- 全画面出題の下部ボタン（前へ・わからない／解説・解答／次の問題へ） ----
 const isLastQ = computed(() => vocab.quizIndex + 1 >= vocab.quizQuestions.length)
@@ -663,6 +701,13 @@ function toggleSec(id: number) {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" /></svg>
             小テスト印刷
           </button>
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px">
+            <button class="print-btn" style="margin-top: 0; flex: 1" :disabled="sheetBusy" @click="openSheet">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
+              チェックシート
+            </button>
+            <HelpTip text="解いた日を単語ごとに一覧にして印刷用に出力します（セクション・番号範囲で選んだ単語。未選択なら全単語）。&#10;黒=正解、赤=不正解、青=あいまい（正解だったが自信がないとき、解答後に「あいまい」を付けた単語）。&#10;同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら赤になります。" />
+          </div>
         </div>
 
         <!-- word list -->
@@ -747,7 +792,14 @@ function toggleSec(id: number) {
 
           <!-- 解答後: 正誤と単語・意味だけ（例文などは下の「解説」） -->
           <div v-if="revealed" style="margin-top: 18px; padding-top: 16px; border-top: 1px solid #f0f1f3">
-            <div :style="{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '5px 12px', borderRadius: '99px', background: feedback.bg, color: feedback.color, fontSize: '13px', fontWeight: 700, marginBottom: '10px' }">{{ feedback.text }}</div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px">
+              <div :style="{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '5px 12px', borderRadius: '99px', background: feedback.bg, color: feedback.color, fontSize: '13px', fontWeight: 700 }">{{ feedback.text }}</div>
+              <!-- 正解のときだけ: 自信がなければ「あいまい」を付ける（チェックシートで青の日付になる） -->
+              <button v-if="vocab.currentAnswer?.isCorrect" class="unsure-btn" :class="{ on: vocab.currentAnswer?.unsure }" :aria-pressed="!!vocab.currentAnswer?.unsure" @click="toggleUnsure">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 18H3z" /></svg>
+                あいまい
+              </button>
+            </div>
             <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
               <button class="bare dm word-tap" style="font-size: 22px; font-weight: 700" title="タップで発音" @click="speak(displayed.vocab.word)">{{ displayed.vocab.word }}</button>
               <span style="font-size: 14px; color: #4b5563">{{ displayed.vocab.meaning }}</span>
@@ -1193,6 +1245,30 @@ function toggleSec(id: number) {
   align-items: center;
   justify-content: center;
   gap: 7px;
+}
+.print-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* 「あいまい」切替（正解のときだけ） */
+.unsure-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 5px 12px;
+  border: 1.5px solid #c9d6f2;
+  border-radius: 99px;
+  background: #fff;
+  color: #2f5fc4;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.unsure-btn.on {
+  background: #2f5fc4;
+  border-color: #2f5fc4;
+  color: #fff;
 }
 .reveal-btn {
   width: 100%;

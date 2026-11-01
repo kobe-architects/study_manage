@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\VocabularyResource;
 use App\Models\StudyResource;
 use App\Models\Vocabulary;
+use App\Models\VocabularyAttempt;
 use App\Services\VocabularyService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -69,6 +70,52 @@ class VocabularyQuizController extends Controller
             'isCorrect' => $attempt->is_correct,
             'quizType' => $attempt->quiz_type,
         ]]);
+    }
+
+    /** 「あいまい」（正解だったが自信がない）の付け外し。正解の回答にだけ付く */
+    public function updateAttempt(Request $request, VocabularyAttempt $attempt): JsonResponse
+    {
+        abort_unless($attempt->user_id === $request->user()->id, 403);
+        $data = $request->validate(['is_unsure' => ['required', 'boolean']]);
+        $attempt->update(['is_unsure' => $attempt->is_correct && $data['is_unsure']]);
+
+        return response()->json(['data' => [
+            'id' => $attempt->id,
+            'isCorrect' => $attempt->is_correct,
+            'isUnsure' => $attempt->is_unsure,
+        ]]);
+    }
+
+    /**
+     * チェックシート用: 単語帳 1 冊の単語ごとの日ごとの結果。
+     * 同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら不正解（0）、正解だけであいまいがあれば あいまい（2）、それ以外は正解（1）。
+     * 日付は端末のタイムゾーン（tz = UTC からのずれ・分。既定は日本時間）で区切る。
+     * 返り値: { marks: { 単語ID: [[YYYY-MM-DD, 0|1|2], ...] } }
+     */
+    public function checksheet(Request $request, StudyResource $studyResource): JsonResponse
+    {
+        $this->authorizeResource($request, $studyResource);
+        $userId = $request->user()->id;
+        $tz = max(-840, min(840, (int) $request->query('tz', 540)));
+        $rows = VocabularyAttempt::query()
+            ->join('vocabularies', 'vocabularies.id', '=', 'vocabulary_attempts.vocabulary_id')
+            ->join('study_resource_sections', 'study_resource_sections.id', '=', 'vocabularies.study_resource_section_id')
+            ->where('vocabulary_attempts.user_id', $userId)
+            ->where('study_resource_sections.study_resource_id', $studyResource->id)
+            ->selectRaw(
+                'vocabulary_attempts.vocabulary_id AS vid, DATE(DATE_ADD(vocabulary_attempts.answered_at, INTERVAL ? MINUTE)) AS d, MIN(vocabulary_attempts.is_correct) AS ok, MAX(vocabulary_attempts.is_unsure) AS unsure',
+                [$tz],
+            )
+            ->groupByRaw('vocabulary_attempts.vocabulary_id, d')
+            ->orderByRaw('vocabulary_attempts.vocabulary_id, d')
+            ->get();
+
+        $marks = [];
+        foreach ($rows as $r) {
+            $marks[(int) $r->vid][] = [(string) $r->d, (int) $r->ok === 0 ? 0 : ((int) $r->unsure ? 2 : 1)];
+        }
+
+        return response()->json(['data' => ['marks' => (object) $marks]]);
     }
 
     /** 進捗統計 */

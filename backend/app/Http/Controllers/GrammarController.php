@@ -91,6 +91,7 @@ class GrammarController extends Controller
     {
         $data = $request->validate([
             'isCorrect' => ['required', 'boolean'],
+            'isUnsure' => ['sometimes', 'boolean'],
             'answer' => ['nullable', 'string', 'max:1000'],
         ]);
         $userId = $request->user()->id;
@@ -98,6 +99,7 @@ class GrammarController extends Controller
             'user_id' => $userId,
             'grammar_question_id' => $question->id,
             'is_correct' => $data['isCorrect'],
+            'is_unsure' => $data['isCorrect'] && ! empty($data['isUnsure']),
             'answer' => $data['answer'] ?? null,
             'answered_at' => now(),
         ]);
@@ -108,13 +110,22 @@ class GrammarController extends Controller
         ]]);
     }
 
-    /** 回答の正誤を変更する（整序・空所補充で自動採点が合わないときの自己判定） */
+    /**
+     * 回答を変更する。
+     * - isCorrect: 正誤の自己判定（整序・空所補充で自動採点が合わないとき）。不正解にしたら「あいまい」は外れる
+     * - isUnsure: 「あいまい」（正解だったが自信がない）の付け外し。正解の回答にだけ付く
+     */
     public function updateAttempt(Request $request, GrammarAttempt $attempt): JsonResponse
     {
         $userId = $request->user()->id;
         abort_unless($attempt->user_id === $userId, 403);
-        $data = $request->validate(['isCorrect' => ['required', 'boolean']]);
-        $attempt->update(['is_correct' => $data['isCorrect']]);
+        $data = $request->validate([
+            'isCorrect' => ['sometimes', 'boolean'],
+            'isUnsure' => ['sometimes', 'boolean'],
+        ]);
+        $isCorrect = array_key_exists('isCorrect', $data) ? (bool) $data['isCorrect'] : $attempt->is_correct;
+        $isUnsure = array_key_exists('isUnsure', $data) ? (bool) $data['isUnsure'] : $attempt->is_unsure;
+        $attempt->update(['is_correct' => $isCorrect, 'is_unsure' => $isCorrect && $isUnsure]);
 
         return response()->json(['data' => [
             'attemptId' => $attempt->id,
@@ -123,8 +134,38 @@ class GrammarController extends Controller
     }
 
     /**
+     * チェックシート用: 文法・語法（連番 1〜725）の日ごとの結果。
+     * 同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら不正解（0）、正解だけであいまいがあれば あいまい（2）、それ以外は正解（1）。
+     * 日付は端末のタイムゾーン（tz = UTC からのずれ・分。既定は日本時間）で区切る。
+     * 返り値: { marks: { 連番: [[YYYY-MM-DD, 0|1|2], ...] } }
+     */
+    public function checksheet(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $tz = max(-840, min(840, (int) $request->query('tz', 540)));
+        $rows = GrammarAttempt::query()
+            ->join('grammar_questions', 'grammar_questions.id', '=', 'grammar_attempts.grammar_question_id')
+            ->where('grammar_attempts.user_id', $userId)
+            ->whereIn('grammar_questions.book', ['grammar', 'usage'])
+            ->selectRaw(
+                'grammar_questions.no AS no, DATE(DATE_ADD(grammar_attempts.answered_at, INTERVAL ? MINUTE)) AS d, MIN(grammar_attempts.is_correct) AS ok, MAX(grammar_attempts.is_unsure) AS unsure',
+                [$tz],
+            )
+            ->groupByRaw('grammar_questions.no, d')
+            ->orderByRaw('grammar_questions.no, d')
+            ->get();
+
+        $marks = [];
+        foreach ($rows as $r) {
+            $marks[(int) $r->no][] = [(string) $r->d, (int) $r->ok === 0 ? 0 : ((int) $r->unsure ? 2 : 1)];
+        }
+
+        return response()->json(['data' => ['marks' => (object) $marks]]);
+    }
+
+    /**
      * 問題ごとの回答状況。
-     * @return array<int, array{correct:int, incorrect:int, last:bool|null, lastAt:string|null, lastAnswer:string|null}>
+     * @return array<int, array{correct:int, incorrect:int, last:bool|null, lastUnsure:bool, lastAt:string|null, lastAnswer:string|null}>
      */
     private function stats(int $userId, array $questionIds): array
     {
@@ -149,6 +190,7 @@ class GrammarController extends Controller
                 'correct' => (int) $r->c,
                 'incorrect' => (int) $r->n - (int) $r->c,
                 'last' => $l ? (bool) $l->is_correct : null,
+                'lastUnsure' => $l ? (bool) $l->is_unsure : false,
                 'lastAt' => $l?->answered_at?->toDateTimeString(),
                 'lastAnswer' => $l?->answer,
             ];

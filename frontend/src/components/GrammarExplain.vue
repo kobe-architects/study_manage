@@ -15,7 +15,7 @@ import { CIRCLED, answerSegments, completedSentence, splitCorrection } from '@/l
 import type { GrammarQuestion } from '@/types'
 
 const props = defineProps<{ question: GrammarQuestion; result: GrammarAnswerResult | null }>()
-const emit = defineEmits<{ close: []; override: [isCorrect: boolean] }>()
+const emit = defineEmits<{ close: []; override: [isCorrect: boolean]; unsure: [unsure: boolean] }>()
 
 const q = computed(() => props.question)
 const sentence = computed(() => completedSentence(q.value))
@@ -84,8 +84,9 @@ watch(() => q.value.id, () => {
         <!-- あなたの答え・判定 -->
         <div v-if="result" class="ex-row" style="margin-top: 12px">
           <span class="ex-lab">判定</span>
-          <span class="ex-badge" :class="result.isCorrect ? 'ok' : 'ng'">{{ result.isCorrect ? '正解' : '不正解' }}</span>
+          <span class="ex-badge" :class="result.isCorrect ? (result.unsure ? 'un' : 'ok') : 'ng'">{{ result.isCorrect ? (result.unsure ? '正解（あいまい）' : '正解') : '不正解' }}</span>
           <button v-if="canOverride" class="ex-judge" @click="emit('override', !result.isCorrect)">{{ result.isCorrect ? '不正解にする' : '正解にする' }}</button>
+          <button v-if="result.isCorrect" class="ex-judge" :class="{ un: result.unsure }" @click="emit('unsure', !result.unsure)">{{ result.unsure ? 'あいまいを外す' : 'あいまい' }}</button>
         </div>
         <div v-if="showMyAnswer && result" class="ex-mine"><span class="ex-lab">あなたの答え</span><span class="dm">{{ result.answer }}</span></div>
 
@@ -288,6 +289,14 @@ watch(() => q.value.id, () => {
 .ex-badge.ng {
   background: #fdeef0;
   color: #c0444f;
+}
+.ex-badge.un {
+  background: #e8effb;
+  color: #2f5fc4;
+}
+.ex-judge.un {
+  border-color: #2f5fc4;
+  color: #2f5fc4;
 }
 .ex-judge {
   border: 1px solid #e3e6ea;

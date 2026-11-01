@@ -198,9 +198,10 @@ export function chapterParts(chapter: string): { no: number; name: string } {
   return m ? { no: Number(m[1]), name: m[2] ?? chapter } : { no: 0, name: chapter }
 }
 
-/** 回答状況の表示 */
-export function statusOf(q: GrammarQuestion): { t: string; c: string; key: 'correct' | 'incorrect' | 'none' } {
+/** 回答状況の表示（最新の回答。あいまい=正解だったが自信がない） */
+export function statusOf(q: GrammarQuestion): { t: string; c: string; key: 'correct' | 'unsure' | 'incorrect' | 'none' } {
   const last = q.stat?.last
+  if (last === true && q.stat?.lastUnsure) return { t: '△', c: '#2f6fd6', key: 'unsure' }
   if (last === true) return { t: '○', c: '#2e9d62', key: 'correct' }
   if (last === false) return { t: '×', c: '#cf5563', key: 'incorrect' }
   return { t: '—', c: '#cdd2d9', key: 'none' }

@@ -25,14 +25,20 @@ export const grammarApi = {
     return data.data
   },
 
-  async attempt(questionId: number, payload: { isCorrect: boolean; answer: string | null }): Promise<{ attemptId: number; stat: GrammarStat }> {
+  async attempt(questionId: number, payload: { isCorrect: boolean; answer: string | null; isUnsure?: boolean }): Promise<{ attemptId: number; stat: GrammarStat }> {
     const { data } = await client.post(`/grammar/questions/${questionId}/attempt`, payload)
     return data.data
   },
 
-  /** 自己判定で正誤を変更する */
-  async updateAttempt(attemptId: number, isCorrect: boolean): Promise<{ attemptId: number; stat: GrammarStat }> {
-    const { data } = await client.put(`/grammar/attempts/${attemptId}`, { isCorrect })
+  /** 回答を変更する（isCorrect: 自己判定で正誤を変更 / isUnsure: 「あいまい」の付け外し） */
+  async updateAttempt(attemptId: number, payload: { isCorrect?: boolean; isUnsure?: boolean }): Promise<{ attemptId: number; stat: GrammarStat }> {
+    const { data } = await client.put(`/grammar/attempts/${attemptId}`, payload)
     return data.data
+  },
+
+  /** チェックシート用: 文法・語法 725 問の日ごとの結果（連番 → [[日付, 0=不正解|1=正解|2=あいまい], ...]） */
+  async checksheet(): Promise<Record<string, [string, 0 | 1 | 2][]>> {
+    const { data } = await client.get('/grammar/checksheet', { params: { tz: -new Date().getTimezoneOffset() } })
+    return data.data.marks ?? {}
   },
 }

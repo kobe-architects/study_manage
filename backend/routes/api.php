@@ -174,6 +174,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/grammar/questions/{question}/image/{kind}', [GrammarController::class, 'image'])->where('kind', 'problem|answer|explanation');
         Route::post('/grammar/questions/{question}/attempt', [GrammarController::class, 'attempt']);
         Route::put('/grammar/attempts/{attempt}', [GrammarController::class, 'updateAttempt']);
+        // チェックシート用: 文法・語法 725 問の日ごとの結果（正解・不正解・あいまい）
+        Route::get('/grammar/checksheet', [GrammarController::class, 'checksheet']);
 
         // ===== 英単語クイズ サブシステム =====
         Route::get('/study-resources', [StudyResourceController::class, 'index']);
@@ -196,6 +198,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // 学習系
         Route::get('/study-resources/{studyResource}/quiz', [VocabularyQuizController::class, 'quiz']);
         Route::post('/vocabularies/{vocabulary}/attempt', [VocabularyQuizController::class, 'attempt']);
+        Route::put('/vocabulary-attempts/{attempt}', [VocabularyQuizController::class, 'updateAttempt']); // 「あいまい」の付け外し
+        Route::get('/study-resources/{studyResource}/vocabularies/checksheet', [VocabularyQuizController::class, 'checksheet']);
         Route::get('/study-resources/{studyResource}/vocabularies/stats', [VocabularyQuizController::class, 'stats']);
         Route::get('/study-resources/{studyResource}/vocabularies/incorrect', [VocabularyQuizController::class, 'incorrect']);
 

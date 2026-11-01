@@ -10,15 +10,19 @@ import GrammarExplain from '@/components/GrammarExplain.vue'
 import GrammarQuestionCard, { type GrammarAnswerResult } from '@/components/GrammarQuestionCard.vue'
 import HelpTip from '@/components/HelpTip.vue'
 import QuizFullscreen from '@/components/QuizFullscreen.vue'
+import { grammarApi } from '@/api/grammar'
 import { shuffle } from '@/lib/design'
 import { CIRCLED, FORMATS, FORMAT_INFO, chapterParts, questionPreview, statusOf } from '@/lib/grammar'
+import { openGrammarCheckSheet } from '@/lib/grammarSheet'
 import { playResultSound } from '@/lib/sound'
+import { useAuthStore } from '@/stores/auth'
 import { useGrammarStore } from '@/stores/grammar'
 import { useUiStore } from '@/stores/ui'
 import type { GrammarBookKey, GrammarFormat, GrammarQuestion } from '@/types'
 
 const g = useGrammarStore()
 const ui = useUiStore()
+const auth = useAuthStore()
 
 type Phase = 'home' | 'quiz' | 'results'
 const phase = ref<Phase>('home')
@@ -143,7 +147,7 @@ const impSel = ref<string[]>([])
 function toggleImp(v: string) {
   impSel.value = impSel.value.includes(v) ? impSel.value.filter((x) => x !== v) : [...impSel.value, v]
 }
-type Target = 'all' | 'unanswered' | 'incorrect'
+type Target = 'all' | 'unanswered' | 'incorrect' | 'unsure'
 const target = ref<Target>('all')
 const ordered = ref(true)
 const count = ref(10)
@@ -169,7 +173,25 @@ const noMax = computed(() => all.value[all.value.length - 1]?.no ?? 1)
 function matchTarget(q: GrammarQuestion): boolean {
   if (target.value === 'unanswered') return q.stat?.last === null || q.stat?.last === undefined
   if (target.value === 'incorrect') return q.stat?.last === false
+  if (target.value === 'unsure') return q.stat?.last === true && !!q.stat.lastUnsure
   return true
+}
+
+// ---- チェックシート（文法・語法 725 問の解いた日を、付属のチェックシートと同じ並びで印刷用に出力） ----
+const sheetBusy = ref(false)
+async function openSheet() {
+  if (sheetBusy.value) return
+  sheetBusy.value = true
+  try {
+    const marks = await grammarApi.checksheet()
+    const d = new Date()
+    const ok = openGrammarCheckSheet(marks, auth.user?.name ?? '', `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`)
+    if (!ok) ui.notify('ポップアップがブロックされました。ブラウザ設定で許可してください。')
+  } catch {
+    ui.notify('チェックシートの作成に失敗しました')
+  } finally {
+    sheetBusy.value = false
+  }
 }
 /** 設定に合う問題（番号順） */
 const pool = computed(() =>
@@ -267,7 +289,7 @@ function giveUp() {
 async function onAnswer(payload: { isCorrect: boolean; answer: string | null }) {
   const q = current.value
   if (!q || quiz.results[quiz.index]) return
-  const r: QuizResult = { ...payload, overridden: false, attemptId: null }
+  const r: QuizResult = { ...payload, overridden: false, unsure: false, attemptId: null }
   quiz.results[quiz.index] = r
   playResultSound(payload.isCorrect)
   r.attemptId = await g.recordAttempt(q, payload.isCorrect, payload.answer)
@@ -278,7 +300,16 @@ async function onOverride(isCorrect: boolean) {
   if (!q || !r) return
   r.isCorrect = isCorrect
   r.overridden = true
+  if (!isCorrect) r.unsure = false // 不正解にしたら「あいまい」は外れる
   r.attemptId = await g.overrideAttempt(q, r.attemptId, isCorrect)
+}
+/** 正解のときの「あいまい」（自信がない）の付け外し。チェックシートでは青の日付になる */
+async function onUnsure(unsure: boolean) {
+  const q = current.value
+  const r = quiz.results[quiz.index]
+  if (!q || !r || !r.isCorrect) return
+  r.unsure = unsure
+  r.attemptId = await g.setUnsure(q, r.attemptId, unsure)
 }
 function next() {
   explainOpen.value = false
@@ -321,9 +352,11 @@ const score = computed(() => ({ correct: quiz.results.filter((r) => r?.isCorrect
 const resultPct = computed(() => (score.value.total ? Math.round((score.value.correct / score.value.total) * 100) : 0))
 const resultColor = computed(() => (resultPct.value >= 80 ? '#2e9d62' : resultPct.value >= 50 ? '#d98a2b' : '#cf5563'))
 const incorrectList = computed(() => quiz.list.filter((_, i) => quiz.results[i] && !quiz.results[i]!.isCorrect))
+/** 正解だったが「あいまい」を付けた問題 */
+const unsureList = computed(() => quiz.list.filter((_, i) => quiz.results[i]?.isCorrect && quiz.results[i]!.unsure))
 function retryIncorrect() {
   session.value = null
-  runQuiz(incorrectList.value.slice())
+  runQuiz([...incorrectList.value, ...unsureList.value])
 }
 /** 結果一覧用の正解表示 */
 function answerLabel(q: GrammarQuestion): string {
@@ -337,7 +370,7 @@ function answerLabel(q: GrammarQuestion): string {
 // ---- 一覧 ----
 const listQ = ref('')
 const listChapter = ref(0) // 0 = 全章
-const listStatus = ref<'all' | 'correct' | 'incorrect' | 'none'>('all')
+const listStatus = ref<'all' | 'correct' | 'unsure' | 'incorrect' | 'none'>('all')
 const listLimit = ref(60)
 /** 一覧の絞り込み結果（番号順）。一覧の問題をタップしたときの出題元 */
 const listPool = computed(() => {
@@ -364,7 +397,14 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
             {{ b.name }}<span class="cnt">{{ b.total }}問</span>
           </button>
         </div>
-        <div style="font-size: 12px; color: var(--faint)">スクランブル英文法・語法</div>
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div style="font-size: 12px; color: var(--faint)">スクランブル英文法・語法</div>
+          <button class="sheet-btn" :disabled="sheetBusy" @click="openSheet">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
+            チェックシート
+          </button>
+          <HelpTip text="文法・語法 全725問を、教材付属のチェックシートと同じ並び（章・Theme・連番・形式・区分）で印刷用に出力します。&#10;回数欄には解いた日付が入ります。黒=正解、赤=不正解、青=あいまい（正解だったが自信がないとき、解答後に「あいまい」を付けた問題）。&#10;同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら赤になります。" />
+        </div>
       </div>
 
       <!-- 統計 -->
@@ -381,7 +421,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
         <div class="card" style="padding: 20px">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px">
             <div style="font-size: 15px; font-weight: 700">出題設定</div>
-            <HelpTip text="章・形式・重要度・出題対象で絞り込み、「開始」で全画面で 1 問ずつ解答します。&#10;一覧の問題をタップすると、その問題から順番に始められます。&#10;選択・誤り指摘は下の選択肢をタップで即採点。整序は下の語句を順にタップ（並べた語句はドラッグで前後に移動）、空所補充は空所に入力して「解答」。&#10;解答後は下の「解説」で和訳・出典などを表示。&#10;PC: 1〜5 キーで選択、Enter で解答・次へ、← → で前後、Backspace で整序を 1 つ戻す。" />
+            <HelpTip text="章・形式・重要度・出題対象で絞り込み、「開始」で全画面で 1 問ずつ解答します。&#10;一覧の問題をタップすると、その問題から順番に始められます。&#10;選択・誤り指摘は下の選択肢をタップで即採点。整序は下の語句を順にタップ（並べた語句はドラッグで前後に移動）、空所補充は空所に入力して「解答」。&#10;正解でも自信がなければ「あいまい」を付けられます（一覧では △、チェックシートでは青の日付）。&#10;解答後は下の「解説」で和訳・出典などを表示。&#10;PC: 1〜5 キーで選択、Enter で解答・次へ、← → で前後、Backspace で整序を 1 つ戻す。" />
           </div>
 
           <div class="row-between" style="margin-bottom: 6px">
@@ -427,6 +467,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
             <button :class="{ on: target === 'all' }" @click="target = 'all'">すべて</button>
             <button :class="{ on: target === 'unanswered' }" @click="target = 'unanswered'">未回答</button>
             <button :class="{ on: target === 'incorrect' }" @click="target = 'incorrect'">不正解</button>
+            <button :class="{ on: target === 'unsure' }" @click="target = 'unsure'">あいまい</button>
           </div>
 
           <div style="display: flex; gap: 14px; margin: 12px 0 14px">
@@ -463,6 +504,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
             <select v-model="listStatus" class="mini-select">
               <option value="all">すべて</option>
               <option value="correct">○ 正解</option>
+              <option value="unsure">△ あいまい</option>
               <option value="incorrect">× 不正解</option>
               <option value="none">— 未回答</option>
             </select>
@@ -508,8 +550,21 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
         </div>
         <div v-else class="card" style="padding: 18px 20px; margin-bottom: 16px; border: 1.5px solid #9ed4b3; font-size: 14px; font-weight: 700; color: #1f7a45">🎉 全問正解です！</div>
 
+        <div v-if="unsureList.length" class="card" style="padding: 18px 20px; margin-bottom: 16px">
+          <div style="font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #2f5fc4">あいまいな問題（{{ unsureList.length }}）</div>
+          <div v-for="q in unsureList" :key="q.id" class="res-row">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 3px">
+              <span class="q-no dm">No.{{ q.no }}</span>
+              <span class="q-fmt" :style="{ background: FORMAT_INFO[q.format].bg, color: FORMAT_INFO[q.format].fg }">{{ q.formatLabel }}</span>
+              <span style="font-size: 11px; color: var(--faint)">{{ q.chapter }}</span>
+            </div>
+            <div class="dm" style="font-size: 13.5px; line-height: 1.6">{{ questionPreview(q) }}</div>
+            <div style="font-size: 13px; color: var(--primary); font-weight: 600; margin-top: 2px" class="dm">{{ answerLabel(q) }}</div>
+          </div>
+        </div>
+
         <div style="display: flex; gap: 10px; flex-wrap: wrap">
-          <button v-if="incorrectList.length" class="next-btn" @click="retryIncorrect">不正解だけ再挑戦</button>
+          <button v-if="incorrectList.length || unsureList.length" class="next-btn" @click="retryIncorrect">{{ incorrectList.length && unsureList.length ? '不正解・あいまいだけ再挑戦' : incorrectList.length ? '不正解だけ再挑戦' : 'あいまいだけ再挑戦' }}</button>
           <button v-if="sessionHasMore" class="next-btn" @click="continueSession">続ける（次の {{ nextBatchSize }} 問）</button>
           <button class="prev-btn" style="flex: 1" @click="exitQuiz">設定に戻る</button>
         </div>
@@ -532,6 +587,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
           :result="currentResult"
           @answer="onAnswer"
           @can-submit="canSubmit = $event"
+          @unsure="onUnsure"
         />
         <template #footer>
           <button class="qf-ghost" :disabled="quiz.index === 0" @click="prev">前へ</button>
@@ -541,7 +597,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
         </template>
         <template #modals>
           <Transition name="ui-modal">
-            <GrammarExplain v-if="explainOpen" :question="current" :result="currentResult" @close="explainOpen = false" @override="onOverride" />
+            <GrammarExplain v-if="explainOpen" :question="current" :result="currentResult" @close="explainOpen = false" @override="onOverride" @unsure="onUnsure" />
           </Transition>
         </template>
       </QuizFullscreen>
@@ -587,6 +643,25 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
   font-size: 10px;
   font-weight: 500;
   opacity: 0.7;
+}
+.sheet-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  background: #fff;
+  color: #1c2024;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sheet-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 .stat-grid {
   display: grid;
