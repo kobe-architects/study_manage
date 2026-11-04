@@ -322,8 +322,8 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
 <template>
   <div class="tp">
     <!-- 日別／週別 ・ 日付の移動（PC は左のサイドメニューへ Teleport） -->
-    <Teleport to="#home-side-tools" :disabled="!sideTools">
-    <div class="tp-bar" :class="{ side: sideTools }">
+    <Teleport to="#home-side-tools">
+    <div class="tp-bar" :class="{ side: sideTools, mobile: !sideTools }">
       <div v-seg class="tp-seg">
         <button class="tp-seg-btn" :class="{ on: mode === 'day' }" @click="mode = 'day'">日別</button>
         <button class="tp-seg-btn" :class="{ on: mode === 'week' }" @click="mode = 'week'">週別</button>
@@ -340,7 +340,7 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
         </button>
       </div>
       <div class="tp-help">
-        <button class="tp-add" @click="openOneOff">＋ タスク追加</button>
+        <button class="tp-add" title="この日だけのタスクを追加" @click="openOneOff">＋<span class="tp-add-txt"> タスク追加</span></button>
         <HelpTip :align="sideTools ? 'left' : 'right'" text="「タスク管理」で科目ごとに登録した「やるべきこと」を日別・週別に展開して表示します。○ をタップすると予定量ぶん完了に、行（週別はセル）をタップすると数を記録できます。「タスク追加」はその日だけのタスク（定期的なタスクは「タスク管理」で登録）。" />
       </div>
     </div>
@@ -355,7 +355,7 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
 
     <!-- ===== 日別 ===== -->
     <template v-else-if="mode === 'day'">
-      <div class="card tp-sum">
+      <div class="card tp-sum" :class="{ stick: !sideTools }">
         <div class="tp-ring">
           <svg width="64" height="64" viewBox="0 0 70 70">
             <circle cx="35" cy="35" r="30" fill="none" stroke="#eef0f3" stroke-width="8" />
@@ -418,7 +418,7 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
 
     <!-- ===== 週別 ===== -->
     <template v-else>
-      <div class="card tp-sum tp-sum-week">
+      <div class="card tp-sum tp-sum-week" :class="{ stick: !sideTools }">
         <div class="tp-ring">
           <svg width="64" height="64" viewBox="0 0 70 70">
             <circle cx="35" cy="35" r="30" fill="none" stroke="#eef0f3" stroke-width="8" />
@@ -711,6 +711,53 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
 .tp-fld-row {
   display: flex;
   gap: 10px;
+}
+/* スマホ縦: 画面下部の固定バーに 1 行で収める */
+.tp-bar.mobile {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+.tp-bar.mobile .tp-seg-btn {
+  padding: 6px 9px;
+  font-size: 12px;
+}
+.tp-bar.mobile .tp-nav {
+  flex: 1;
+  min-width: 0;
+}
+.tp-bar.mobile .tp-date {
+  flex: 1;
+  min-width: 0;
+  padding: 0 2px;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tp-bar.mobile .tp-date-hint {
+  margin-left: 4px;
+  padding: 1px 5px;
+}
+.tp-bar.mobile .tp-arrow {
+  width: 26px;
+}
+.tp-bar.mobile .tp-help {
+  margin-left: 0;
+  gap: 6px;
+}
+.tp-bar.mobile .tp-add {
+  padding: 7px 10px;
+  font-size: 14px;
+  line-height: 1;
+}
+.tp-bar.mobile .tp-add-txt {
+  display: none;
+}
+/* スマホ: 「今日のタスク」の集計カードを上部に固定 */
+.tp-sum.stick {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
 /* PC: トップページ左のサイドメニューに縦に並べる */
 .tp-bar.side {
@@ -1284,13 +1331,6 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
 }
 
 @media (max-width: 600px) {
-  .tp-bar {
-    gap: 8px;
-  }
-  .tp-date {
-    min-width: 0;
-    font-size: 12.5px;
-  }
   .tp-sum {
     padding: 14px 16px;
   }

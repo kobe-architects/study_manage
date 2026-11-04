@@ -497,10 +497,11 @@ async function deleteEvent(id: number) {
 
 <template>
   <div>
-    <div class="home" :class="{ side: !isMobile }">
-    <!-- タブ: PC は左のサイドメニュー（タスクタブでは日別／週別・日付もここに入る）、スマホは上に横並び -->
+    <div class="home" :class="{ side: !isMobile, mobile: isMobile, 'tab-tasks': tab === 'tasks' }">
+    <!-- タブ: PC は左のサイドメニュー（タスクタブでは日別／週別・日付もここに入る）、
+         スマホ縦は画面下部に固定（操作列が上・タブが下）、スマホ横は上に横並び -->
     <aside class="home-side">
-      <div v-seg class="seg" :class="{ vert: !isMobile }">
+      <div v-seg class="seg" :class="{ vert: !isMobile, mob: isMobile }">
         <button class="seg-btn" :class="{ on: tab === 'tasks' }" @click="tab = 'tasks'">タスク</button>
         <button class="seg-btn" :class="{ on: tab === 'plan' }" @click="tab = 'plan'">計画</button>
         <button class="seg-btn" :class="{ on: tab === 'progress' }" @click="tab = 'progress'">進捗率</button>
@@ -508,7 +509,7 @@ async function deleteEvent(id: number) {
         <button class="seg-btn" :class="{ on: tab === 'review' }" @click="selectReview">復習項目<span v-if="reviewDueCount" class="tab-badge">{{ reviewDueCount }}</span></button>
       </div>
       <!-- タスクタブの日別／週別・日付（components/TaskPanel.vue から Teleport で入る） -->
-      <div v-show="tab === 'tasks' && !isMobile" id="home-side-tools" class="side-tools"></div>
+      <div v-show="tab === 'tasks'" id="home-side-tools" class="side-tools"></div>
     </aside>
     <div class="home-main">
 
@@ -884,7 +885,49 @@ async function deleteEvent(id: number) {
 }
 .home:not(.side) .home-side {
   display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
   margin-bottom: 18px;
+}
+.seg.mob {
+  width: 100%;
+}
+.seg.mob .seg-btn {
+  flex: 1;
+  padding: 8px 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.seg.mob .tab-badge {
+  margin-left: 4px;
+  font-size: 9.5px;
+  padding: 0 5px;
+}
+/* スマホ縦: タブと操作列を画面下部に固定し、内容の下に隠れないよう余白を取る */
+@media (orientation: portrait) {
+  .home.mobile .home-side {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 8px max(12px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    background: rgba(246, 247, 249, 0.96);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid #e6e8eb;
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.06);
+  }
+  .home.mobile .home-main {
+    padding-bottom: 72px;
+  }
+  .home.mobile.tab-tasks .home-main {
+    padding-bottom: 128px;
+  }
 }
 /* サイドメニュー内では内容側の幅をビューポートから計算しない */
 .home.side .full-w,
