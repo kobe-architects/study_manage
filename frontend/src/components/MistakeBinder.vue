@@ -7,6 +7,8 @@
  * タッチ端末（iPad・スマホ。immersive）では縦横とも上のバーとタブを出さず、浮かせた ×・≡ だけにしてノートを大きく見せる（インデックスは ≡ のメニュー）。
  * 縦向きのときは見開きにせず 1 ページずつ表示する。
  * 右上の目のボタンで「問題だけ表示」（説明用の画像・文字・手書きを隠す。位置はそのまま）と「すべて表示」を切り替える（端末に記憶）。
+ * 拡縮: iPad・スマホはピンチ（拡大中は 1 本指のドラッグで移動、ダブルタップで拡大 ⇄ 戻す）、PC はホイール（ダブルクリックでも）。
+ * +/− キー・0 キーでも。ページをめくると等倍に戻る。拡大中は左右タップ・スワイプでのめくりは止まる（矢印ボタン・キーは使える）。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { mistakeApi } from '@/api/mistake'
@@ -65,6 +67,7 @@ const canNext = computed(() => (single.value ? pos.value < total.value - 1 : pos
 function go(i: number) {
   flipSeq++
   flip.value = null
+  resetZoom()
   pos.value = Math.max(0, Math.min(total.value - 1, spreadOf(i)))
 }
 function next() {
@@ -77,6 +80,7 @@ function prev() {
 }
 /** from → to へ、紙をめくるアニメーションつきで移動する */
 async function turn(from: number, to: number, dir: 1 | -1) {
+  resetZoom()
   if (reduceMotion) {
     pos.value = to
     return
@@ -213,28 +217,153 @@ function onKey(e: KeyboardEvent) {
   } else if (e.key === 'Escape') {
     if (idxOpen.value) idxOpen.value = false
     else emit('close')
+  } else if (e.key === '+' || e.key === '=' || e.key === ';') {
+    e.preventDefault()
+    zoomStep(1)
+  } else if (e.key === '-') {
+    e.preventDefault()
+    zoomStep(-1)
+  } else if (e.key === '0') {
+    e.preventDefault()
+    resetZoom()
   }
 }
+// ---- 拡縮・移動（ピンチ／ホイール／ドラッグ） ----
+const ZOOM_MIN = 1
+const ZOOM_MAX = 5
+const zoom = ref(1)
+const pan = ref({ x: 0, y: 0 })
+const zoomed = computed(() => zoom.value > 1.02)
+const spreadEl = ref<HTMLElement | null>(null)
+const spreadStyle = computed(() => ({ '--ratio': String(ratio), transform: zoomed.value ? `translate(${pan.value.x}px, ${pan.value.y}px) scale(${zoom.value})` : undefined }))
+function resetZoom() {
+  zoom.value = 1
+  pan.value = { x: 0, y: 0 }
+}
+/** 見開きの中心（画面座標） */
+function spreadCenter(): { x: number; y: number } {
+  const el = spreadEl.value
+  if (!el) return { x: 0, y: 0 }
+  // 拡縮前の配置の中心 = getBoundingClientRect の中心（transform-origin が中心なので、中心は pan の分だけずれる）
+  const r = el.getBoundingClientRect()
+  return { x: r.left + r.width / 2 - pan.value.x, y: r.top + r.height / 2 - pan.value.y }
+}
+/** 移動の範囲: 拡大した見開きが画面から出すぎないように */
+function clampPan(p: { x: number; y: number }, z: number): { x: number; y: number } {
+  const el = spreadEl.value
+  if (!el || z <= 1) return { x: 0, y: 0 }
+  const mx = ((z - 1) * el.offsetWidth) / 2 + 40
+  const my = ((z - 1) * el.offsetHeight) / 2 + 40
+  return { x: Math.max(-mx, Math.min(mx, p.x)), y: Math.max(-my, Math.min(my, p.y)) }
+}
+/** 画面上の点 (sx, sy) を動かさずに拡縮する */
+function zoomAt(newZoom: number, sx: number, sy: number) {
+  const z0 = zoom.value
+  const z1 = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom))
+  if (z1 === z0) return
+  const c = spreadCenter()
+  // 見開き上の点 p（等倍・中心基準）は screen = c + pan + z*p で写る。screen を固定して pan を求め直す
+  const px = (sx - c.x - pan.value.x) / z0
+  const py = (sy - c.y - pan.value.y) / z0
+  zoom.value = z1
+  pan.value = z1 <= 1 ? { x: 0, y: 0 } : clampPan({ x: sx - c.x - z1 * px, y: sy - c.y - z1 * py }, z1)
+}
+function onWheel(e: WheelEvent) {
+  // ホイール 1 目盛り（deltaY ≈ 100）で約 5%。トラックパッドのピンチ（ctrlKey）は刻みが細かいので強めに
+  const k = e.ctrlKey ? 0.01 : 0.0005
+  zoomAt(zoom.value * Math.exp(-e.deltaY * k), e.clientX, e.clientY)
+}
+function zoomStep(dir: 1 | -1) {
+  const c = spreadCenter()
+  zoomAt(zoom.value * (dir > 0 ? 1.25 : 0.8), c.x + pan.value.x, c.y + pan.value.y)
+}
+
+/** 触れている指（ポインター）。2 本でピンチ、拡大中の 1 本はドラッグ移動 */
+const pointers = new Map<number, { x: number; y: number }>()
+let pinch: { d0: number; z0: number } | null = null
+let dragging = false
+let gestured = false // ピンチ・ドラッグをした後は、離したときにタップ・スワイプと解釈しない
 let sw: { x: number; y: number; t: number } | null = null
+let lastTap: { x: number; y: number; t: number } | null = null
 function onPointerDown(e: PointerEvent) {
-  sw = { x: e.clientX, y: e.clientY, t: e.timeStamp }
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  if (pointers.size === 2) {
+    const [a, b] = Array.from(pointers.values())
+    pinch = { d0: Math.max(10, Math.hypot(a!.x - b!.x, a!.y - b!.y)), z0: zoom.value }
+    gestured = true
+    sw = null
+    return
+  }
+  if (pointers.size === 1) {
+    gestured = false
+    dragging = false
+    sw = { x: e.clientX, y: e.clientY, t: e.timeStamp }
+  }
+}
+function onPointerMove(e: PointerEvent) {
+  const prev = pointers.get(e.pointerId)
+  if (!prev) return
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  if (pinch && pointers.size >= 2) {
+    const [a, b] = Array.from(pointers.values())
+    const d = Math.hypot(a!.x - b!.x, a!.y - b!.y)
+    zoomAt(pinch.z0 * (d / pinch.d0), (a!.x + b!.x) / 2, (a!.y + b!.y) / 2)
+    return
+  }
+  if (pointers.size === 1 && zoomed.value) {
+    // 拡大中の 1 本指（またはマウスのドラッグ）は移動
+    const dx = e.clientX - prev.x
+    const dy = e.clientY - prev.y
+    if (!dragging && sw && Math.hypot(e.clientX - sw.x, e.clientY - sw.y) < 6) return
+    dragging = true
+    gestured = true
+    pan.value = clampPan({ x: pan.value.x + dx, y: pan.value.y + dy }, zoom.value)
+  }
 }
 function onPointerUp(e: PointerEvent) {
-  if (!sw) return
-  const dx = e.clientX - sw.x
-  const dy = e.clientY - sw.y
-  const dt = e.timeStamp - sw.t
+  pointers.delete(e.pointerId)
+  if (pointers.size < 2) pinch = null
+  if (pointers.size > 0) return
+  const s0 = sw
   sw = null
+  dragging = false
+  if (gestured || !s0) return
+  const dx = e.clientX - s0.x
+  const dy = e.clientY - s0.y
+  const dt = e.timeStamp - s0.t
+  const isTap = Math.abs(dx) < 8 && Math.abs(dy) < 8
+  // ダブルタップ／ダブルクリック: 拡大 ⇄ 戻す
+  if (isTap && lastTap && e.timeStamp - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) {
+    lastTap = null
+    if (zoomed.value) resetZoom()
+    else zoomAt(2.5, e.clientX, e.clientY)
+    return
+  }
+  lastTap = isTap ? { x: e.clientX, y: e.clientY, t: e.timeStamp } : null
+  if (zoomed.value) return // 拡大中はタップ・スワイプでめくらない（矢印・キーで）
   if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 800) {
     if (dx < 0) next()
     else prev()
     return
   }
-  if (Math.abs(dx) < 8 && Math.abs(dy) < 8) {
-    // 左右のタップでめくる
+  if (isTap) {
+    // 左右のタップでめくる（真ん中のタップはダブルタップ待ち）
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    if (e.clientX < r.left + r.width * 0.3) prev()
-    else if (e.clientX > r.left + r.width * 0.7) next()
+    window.setTimeout(() => {
+      if (lastTap && lastTap.t === e.timeStamp) {
+        lastTap = null
+        if (e.clientX < r.left + r.width * 0.3) prev()
+        else if (e.clientX > r.left + r.width * 0.7) next()
+      }
+    }, 330)
+  }
+}
+function onPointerCancel(e: PointerEvent) {
+  pointers.delete(e.pointerId)
+  if (pointers.size < 2) pinch = null
+  if (pointers.size === 0) {
+    sw = null
+    dragging = false
   }
 }
 
@@ -301,12 +430,12 @@ const ratio = PAGE_H / PAGE_W
       </button>
     </div>
 
-    <div class="stage" @pointerdown="onPointerDown" @pointerup="onPointerUp">
-      <button class="nav l" :disabled="!canPrev" aria-label="前のページ" @click.stop="prev">
+    <div class="stage" :class="{ zoomed }" @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerCancel" @wheel.prevent="onWheel">
+      <button class="nav l" :disabled="!canPrev" aria-label="前のページ" @pointerdown.stop @pointerup.stop @click.stop="prev">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
       </button>
 
-      <div class="spread" :class="{ single }" :style="{ '--ratio': ratio }">
+      <div ref="spreadEl" class="spread" :class="{ single }" :style="spreadStyle">
         <div v-if="!single" class="page left" :class="{ blank: leftIdx < 0 }">
           <img v-if="pageUrl(leftIdx)" :src="pageUrl(leftIdx)" alt="" draggable="false" />
           <div v-else-if="leftIdx >= 0" class="loading">読み込み中…</div>
@@ -341,9 +470,11 @@ const ratio = PAGE_H / PAGE_W
         </template>
       </div>
 
-      <button class="nav r" :disabled="!canNext" aria-label="次のページ" @click.stop="next">
+      <button class="nav r" :disabled="!canNext" aria-label="次のページ" @pointerdown.stop @pointerup.stop @click.stop="next">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7" /></svg>
       </button>
+      <!-- 拡大中: 倍率と「戻す」 -->
+      <button v-if="zoomed" class="zoom-badge dm" title="等倍に戻す（ダブルタップ・0 キーでも）" @pointerdown.stop @pointerup.stop @click="resetZoom">{{ Math.round(zoom * 100) }}% ×</button>
     </div>
 
     <!-- インデックスのメニュー（横向き。≡ で右から出す。背景タップ・×・Esc で閉じる） -->
@@ -436,7 +567,28 @@ const ratio = PAGE_H / PAGE_W
   align-items: center;
   justify-content: center;
   padding: 16px 150px 16px 56px;
-  touch-action: pan-y;
+  /* ピンチ・ドラッグを自前で扱う */
+  touch-action: none;
+  overflow: hidden;
+}
+.stage.zoomed {
+  cursor: grab;
+}
+.zoom-badge {
+  position: absolute;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 6;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(28, 32, 36, 0.82);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 .nav {
   position: absolute;
@@ -472,6 +624,8 @@ const ratio = PAGE_H / PAGE_W
   height: min(100%, calc((100vw - 220px) / 2 * var(--ratio)));
   aspect-ratio: calc(2 / var(--ratio));
   max-width: 100%;
+  transform-origin: center center;
+  will-change: transform;
 }
 .spread.single {
   height: min(100%, calc((100vw - 40px) * var(--ratio)));
