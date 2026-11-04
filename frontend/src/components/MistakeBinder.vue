@@ -9,11 +9,13 @@
  * 右上の目のボタンで「問題だけ表示」（説明用の画像・文字・手書きを隠す。位置はそのまま）と「すべて表示」を切り替える（端末に記憶）。
  * 拡縮: iPad・スマホはピンチ（拡大中は 1 本指のドラッグで移動、ダブルタップで拡大 ⇄ 戻す）、PC はホイール（ダブルクリックでも）。
  * +/− キー・0 キーでも。ページをめくると等倍に戻る。拡大中は左右タップ・スワイプでのめくりは止まる（矢印ボタン・キーは使える）。
+ * ページ上の画像をタップ（クリック）するとその画像が画面に収まる大きさに拡大され、同じ画像をもう一度タップすると等倍に戻る
+ * （ページは 1 枚の絵なので、配置データ（layout）とページ割りから各画像の位置を計算して当たりを取る）。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { mistakeApi } from '@/api/mistake'
-import { PAGE_H, PAGE_W, groupKeyOf, groupNotes, pageIndexOf, paginate } from '@/lib/mistake'
-import { renderBinderPage } from '@/lib/mistakeRender'
+import { ENTRY_HEAD, GUTTER, HEADER_GAP, HEADER_H, NOTE_W, OUTER, PAGE_H, PAGE_TOP, PAGE_W, contentBox, groupKeyOf, groupNotes, pageIndexOf, paginate } from '@/lib/mistake'
+import { gutterLeft, renderBinderPage } from '@/lib/mistakeRender'
 import { blockDoubleTapZoom, blockUiTextSelection, isTouch, viewportWidth } from '@/lib/native'
 import type { MistakeNoteDetail, MistakeNoteSummary } from '@/types'
 
@@ -127,6 +129,8 @@ watch(single, () => go(pos.value))
 const VIEW_SCALE = 2
 const VIEW_JPEG_QUALITY = 0.9
 const detailCache = new Map<number, Promise<MistakeNoteDetail>>()
+/** 読み込み済みの詳細（画像の当たり判定で同期的に使う） */
+const details = new Map<number, MistakeNoteDetail>()
 const pageCache = new Map<number, Promise<string>>()
 const urls = ref<Record<number, string>>({})
 /** 問題だけ表示（説明用の画像・文字・手書きを隠す。位置はそのまま）。右上の目のボタンで切替。端末に記憶 */
@@ -142,7 +146,7 @@ function detailOf(id: number): Promise<MistakeNoteDetail> {
   let p = detailCache.get(id)
   if (!p) {
     p = mistakeApi.show(id)
-    p.catch(() => detailCache.delete(id))
+    p.then((d) => details.set(id, d)).catch(() => detailCache.delete(id))
     detailCache.set(id, p)
   }
   return p
@@ -246,6 +250,7 @@ const spreadStyle = computed(() => ({ '--ratio': String(ratio), transform: zoome
 function resetZoom() {
   zoom.value = 1
   pan.value = { x: 0, y: 0 }
+  focusKey = null
 }
 /** 見開きの中心（画面座標） */
 function spreadCenter(): { x: number; y: number } {
@@ -259,8 +264,9 @@ function spreadCenter(): { x: number; y: number } {
 function clampPan(p: { x: number; y: number }, z: number): { x: number; y: number } {
   const el = spreadEl.value
   if (!el || z <= 1) return { x: 0, y: 0 }
-  const mx = ((z - 1) * el.offsetWidth) / 2 + 40
-  const my = ((z - 1) * el.offsetHeight) / 2 + 40
+  // 見開きの端が画面の真ん中に来るところまで動かせる（端の画像を中央に寄せられるように）
+  const mx = (z * el.offsetWidth) / 2
+  const my = (z * el.offsetHeight) / 2
   return { x: Math.max(-mx, Math.min(mx, p.x)), y: Math.max(-my, Math.min(my, p.y)) }
 }
 /** 画面上の点 (sx, sy) を動かさずに拡縮する */
@@ -283,6 +289,94 @@ function onWheel(e: WheelEvent) {
 function zoomStep(dir: 1 | -1) {
   const c = spreadCenter()
   zoomAt(zoom.value * (dir > 0 ? 1.25 : 0.8), c.x + pan.value.x, c.y + pan.value.y)
+}
+
+// ---- ページ上の画像をタップで拡大 ----
+interface ImageRect {
+  key: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+/** ページ i に描かれている画像の位置（ページ座標 PAGE_W × PAGE_H）。renderBinderPage / drawNoteContent と同じ計算 */
+function imageRectsOf(i: number): ImageRect[] {
+  const page = pageAt(i)
+  if (!page) return []
+  const ox = gutterLeft(i + 1) ? GUTTER : OUTER
+  const bodyTop = PAGE_TOP + HEADER_H + HEADER_GAP
+  const out: ImageRect[] = []
+  for (const e of page.entries) {
+    const d = details.get(e.note.id)
+    if (!d) continue
+    const box = contentBox(d.layout)
+    if (!box) continue
+    const top = bodyTop + e.y + ENTRY_HEAD
+    const clipW = NOTE_W
+    const clipH = e.contentH + 2
+    for (const it of d.layout.items) {
+      if (it.type !== 'image' || !it.imageId || (problemOnly.value && it.role !== 'problem')) continue
+      // 描画部分の中で切り抜かれる範囲に収める
+      const x1 = Math.max(0, (it.x - box.x) * e.scale)
+      const y1 = Math.max(0, (it.y - box.y) * e.scale)
+      const x2 = Math.min(clipW, (it.x - box.x + it.w) * e.scale)
+      const y2 = Math.min(clipH, (it.y - box.y + it.h) * e.scale)
+      if (x2 - x1 < 4 || y2 - y1 < 4) continue
+      out.push({ key: `${i}:${it.id}`, x: ox + x1, y: top + y1, w: x2 - x1, h: y2 - y1 })
+    }
+  }
+  return out
+}
+/** 画面上の点に当たる画像（どのページの要素か・その画像の位置） */
+function hitImage(sx: number, sy: number): { el: HTMLElement; rect: ImageRect } | null {
+  const root = spreadEl.value
+  if (!root) return null
+  for (const el of Array.from(root.querySelectorAll<HTMLElement>('.page[data-idx]'))) {
+    const r = el.getBoundingClientRect()
+    if (sx < r.left || sx > r.right || sy < r.top || sy > r.bottom) continue
+    const i = Number(el.dataset.idx)
+    const px = ((sx - r.left) / r.width) * PAGE_W
+    const py = ((sy - r.top) / r.height) * PAGE_H
+    // 重なっているときは後に描かれたもの（手前）を優先
+    const rects = imageRectsOf(i).filter((q) => px >= q.x && px <= q.x + q.w && py >= q.y && py <= q.y + q.h)
+    const rect = rects[rects.length - 1]
+    return rect ? { el, rect } : null
+  }
+  return null
+}
+/** 拡大している画像（同じ画像をもう一度タップすると戻す） */
+let focusKey: string | null = null
+/** ページ要素 el 上の矩形（ページ座標）が画面（ステージ）に収まるように拡縮・移動する */
+function zoomToRect(el: HTMLElement, rect: ImageRect) {
+  const stage = el.closest('.stage') as HTMLElement | null
+  if (!stage) return
+  const S = stage.getBoundingClientRect()
+  const r = el.getBoundingClientRect() // 今の拡縮を含む
+  const sx = r.left + (rect.x / PAGE_W) * r.width
+  const sy = r.top + (rect.y / PAGE_H) * r.height
+  const sw = (rect.w / PAGE_W) * r.width
+  const sh = (rect.h / PAGE_H) * r.height
+  const m = 24
+  const z0 = zoom.value
+  const z1 = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z0 * Math.min((S.width - m * 2) / sw, (S.height - m * 2) / sh)))
+  const c = spreadCenter()
+  // 画像の中心（等倍・見開き中心基準）をステージの中心へ
+  const px = (sx + sw / 2 - c.x - pan.value.x) / z0
+  const py = (sy + sh / 2 - c.y - pan.value.y) / z0
+  zoom.value = z1
+  pan.value = z1 <= 1.02 ? { x: 0, y: 0 } : clampPan({ x: S.left + S.width / 2 - c.x - z1 * px, y: S.top + S.height / 2 - c.y - z1 * py }, z1)
+}
+/** タップした画像を拡大する（同じ画像なら等倍に戻す）。画像でなければ false */
+function tapImage(sx: number, sy: number): boolean {
+  const hit = hitImage(sx, sy)
+  if (!hit) return false
+  if (zoomed.value && focusKey === hit.rect.key) {
+    resetZoom()
+    return true
+  }
+  focusKey = hit.rect.key
+  zoomToRect(hit.el, hit.rect)
+  return true
 }
 
 /** 触れている指（ポインター）。2 本でピンチ、拡大中の 1 本はドラッグ移動 */
@@ -347,21 +441,22 @@ function onPointerUp(e: PointerEvent) {
     return
   }
   lastTap = isTap ? { x: e.clientX, y: e.clientY, t: e.timeStamp } : null
-  if (zoomed.value) return // 拡大中はタップ・スワイプでめくらない（矢印・キーで）
-  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 800) {
+  if (!zoomed.value && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 800) {
     if (dx < 0) next()
     else prev()
     return
   }
-  if (isTap) {
-    // 左右のタップでめくる（真ん中のタップはダブルタップ待ち）
+  if (isTap && !flip.value) {
+    // 1 回のタップ（ダブルタップでないことを 330ms 待って確定）: 画像の上なら拡大 ⇄ 戻す、そうでなければ左右でめくる
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const { clientX, clientY, timeStamp } = e
     window.setTimeout(() => {
-      if (lastTap && lastTap.t === e.timeStamp) {
-        lastTap = null
-        if (e.clientX < r.left + r.width * 0.3) prev()
-        else if (e.clientX > r.left + r.width * 0.7) next()
-      }
+      if (!lastTap || lastTap.t !== timeStamp) return
+      lastTap = null
+      if (tapImage(clientX, clientY)) return
+      if (zoomed.value) return // 拡大中はタップでめくらない（矢印・キーで）
+      if (clientX < r.left + r.width * 0.3) prev()
+      else if (clientX > r.left + r.width * 0.7) next()
     }, 330)
   }
 }
@@ -443,11 +538,11 @@ const ratio = PAGE_H / PAGE_W
       </button>
 
       <div ref="spreadEl" class="spread" :class="{ single }" :style="spreadStyle">
-        <div v-if="!single" class="page left" :class="{ blank: leftIdx < 0 }">
+        <div v-if="!single" class="page left" :class="{ blank: leftIdx < 0 }" :data-idx="leftIdx >= 0 ? leftIdx : undefined">
           <img v-if="pageUrl(leftIdx)" :src="pageUrl(leftIdx)" alt="" draggable="false" />
           <div v-else-if="leftIdx >= 0" class="loading">読み込み中…</div>
         </div>
-        <div class="page right" :class="{ blank: rightIdx >= total }">
+        <div class="page right" :class="{ blank: rightIdx >= total }" :data-idx="rightIdx < total ? rightIdx : undefined">
           <img v-if="pageUrl(rightIdx)" :src="pageUrl(rightIdx)" alt="" draggable="false" />
           <div v-else-if="rightIdx < total" class="loading">読み込み中…</div>
         </div>
