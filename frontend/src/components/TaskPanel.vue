@@ -404,12 +404,10 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
               <span class="tp-title">{{ r.task.title }}</span>
               <span class="tp-amt" :style="{ color: g.color, background: hexA(g.color, 0.12) }">{{ fmtAmount(r.quota, r.task.unit) }}</span>
               <span v-if="isOneDay(r.task)" class="tp-oneday">この日だけ</span>
-            </div>
-            <div class="tp-prog">
-              <div class="tp-track"><div class="tp-fill" :style="{ width: r.pct + '%', background: g.color }"></div></div>
+              <span v-else-if="r.task.period === 'week'" class="tp-week-note">今週 {{ r.weekDone }}/{{ r.weekQuota }}</span>
               <span class="tp-num dm">{{ r.done }}<span class="tp-num-q">/{{ r.quota }}</span></span>
             </div>
-            <div v-if="r.task.period === 'week'" class="tp-week-note">今週 {{ r.weekDone }} / {{ fmtAmount(r.weekQuota, r.task.unit) }}</div>
+            <div class="tp-track tp-track-row"><div class="tp-fill" :style="{ width: r.pct + '%', background: g.color }"></div></div>
           </div>
           <svg class="tp-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
         </div>
@@ -677,7 +675,8 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
   color: #b7681a;
   background: #fff4e5;
   border-radius: 99px;
-  padding: 1px 7px;
+  padding: 0 6px;
+  line-height: 18px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -944,13 +943,13 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
 
 /* ---- 科目グループ（日別） ---- */
 .tp-group {
-  padding: 6px 0 4px;
+  padding: 2px 0 2px;
 }
 .tp-g-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 18px 6px;
+  padding: 7px 14px 4px;
 }
 .tp-dot {
   display: inline-block;
@@ -972,8 +971,8 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
 .tp-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px 10px 18px;
+  gap: 10px;
+  padding: 6px 10px 7px 14px;
   border-top: 1px solid #f2f3f5;
   cursor: pointer;
 }
@@ -983,8 +982,8 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
   }
 }
 .tp-check {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 2px solid #d3d7dd;
   background: #fff;
@@ -1006,43 +1005,41 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
 .tp-title-line {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
 }
 .tp-title {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 .tp-row.done .tp-title {
   color: #9aa1ab;
   text-decoration: line-through;
 }
 .tp-amt {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   border-radius: 99px;
-  padding: 1px 8px;
+  padding: 0 7px;
+  line-height: 18px;
   white-space: nowrap;
   flex-shrink: 0;
 }
-.tp-prog {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 6px;
-}
-.tp-prog .tp-track {
-  height: 6px;
+.tp-track-row {
+  height: 3px;
+  margin-top: 4px;
 }
 .tp-num {
+  margin-left: auto;
   font-size: 12.5px;
   font-weight: 700;
   white-space: nowrap;
-  min-width: 44px;
-  text-align: right;
+  flex-shrink: 0;
+  padding-left: 4px;
 }
 .tp-num-q {
   font-size: 11px;
@@ -1052,7 +1049,8 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
 .tp-week-note {
   font-size: 10.5px;
   color: var(--faint);
-  margin-top: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .tp-chev {
   color: #c5cad2;
@@ -1332,10 +1330,48 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
 
 @media (max-width: 600px) {
   .tp-sum {
-    padding: 14px 16px;
+    padding: 9px 14px;
+    gap: 12px;
+  }
+  .tp-ring {
+    width: 50px;
+    height: 50px;
+  }
+  .tp-ring svg {
+    width: 50px;
+    height: 50px;
+  }
+  .tp-ring-num {
+    font-size: 12.5px;
+  }
+  .tp-sum-big > .dm {
+    font-size: 20px;
+  }
+  .tp-sum-big {
+    margin-top: 0;
+  }
+  .tp-sum .tp-track {
+    margin-top: 5px !important;
+    height: 5px;
+  }
+  .tp-days {
+    margin-top: 5px;
+  }
+  .tp-day-bar {
+    height: 18px;
+  }
+  .tp {
+    gap: 10px;
   }
   .tp-row {
-    padding: 10px 10px 10px 14px;
+    padding: 5px 8px 6px 10px;
+    gap: 8px;
+  }
+  .tp-g-head {
+    padding: 6px 10px 3px;
+  }
+  .tp-week-note {
+    display: none;
   }
   .tp-tbl {
     min-width: 0;
