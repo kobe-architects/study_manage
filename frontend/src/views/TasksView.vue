@@ -183,6 +183,7 @@ async function move(g: Group, t: StudyTask, dir: -1 | 1) {
             <div class="tv-line1">
               <span class="tv-name">{{ t.title }}</span>
               <span class="tv-rate" :style="{ color: g.color, background: hexA(g.color, 0.12) }">{{ fmtRate(t) }}</span>
+              <span v-if="t.endOn === t.startOn" class="tv-status soon">{{ t.startOn.slice(5).replace('-', '/') }} だけ</span>
               <span class="tv-status" :class="statusOf(t).cls">{{ statusOf(t).label }}</span>
             </div>
             <div class="tv-line2">

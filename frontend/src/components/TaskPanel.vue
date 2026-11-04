@@ -8,11 +8,11 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import HelpTip from '@/components/HelpTip.vue'
 import { hexA, iso } from '@/lib/design'
-import { addDays, fmtAmount, fmtDate, fmtRate, fmtWeek, isActiveOn, quotaOn, startOfDay, WEEKDAYS, weekDates, weekStart } from '@/lib/tasks'
+import { addDays, fmtAmount, fmtDate, fmtRate, fmtWeek, isActiveOn, quotaOn, startOfDay, UNIT_SUGGESTIONS, WEEKDAYS, weekDates, weekStart } from '@/lib/tasks'
 import { useTaskStore } from '@/stores/task'
 import { useUiStore } from '@/stores/ui'
 import { viewportWidth } from '@/lib/native'
-import type { StudyTask } from '@/types'
+import type { StudyTask, TaskSubject } from '@/types'
 
 const tasks = useTaskStore()
 const ui = useUiStore()
@@ -240,6 +240,69 @@ async function saveRecord() {
     rec.saving = false
   }
 }
+// ---- その日だけのタスクを追加（開始日＝終了日の 1 日あたりタスク。定期的なタスクは「タスク管理」で） ----
+const oneOff = reactive<{ open: boolean; subjectId: number | null; title: string; amount: number; unit: string; date: string; saving: boolean }>({
+  open: false,
+  subjectId: null,
+  title: '',
+  amount: 1,
+  unit: '',
+  date: todayIso,
+  saving: false,
+})
+function openOneOff() {
+  oneOff.open = true
+  oneOff.title = ''
+  oneOff.amount = 1
+  oneOff.unit = ''
+  oneOff.date = mode.value === 'day' ? iso(date.value) : isThisWeek.value ? todayIso : iso(wstart.value)
+  oneOff.saving = false
+  if (oneOff.subjectId !== null && !tasks.subjects.some((x: TaskSubject) => x.id === oneOff.subjectId)) oneOff.subjectId = null
+}
+async function saveOneOff() {
+  const title = oneOff.title.trim()
+  const amount = Math.floor(Number(oneOff.amount) || 0)
+  if (!title) {
+    ui.notify('タイトルを入力してください')
+    return
+  }
+  if (amount < 1) {
+    ui.notify('量は 1 以上の数を入力してください')
+    return
+  }
+  if (!oneOff.date) {
+    ui.notify('日付を入力してください')
+    return
+  }
+  oneOff.saving = true
+  try {
+    await tasks.createTask({
+      title,
+      subjectId: oneOff.subjectId,
+      amount,
+      unit: oneOff.unit.trim() || '回',
+      period: 'day',
+      weekdays: null,
+      startOn: oneOff.date,
+      endOn: oneOff.date,
+      note: null,
+    })
+    oneOff.open = false
+    // 追加した日を表示する
+    if (mode.value === 'day') date.value = new Date(oneOff.date + 'T00:00:00')
+    else wstart.value = weekStart(new Date(oneOff.date + 'T00:00:00'))
+    ui.notify('この日だけのタスクを追加しました')
+  } catch {
+    ui.notify('タスクの追加に失敗しました')
+  } finally {
+    oneOff.saving = false
+  }
+}
+/** 開始日＝終了日の単発タスクか */
+function isOneDay(t: StudyTask) {
+  return t.endOn !== null && t.endOn === t.startOn
+}
+
 const busy = reactive<Record<string, boolean>>({})
 /** ○ のタップ: 未完了なら予定量ぶん完了に、完了なら 0 に戻す */
 async function toggleComplete(t: StudyTask, d: string, quota: number, complete: boolean) {
@@ -277,7 +340,8 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
         </button>
       </div>
       <div class="tp-help">
-        <HelpTip :align="sideTools ? 'left' : 'right'" text="「タスク管理」で科目ごとに登録した「やるべきこと」を日別・週別に展開して表示します。○ をタップすると予定量ぶん完了に、行（週別はセル）をタップすると数を記録できます。" />
+        <button class="tp-add" @click="openOneOff">＋ タスク追加</button>
+        <HelpTip :align="sideTools ? 'left' : 'right'" text="「タスク管理」で科目ごとに登録した「やるべきこと」を日別・週別に展開して表示します。○ をタップすると予定量ぶん完了に、行（週別はセル）をタップすると数を記録できます。「タスク追加」はその日だけのタスク（定期的なタスクは「タスク管理」で登録）。" />
       </div>
     </div>
     </Teleport>
@@ -339,6 +403,7 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
             <div class="tp-title-line">
               <span class="tp-title">{{ r.task.title }}</span>
               <span class="tp-amt" :style="{ color: g.color, background: hexA(g.color, 0.12) }">{{ fmtAmount(r.quota, r.task.unit) }}</span>
+              <span v-if="isOneDay(r.task)" class="tp-oneday">この日だけ</span>
             </div>
             <div class="tp-prog">
               <div class="tp-track"><div class="tp-fill" :style="{ width: r.pct + '%', background: g.color }"></div></div>
@@ -399,7 +464,7 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
                 <tr v-for="r in g.rows" :key="r.task.id">
                   <td class="tp-td-task">
                     <div class="tp-title">{{ r.task.title }}</div>
-                    <div class="tp-rate">{{ fmtRate(r.task) }}</div>
+                    <div class="tp-rate">{{ isOneDay(r.task) ? 'この日だけ' : fmtRate(r.task) }}</div>
                   </td>
                   <td
                     v-for="c in r.cells"
@@ -458,6 +523,42 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
             <div class="tp-m-actions">
               <button class="tp-btn-out" @click="rec.open = false">キャンセル</button>
               <button class="tp-btn-dark" :disabled="rec.saving" @click="saveRecord">記録する</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- その日だけのタスクを追加 -->
+    <Teleport to="body">
+      <Transition name="ui-modal">
+        <div v-if="oneOff.open" class="tp-mbg ui-overlay ui-sheet">
+          <div class="tp-modal ui-panel">
+            <div class="tp-m-title">この日だけのタスクを追加</div>
+            <div class="tp-m-note">この日（1 日）だけ表示されるタスクです。毎日・毎週くり返すタスクはヘッダーの「タスク管理」から登録してください。</div>
+            <label class="tp-fld">
+              <span>日付</span>
+              <input v-model="oneOff.date" type="date" />
+            </label>
+            <label class="tp-fld">
+              <span>科目</span>
+              <select v-model="oneOff.subjectId">
+                <option :value="null">その他（科目なし）</option>
+                <option v-for="sub in tasks.subjects" :key="sub.id" :value="sub.id">{{ sub.name }}</option>
+              </select>
+            </label>
+            <label class="tp-fld">
+              <span>タイトル</span>
+              <input v-model="oneOff.title" type="text" placeholder="例: 数学 過去問 2024 年度 ／ 英語 プリント" maxlength="255" @keydown.enter.prevent="saveOneOff" />
+            </label>
+            <div class="tp-fld-row">
+              <label class="tp-fld" style="flex: 1"><span>量</span><input v-model.number="oneOff.amount" type="number" inputmode="numeric" min="1" step="1" /></label>
+              <label class="tp-fld" style="flex: 1.4"><span>単位（空欄は「回」）</span><input v-model="oneOff.unit" type="text" list="tp-units" placeholder="問 ／ ページ ／ 年分" maxlength="30" /></label>
+              <datalist id="tp-units"><option v-for="u in UNIT_SUGGESTIONS" :key="u" :value="u" /></datalist>
+            </div>
+            <div class="tp-m-actions">
+              <button class="tp-btn-out" @click="oneOff.open = false">キャンセル</button>
+              <button class="tp-btn-dark" :disabled="oneOff.saving" @click="saveOneOff">追加</button>
             </div>
           </div>
         </div>
@@ -553,6 +654,63 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
   margin-left: auto;
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+.tp-add {
+  padding: 7px 13px;
+  border: none;
+  border-radius: 9px;
+  background: #1c2024;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tp-bar.side .tp-add {
+  flex: 1;
+  padding: 9px 10px;
+}
+.tp-oneday {
+  font-size: 10px;
+  font-weight: 700;
+  color: #b7681a;
+  background: #fff4e5;
+  border-radius: 99px;
+  padding: 1px 7px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tp-m-note {
+  font-size: 11.5px;
+  color: var(--mut);
+  line-height: 1.5;
+  margin-top: -8px;
+}
+.tp-fld {
+  display: block;
+}
+.tp-fld > span {
+  font-size: 12px;
+  color: var(--mut);
+  font-weight: 500;
+  display: block;
+  margin-bottom: 5px;
+}
+.tp-fld input,
+.tp-fld select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+  color: var(--ink);
+}
+.tp-fld-row {
+  display: flex;
+  gap: 10px;
 }
 /* PC: トップページ左のサイドメニューに縦に並べる */
 .tp-bar.side {
@@ -581,7 +739,7 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
 }
 .tp-bar.side .tp-help {
   margin-left: 0;
-  justify-content: flex-end;
+  justify-content: space-between;
 }
 .tp-go {
   margin-top: 12px;
