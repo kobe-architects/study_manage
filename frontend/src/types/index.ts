@@ -992,3 +992,51 @@ export interface GrammarBook {
   incorrect: number
   unanswered: number
 }
+
+// ===== タスク管理（科目ごとの「やるべきこと」。1 日／1 週あたりの量で登録し、日別・週別に展開） =====
+export type TaskPeriod = 'day' | 'week'
+
+export interface TaskSubject {
+  id: number
+  name: string
+  colorSoft: string
+  colorVivid: string
+}
+
+export interface StudyTask {
+  id: number
+  subjectId: number | null
+  subjectName: string | null
+  colorSoft: string
+  colorVivid: string
+  title: string // 例: 英単語 LEAP basic
+  amount: number // 期間あたりの量（例: 140）
+  unit: string // 単位（例: words / 単元）
+  period: TaskPeriod // day=1 日あたり / week=1 週あたり
+  weekdays: number[] | null // 取り組む曜日（0=日〜6=土）。null は毎日
+  startOn: string // ISO
+  endOn: string | null // ISO。null は無期限
+  note: string | null
+  isActive: boolean
+  sortOrder: number
+}
+
+export interface StudyTaskInput {
+  title: string
+  subjectId: number | null
+  amount: number
+  unit: string
+  period: TaskPeriod
+  weekdays: number[] | null
+  startOn: string
+  endOn: string | null
+  note: string | null
+  isActive?: boolean
+}
+
+/** タスクの 1 日の消化量 */
+export interface StudyTaskLog {
+  taskId: number
+  date: string
+  amount: number
+}

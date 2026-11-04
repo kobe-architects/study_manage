@@ -13,6 +13,7 @@ const router = createRouter({
       children: [
         { path: '', name: 'home', component: () => import('@/views/HomeView.vue') },
         { path: 'data', name: 'data', component: () => import('@/views/DataView.vue') },
+        { path: 'tasks', name: 'tasks', component: () => import('@/views/TasksView.vue') },
         { path: 'resource', name: 'resource', component: () => import('@/views/ResourceDataView.vue') },
         { path: 'record', name: 'record', component: () => import('@/views/RecordView.vue') },
         { path: 'quiz', name: 'quiz', component: () => import('@/views/QuizView.vue') },

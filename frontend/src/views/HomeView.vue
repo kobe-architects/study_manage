@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import AssignmentCard from '@/components/AssignmentCard.vue'
+import TaskPanel from '@/components/TaskPanel.vue'
 import QuizHomePanel from '@/components/QuizHomePanel.vue'
 import Heatmap from '@/components/Heatmap.vue'
 import SubjectProgressPanels from '@/components/SubjectProgressPanels.vue'
@@ -26,7 +27,8 @@ const router = useRouter()
 const today = new Date()
 today.setHours(0, 0, 0, 0)
 
-const tab = ref<'plan' | 'progress' | 'goals' | 'review'>('plan')
+// 既定は「タスク」（その日やるべきこと・進み具合を最初に見る）
+const tab = ref<'tasks' | 'plan' | 'progress' | 'goals' | 'review'>('tasks')
 
 // 先生からの課題（未記録のみカード表示）
 study.fetchAssignments().catch(() => {})
@@ -498,6 +500,7 @@ async function deleteEvent(id: number) {
     <!-- tabs -->
     <div style="display: flex; margin-bottom: 18px" :class="{ 'full-w': (tab === 'plan' || tab === 'progress') && !isMobile }">
       <div v-seg class="seg">
+        <button class="seg-btn" :class="{ on: tab === 'tasks' }" @click="tab = 'tasks'">タスク</button>
         <button class="seg-btn" :class="{ on: tab === 'plan' }" @click="tab = 'plan'">計画</button>
         <button class="seg-btn" :class="{ on: tab === 'progress' }" @click="tab = 'progress'">進捗率</button>
         <button class="seg-btn" :class="{ on: tab === 'goals' }" @click="selectGoals">目標</button>
@@ -505,8 +508,13 @@ async function deleteEvent(id: number) {
       </div>
     </div>
 
+    <!-- タスクタブ: 科目ごとのタスクを日別・週別の計画に展開して表示・消化（components/TaskPanel.vue） -->
+    <div v-if="tab === 'tasks'" class="tasks-wrap">
+      <TaskPanel />
+    </div>
+
     <!-- 計画タブ: カレンダー / 先生からの課題 / 小テスト の3カラム（PC は全幅・各カラムが独立してスクロール） -->
-    <div v-if="tab === 'plan'" class="home-cols plan-cols" :class="{ mobile: isMobile }">
+    <div v-else-if="tab === 'plan'" class="home-cols plan-cols" :class="{ mobile: isMobile }">
       <!-- カレンダー列 -->
       <div class="hcol hcol-cal" :style="{ order: isMobile ? 2 : 0 }">
         <div class="card" style="padding: 16px 18px">
@@ -852,6 +860,10 @@ async function deleteEvent(id: number) {
 </template>
 
 <style scoped>
+/* タスクタブ（読みやすい幅に収める） */
+.tasks-wrap {
+  max-width: 980px;
+}
 /* 今後の予定（備考は2行目に小さく表示） */
 .upc-row {
   display: flex;

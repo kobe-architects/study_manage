@@ -94,6 +94,7 @@ export const ICONS: Record<string, string[]> = {
   grammar: ['M4 5h16v14H4z', 'M7.5 9h3', 'M13.5 9h3', 'M7.5 12.5h9', 'M7.5 16h5', 'M15.5 15l1.5 1.5 2.5-3'],
   resource: ['M4 5h7v15H4z', 'M13 5h7v15h-7z', 'M7 9h1.5', 'M16 9h1.5', 'M7 13h1.5', 'M16 13h1.5'],
   test: ['M6 3.5h9l4 4v13H6z', 'M15 3.5v4h4', 'M9 11h6', 'M9 14.5h6', 'M9 18h3'],
+  task: ['M5 4.5h14v15H5z', 'M8.5 9.5l1.5 1.5 3-3', 'M15 10h1.5', 'M8.5 15l1.5 1.5 3-3', 'M15 15.5h1.5'],
   invoice: ['M6 3.5h12V20.5l-2.4-1.6-1.8 1.6-1.8-1.6-1.8 1.6-1.8-1.6L6 20.5z', 'M9.5 8l2.5 3.2L14.5 8', 'M12 11.2v4.3', 'M10 12.8h4', 'M10 14.8h4'],
 }
 
@@ -106,6 +107,7 @@ export interface NavDef {
 
 export const NAV: NavDef[] = [
   { key: 'home', route: 'home', label: 'トップページ', short: 'トップ' },
+  { key: 'task', route: 'tasks', label: 'タスク管理', short: 'タスク' },
   { key: 'resource', route: 'resource', label: '個別学習一覧データ', short: '一覧' },
   { key: 'record', route: 'record', label: '学習記録', short: '記録' },
   { key: 'quiz', route: 'quiz', label: '英単語クイズ', short: '単語' },

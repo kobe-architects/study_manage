@@ -16,6 +16,7 @@ use App\Http\Controllers\ResourceBookPdfController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudyItemController;
 use App\Http\Controllers\StudyResourceController;
+use App\Http\Controllers\StudyTaskController;
 use App\Http\Controllers\TutorAccountController;
 use App\Http\Controllers\TutorInvoiceController;
 use App\Http\Controllers\VocabularyController;
@@ -130,6 +131,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/mistake-decks/assign', [MistakeDeckController::class, 'assign']); // ページをデッキへ移す
         Route::put('/mistake-decks/{deck}', [MistakeDeckController::class, 'update']);
         Route::delete('/mistake-decks/{deck}', [MistakeDeckController::class, 'destroy']);
+
+        // ===== タスク管理（科目ごとの「やるべきこと」を 1 日／1 週あたりの量で登録。日別・週別の展開は画面側） =====
+        Route::get('/tasks', [StudyTaskController::class, 'index']);
+        Route::post('/tasks', [StudyTaskController::class, 'store']);
+        Route::put('/tasks/reorder', [StudyTaskController::class, 'reorder']);
+        Route::get('/tasks/logs', [StudyTaskController::class, 'logs']); // 期間内の消化量
+        Route::put('/tasks/{task}', [StudyTaskController::class, 'update']);
+        Route::delete('/tasks/{task}', [StudyTaskController::class, 'destroy']);
+        Route::put('/tasks/{task}/log', [StudyTaskController::class, 'saveLog']); // その日の消化量
 
         // ===== 家庭教師アカウント管理 =====
         Route::get('/tutors', [TutorAccountController::class, 'index']);

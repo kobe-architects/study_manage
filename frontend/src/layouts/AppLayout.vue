@@ -78,6 +78,7 @@ const examDateLabel = computed(() => {
 const activeKey = computed(() => {
   const map: Record<string, string> = {
     home: 'home',
+    tasks: 'task',
     data: 'data',
     resource: 'resource',
     record: 'record',
