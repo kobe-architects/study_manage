@@ -35,7 +35,7 @@ import type { ImageCrop, MistakeLayout, MistakeLayoutItem, MistakeStroke, Stroke
 type Tool = 'select' | 'pen' | 'eraser' | 'text'
 
 const props = defineProps<{ layout: MistakeLayout; urls: Record<number, string>; hasProblem: boolean; busy?: boolean; canAddProblem?: boolean; toolbarTo?: HTMLElement | null }>()
-const emit = defineEmits<{ 'update:layout': [layout: MistakeLayout]; removeImage: [imageId: number]; requestProblem: []; requestExtra: []; requestPaste: []; makeProblem: [imageId: number] }>()
+const emit = defineEmits<{ 'update:layout': [layout: MistakeLayout]; removeImage: [imageId: number]; requestProblem: []; requestExtra: []; requestAnswer: []; requestPaste: []; makeProblem: [imageId: number]; makeAnswer: [imageId: number] }>()
 
 const ui = useUiStore()
 const gid = newItemId('g') // 方眼パターンの id（画面内で一意に）
@@ -81,6 +81,9 @@ const selected = computed(() => props.layout.items.find((i) => i.id === selected
 const canDelete = computed(() => !!selected.value && !(selected.value.type === 'image' && selected.value.role === 'problem'))
 /** 選択中の説明用の画像を「問題」にできるか */
 const canMakeProblem = computed(() => !!selected.value && selected.value.type === 'image' && selected.value.role !== 'problem' && !!selected.value.imageId)
+/** 選択中の説明用の画像を「解答の画像」にできる（問題解答モードで「解答を表示」に使う） */
+const canMakeAnswer = computed(() => !!selected.value && selected.value.type === 'image' && !selected.value.role && !!selected.value.imageId)
+const hasAnswer = computed(() => props.layout.items.some((i) => i.role === 'answer'))
 
 // ---- ステージ（表示枠）と拡大縮小・移動 ----
 const stage = ref<HTMLElement | null>(null)
@@ -787,6 +790,9 @@ onBeforeUnmount(() => {
           <button class="tb" :disabled="busy || !hasProblem" title="説明用の画像を追加" @click="emit('requestExtra')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 16l5-5 4 4 3-3 6 6" /><circle cx="16" cy="9" r="1.5" /></svg><span>画像</span>
           </button>
+          <button class="tb" :disabled="busy || !hasProblem" :title="hasAnswer ? '解答の画像を差し替える（問題解答モードで「解答を表示」に使います）' : '解答の画像を登録する（問題解答モードで「解答を表示」に使います）'" @click="emit('requestAnswer')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M8 12l3 3 5-6" /></svg><span>解答</span>
+          </button>
           <button class="tb" :disabled="busy || (!hasProblem && !canAddProblem)" title="コピーした画像を貼り付ける（最初は対象の問題の写真、以降は説明用の画像）" @click="emit('requestPaste')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2.5" width="8" height="3.5" rx="1" /><path d="M16 4.5h2.5a1.5 1.5 0 0 1 1.5 1.5v14a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 20V6a1.5 1.5 0 0 1 1.5-1.5H8" /><path d="M9 12h6M9 16h4" /></svg><span>貼り付け</span>
           </button>
@@ -798,6 +804,9 @@ onBeforeUnmount(() => {
           </button>
           <button v-if="canMakeProblem" class="tb accent" :disabled="busy" title="選択中の画像を対象の問題の写真にする（今の問題の写真は説明用になります）" @click="emit('makeProblem', selected!.imageId!)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z" /></svg><span>問題に</span>
+          </button>
+          <button v-if="canMakeAnswer" class="tb accent" :disabled="busy" title="選択中の画像を解答の画像にする（問題解答モードで「解答を表示」に使います。今の解答の画像は説明用になります）" @click="emit('makeAnswer', selected!.imageId!)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M8 12l3 3 5-6" /></svg><span>解答に</span>
           </button>
           <button class="tb danger" :disabled="!canDelete" :title="selected?.type === 'text' ? '文字の枠を削除' : '画像を削除'" @click="deleteSelected">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg><span>削除</span>
@@ -852,7 +861,7 @@ onBeforeUnmount(() => {
           v-for="it in layout.items"
           :key="it.id"
           class="item"
-          :class="{ sel: selectedId === it.id, text: it.type === 'text', problem: it.role === 'problem' }"
+          :class="{ sel: selectedId === it.id, text: it.type === 'text', problem: it.role === 'problem', answer: it.role === 'answer' }"
           :data-item="it.id"
           :style="box(it)"
         >
@@ -878,6 +887,7 @@ onBeforeUnmount(() => {
             <span class="mv r" data-move :data-item="it.id"></span>
           </template>
           <span v-if="it.role === 'problem'" class="tag">問題</span>
+          <span v-else-if="it.role === 'answer'" class="tag answer">解答</span>
           <span v-if="selectedId === it.id" class="hdl" data-handle="se" :data-item="it.id"></span>
         </div>
 
@@ -1272,6 +1282,9 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   padding: 2px 10px;
   pointer-events: none;
+}
+.tag.answer {
+  background: rgba(46, 157, 98, 0.85);
 }
 /* つまみは拡縮しても画面上で同じ大きさに見えるようにする（--inv = 1 / 倍率） */
 .hdl {

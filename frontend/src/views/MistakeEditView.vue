@@ -2,19 +2,21 @@
 /**
  * 間違いノートの 1 問（1 ページ）の作成・編集。
  * 対象の問題の写真（必須）を撮影／選択／貼り付け／ドロップで登録すると保存が始まり、以降の変更は自動で保存する。
- * 科目・分野・タイトル・出典・日付と、ページの配置（MistakeCanvas）を扱う。
+ * 科目・分野・デッキ・タイトル・出典・日付と、ページの配置（MistakeCanvas）を扱う。
+ * 科目「その他」（OTHER_SUBJECT）は分類（大分類〜小分類）を持たず、本棚ではデッキ別の参照のみ。
+ * 解答の画像（role=answer・任意・1 枚）は問題解答モードの「解答を表示」に使う（ページ上では説明用の画像と同じように置ける）。
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MistakeCanvas from '@/components/MistakeCanvas.vue'
 import { mistakeApi } from '@/api/mistake'
 import { iso } from '@/lib/design'
-import { bottomOf, ensureLayout, fileToJpeg, fitExtra, fitProblem, forgetImageUrl, imageObjectUrl, newItemId, registerImageUrl } from '@/lib/mistake'
+import { OTHER_SUBJECT, OTHER_SUBJECT_COLOR, bottomOf, ensureLayout, fileToJpeg, fitExtra, fitProblem, forgetImageUrl, imageObjectUrl, newItemId, registerImageUrl } from '@/lib/mistake'
 import { blockDoubleTapZoom, blockUiTextSelection, installInkTouchGuard, isTouch } from '@/lib/native'
 import { useResourceStore } from '@/stores/resource'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
-import type { MistakeLayout, MistakeLayoutItem, MistakeNoteDetail } from '@/types'
+import type { MistakeDeck, MistakeLayout, MistakeLayoutItem, MistakeNoteDetail } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -26,19 +28,27 @@ const noteId = computed(() => (route.name === 'mistake-edit' ? Number(route.para
 const note = ref<MistakeNoteDetail | null>(null)
 const layout = ref<MistakeLayout>(ensureLayout())
 const urls = reactive<Record<number, string>>({})
-const meta = reactive({ subjectId: 0, majorId: 0, midId: 0, studyItemId: 0, resourceBookId: 0, title: '', notedOn: iso(new Date()) })
-/** 科目・大分類・中分類が選ばれている（登録・保存の条件） */
-const categoriesReady = computed(() => meta.subjectId > 0 && meta.majorId > 0 && meta.midId > 0)
+const meta = reactive({ subjectId: 0, majorId: 0, midId: 0, studyItemId: 0, resourceBookId: 0, deckId: 0, title: '', notedOn: iso(new Date()) })
+/** 科目「その他」（分類なし。デッキ別の参照のみ） */
+const isOther = computed(() => meta.subjectId === OTHER_SUBJECT)
+/** 科目・大分類・中分類が選ばれている（登録・保存の条件）。「その他」は科目だけでよい */
+const categoriesReady = computed(() => isOther.value || (meta.subjectId > 0 && meta.majorId > 0 && meta.midId > 0))
+/** デッキ（本棚の本・任意） */
+const decks = ref<MistakeDeck[]>([])
+const newDeckName = ref('')
+const creatingDeck = ref(false)
 const loading = ref(true)
 const busy = ref(false)
 const saveState = ref<'none' | 'dirty' | 'saving' | 'saved' | 'error'>('none')
 const hasProblem = computed(() => layout.value.items.some((i) => i.role === 'problem'))
+const hasAnswer = computed(() => layout.value.items.some((i) => i.role === 'answer'))
 
 // ---- 科目 → 大分類 → 中分類 → 小分類 の候補（学習項目データから） ----
 const subjects = computed(() => {
   const m = new Map<number, { id: number; name: string; color: string }>()
   for (const it of study.items) if (!m.has(it.subjectId)) m.set(it.subjectId, { id: it.subjectId, name: it.subjectName, color: ui.colorOf(it.colorSoft, it.colorVivid) })
-  return Array.from(m.values())
+  // 「その他」: 分類を持たない科目（本棚ではデッキ別の参照のみ）
+  return [...m.values(), { id: OTHER_SUBJECT, name: 'その他', color: OTHER_SUBJECT_COLOR }]
 })
 const majors = computed(() => {
   const m = new Map<number, { id: number; name: string }>()
@@ -75,6 +85,12 @@ watch(
   () => meta.subjectId,
   () => {
     if (loading.value) return
+    if (isOther.value) {
+      meta.majorId = 0
+      meta.midId = 0
+      meta.studyItemId = 0
+      return
+    }
     if (!majors.value.some((m) => m.id === meta.majorId)) {
       meta.majorId = 0
       meta.midId = 0
@@ -107,6 +123,10 @@ async function load() {
     await Promise.all([
       study.items.length ? Promise.resolve() : study.fetchItems().catch(() => {}),
       resource.books.length ? Promise.resolve() : resource.fetchBooks().catch(() => {}),
+      mistakeApi
+        .decks()
+        .then((d) => (decks.value = d))
+        .catch(() => {}),
     ])
     if (noteId.value) {
       const d = await mistakeApi.show(noteId.value)
@@ -117,15 +137,16 @@ async function load() {
       meta.midId = d.midId ?? 0
       meta.studyItemId = d.studyItemId ?? 0
       meta.resourceBookId = d.resourceBookId ?? 0
+      meta.deckId = d.deckId ?? 0
       meta.title = d.title ?? ''
       meta.notedOn = d.notedOn
       await Promise.all(d.images.map((im) => imageObjectUrl(im.id).then((u) => (urls[im.id] = u)).catch(() => {})))
       saveState.value = 'saved'
       showMeta.value = false
     } else {
-      // 新規: 科目・分野は前回使ったもの
+      // 新規: 科目・分野・デッキは前回使ったもの（デッキは一覧で開いていた本があればそれ）
       try {
-        const last = JSON.parse(localStorage.getItem('sm_mn_cat') ?? '{}') as { subjectId?: number; majorId?: number; midId?: number }
+        const last = JSON.parse(localStorage.getItem('sm_mn_cat') ?? '{}') as { subjectId?: number; majorId?: number; midId?: number; deckId?: number }
         if (subjects.value.some((s) => s.id === last.subjectId)) {
           meta.subjectId = last.subjectId!
           if (majors.value.some((m) => m.id === last.majorId)) {
@@ -133,6 +154,9 @@ async function load() {
             if (mids.value.some((m) => m.id === last.midId)) meta.midId = last.midId!
           }
         }
+        const q = Number(route.query.deck ?? 0)
+        const deckId = q || last.deckId || 0
+        if (decks.value.some((d) => d.id === deckId)) meta.deckId = deckId
       } catch {
         // ignore
       }
@@ -146,17 +170,41 @@ async function load() {
   }
 }
 onMounted(load)
-watch(categoriesReady, (ok) => {
-  if (ok) localStorage.setItem('sm_mn_cat', JSON.stringify({ subjectId: meta.subjectId, majorId: meta.majorId, midId: meta.midId }))
+watch([categoriesReady, () => meta.deckId], ([ok]) => {
+  if (ok) localStorage.setItem('sm_mn_cat', JSON.stringify({ subjectId: meta.subjectId, majorId: meta.majorId, midId: meta.midId, deckId: meta.deckId }))
 })
+
+/** デッキの選択肢で「＋ 新しいデッキ」を選んだら名前の入力欄を出す */
+function onDeckPick(e: Event) {
+  const v = Number((e.target as HTMLSelectElement).value)
+  if (v === -1) {
+    meta.deckId = 0
+    creatingDeck.value = true
+  }
+}
+async function createDeck() {
+  const name = newDeckName.value.trim()
+  if (!name) return
+  try {
+    const d = await mistakeApi.createDeck({ name })
+    decks.value = [...decks.value, d]
+    meta.deckId = d.id
+    newDeckName.value = ''
+    creatingDeck.value = false
+    ui.notify(`デッキ「${d.name}」を作りました`)
+  } catch (e) {
+    ui.notify(errorMessage(e, 'デッキの作成に失敗しました'))
+  }
+}
 
 function metaPayload() {
   return {
     subjectId: meta.subjectId || null,
-    majorId: meta.majorId || null,
-    midId: meta.midId || null,
-    studyItemId: meta.studyItemId || null,
+    majorId: isOther.value ? null : meta.majorId || null,
+    midId: isOther.value ? null : meta.midId || null,
+    studyItemId: isOther.value ? null : meta.studyItemId || null,
     resourceBookId: meta.resourceBookId || null,
+    deckId: meta.deckId || null,
     title: meta.title.trim() || null,
     notedOn: meta.notedOn,
   }
@@ -214,6 +262,7 @@ onBeforeUnmount(() => {
 // ---- 画像の登録 ----
 const problemInput = ref<HTMLInputElement | null>(null)
 const extraInput = ref<HTMLInputElement | null>(null)
+const answerInput = ref<HTMLInputElement | null>(null)
 
 /** 対象の問題の写真を登録（初回は保存の開始、2 回目以降は差し替え） */
 async function setProblem(file: Blob) {
@@ -281,6 +330,62 @@ async function addExtra(file: Blob) {
   }
 }
 
+/** 解答の画像を登録（2 回目以降は差し替え。枠の位置・大きさは前の解答の画像のまま）。問題解答モードの「解答を表示」に使う */
+async function setAnswer(file: Blob) {
+  if (busy.value) return
+  if (!note.value) {
+    ui.notify('先に対象の問題の写真を登録してください')
+    return
+  }
+  busy.value = true
+  try {
+    const { blob, width, height } = await fileToJpeg(file, 1600)
+    const img = await mistakeApi.addImage(note.value.id, blob, 'answer')
+    registerImageUrl(img.id, blob)
+    urls[img.id] = await imageObjectUrl(img.id)
+    const old = layout.value.items.find((i) => i.role === 'answer')
+    if (old?.imageId) forgetImageUrl(old.imageId)
+    note.value.images = [...note.value.images.filter((i) => i.role !== 'answer'), img]
+    const problem = layout.value.items.find((i) => i.role === 'problem')
+    const box = old ? { x: old.x, y: old.y, w: old.w, h: Math.round((old.w * height) / Math.max(1, width)) } : fitExtra(width, height, problem ? problem.y + problem.h : bottomOf(layout.value.items))
+    const item: MistakeLayoutItem = { id: old?.id ?? newItemId('a'), type: 'image', imageId: img.id, role: 'answer', ...box }
+    const rest = layout.value.items.filter((i) => i.role !== 'answer')
+    onLayout({ items: old ? layout.value.items.map((i) => (i.id === old.id ? item : i)) : [...rest, item], ink: layout.value.ink })
+    ui.notify(old ? '解答の画像を差し替えました' : '解答の画像を登録しました')
+  } catch (e) {
+    ui.notify(errorMessage(e, '画像の登録に失敗しました'))
+  } finally {
+    busy.value = false
+  }
+}
+
+/** 説明用の画像を解答の画像にする（前の解答の画像は説明用になる） */
+async function makeAnswer(imageId: number) {
+  if (!note.value || busy.value) return
+  busy.value = true
+  try {
+    const images = await mistakeApi.setImageRole(imageId, 'answer')
+    note.value.images = images
+    onLayout({
+      items: layout.value.items.map((it) => {
+        if (it.type !== 'image') return it
+        if (it.imageId === imageId) return { ...it, role: 'answer' as const }
+        if (it.role === 'answer') {
+          const { role: _r, ...rest } = it
+          return rest
+        }
+        return it
+      }),
+      ink: layout.value.ink,
+    })
+    ui.notify('この画像を解答にしました')
+  } catch (e) {
+    ui.notify(errorMessage(e, '変更に失敗しました'))
+  } finally {
+    busy.value = false
+  }
+}
+
 /** 説明用の画像を対象の問題の写真にする（位置・大きさはそのまま。前の問題の写真は説明用になる） */
 async function makeProblem(imageId: number) {
   if (!note.value || busy.value) return
@@ -318,12 +423,13 @@ async function removeImage(imageId: number) {
   }
 }
 
-function onFile(e: Event, kind: 'problem' | 'extra') {
+function onFile(e: Event, kind: 'problem' | 'extra' | 'answer') {
   const input = e.target as HTMLInputElement
   const f = input.files?.[0]
   input.value = ''
   if (!f) return
   if (kind === 'problem') setProblem(f)
+  else if (kind === 'answer') setAnswer(f)
   else addExtra(f)
 }
 /** タッチ端末で、カメラではなく写真ライブラリから対象の問題を選ぶ */
@@ -426,26 +532,45 @@ onBeforeUnmount(() => unblock.forEach((f) => f()))
             <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
           </select>
         </label>
+        <template v-if="!isOther">
+          <label class="fld">
+            <span>大分類<b class="req">必須</b></span>
+            <select v-model.number="meta.majorId" :class="{ empty: !meta.majorId }">
+              <option :value="0">選択してください</option>
+              <option v-for="m in majors" :key="m.id" :value="m.id">{{ m.name }}</option>
+            </select>
+          </label>
+          <label class="fld">
+            <span>中分類<b class="req">必須</b></span>
+            <select v-model.number="meta.midId" :class="{ empty: !meta.midId }" :disabled="!meta.majorId">
+              <option :value="0">選択してください</option>
+              <option v-for="m in mids" :key="m.id" :value="m.id">{{ m.name }}</option>
+            </select>
+          </label>
+          <label class="fld">
+            <span>小分類（任意）</span>
+            <select v-model.number="meta.studyItemId" :disabled="!meta.midId">
+              <option :value="0">指定しない</option>
+              <option v-for="s in subs" :key="s.id" :value="s.id">{{ s.name }}</option>
+            </select>
+          </label>
+        </template>
+        <span v-else class="fld other-note"><span>分類</span><em>「その他」は分類を持たず、本棚ではデッキ別にだけ表示されます</em></span>
         <label class="fld">
-          <span>大分類<b class="req">必須</b></span>
-          <select v-model.number="meta.majorId" :class="{ empty: !meta.majorId }">
-            <option :value="0">選択してください</option>
-            <option v-for="m in majors" :key="m.id" :value="m.id">{{ m.name }}</option>
-          </select>
-        </label>
-        <label class="fld">
-          <span>中分類<b class="req">必須</b></span>
-          <select v-model.number="meta.midId" :class="{ empty: !meta.midId }" :disabled="!meta.majorId">
-            <option :value="0">選択してください</option>
-            <option v-for="m in mids" :key="m.id" :value="m.id">{{ m.name }}</option>
-          </select>
-        </label>
-        <label class="fld">
-          <span>小分類（任意）</span>
-          <select v-model.number="meta.studyItemId" :disabled="!meta.midId">
+          <span>デッキ（本棚の本・任意）</span>
+          <select v-model.number="meta.deckId" @change="onDeckPick">
             <option :value="0">指定しない</option>
-            <option v-for="s in subs" :key="s.id" :value="s.id">{{ s.name }}</option>
+            <option v-for="d in decks" :key="d.id" :value="d.id">{{ d.name }}</option>
+            <option :value="-1">＋ 新しいデッキ…</option>
           </select>
+        </label>
+        <label v-if="creatingDeck" class="fld">
+          <span>新しいデッキの名前</span>
+          <span class="deck-new">
+            <input v-model="newDeckName" placeholder="例: 数学 定期テスト対策" @keydown.enter.prevent="createDeck" />
+            <button class="btn-dark" :disabled="!newDeckName.trim()" @click="createDeck">作成</button>
+            <button class="btn-ghost" @click="creatingDeck = false">取消</button>
+          </span>
         </label>
         <label class="fld grow">
           <span>タイトル（任意）</span>
@@ -468,6 +593,7 @@ onBeforeUnmount(() => unblock.forEach((f) => f()))
 
       <input ref="problemInput" type="file" accept="image/*" :capture="isTouch ? 'environment' : undefined" hidden @change="onFile($event, 'problem')" />
       <input ref="extraInput" type="file" accept="image/*" hidden @change="onFile($event, 'extra')" />
+      <input ref="answerInput" type="file" accept="image/*" hidden @change="onFile($event, 'answer')" />
       <!-- 画像の登録（項目の欄と一緒に表示。キャンバス左の道具からも同じ操作ができる） -->
       <div v-show="showMeta" class="imgbar">
         <span class="imgbar-label">対象の問題の写真<span v-if="!hasProblem" style="color: #cf5563">（必須）</span></span>
@@ -478,6 +604,7 @@ onBeforeUnmount(() => unblock.forEach((f) => f()))
         </button>
         <button v-if="isTouch" class="btn-ghost" :disabled="busy || (!note && !categoriesReady)" @click="pickProblemFromLibrary">写真から選ぶ</button>
         <span class="sep"></span>
+        <button class="btn-ghost" :disabled="busy || !hasProblem" :title="hasAnswer ? '解答の画像を差し替える（問題解答モードで「解答を表示」に使います）' : '解答の画像を登録する（問題解答モードで「解答を表示」に使います）'" @click="answerInput?.click()">{{ hasAnswer ? '解答の画像を差し替え' : '＋ 解答の画像' }}</button>
         <button class="btn-ghost" :disabled="busy || !hasProblem" @click="extraInput?.click()">＋ 説明用の画像を追加</button>
         <button class="btn-ghost" :disabled="busy || (!hasProblem && !note && !categoriesReady)" title="コピーした画像を登録（最初は対象の問題の写真、以降は説明用の画像）" @click="pasteFromClipboard">貼り付け</button>
         <span class="paste-hint">{{ isTouch ? 'コピーした画像は「貼り付け」で登録できます' : '画像をコピーして「貼り付け」か Ctrl+V、またはページへドラッグ＆ドロップでも登録できます' }}</span>
@@ -496,8 +623,10 @@ onBeforeUnmount(() => unblock.forEach((f) => f()))
           @remove-image="removeImage"
           @request-problem="problemInput?.click()"
           @request-extra="extraInput?.click()"
+          @request-answer="answerInput?.click()"
           @request-paste="pasteFromClipboard"
           @make-problem="makeProblem"
+          @make-answer="makeAnswer"
         />
       </div>
     </template>
@@ -609,6 +738,20 @@ onBeforeUnmount(() => unblock.forEach((f) => f()))
 }
 .fld select:disabled {
   opacity: 0.5;
+}
+.other-note em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--faint);
+  padding: 9px 0;
+}
+.deck-new {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.deck-new input {
+  min-width: 180px;
 }
 .req {
   margin-left: 5px;

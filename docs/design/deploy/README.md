@@ -331,3 +331,11 @@ php artisan config:cache && php artisan route:cache
   （`frontend/src/lib/checkSheet.ts`）。サーバーは日ごとの結果だけを返す（`/grammar/checksheet`・
   `/study-resources/{id}/vocabularies/checksheet`。`tz` は端末のタイムゾーンのずれ・分。既定 540＝日本時間）。
 - 英文法・語法の章・Theme 名・形式・区分は `frontend/src/data/scrambleSheet.ts`（PDF から起こした固定データ）。
+
+## 15. 間違いノート 本棚・問題解答モード（2026-11-05 追加）の運用メモ
+
+- マイグレーション `2026_11_05_000001_add_decks_and_review_to_mistake_notes` で `mistake_decks`（デッキ＝本棚の本）・
+  `mistake_reviews`（解答モードの評価履歴）を作り、`mistake_notes` にデッキと復習状態（間隔・係数・次回）の列を追加する
+  （`php artisan migrate --force` で自動適用）。追加の Composer 依存はない。
+- 科目「その他」は subjects に行を作らず `mistake_notes.subject_id = NULL`（API では subjectId = -1）。
+- 解答の画像は `mistake_note_images.role = 'answer'`（保存先は従来と同じ `storage/app/private/mistake-notes/`）。

@@ -802,7 +802,8 @@ export interface GanttChart {
 }
 
 // ===== 間違いノート =====
-export type MistakeImageRole = 'problem' | 'extra'
+/** problem=対象の問題の写真（必ず 1 枚）/ answer=解答の画像（任意・1 枚。問題解答モードで「解答を表示」に使う）/ extra=説明用 */
+export type MistakeImageRole = 'problem' | 'extra' | 'answer'
 
 export interface MistakeImage {
   id: number
@@ -827,8 +828,8 @@ export interface MistakeLayoutItem {
   type: 'image' | 'text'
   /** type=image のとき */
   imageId?: number
-  /** 対象の問題の写真 */
-  role?: 'problem'
+  /** 対象の問題の写真 / 解答の画像 */
+  role?: 'problem' | 'answer'
   /** 画像の見せる範囲（元の画像に対する割合 0〜1。無ければ全体）。枠の縦横比はこの範囲に合わせる */
   crop?: ImageCrop
   /** type=text のとき */
@@ -856,12 +857,47 @@ export interface MistakeLayout {
   ink: MistakeStroke[]
 }
 
+/** 問題解答モードの評価（左から順に定着していない） */
+export type MistakeGrade = 'again' | 'hard' | 'good' | 'easy'
+
+/** 復習（間隔反復）の状態 */
+export interface MistakeReviewState {
+  /** 間隔（日）。0 = 未学習 or もう一度 */
+  interval: number
+  ease: number
+  reps: number
+  lapses: number
+  dueAt: string | null
+  lastAt: string | null
+  lastGrade: MistakeGrade | null
+  /** 未学習 */
+  isNew: boolean
+  /** 出題の期限が来ている */
+  isDue: boolean
+  /** 各評価を選んだときの次回までの間隔（表示用。「10分」「3日」など） */
+  preview: Record<MistakeGrade, string>
+}
+
+/** デッキ（本棚の「本」） */
+export interface MistakeDeck {
+  id: number
+  name: string
+  color: string | null
+  sortOrder: number
+  /** 属するページ数 */
+  count: number
+}
+
 export interface MistakeNoteSummary {
   id: number
+  /** 科目。「その他」は OTHER_SUBJECT（-1、lib/mistake.ts）で分類なし */
   subjectId: number | null
   subjectName: string | null
   colorSoft: string | null
   colorVivid: string | null
+  deckId: number | null
+  deckName: string | null
+  deckColor: string | null
   /** 分野: 大分類（必須）→ 中分類（必須）→ 小分類（任意）。学習項目データの構造を使う */
   majorId: number | null
   majorName: string | null
@@ -881,7 +917,10 @@ export interface MistakeNoteSummary {
   sortOrder: number
   problemImageId: number | null
   problemThumbUrl: string | null
+  /** 解答の画像（無ければ null。問題解答モードではページ全体を解答として見せる） */
+  answerImageId: number | null
   imageCount: number
+  review: MistakeReviewState
   /** 置いたもの全体の大きさ（ページ座標）。ページ割りの判定に使う。空なら 0 */
   contentW: number
   contentH: number

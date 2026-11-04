@@ -18,6 +18,13 @@ export const PAGE_TOP = 72
 export const HEADER_H = 56
 export const HEADER_GAP = 12
 
+/** 科目「その他」の subjectId（API と共通。分類を持たず、本棚ではデッキ別の参照のみ） */
+export const OTHER_SUBJECT = -1
+export const OTHER_SUBJECT_COLOR = '#6b7280'
+
+/** デッキ（本）の色の候補 */
+export const DECK_COLORS = ['#3b50cc', '#e0533d', '#2e9d62', '#d98a2b', '#8b5cf6', '#0ea5a4', '#be185d', '#6b7280', '#92400e', '#1c2024']
+
 /** ペンの色・太さ */
 export const PEN_COLORS = ['#1c2024', '#e0533d', '#3b50cc', '#2e9d62']
 export const PEN_WIDTHS: { label: string; width: number }[] = [

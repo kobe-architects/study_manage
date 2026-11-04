@@ -4,9 +4,11 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\GanttController;
-use App\Http\Controllers\MistakeNoteController;
 use App\Http\Controllers\GoalController;
 use App\Http\Controllers\GrammarController;
+use App\Http\Controllers\LineWebhookController;
+use App\Http\Controllers\MistakeDeckController;
+use App\Http\Controllers\MistakeNoteController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\ResourceBookController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudyItemController;
 use App\Http\Controllers\StudyResourceController;
 use App\Http\Controllers\TutorAccountController;
+use App\Http\Controllers\TutorInvoiceController;
 use App\Http\Controllers\VocabularyController;
 use App\Http\Controllers\VocabularyQuizController;
 use Illuminate\Support\Facades\Route;
@@ -23,7 +26,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthController::class, 'login']);
 
 // ---- LINE Messaging API Webhook（署名検証あり・公開） ----
-Route::post('/line/webhook', [App\Http\Controllers\LineWebhookController::class, 'handle']);
+Route::post('/line/webhook', [LineWebhookController::class, 'handle']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -117,8 +120,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/mistake-notes/{note}', [MistakeNoteController::class, 'destroy']);
         Route::post('/mistake-notes/{note}/images', [MistakeNoteController::class, 'storeImage']);
         Route::get('/mistake-note-images/{image}', [MistakeNoteController::class, 'image']);
-        Route::put('/mistake-note-images/{image}', [MistakeNoteController::class, 'updateImage']); // 役割の変更（問題 / 説明用）
+        Route::put('/mistake-note-images/{image}', [MistakeNoteController::class, 'updateImage']); // 役割の変更（問題 / 解答 / 説明用）
         Route::delete('/mistake-note-images/{image}', [MistakeNoteController::class, 'destroyImage']);
+        Route::post('/mistake-notes/{note}/review', [MistakeNoteController::class, 'review']); // 問題解答モードの評価（もう一度／難しい／正解／簡単）
+        // デッキ（本棚の「本」）
+        Route::get('/mistake-decks', [MistakeDeckController::class, 'index']);
+        Route::post('/mistake-decks', [MistakeDeckController::class, 'store']);
+        Route::put('/mistake-decks/reorder', [MistakeDeckController::class, 'reorder']);
+        Route::put('/mistake-decks/assign', [MistakeDeckController::class, 'assign']); // ページをデッキへ移す
+        Route::put('/mistake-decks/{deck}', [MistakeDeckController::class, 'update']);
+        Route::delete('/mistake-decks/{deck}', [MistakeDeckController::class, 'destroy']);
 
         // ===== 家庭教師アカウント管理 =====
         Route::get('/tutors', [TutorAccountController::class, 'index']);
@@ -140,16 +151,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/resource-book-pdfs/{pdf}/pages/{page}', [ResourceBookPdfController::class, 'page'])->whereNumber('page');
 
         // ===== 講師請求管理（生徒: 稼働時間の登録・締め・仮発行・支払済み更新・PDF） =====
-        Route::get('/invoices', [App\Http\Controllers\TutorInvoiceController::class, 'index']);
-        Route::get('/invoices/{invoice}', [App\Http\Controllers\TutorInvoiceController::class, 'show']);
-        Route::post('/invoice-entries', [App\Http\Controllers\TutorInvoiceController::class, 'storeEntry']);
-        Route::delete('/invoice-entries/{entry}', [App\Http\Controllers\TutorInvoiceController::class, 'destroyEntry']);
-        Route::put('/invoices/{invoice}', [App\Http\Controllers\TutorInvoiceController::class, 'update']);
-        Route::post('/invoices/{invoice}/close', [App\Http\Controllers\TutorInvoiceController::class, 'close']);
-        Route::post('/invoices/{invoice}/reopen', [App\Http\Controllers\TutorInvoiceController::class, 'reopen']);
-        Route::post('/invoices/{invoice}/issue', [App\Http\Controllers\TutorInvoiceController::class, 'issue']);
-        Route::post('/invoices/{invoice}/pay', [App\Http\Controllers\TutorInvoiceController::class, 'pay']);
-        Route::post('/invoices/{invoice}/pdf', [App\Http\Controllers\TutorInvoiceController::class, 'pdf']);
+        Route::get('/invoices', [TutorInvoiceController::class, 'index']);
+        Route::get('/invoices/{invoice}', [TutorInvoiceController::class, 'show']);
+        Route::post('/invoice-entries', [TutorInvoiceController::class, 'storeEntry']);
+        Route::delete('/invoice-entries/{entry}', [TutorInvoiceController::class, 'destroyEntry']);
+        Route::put('/invoices/{invoice}', [TutorInvoiceController::class, 'update']);
+        Route::post('/invoices/{invoice}/close', [TutorInvoiceController::class, 'close']);
+        Route::post('/invoices/{invoice}/reopen', [TutorInvoiceController::class, 'reopen']);
+        Route::post('/invoices/{invoice}/issue', [TutorInvoiceController::class, 'issue']);
+        Route::post('/invoices/{invoice}/pay', [TutorInvoiceController::class, 'pay']);
+        Route::post('/invoices/{invoice}/pdf', [TutorInvoiceController::class, 'pdf']);
 
         // ===== 小テスト（生徒: ダウンロード・写真提出・結果閲覧・分析） =====
         // 生徒が自分で問題 PDF を作って出力する（記録なし）。教材・行の一覧は講師の出題用と同じ
@@ -245,16 +256,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/resource-book-pdfs/{pdf}/pages/{page}', [ResourceBookPdfController::class, 'page'])->whereNumber('page');
 
         // 請求書管理（講師: 稼働時間の登録・締め・請求内容確認・支払確認・PDF）
-        Route::get('/invoices', [App\Http\Controllers\TutorInvoiceController::class, 'index']);
-        Route::get('/invoices/{invoice}', [App\Http\Controllers\TutorInvoiceController::class, 'show']);
-        Route::post('/invoice-entries', [App\Http\Controllers\TutorInvoiceController::class, 'storeEntry']);
-        Route::delete('/invoice-entries/{entry}', [App\Http\Controllers\TutorInvoiceController::class, 'destroyEntry']);
-        Route::put('/invoices/{invoice}', [App\Http\Controllers\TutorInvoiceController::class, 'update']);
-        Route::post('/invoices/{invoice}/close', [App\Http\Controllers\TutorInvoiceController::class, 'close']);
-        Route::post('/invoices/{invoice}/reopen', [App\Http\Controllers\TutorInvoiceController::class, 'reopen']);
-        Route::post('/invoices/{invoice}/confirm', [App\Http\Controllers\TutorInvoiceController::class, 'confirm']);
-        Route::post('/invoices/{invoice}/confirm-payment', [App\Http\Controllers\TutorInvoiceController::class, 'confirmPayment']);
-        Route::post('/invoices/{invoice}/pdf', [App\Http\Controllers\TutorInvoiceController::class, 'pdf']);
+        Route::get('/invoices', [TutorInvoiceController::class, 'index']);
+        Route::get('/invoices/{invoice}', [TutorInvoiceController::class, 'show']);
+        Route::post('/invoice-entries', [TutorInvoiceController::class, 'storeEntry']);
+        Route::delete('/invoice-entries/{entry}', [TutorInvoiceController::class, 'destroyEntry']);
+        Route::put('/invoices/{invoice}', [TutorInvoiceController::class, 'update']);
+        Route::post('/invoices/{invoice}/close', [TutorInvoiceController::class, 'close']);
+        Route::post('/invoices/{invoice}/reopen', [TutorInvoiceController::class, 'reopen']);
+        Route::post('/invoices/{invoice}/confirm', [TutorInvoiceController::class, 'confirm']);
+        Route::post('/invoices/{invoice}/confirm-payment', [TutorInvoiceController::class, 'confirmPayment']);
+        Route::post('/invoices/{invoice}/pdf', [TutorInvoiceController::class, 'pdf']);
 
         // 小テスト（出題・添削・採点・分析）
         Route::get('/quiz-books', [QuizController::class, 'books']);

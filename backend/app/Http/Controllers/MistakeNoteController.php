@@ -4,27 +4,38 @@ namespace App\Http\Controllers;
 
 use App\Models\MajorCategory;
 use App\Models\MidCategory;
+use App\Models\MistakeDeck;
 use App\Models\MistakeNote;
 use App\Models\MistakeNoteImage;
+use App\Models\MistakeReview;
 use App\Models\ResourceBook;
 use App\Models\StudyItem;
 use App\Models\Subject;
 use App\Support\ImageTools;
+use App\Support\MistakeReviewScheduler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * 間違いノート（生徒）。1 問 = 1 ページで、対象の問題の写真（必須）と説明用の画像・手書き・入力の配置を layout(JSON) に持つ。
+ * 間違いノート（生徒）。1 問 = 1 ページで、対象の問題の写真（必須）と解答の画像（任意）・説明用の画像・手書き・入力の配置を layout(JSON) に持つ。
  * 一覧は 科目 → 分野 → 並び順 の順（バインダーのページ順）で返す。PDF はブラウザ側で組み立てるのでサーバーは画像の保管と配信のみ。
+ * 科目「その他」は subjectId = OTHER_SUBJECT（-1）で指定し subject_id = NULL・分類なしで保存する（本棚ではデッキ別の参照のみ）。
+ * 問題解答モードの評価（review）は間隔反復（MistakeReviewScheduler）で次回の出題時刻を決める。
  */
 class MistakeNoteController extends Controller
 {
     private const MAX_LAYOUT_BYTES = 2_000_000;
+
+    /** 科目「その他」を表す subjectId（subjects の行は無い） */
+    public const OTHER_SUBJECT = -1;
+
+    private const IMAGE_ROLES = 'in:problem,extra,answer';
 
     public function index(Request $request): JsonResponse
     {
@@ -34,7 +45,7 @@ class MistakeNoteController extends Controller
         return response()->json(['data' => $this->sortForBinder($notes)->map(fn (MistakeNote $n) => $this->summary($n))->values()]);
     }
 
-    private const WITH = ['subject', 'major', 'mid', 'item', 'book', 'images'];
+    private const WITH = ['subject', 'major', 'mid', 'item', 'book', 'deck', 'images'];
 
     /** 新規作成。対象の問題の写真（image）と 科目・大分類・中分類 が必須。layout は JSON 文字列 */
     public function store(Request $request): JsonResponse
@@ -43,10 +54,11 @@ class MistakeNoteController extends Controller
         $data = $request->validate([
             'image' => ['required', 'image', 'mimes:jpeg,png,gif,webp', 'max:12288'],
             'subjectId' => ['required', 'integer'],
-            'majorId' => ['required', 'integer'],
-            'midId' => ['required', 'integer'],
+            'majorId' => ['nullable', 'integer'],
+            'midId' => ['nullable', 'integer'],
             'studyItemId' => ['nullable', 'integer'],
             'resourceBookId' => ['nullable', 'integer'],
+            'deckId' => ['nullable', 'integer'],
             'title' => ['nullable', 'string', 'max:255'],
             'source' => ['nullable', 'string', 'max:255'],
             'notedOn' => ['nullable', 'date'],
@@ -54,11 +66,13 @@ class MistakeNoteController extends Controller
         ]);
         $cats = $this->categoriesOf($userId, $data);
         $bookId = $this->bookIdOf($userId, $data['resourceBookId'] ?? null);
+        $deckId = $this->deckIdOf($userId, $data['deckId'] ?? null);
 
-        $note = DB::transaction(function () use ($request, $userId, $data, $cats, $bookId) {
+        $note = DB::transaction(function () use ($request, $userId, $data, $cats, $bookId, $deckId) {
             $note = MistakeNote::create($cats + [
                 'user_id' => $userId,
                 'resource_book_id' => $bookId,
+                'mistake_deck_id' => $deckId,
                 'title' => $this->nullable($data['title'] ?? null),
                 'source' => $this->nullable($data['source'] ?? null),
                 'noted_on' => $data['notedOn'] ?? now()->toDateString(),
@@ -85,10 +99,11 @@ class MistakeNoteController extends Controller
         $this->authorizeNote($request, $note);
         $data = $request->validate([
             'subjectId' => ['sometimes', 'required', 'integer'],
-            'majorId' => ['sometimes', 'required', 'integer'],
-            'midId' => ['sometimes', 'required', 'integer'],
+            'majorId' => ['sometimes', 'nullable', 'integer'],
+            'midId' => ['sometimes', 'nullable', 'integer'],
             'studyItemId' => ['sometimes', 'nullable', 'integer'],
             'resourceBookId' => ['sometimes', 'nullable', 'integer'],
+            'deckId' => ['sometimes', 'nullable', 'integer'],
             'title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'source' => ['sometimes', 'nullable', 'string', 'max:255'],
             'notedOn' => ['sometimes', 'required', 'date'],
@@ -100,10 +115,13 @@ class MistakeNoteController extends Controller
         if (array_key_exists('resourceBookId', $data)) {
             $attrs['resource_book_id'] = $this->bookIdOf($note->user_id, $data['resourceBookId']);
         }
+        if (array_key_exists('deckId', $data)) {
+            $attrs['mistake_deck_id'] = $this->deckIdOf($note->user_id, $data['deckId']);
+        }
         // 分野はまとめて検証する（指定のない項目は今の値を使う）。先に入れた出典を消さないよう追加する
         if (array_key_exists('subjectId', $data) || array_key_exists('majorId', $data) || array_key_exists('midId', $data) || array_key_exists('studyItemId', $data)) {
             $attrs = array_merge($attrs, $this->categoriesOf($note->user_id, [
-                'subjectId' => $data['subjectId'] ?? $note->subject_id,
+                'subjectId' => $data['subjectId'] ?? ($note->subject_id ?? self::OTHER_SUBJECT),
                 'majorId' => $data['majorId'] ?? $note->major_category_id,
                 'midId' => $data['midId'] ?? $note->mid_category_id,
                 'studyItemId' => array_key_exists('studyItemId', $data) ? $data['studyItemId'] : $note->study_item_id,
@@ -157,20 +175,57 @@ class MistakeNoteController extends Controller
     }
 
     // ================================================================
+    // 問題解答モード（復習）
+    // ================================================================
+
+    /**
+     * 評価を保存し、忘却曲線に合わせて次回の出題時刻を更新する。
+     * grade: again（もう一度）/ hard（難しい）/ good（正解）/ easy（簡単）。履歴は mistake_reviews に残す。
+     */
+    public function review(Request $request, MistakeNote $note): JsonResponse
+    {
+        $this->authorizeNote($request, $note);
+        $data = $request->validate(['grade' => ['required', 'string', 'in:'.implode(',', MistakeReview::GRADES)]]);
+        $now = now();
+        $next = MistakeReviewScheduler::next($note, $data['grade'], $now);
+        DB::transaction(function () use ($note, $data, $now, $next) {
+            $note->update([
+                'review_interval' => $next['interval'],
+                'review_ease' => $next['ease'],
+                'review_reps' => $next['reps'],
+                'review_lapses' => $next['lapses'],
+                'review_due_at' => $next['due_at'],
+                'review_last_at' => $now,
+                'review_last_grade' => $data['grade'],
+            ]);
+            MistakeReview::create([
+                'user_id' => $note->user_id,
+                'mistake_note_id' => $note->id,
+                'grade' => $data['grade'],
+                'interval_after' => $next['interval'],
+                'ease_after' => $next['ease'],
+                'reviewed_at' => $now,
+            ]);
+        });
+
+        return response()->json(['data' => $this->reviewPayload($note->fresh())]);
+    }
+
+    // ================================================================
     // 画像
     // ================================================================
 
-    /** 画像の追加。role=problem のときは対象の問題の写真を差し替える（前の写真は削除） */
+    /** 画像の追加。role=problem（問題）/ answer（解答）のときは前の同じ役割の画像を差し替える（削除）。問題・解答は 1 枚ずつ */
     public function storeImage(Request $request, MistakeNote $note): JsonResponse
     {
         $this->authorizeNote($request, $note);
         $data = $request->validate([
             'image' => ['required', 'image', 'mimes:jpeg,png,gif,webp', 'max:12288'],
-            'role' => ['nullable', 'string', 'in:problem,extra'],
+            'role' => ['nullable', 'string', self::IMAGE_ROLES],
         ]);
         $role = $data['role'] ?? 'extra';
-        if ($role === 'problem') {
-            foreach ($note->images()->where('role', 'problem')->get() as $old) {
+        if ($role !== 'extra') {
+            foreach ($note->images()->where('role', $role)->get() as $old) {
                 $this->deleteFiles($old);
                 $old->delete();
             }
@@ -182,20 +237,25 @@ class MistakeNoteController extends Controller
     }
 
     /**
-     * 画像の役割の変更。role=problem にすると、その画像が対象の問題の写真になり、それまでの問題の写真は説明用（extra）になる。
-     * 問題の写真を extra にすることはできない（問題の写真は必ず 1 枚）。
+     * 画像の役割の変更。role=problem にすると、その画像が対象の問題の写真になり、それまでの問題の写真は説明用（extra）になる
+     * （role=answer も同様に、それまでの解答の画像は説明用になる）。
+     * 問題の写真を extra / answer にすることはできない（問題の写真は必ず 1 枚）。解答の画像は extra に戻せる。
      */
     public function updateImage(Request $request, MistakeNoteImage $image): JsonResponse
     {
         $note = $image->note;
         $this->authorizeNote($request, $note);
-        $data = $request->validate(['role' => ['required', 'string', 'in:problem,extra']]);
-        if ($data['role'] === 'extra') {
+        $data = $request->validate(['role' => ['required', 'string', self::IMAGE_ROLES]]);
+        $role = $data['role'];
+        if ($role !== 'problem') {
             abort_if($image->role === 'problem', 422, '対象の問題の写真は必ず 1 枚必要です。別の画像を「問題」にしてください。');
-        } elseif ($image->role !== 'problem') {
-            DB::transaction(function () use ($note, $image) {
-                $note->images()->where('role', 'problem')->update(['role' => 'extra']);
-                $image->update(['role' => 'problem']);
+        }
+        if ($image->role !== $role) {
+            DB::transaction(function () use ($note, $image, $role) {
+                if ($role !== 'extra') {
+                    $note->images()->where('role', $role)->update(['role' => 'extra']);
+                }
+                $image->update(['role' => $role]);
             });
         }
         $note->touch();
@@ -245,6 +305,10 @@ class MistakeNoteController extends Controller
      */
     private function categoriesOf(int $userId, array $in): array
     {
+        // 科目「その他」: 分類は持たない（デッキ別の参照のみ）
+        if ((int) ($in['subjectId'] ?? 0) === self::OTHER_SUBJECT) {
+            return ['subject_id' => null, 'major_category_id' => null, 'mid_category_id' => null, 'study_item_id' => null];
+        }
         $subject = Subject::where('user_id', $userId)->whereKey((int) ($in['subjectId'] ?? 0))->first();
         abort_if($subject === null, 422, '科目を選んでください。');
         $major = MajorCategory::where('subject_id', $subject->id)->whereKey((int) ($in['majorId'] ?? 0))->first();
@@ -263,6 +327,18 @@ class MistakeNoteController extends Controller
             'mid_category_id' => $mid->id,
             'study_item_id' => $item?->id,
         ];
+    }
+
+    /** デッキの検証。生徒自身のデッキのみ。null は未選択（デッキなし） */
+    private function deckIdOf(int $userId, mixed $id): ?int
+    {
+        if ($id === null || $id === '' || (int) $id === 0) {
+            return null;
+        }
+        $deck = MistakeDeck::where('user_id', $userId)->whereKey((int) $id)->first();
+        abort_if($deck === null, 422, 'デッキが見つかりません。');
+
+        return $deck->id;
     }
 
     /** 出典の教材（個別学習一覧データ）の検証。生徒自身の教材のみ。null は未選択 */
@@ -344,8 +420,8 @@ class MistakeNoteController extends Controller
     /**
      * バインダーのページ順に並べる: 科目（並び順・未設定は最後）→ 大分類（並び順）→ 中分類（並び順）→ 並び順
      *
-     * @param  \Illuminate\Support\Collection<int, MistakeNote>  $notes
-     * @return \Illuminate\Support\Collection<int, MistakeNote>
+     * @param  Collection<int, MistakeNote>  $notes
+     * @return Collection<int, MistakeNote>
      */
     private function sortForBinder($notes)
     {
@@ -415,17 +491,23 @@ class MistakeNoteController extends Controller
     private function summary(MistakeNote $n): array
     {
         $problem = $n->images->firstWhere('role', 'problem');
+        $answer = $n->images->firstWhere('role', 'answer');
         $field = implode(' ／ ', array_filter([$n->major?->name, $n->mid?->name], fn ($v) => $v !== null && $v !== ''));
         $size = $this->contentSize($n->layout);
+        $other = $n->subject_id === null;
 
         return [
             'contentW' => $size['w'],
             'contentH' => $size['h'],
             'id' => $n->id,
-            'subjectId' => $n->subject_id,
-            'subjectName' => $n->subject?->name,
-            'colorSoft' => $n->subject?->color_soft,
-            'colorVivid' => $n->subject?->color_vivid,
+            // 科目「その他」は subjectId = -1・名前「その他」・固定の色
+            'subjectId' => $other ? self::OTHER_SUBJECT : $n->subject_id,
+            'subjectName' => $other ? 'その他' : $n->subject?->name,
+            'colorSoft' => $other ? '#6b7280' : $n->subject?->color_soft,
+            'colorVivid' => $other ? '#4b5563' : $n->subject?->color_vivid,
+            'deckId' => $n->mistake_deck_id,
+            'deckName' => $n->deck?->name,
+            'deckColor' => $n->deck?->color,
             'majorId' => $n->major_category_id,
             'majorName' => $n->major?->name,
             'midId' => $n->mid_category_id,
@@ -442,8 +524,30 @@ class MistakeNoteController extends Controller
             'sortOrder' => (int) $n->sort_order,
             'problemImageId' => $problem?->id,
             'problemThumbUrl' => $problem ? '/api/mistake-note-images/'.$problem->id.'?v=thumb' : null,
+            'answerImageId' => $answer?->id,
             'imageCount' => $n->images->count(),
+            'review' => $this->reviewPayload($n),
             'updatedAt' => $n->updated_at?->toDateTimeString(),
+        ];
+    }
+
+    /** 復習（間隔反復）の状態。isNew = 未学習、isDue = 出題の期限が来ている。preview = 各評価を選んだときの次回までの間隔 */
+    private function reviewPayload(MistakeNote $n): array
+    {
+        $now = now();
+        $due = $n->review_due_at;
+
+        return [
+            'interval' => (float) $n->review_interval,
+            'ease' => (float) ($n->review_ease ?: 2.5),
+            'reps' => (int) $n->review_reps,
+            'lapses' => (int) $n->review_lapses,
+            'dueAt' => $due?->toIso8601String(),
+            'lastAt' => $n->review_last_at?->toIso8601String(),
+            'lastGrade' => $n->review_last_grade,
+            'isNew' => $due === null,
+            'isDue' => $due !== null && $due->lte($now),
+            'preview' => MistakeReviewScheduler::preview($n, $now),
         ];
     }
 

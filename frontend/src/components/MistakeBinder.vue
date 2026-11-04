@@ -3,12 +3,12 @@
  * 間違いノートの全画面閲覧。印刷と同じページ（見出し・とじ代・ページ番号つき。1 ページに複数の問題）を見開きで表示し、
  * 右端の科目・分野のインデックス（タブ）から該当ページへ飛べる。
  * ページ 1 は右側（奇数ページ = とじ側が左）。スマホ幅では 1 ページずつ表示する。
- * ←→ キー・画面の左右タップ・スワイプでめくる。
+ * ←→ キー・画面の左右タップ・スワイプでめくる。めくるときは紙が 3D で回転するアニメーション（見開きは背で回る。1 ページ表示は紙全体が左へ返る）。
  * タッチ端末（iPad・スマホ。immersive）では縦横とも上のバーとタブを出さず、浮かせた ×・≡ だけにしてノートを大きく見せる（インデックスは ≡ のメニュー）。
  * 縦向きのときは見開きにせず 1 ページずつ表示する。
  * 右上の目のボタンで「問題だけ表示」（説明用の画像・文字・手書きを隠す。位置はそのまま）と「すべて表示」を切り替える（端末に記憶）。
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { mistakeApi } from '@/api/mistake'
 import { PAGE_H, PAGE_W, groupKeyOf, groupNotes, pageIndexOf, paginate } from '@/lib/mistake'
 import { renderBinderPage } from '@/lib/mistakeRender'
@@ -38,21 +38,79 @@ const pos = ref(0)
 function spreadOf(i: number): number {
   return single.value ? i : i % 2 === 0 ? i : i + 1
 }
-const leftIdx = computed(() => (single.value ? -1 : pos.value - 1))
-const rightIdx = computed(() => pos.value)
+/**
+ * めくっている最中の紙（3D 回転）。front = 表（めくる前に見えていた面）、back = 裏（めくった後に見える面）。
+ * staticLeft / staticRight はアニメーション中に下に敷いておくページ（めくる紙に隠れる側は新しいページ、反対側は古いページのまま）。
+ */
+interface Flip {
+  side: 'left' | 'right' | 'full'
+  front?: string
+  back?: string
+  from: string
+  to: string
+  go: boolean
+  staticLeft?: number
+  staticRight?: number
+}
+const flip = ref<Flip | null>(null)
+let flipSeq = 0
+const FLIP_MS = 720
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const leftIdx = computed(() => (single.value ? -1 : (flip.value?.staticLeft ?? pos.value - 1)))
+const rightIdx = computed(() => flip.value?.staticRight ?? pos.value)
 const canPrev = computed(() => pos.value > 0)
 const canNext = computed(() => (single.value ? pos.value < total.value - 1 : pos.value + 1 <= total.value - 1))
 
+/** インデックスなどからの移動（アニメーションなし） */
 function go(i: number) {
+  flipSeq++
+  flip.value = null
   pos.value = Math.max(0, Math.min(total.value - 1, spreadOf(i)))
 }
 function next() {
-  if (!canNext.value) return
-  pos.value = Math.min(total.value - 1, pos.value + (single.value ? 1 : 2))
+  if (!canNext.value || flip.value) return
+  turn(pos.value, Math.min(total.value - 1, pos.value + (single.value ? 1 : 2)), 1)
 }
 function prev() {
-  if (!canPrev.value) return
-  pos.value = Math.max(0, pos.value - (single.value ? 1 : 2))
+  if (!canPrev.value || flip.value) return
+  turn(pos.value, Math.max(0, pos.value - (single.value ? 1 : 2)), -1)
+}
+/** from → to へ、紙をめくるアニメーションつきで移動する */
+async function turn(from: number, to: number, dir: 1 | -1) {
+  if (reduceMotion) {
+    pos.value = to
+    return
+  }
+  const seq = ++flipSeq
+  // めくった先のページを先に描いておく（長くても 0.5 秒だけ待つ）
+  const want = single.value ? [to] : [to, to - 1]
+  await Promise.race([Promise.all(want.filter((i) => i >= 0 && i < total.value).map((i) => ensurePage(i))), new Promise((r) => setTimeout(r, 500))])
+  if (seq !== flipSeq) return
+  let f: Flip
+  if (single.value) {
+    // 1 ページ表示: 進むときは今の紙が左へ返って消える。戻るときは左から前の紙が返ってきて覆う
+    f =
+      dir > 0
+        ? { side: 'full', front: pageUrl(from), from: 'rotateY(0deg)', to: 'rotateY(-180deg)', go: false }
+        : { side: 'full', front: pageUrl(to), from: 'rotateY(-180deg)', to: 'rotateY(0deg)', go: false, staticRight: from }
+  } else if (dir > 0) {
+    // 見開きで進む: 右の紙が背を軸に左へ回り、裏（次の左ページ）が左に乗る。右の下には次の右ページ
+    f = { side: 'right', front: pageUrl(from), back: pageUrl(to - 1), from: 'rotateY(0deg)', to: 'rotateY(-180deg)', go: false, staticLeft: from - 1 }
+  } else {
+    // 見開きで戻る: 左の紙が背を軸に右へ回り、裏（前の右ページ）が右に乗る。左の下には前の左ページ
+    f = { side: 'left', front: pageUrl(from - 1), back: pageUrl(to), from: 'rotateY(0deg)', to: 'rotateY(180deg)', go: false, staticRight: from }
+  }
+  flip.value = f
+  pos.value = to
+  await nextTick()
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      if (seq === flipSeq && flip.value) flip.value.go = true
+    }),
+  )
+  window.setTimeout(() => {
+    if (seq === flipSeq) flip.value = null
+  }, FLIP_MS + 40)
 }
 watch(single, () => go(pos.value))
 
@@ -258,6 +316,19 @@ const ratio = PAGE_H / PAGE_W
           <div v-else-if="rightIdx < total" class="loading">読み込み中…</div>
         </div>
         <div v-if="!single" class="spine"></div>
+        <!-- めくっている紙（3D 回転。表と裏） -->
+        <div v-if="flip" class="flip" :class="[flip.side, { go: flip.go }]" :style="{ transform: flip.go ? flip.to : flip.from }">
+          <div class="face front">
+            <img v-if="flip.front" :src="flip.front" alt="" draggable="false" />
+            <div v-else class="paper"></div>
+            <div class="shade"></div>
+          </div>
+          <div class="face back">
+            <img v-if="flip.back" :src="flip.back" alt="" draggable="false" />
+            <div v-else class="paper"></div>
+            <div class="shade"></div>
+          </div>
+        </div>
       </div>
 
       <!-- インデックス（右端のタブ。横向きのタッチ端末では ≡ のメニューに） -->
@@ -396,6 +467,7 @@ const ratio = PAGE_H / PAGE_W
 .spread {
   position: relative;
   display: flex;
+  perspective: 2600px;
   /* 見開き 2 ページが枠に収まる大きさ（縦横どちらにも収める） */
   height: min(100%, calc((100vw - 220px) / 2 * var(--ratio)));
   aspect-ratio: calc(2 / var(--ratio));
@@ -443,6 +515,84 @@ const ratio = PAGE_H / PAGE_W
   justify-content: center;
   color: #9aa1ab;
   font-size: 13px;
+}
+/* ---- めくる紙（3D） ---- */
+.flip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 4;
+  transform-style: preserve-3d;
+  transition: transform 0.72s cubic-bezier(0.45, 0.05, 0.3, 1);
+  will-change: transform;
+  pointer-events: none;
+}
+.flip.right {
+  left: 50%;
+  width: 50%;
+  transform-origin: left center;
+}
+.flip.left {
+  left: 0;
+  width: 50%;
+  transform-origin: right center;
+}
+.flip.full {
+  left: 0;
+  width: 100%;
+  transform-origin: left center;
+}
+.face {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  overflow: hidden;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+}
+.face img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.face.back {
+  transform: rotateY(180deg);
+}
+.flip.right .face.front,
+.flip.left .face.back {
+  border-radius: 0 6px 6px 0;
+}
+.flip.right .face.back,
+.flip.left .face.front {
+  border-radius: 6px 0 0 6px;
+}
+.flip.full .face {
+  border-radius: 6px;
+}
+.paper {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #f1f1f1, #fff 45%, #e9e9e9);
+}
+/* 背に近い側が回転中に暗くなる */
+.shade {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.36s ease;
+}
+.flip.right .shade,
+.flip.full .shade {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0) 45%);
+}
+.flip.left .shade {
+  background: linear-gradient(-90deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0) 45%);
+}
+.flip.go .shade {
+  opacity: 1;
 }
 .spine {
   position: absolute;

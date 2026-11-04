@@ -1,12 +1,14 @@
 import client from '@/api/client'
-import type { MistakeImage, MistakeLayout, MistakeNoteDetail, MistakeNoteSummary } from '@/types'
+import type { MistakeDeck, MistakeGrade, MistakeImage, MistakeImageRole, MistakeLayout, MistakeNoteDetail, MistakeNoteSummary, MistakeReviewState } from '@/types'
 
 export interface MistakeMetaInput {
+  /** 科目。「その他」は OTHER_SUBJECT（-1） */
   subjectId?: number | null
   majorId?: number | null
   midId?: number | null
   studyItemId?: number | null
   resourceBookId?: number | null
+  deckId?: number | null
   title?: string | null
   source?: string | null
   notedOn?: string
@@ -29,6 +31,7 @@ export const mistakeApi = {
     if (meta.midId) fd.append('midId', String(meta.midId))
     if (meta.studyItemId) fd.append('studyItemId', String(meta.studyItemId))
     if (meta.resourceBookId) fd.append('resourceBookId', String(meta.resourceBookId))
+    if (meta.deckId) fd.append('deckId', String(meta.deckId))
     if (meta.title) fd.append('title', meta.title)
     if (meta.source) fd.append('source', meta.source)
     if (meta.notedOn) fd.append('notedOn', meta.notedOn)
@@ -56,8 +59,14 @@ export const mistakeApi = {
     return data.data
   },
 
-  /** 画像の追加。role=problem は対象の問題の写真の差し替え */
-  async addImage(noteId: number, image: Blob, role: 'problem' | 'extra'): Promise<MistakeImage> {
+  /** 問題解答モードの評価を保存（忘却曲線に合わせて次回の出題時刻が決まる） */
+  async review(noteId: number, grade: MistakeGrade): Promise<MistakeReviewState> {
+    const { data } = await client.post(`/mistake-notes/${noteId}/review`, { grade })
+    return data.data
+  },
+
+  /** 画像の追加。role=problem / answer は同じ役割の画像の差し替え */
+  async addImage(noteId: number, image: Blob, role: MistakeImageRole): Promise<MistakeImage> {
     const fd = new FormData()
     fd.append('image', image, `${role}.jpg`)
     fd.append('role', role)
@@ -69,8 +78,8 @@ export const mistakeApi = {
     await client.delete(`/mistake-note-images/${imageId}`)
   },
 
-  /** 画像の役割の変更。problem にすると、それまでの問題の写真は説明用になる。戻り値はノートの全画像 */
-  async setImageRole(imageId: number, role: 'problem' | 'extra'): Promise<MistakeImage[]> {
+  /** 画像の役割の変更。problem / answer にすると、それまでの同じ役割の画像は説明用になる。戻り値はノートの全画像 */
+  async setImageRole(imageId: number, role: MistakeImageRole): Promise<MistakeImage[]> {
     const { data } = await client.put(`/mistake-note-images/${imageId}`, { role })
     return data.data
   },
@@ -79,5 +88,31 @@ export const mistakeApi = {
   async imageBlob(imageId: number, thumb = false): Promise<Blob> {
     const res = await client.get(`/mistake-note-images/${imageId}`, { params: thumb ? { v: 'thumb' } : undefined, responseType: 'blob' })
     return res.data
+  },
+
+  // ---- デッキ（本棚の「本」） ----
+  async decks(): Promise<MistakeDeck[]> {
+    const { data } = await client.get('/mistake-decks')
+    return data.data
+  },
+  async createDeck(input: { name: string; color?: string | null }): Promise<MistakeDeck> {
+    const { data } = await client.post('/mistake-decks', input)
+    return data.data
+  },
+  async updateDeck(id: number, patch: { name?: string; color?: string | null }): Promise<MistakeDeck> {
+    const { data } = await client.put(`/mistake-decks/${id}`, patch)
+    return data.data
+  },
+  async removeDeck(id: number): Promise<void> {
+    await client.delete(`/mistake-decks/${id}`)
+  },
+  async reorderDecks(ids: number[]): Promise<MistakeDeck[]> {
+    const { data } = await client.put('/mistake-decks/reorder', { ids })
+    return data.data
+  },
+  /** ページをデッキへ移す（deckId=null でデッキなし）。戻り値はデッキ一覧 */
+  async assignDeck(ids: number[], deckId: number | null): Promise<MistakeDeck[]> {
+    const { data } = await client.put('/mistake-decks/assign', { ids, deckId })
+    return data.data
   },
 }
