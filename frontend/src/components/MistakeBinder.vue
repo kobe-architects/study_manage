@@ -119,6 +119,13 @@ async function turn(from: number, to: number, dir: 1 | -1) {
 watch(single, () => go(pos.value))
 
 // ---- ページの描画（印刷と同じ見た目）。結果はページ番号ごとにキャッシュ ----
+/**
+ * 画面表示用の描画倍率。等倍（1260×1782）だと写真がページ幅（1050px）まで縮んで拡大しても文字が読めないので、
+ * 2 倍（2520×3564）で描く。写真は長辺 1800px で保存されているので、これでほぼ元の解像度が残る。
+ * （iOS Safari の canvas 上限 約 1,677 万画素の中に収まる大きさ。3 倍だと超える）
+ */
+const VIEW_SCALE = 2
+const VIEW_JPEG_QUALITY = 0.9
 const detailCache = new Map<number, Promise<MistakeNoteDetail>>()
 const pageCache = new Map<number, Promise<string>>()
 const urls = ref<Record<number, string>>({})
@@ -146,8 +153,8 @@ async function ensurePage(i: number) {
   const p = (async () => {
     const details = new Map<number, MistakeNoteDetail>()
     await Promise.all(page.entries.map((e) => detailOf(e.note.id).then((d) => details.set(e.note.id, d)).catch(() => {})))
-    const c = await renderBinderPage(page, details, { pageNo: i + 1, scale: 1, problemOnly: problemOnly.value })
-    return c.toDataURL('image/jpeg', 0.85)
+    const c = await renderBinderPage(page, details, { pageNo: i + 1, scale: VIEW_SCALE, problemOnly: problemOnly.value })
+    return c.toDataURL('image/jpeg', VIEW_JPEG_QUALITY)
   })()
   pageCache.set(i, p)
   try {
