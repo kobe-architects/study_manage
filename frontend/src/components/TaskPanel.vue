@@ -322,7 +322,8 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
 <template>
   <div class="tp">
     <!-- 日別／週別 ・ 日付の移動（PC は左のサイドメニューへ Teleport） -->
-    <Teleport to="#home-side-tools">
+    <!-- defer: 移動先はトップページ側の要素なので、同じ描画の中で先に作られるのを待ってから移す（初回表示でも消えないように） -->
+    <Teleport defer to="#home-side-tools">
     <div class="tp-bar" :class="{ side: sideTools, mobile: !sideTools }">
       <div v-seg class="tp-seg">
         <button class="tp-seg-btn" :class="{ on: mode === 'day' }" @click="mode = 'day'">日別</button>
