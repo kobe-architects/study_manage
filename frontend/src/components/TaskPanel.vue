@@ -7,12 +7,12 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import HelpTip from '@/components/HelpTip.vue'
-import TaskEditModal from '@/components/TaskEditModal.vue'
 import { hexA, iso } from '@/lib/design'
 import { addDays, fmtAmount, fmtDate, fmtRate, fmtWeek, isActiveOn, quotaOn, startOfDay, WEEKDAYS, weekDates, weekStart } from '@/lib/tasks'
 import { useTaskStore } from '@/stores/task'
 import { useUiStore } from '@/stores/ui'
-import type { StudyTask, StudyTaskInput } from '@/types'
+import { viewportWidth } from '@/lib/native'
+import type { StudyTask } from '@/types'
 
 const tasks = useTaskStore()
 const ui = useUiStore()
@@ -20,6 +20,8 @@ const router = useRouter()
 
 const today = startOfDay(new Date())
 const todayIso = iso(today)
+/** PC では 日別／週別・日付 をトップページ左のサイドメニュー（#home-side-tools）に出す */
+const sideTools = computed(() => viewportWidth.value >= 860)
 
 // ---- 表示モード（端末に保存） ----
 const saved = localStorage.getItem('sm_task_mode')
@@ -252,28 +254,13 @@ async function toggleComplete(t: StudyTask, d: string, quota: number, complete: 
     busy[k] = false
   }
 }
-
-// ---- タスクの追加（編集・削除は「タスク管理」で） ----
-const editOpen = ref(false)
-const editSaving = ref(false)
-async function saveNew(payload: StudyTaskInput) {
-  editSaving.value = true
-  try {
-    await tasks.createTask(payload)
-    editOpen.value = false
-    ui.notify('タスクを追加しました')
-  } catch {
-    ui.notify('タスクの追加に失敗しました')
-  } finally {
-    editSaving.value = false
-  }
-}
 </script>
 
 <template>
   <div class="tp">
-    <!-- 上段: 日別／週別 ・ 日付の移動 ・ 追加／管理 -->
-    <div class="tp-bar">
+    <!-- 日別／週別 ・ 日付の移動（PC は左のサイドメニューへ Teleport） -->
+    <Teleport to="#home-side-tools" :disabled="!sideTools">
+    <div class="tp-bar" :class="{ side: sideTools }">
       <div v-seg class="tp-seg">
         <button class="tp-seg-btn" :class="{ on: mode === 'day' }" @click="mode = 'day'">日別</button>
         <button class="tp-seg-btn" :class="{ on: mode === 'week' }" @click="mode = 'week'">週別</button>
@@ -289,17 +276,17 @@ async function saveNew(payload: StudyTaskInput) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
-      <div class="tp-actions">
-        <button class="tp-add" @click="editOpen = true">＋ タスク追加</button>
-        <button class="tp-manage" @click="router.push({ name: 'tasks' })">管理 ›</button>
-        <HelpTip align="right" text="科目ごとに登録した「やるべきこと」を日別・週別に展開して表示します。○ をタップすると予定量ぶん完了に、行（週別はセル）をタップすると数を記録できます。タスクの編集・削除は「管理」から。" />
+      <div class="tp-help">
+        <HelpTip :align="sideTools ? 'left' : 'right'" text="「タスク管理」で科目ごとに登録した「やるべきこと」を日別・週別に展開して表示します。○ をタップすると予定量ぶん完了に、行（週別はセル）をタップすると数を記録できます。" />
       </div>
     </div>
+    </Teleport>
 
     <!-- タスク未登録 -->
     <div v-if="tasks.loaded && !tasks.tasks.length" class="card tp-empty">
-      タスクがありません。<br />「タスク追加」から、科目ごとのやるべきことを 1 日あたり／1 週あたりの量で登録すると、日別・週別の計画がここに表示されます。<br />
+      タスクがありません。<br />ヘッダーの「タスク管理」で、科目ごとのやるべきことを 1 日あたり／1 週あたりの量で登録すると、日別・週別の計画がここに表示されます。<br />
       <span class="tp-empty-ex">例: 英単語 LEAP basic 140 words / 週 → 日別では 20 words</span>
+      <div><button class="tp-go" @click="router.push({ name: 'tasks' })">タスク管理を開く ›</button></div>
     </div>
 
     <!-- ===== 日別 ===== -->
@@ -444,7 +431,7 @@ async function saveNew(payload: StudyTaskInput) {
     <!-- 消化量の記録モーダル -->
     <Teleport to="body">
       <Transition name="ui-modal">
-        <div v-if="rec.open && rec.task" class="tp-mbg ui-overlay ui-sheet ui-swipe" @click.self="rec.open = false">
+        <div v-if="rec.open && rec.task" class="tp-mbg ui-overlay ui-sheet">
           <div class="tp-modal ui-panel">
             <div class="tp-m-title">進み具合を記録</div>
             <div class="tp-m-sub">
@@ -476,10 +463,6 @@ async function saveNew(payload: StudyTaskInput) {
         </div>
       </Transition>
     </Teleport>
-
-    <Transition name="ui-modal">
-      <TaskEditModal v-if="editOpen" :task="null" :subjects="tasks.subjects" :saving="editSaving" @save="saveNew" @close="editOpen = false" />
-    </Transition>
   </div>
 </template>
 
@@ -566,33 +549,50 @@ async function saveNew(payload: StudyTaskInput) {
   border-radius: 99px;
   padding: 1px 7px;
 }
-.tp-actions {
+.tp-help {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
 }
-.tp-add {
-  padding: 7px 13px;
-  border: none;
-  border-radius: 9px;
-  background: #1c2024;
-  color: #fff;
+/* PC: トップページ左のサイドメニューに縦に並べる */
+.tp-bar.side {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.tp-bar.side .tp-seg-btn {
+  flex: 1;
+  text-align: center;
+  padding: 7px 8px;
+}
+.tp-bar.side .tp-nav {
+  justify-content: space-between;
+}
+.tp-bar.side .tp-date {
+  flex: 1;
+  min-width: 0;
+  padding: 0 2px;
   font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
 }
-.tp-manage {
-  padding: 7px 11px;
+.tp-bar.side .tp-date-hint {
+  display: block;
+  margin: 2px auto 0;
+  width: fit-content;
+}
+.tp-bar.side .tp-help {
+  margin-left: 0;
+  justify-content: flex-end;
+}
+.tp-go {
+  margin-top: 12px;
+  padding: 8px 14px;
   border: 1px solid #e3e6ea;
   border-radius: 9px;
   background: #fff;
-  color: var(--mut);
+  color: var(--ink);
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
 }
 .tp-empty {
   padding: 32px 20px;
@@ -1128,13 +1128,6 @@ async function saveNew(payload: StudyTaskInput) {
 @media (max-width: 600px) {
   .tp-bar {
     gap: 8px;
-  }
-  .tp-actions {
-    width: 100%;
-    margin-left: 0;
-  }
-  .tp-actions .tp-add {
-    flex: 1;
   }
   .tp-date {
     min-width: 0;

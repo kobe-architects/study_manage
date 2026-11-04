@@ -397,7 +397,7 @@ const helpText = isTouch
 
     <!-- チャートの設定 -->
     <Transition name="ui-modal">
-      <div v-if="settings.open" class="overlay ui-overlay ui-sheet ui-swipe" @click="settings.open = false">
+      <div v-if="settings.open" class="overlay ui-overlay ui-sheet">
         <div class="modal ui-panel" @click.stop>
           <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">チャートの設定</div>
           <div style="display: flex; flex-direction: column; gap: 13px">

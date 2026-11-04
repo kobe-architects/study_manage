@@ -30,7 +30,7 @@ function exParts(sentence: string) {
 </script>
 
 <template>
-  <div class="overlay ui-overlay ui-sheet ui-swipe" @click="emit('close')">
+  <div class="overlay ui-overlay ui-sheet">
     <div class="ex-modal ui-panel" @click.stop>
       <div class="ex-head">
         <span class="ex-title">解説</span>

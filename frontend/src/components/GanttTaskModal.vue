@@ -58,7 +58,7 @@ function submit() {
 </script>
 
 <template>
-  <div class="overlay ui-overlay ui-sheet ui-swipe" @click="emit('close')">
+  <div class="overlay ui-overlay ui-sheet">
     <div class="modal ui-panel" @click.stop>
       <div class="head">
         <div>

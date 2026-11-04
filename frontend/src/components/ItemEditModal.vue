@@ -51,7 +51,7 @@ function save() {
 </script>
 
 <template>
-  <div class="overlay ui-overlay ui-sheet ui-swipe" @click="emit('close')">
+  <div class="overlay ui-overlay ui-sheet">
     <div class="modal ui-panel" @click.stop>
       <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px">{{ addMode ? '学習項目を追加' : '学習項目を編集' }}</div>
       <div v-if="!addMode" style="font-size: 12px; color: var(--faint); margin-bottom: 18px">{{ meta }}</div>

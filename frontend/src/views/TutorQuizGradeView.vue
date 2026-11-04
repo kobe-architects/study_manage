@@ -648,7 +648,7 @@ async function downloadResult() {
   </div>
   <!-- 採点未入力の警告 -->
   <Transition name="ui-modal">
-    <div v-if="warnOpen" class="sheet-overlay ui-overlay" style="z-index: 90" @click="warnOpen = false">
+    <div v-if="warnOpen" class="sheet-overlay ui-overlay" style="z-index: 90">
       <div class="warn-modal ui-panel" @click.stop>
         <div class="warn-title">採点が入力されていません</div>
         <div class="warn-body">「採点・添削を完了」するには、右側の採点欄に得点と満点を入力してください。完了すると生徒に結果（得点・添削）が表示されます。</div>
@@ -660,7 +660,7 @@ async function downloadResult() {
     </div>
   </Transition>
   <Transition name="ui-modal">
-    <div v-if="sheetOpen && quiz && page" class="sheet-overlay ui-overlay" @click="sheetOpen = false">
+    <div v-if="sheetOpen && quiz && page" class="sheet-overlay ui-overlay">
       <div class="sheet-modal ui-panel" @click.stop>
         <button class="sheet-x" @click="sheetOpen = false">×</button>
         <AuthImage :src="quizApi.renderImageUrl(quiz.id, page.id)" />
@@ -669,7 +669,7 @@ async function downloadResult() {
   </Transition>
   <!-- 解答ページの拡大表示 -->
   <Transition name="ui-modal">
-    <div v-if="ansOpen && page && page.ansPdfId && page.ansPage" class="sheet-overlay ui-overlay" @click="ansOpen = false">
+    <div v-if="ansOpen && page && page.ansPdfId && page.ansPage" class="sheet-overlay ui-overlay">
       <div class="sheet-modal ui-panel" @click.stop>
         <button class="sheet-x" @click="ansOpen = false">×</button>
         <div class="ans-zoom-head">

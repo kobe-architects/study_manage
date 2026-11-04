@@ -449,8 +449,8 @@ function showPreview(pdfId: number, page: number | null) {
 
     <!-- プレビューの拡大表示 -->
     <Transition name="ui-modal">
-      <div v-if="zoom && preview" class="zoom-overlay ui-overlay" @click="zoom = false">
-        <div class="zoom-cap">{{ previewLabel }}（クリックで閉じる）</div>
+      <div v-if="zoom && preview" class="zoom-overlay ui-overlay">
+        <div class="zoom-cap">{{ previewLabel }}<button class="zoom-x" aria-label="閉じる" @click="zoom = false">×</button></div>
         <PdfThumb :key="'zoom:' + preview.pdfId + ':' + preview.page" class="zoom-thumb" :pdf-id="preview.pdfId" :page="preview.page" :width="1200" eager />
       </div>
     </Transition>
@@ -886,6 +886,20 @@ function showPreview(pdfId: number, page: number | null) {
 .zoom-cap {
   color: #e6e9ee;
   font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.zoom-x {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
 }
 .zoom-overlay :deep(.zoom-thumb) {
   width: min(94vw, calc(86vh * 0.71), 100%) !important;

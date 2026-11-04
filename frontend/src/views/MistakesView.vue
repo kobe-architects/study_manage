@@ -779,7 +779,7 @@ async function exportPdf() {
 
     <!-- デッキの作成・編集 -->
     <Transition name="ui-modal">
-      <div v-if="deckDlg.open" class="overlay ui-overlay ui-sheet ui-swipe" @click="deckDlg.open = false">
+      <div v-if="deckDlg.open" class="overlay ui-overlay ui-sheet">
         <div class="modal ui-panel" @click.stop>
           <div class="m-title">{{ deckDlg.id == null ? '新しいデッキ' : 'デッキを編集' }}</div>
           <label class="fld">
@@ -802,7 +802,7 @@ async function exportPdf() {
 
     <!-- 問題を解く: 出題の範囲 -->
     <Transition name="ui-modal">
-      <div v-if="quizDlg" class="overlay ui-overlay ui-sheet ui-swipe" @click="quizDlg = null">
+      <div v-if="quizDlg" class="overlay ui-overlay ui-sheet">
         <div class="modal ui-panel" @click.stop>
           <div class="m-title">問題を解く<span class="m-sub">{{ quizDlg.title }}</span></div>
           <button class="q-opt" :disabled="!quizDlg.due.length && !quizDlg.fresh.length" @click="startQuiz('review')">

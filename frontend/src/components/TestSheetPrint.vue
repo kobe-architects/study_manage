@@ -219,7 +219,7 @@ function doPrint() {
 </script>
 
 <template>
-  <div class="overlay no-print ui-overlay ui-sheet ui-swipe" @click="emit('close')">
+  <div class="overlay no-print ui-overlay ui-sheet">
     <div class="modal ui-panel" @click.stop>
       <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">小テストの種類</div>
 

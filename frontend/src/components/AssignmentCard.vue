@@ -274,7 +274,7 @@ async function setAchieved(value: boolean) {
 
     <!-- 学習記録モーダル（生徒のみ） -->
     <Transition name="ui-modal">
-      <div v-if="recModal.open" class="overlay ui-overlay ui-sheet ui-swipe" @click="recModal.open = false">
+      <div v-if="recModal.open" class="overlay ui-overlay ui-sheet">
         <div class="modal ui-panel" @click.stop>
           <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px">{{ recModal.items.length > 1 ? `${recModal.items.length}件の学習を記録` : '学習を記録' }}</div>
           <div style="font-size: 12px; color: var(--faint); margin-bottom: 14px; text-align: left">

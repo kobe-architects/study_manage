@@ -207,7 +207,7 @@ async function saveEdit() {
 
     <!-- 目標を追加 -->
     <Transition name="ui-modal">
-      <div v-if="open" class="overlay ui-overlay ui-sheet ui-swipe" @click="open = false">
+      <div v-if="open" class="overlay ui-overlay ui-sheet">
         <div class="modal ui-panel" @click.stop>
           <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">目標を追加</div>
           <div style="display: flex; flex-direction: column; gap: 13px">
@@ -234,7 +234,7 @@ async function saveEdit() {
 
     <!-- 中間目標を追加 -->
     <Transition name="ui-modal">
-      <div v-if="subModal.open" class="overlay ui-overlay ui-sheet ui-swipe" @click="subModal.open = false">
+      <div v-if="subModal.open" class="overlay ui-overlay ui-sheet">
         <div class="modal ui-panel" @click.stop>
           <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px">中間目標を追加</div>
           <div style="font-size: 12px; color: var(--faint); margin-bottom: 16px">元の目標: {{ subModal.parent?.title }}（期限 {{ subModal.parent?.deadline }}）</div>
@@ -259,7 +259,7 @@ async function saveEdit() {
 
     <!-- 目標・中間目標の編集 -->
     <Transition name="ui-modal">
-      <div v-if="editModal.open" class="overlay ui-overlay ui-sheet ui-swipe" @click="editModal.open = false">
+      <div v-if="editModal.open" class="overlay ui-overlay ui-sheet">
         <div class="modal ui-panel" @click.stop>
           <div style="font-size: 16px; font-weight: 700; margin-bottom: 4px">{{ editModal.isSub ? '中間目標を編集' : '目標を編集' }}</div>
           <div v-if="editModal.isSub && editModal.maxDeadline" style="font-size: 12px; color: var(--faint); margin-bottom: 16px">期限は元の目標（{{ editModal.maxDeadline }}）以前にしてください</div>

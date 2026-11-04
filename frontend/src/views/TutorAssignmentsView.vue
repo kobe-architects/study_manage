@@ -120,7 +120,7 @@ function onLinkSave(ids: number[]) {
 
     <!-- 課題の追加 / 編集 -->
     <Transition name="ui-modal">
-      <div v-if="modal.open" class="overlay ui-overlay ui-sheet ui-swipe" @click="modal.open = false">
+      <div v-if="modal.open" class="overlay ui-overlay ui-sheet">
         <div class="modal ui-panel" @click.stop>
           <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">{{ modal.id === null ? '課題を追加' : '課題を編集' }}</div>
           <div style="display: flex; flex-direction: column; gap: 13px">

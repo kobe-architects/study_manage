@@ -149,7 +149,7 @@ function updatedLabel(c: GanttChart): string {
 
     <!-- 新規作成 -->
     <Transition name="ui-modal">
-      <div v-if="open" class="overlay ui-overlay ui-sheet ui-swipe" @click="open = false">
+      <div v-if="open" class="overlay ui-overlay ui-sheet">
         <div class="modal ui-panel" @click.stop>
           <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">ガントチャートを作成</div>
           <div style="display: flex; flex-direction: column; gap: 13px">

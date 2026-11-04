@@ -887,7 +887,7 @@ async function saveRow() {
     <!-- 教材モーダル -->
     <Teleport to="body">
     <Transition name="ui-modal">
-      <div v-if="bookModal.open" class="modal-bg ui-overlay ui-sheet ui-swipe" @click.self="bookModal.open = false">
+      <div v-if="bookModal.open" class="modal-bg ui-overlay ui-sheet">
         <div class="modal ui-panel">
           <div class="modal-title">{{ bookModal.id ? '一覧を編集' : `新規${TAB_LABEL[resource.activeType]}` }}</div>
           <label class="fld"><span>タイトル</span><input v-model="bookModal.title" placeholder="例: Focus Gold 数学I+数学A" /></label>
@@ -909,7 +909,7 @@ async function saveRow() {
     <!-- 学習記録 管理モーダル -->
     <Teleport to="body">
     <Transition name="ui-modal">
-      <div v-if="recModal.open" class="modal-bg ui-overlay ui-sheet ui-swipe" @click.self="recModal.open = false">
+      <div v-if="recModal.open" class="modal-bg ui-overlay ui-sheet">
         <div class="modal rec-modal ui-panel">
           <div class="modal-title">学習記録の管理</div>
           <div style="font-size: 12.5px; color: var(--mut); margin-top: -4px">
@@ -992,7 +992,7 @@ async function saveRow() {
     <!-- 行モーダル -->
     <Teleport to="body">
     <Transition name="ui-modal">
-      <div v-if="rowModal.open" class="modal-bg ui-overlay ui-sheet ui-swipe" @click.self="rowModal.open = false">
+      <div v-if="rowModal.open" class="modal-bg ui-overlay ui-sheet">
         <div class="modal ui-panel">
           <div class="modal-title">{{ rowModal.id ? '行を編集' : '行を追加' }}</div>
           <label class="fld"><span>タイトル</span><input v-model="rowModal.title" placeholder="例: 整式の整理" /></label>

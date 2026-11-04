@@ -497,16 +497,20 @@ async function deleteEvent(id: number) {
 
 <template>
   <div>
-    <!-- tabs -->
-    <div style="display: flex; margin-bottom: 18px" :class="{ 'full-w': (tab === 'plan' || tab === 'progress') && !isMobile }">
-      <div v-seg class="seg">
+    <div class="home" :class="{ side: !isMobile }">
+    <!-- タブ: PC は左のサイドメニュー（タスクタブでは日別／週別・日付もここに入る）、スマホは上に横並び -->
+    <aside class="home-side">
+      <div v-seg class="seg" :class="{ vert: !isMobile }">
         <button class="seg-btn" :class="{ on: tab === 'tasks' }" @click="tab = 'tasks'">タスク</button>
         <button class="seg-btn" :class="{ on: tab === 'plan' }" @click="tab = 'plan'">計画</button>
         <button class="seg-btn" :class="{ on: tab === 'progress' }" @click="tab = 'progress'">進捗率</button>
         <button class="seg-btn" :class="{ on: tab === 'goals' }" @click="selectGoals">目標</button>
         <button class="seg-btn" :class="{ on: tab === 'review' }" @click="selectReview">復習項目<span v-if="reviewDueCount" class="tab-badge">{{ reviewDueCount }}</span></button>
       </div>
-    </div>
+      <!-- タスクタブの日別／週別・日付（components/TaskPanel.vue から Teleport で入る） -->
+      <div v-show="tab === 'tasks' && !isMobile" id="home-side-tools" class="side-tools"></div>
+    </aside>
+    <div class="home-main">
 
     <!-- タスクタブ: 科目ごとのタスクを日別・週別の計画に展開して表示・消化（components/TaskPanel.vue） -->
     <div v-if="tab === 'tasks'" class="tasks-wrap">
@@ -808,11 +812,13 @@ async function deleteEvent(id: number) {
         </div>
       </template>
     </div>
+    </div><!-- /home-main -->
+    </div><!-- /home -->
 
     <!-- 復習記録モーダル -->
     <Teleport to="body">
     <Transition name="ui-modal">
-      <div v-if="reviewModal.open" class="modal-bg ui-overlay ui-sheet ui-swipe" @click.self="reviewModal.open = false">
+      <div v-if="reviewModal.open" class="modal-bg ui-overlay ui-sheet">
         <div class="modal ui-panel">
           <div class="modal-title">復習を記録</div>
           <div v-if="reviewModal.item" style="font-size: 12.5px; color: var(--mut); margin-top: -4px">
@@ -860,6 +866,51 @@ async function deleteEvent(id: number) {
 </template>
 
 <style scoped>
+/* ===== タブ: PC は左のサイドメニュー + 右に内容（コンテンツ幅の外側の余白まで使う）、スマホは上に横並び ===== */
+.home.side {
+  display: grid;
+  grid-template-columns: 188px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+  width: calc(100vw - 60px);
+  margin-left: calc(50% - 50vw + 30px);
+}
+.home.side .home-side {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.home:not(.side) .home-side {
+  display: flex;
+  margin-bottom: 18px;
+}
+/* サイドメニュー内では内容側の幅をビューポートから計算しない */
+.home.side .full-w,
+.home.side .home-cols {
+  width: auto;
+  margin-left: 0;
+}
+.seg.vert {
+  flex-direction: column;
+  padding: 5px;
+  gap: 3px;
+}
+.seg.vert .seg-btn {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  padding: 9px 13px;
+}
+.seg.vert .tab-badge {
+  margin-left: auto;
+}
+.side-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 /* タスクタブ（読みやすい幅に収める） */
 .tasks-wrap {
   max-width: 980px;

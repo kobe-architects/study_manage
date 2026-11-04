@@ -43,7 +43,7 @@ function submit() {
 </script>
 
 <template>
-  <div class="overlay ui-overlay ui-sheet ui-swipe" @click="emit('close')">
+  <div class="overlay ui-overlay ui-sheet">
     <div class="modal ui-panel" @click.stop>
       <div style="font-size: 16px; font-weight: 700; margin-bottom: 16px">{{ isNew ? '行を追加' : '行を編集' }}</div>
       <div style="display: flex; flex-direction: column; gap: 13px">

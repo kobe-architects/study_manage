@@ -847,7 +847,7 @@ function toggleSec(id: number) {
           </Transition>
           <!-- メモ編集モーダル -->
           <Transition name="ui-modal">
-            <div v-if="memoOpen" class="overlay ui-overlay ui-sheet ui-swipe" @click="memoOpen = false">
+            <div v-if="memoOpen" class="overlay ui-overlay ui-sheet">
               <div class="memo-modal ui-panel" @click.stop>
                 <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px">メモを編集</div>
                 <textarea v-model="memoText" rows="4" class="memo-area" placeholder="覚え方・補足など"></textarea>
@@ -925,7 +925,7 @@ function toggleSec(id: number) {
 
     <!-- 出題セクション選択モーダル -->
     <Transition name="ui-modal">
-      <div v-if="secModalOpen" class="overlay ui-overlay ui-sheet ui-swipe" @click="secModalOpen = false">
+      <div v-if="secModalOpen" class="overlay ui-overlay ui-sheet">
         <div class="sec-modal ui-panel" @click.stop>
           <div class="row-between" style="margin-bottom: 14px">
             <div style="font-size: 15px; font-weight: 700">出題セクション</div>

@@ -70,7 +70,8 @@ function preventInputZoom() {
 
 /**
  * ボトムシート（.ui-swipe > .ui-panel）を下にスワイプして閉じる。
- * 閉じる処理は背景クリック（overlay.click()）に任せるので、.ui-swipe は背景クリックで閉じるモーダルにだけ付ける。
+ * 閉じる処理は背景クリック（overlay.click()）に任せる。2026-11-05 からモーダルは閉じるボタンでだけ閉じる方針になり、
+ * .ui-swipe を付けた画面は無い（仕組みだけ残している）。
  */
 function installSheetSwipe() {
   interface Drag {

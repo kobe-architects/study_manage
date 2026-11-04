@@ -105,7 +105,7 @@ function submit() {
 
 <template>
   <Teleport to="body">
-    <div class="te-bg ui-overlay ui-sheet ui-swipe" @click.self="emit('close')">
+    <div class="te-bg ui-overlay ui-sheet">
       <div class="te-modal ui-panel">
         <div class="te-title">{{ isNew ? 'タスクを追加' : 'タスクを編集' }}<HelpTip text="科目ごとの「やるべきこと」を、1 日あたり または 1 週あたりの量で登録します。1 週あたりのタスクは取り組む曜日の数で割って日別に表示します（例: 140 words / 週・毎日 → 20 words）。" /></div>
 

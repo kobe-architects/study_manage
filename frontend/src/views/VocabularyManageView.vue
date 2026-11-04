@@ -413,7 +413,7 @@ async function deleteAll() {
 
     <!-- form dialog -->
     <Transition name="ui-modal">
-      <div v-if="dialog" class="overlay ui-overlay ui-sheet ui-swipe" @click="dialog = false">
+      <div v-if="dialog" class="overlay ui-overlay ui-sheet">
         <div class="modal ui-panel" @click.stop>
           <div style="font-size: 16px; font-weight: 700; margin-bottom: 16px">{{ editingId ? '単語を編集' : '単語を追加' }}</div>
           <div class="grid2">
