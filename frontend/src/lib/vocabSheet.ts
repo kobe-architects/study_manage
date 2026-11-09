@@ -1,6 +1,6 @@
 // 英単語帳（鉄壁・LEAP basic など）の学習記録チェックシート。
 // セクション → 単語（通し番号・単語・意味）の並びで、回数欄に解いた日付を入れる（正解=黒・不正解=赤・あいまい=青）。
-// 体裁は英文法・語法のチェックシートと同じ部品（lib/checkSheet.ts）。
+// 体裁はスクランブルのチェックシートと同じ部品（lib/checkSheet.ts）だが、用紙は A4 横 1 段で回数欄を過去 30 回ぶん並べる。
 import { type SheetChapter, type SheetMark, type SheetRow, type SheetSpec, openCheckSheet } from '@/lib/checkSheet'
 import type { StudyResourceSection, Vocabulary } from '@/types'
 
@@ -78,11 +78,14 @@ export function buildVocabSheetSpec(
     noLabel: 'No',
     noWidth: 7.5,
     columns: [
-      { label: '単語', width: 27 },
-      { label: '意味', width: 20 },
+      { label: '単語', width: 34 },
+      { label: '意味', width: 44 },
     ],
     chapters,
     accent: '#2f5fc4',
+    // 英単語は何度も繰り返すので、A4 横 1 段で回数欄を 30 回ぶん並べる（多い回は新しい方から）
+    layout: 'landscape1',
+    markCount: 30,
   }
 }
 

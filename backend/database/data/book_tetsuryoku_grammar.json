@@ -1,0 +1,517 @@
+{
+ "title": "鉄緑会 英語実践講座 英文法",
+ "type": "教科書",
+ "subject": "英語",
+ "studentOnly": true,
+ "pdf": {
+  "title": "全ページ",
+  "map": "none",
+  "offset": 0
+ },
+ "items": [
+  {
+   "chapter": "前期",
+   "seqNo": "2",
+   "title": "第2週 時制",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "33-48"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "3",
+   "title": "第3週 文の種類",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "49-58"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "4",
+   "title": "第4週 文型",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "59-74"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "5",
+   "title": "第5週 不定詞(1)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "75-84"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "6",
+   "title": "第6週 不定詞(2)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "85-92"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "7",
+   "title": "第7週 不定詞(3)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "93-104"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "8",
+   "title": "第8週 不定詞(4)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "105-112"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "9",
+   "title": "第9週 動名詞(1)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "113-122"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "10",
+   "title": "第10週 動名詞(2)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "123-130"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "11",
+   "title": "第11週 分詞(1)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "131-138"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "12",
+   "title": "第12週 分詞(2)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "139-148"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "13",
+   "title": "第13週 仮定法(1)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "149-156"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "14",
+   "title": "第14週 仮定法(2)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "157-162"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "15",
+   "title": "第15週 仮定法(3)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "163-168"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "16",
+   "title": "第16週 仮定法(4)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "169-172"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "17",
+   "title": "第17週 助動詞(1)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "173-184"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "18",
+   "title": "第18週 助動詞(2)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "185-194"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "19",
+   "title": "第19週 助動詞(3)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "195-200"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "20",
+   "title": "第20週 受動態(1)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "201-210"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "21",
+   "title": "第21週 受動態(2)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "211-220"
+   }
+  },
+  {
+   "chapter": "前期",
+   "seqNo": "22",
+   "title": "第22週 名詞・冠詞(1)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "221-234"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "1",
+   "title": "第1週 名詞・冠詞(2)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "235-246"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "2",
+   "title": "第2週 代名詞(1)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "247-258"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "3",
+   "title": "第3週 代名詞(2)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "259-268"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "4",
+   "title": "第4週 代名詞(3)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "269-280"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "5",
+   "title": "第5週 形容詞",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "281-290"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "6",
+   "title": "第6週 副詞",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "291-302"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "7",
+   "title": "第7週 比較(1)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "303-314"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "8",
+   "title": "第8週 比較(2)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "315-324"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "9",
+   "title": "第9週 比較(3)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "325-336"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "10",
+   "title": "第10週 否定",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "337-348"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "11",
+   "title": "第11週 関係詞(1)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "349-356"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "12",
+   "title": "第12週 関係詞(2)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "357-368"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "13",
+   "title": "第13週 関係詞(4)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "369-376"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "14",
+   "title": "第14週 関係詞(5)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "377-386"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "15",
+   "title": "第15週 話法",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "387-396"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "16",
+   "title": "第16週 接続詞(1)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "397-406"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "17",
+   "title": "第17週 接続詞(2)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "407-418"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "18",
+   "title": "第18週 前置詞(1)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "419-432"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "19",
+   "title": "第19週 前置詞(2)",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "433-444"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "20",
+   "title": "第20週 倒置・挿入",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "445-452"
+   }
+  },
+  {
+   "chapter": "後期",
+   "seqNo": "21",
+   "title": "第21週 強調・省略",
+   "subject": "英語",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "453-460"
+   }
+  }
+ ]
+}

@@ -69,6 +69,8 @@ export interface ResourceBook {
   imageUrl: string | null
   sortOrder: number
   pinned: boolean
+  /** 生徒側だけに表示する（講師の小テスト出題には出さない） */
+  studentOnly?: boolean
   totalRows: number
   doneRows: number
   targetRows: number // 進捗対象（included かつ学習項目に紐づく）行数
@@ -406,6 +408,8 @@ export interface QuizSettings {
   vocabularyIds?: number[]
   /** 単語帳の通し番号（No.）で範囲指定。指定時はセクション選択より優先 */
   range?: { from: number; to: number }
+  /** 忘却曲線の復習（期限が来ている単語だけ・期限の古い順） */
+  due?: boolean
 }
 
 export interface FlashcardSettings {
@@ -420,6 +424,38 @@ export interface VocabularyStats {
   newCount: number
   overallAccuracy: number
   dueForReview: number
+  /** 忘却曲線（review_states）で復習期限が来ている単語数（「今日の復習」） */
+  reviewDue?: number
+}
+
+// ===== 忘却曲線の復習・出題セッション（スクランブル・英単語・学習カード共通） =====
+/** 1 問の復習状態（サーバーの review_states）。isDue = 期限が来ている */
+export interface ReviewInfo {
+  interval: number
+  intervalLabel: string
+  ease: number
+  reps: number
+  lapses: number
+  dueAt: string | null
+  lastAt: string | null
+  lastGrade: 'again' | 'hard' | 'good' | 'easy' | null
+  isDue: boolean
+}
+export type SessionKind = 'grammar' | 'vocab' | 'card'
+/** 1 回の出題（開始〜終了）の記録。avgMs = 1 問あたりの解答時間 */
+export interface QuizSessionInfo {
+  id: number
+  kind: SessionKind
+  refId: number | null
+  refKey: string | null
+  mode: string | null
+  startedAt: string
+  finishedAt: string | null
+  total: number
+  correct: number
+  unsure: number
+  elapsedMs: number
+  avgMs: number | null
 }
 
 // トップページ用: 英単語の習得進捗（全体 + セクション別）
@@ -445,6 +481,10 @@ export interface QuizAnswerRecord {
   unsure?: boolean
   /** サーバーに記録した回答の ID（記録が終わるまで undefined、失敗なら null） */
   attemptId?: number | null
+  /** 解答までの時間（ミリ秒） */
+  elapsedMs?: number
+  /** 記録後の復習状態（次回までの間隔の表示用） */
+  review?: ReviewInfo | null
 }
 
 // ===== 講師請求管理 =====
@@ -946,6 +986,8 @@ export interface GrammarStat {
   lastUnsure: boolean
   lastAt: string | null
   lastAnswer: string | null
+  /** 忘却曲線の復習状態（未回答なら null） */
+  review?: ReviewInfo | null
 }
 
 export interface GrammarQuestion {
@@ -991,6 +1033,62 @@ export interface GrammarBook {
   correct: number
   incorrect: number
   unanswered: number
+  /** 復習期限が来ている問題数 */
+  due?: number
+}
+
+// ===== 学習カード（鉄緑会 英文法の覚える表現・例文、合格る確率・合格る計算の問題） =====
+/** phrase=囲みの中の覚える表現 / example=例文 / problem=画像の問題 */
+export type CardKind = 'phrase' | 'example' | 'problem'
+/** 出題形式: translate=和訳（英文→和訳を自己判定） / fill=空所補充（太字の語を入力） / ja2en=意味→表現 / en2ja=表現→意味 / image=問題画像→解答画像で自己判定 */
+export type CardMode = 'translate' | 'fill' | 'ja2en' | 'en2ja' | 'image'
+
+export interface CardDeck {
+  id: number
+  key: string
+  subject: 'english' | 'math'
+  name: string
+  shortName: string
+  studentOnly: boolean
+  resourceBookTitle: string | null
+  /** 章の一覧 [[章番号, 章名, 先頭 no, 末尾 no], ...] */
+  structure: [number, string, number, number][] | null
+  total: number
+  correct: number
+  incorrect: number
+  unanswered: number
+  due: number
+}
+
+export interface CardStat {
+  correct: number
+  incorrect: number
+  last: boolean | null
+  lastUnsure: boolean
+  lastAt: string | null
+  lastMode: string | null
+  review: ReviewInfo | null
+}
+
+export interface CardItem {
+  id: number
+  deckId: number
+  no: number
+  chapterNo: number
+  chapter: string
+  section: string | null
+  kind: CardKind
+  /** 例文の英文 / 表現 / 問題の見出し */
+  front: string
+  /** 和訳 / 意味 */
+  back: string | null
+  /** blanks = 空所にする語（front を空白で分けた語のインデックス範囲 [開始, 終了]）、table = 表（画像だけ）、ex = 教材の Ex. 番号 */
+  extra: { blanks?: [number, number][]; table?: boolean; ex?: number; problemPages?: number[]; answerPages?: number[] } | null
+  page: number | null
+  bookPage: string | null
+  hasProblemImage: boolean
+  hasAnswerImage: boolean
+  stat: CardStat | null
 }
 
 // ===== タスク管理（科目ごとの「やるべきこと」。1 日／1 週あたりの量で登録し、日別・週別に展開） =====

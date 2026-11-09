@@ -315,7 +315,7 @@ async function deleteAll() {
         <div style="font-size: 16px; font-weight: 700">単語帳管理</div>
         <VocabResourceSwitch @change="resetPage()" />
       </div>
-      <button class="link-btn" @click="router.push({ name: 'quiz' })">クイズへ</button>
+      <button class="link-btn" @click="router.push({ name: 'english', query: { tab: 'vocab' } })">英単語へ</button>
     </div>
 
     <!-- filters -->

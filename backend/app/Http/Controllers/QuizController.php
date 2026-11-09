@@ -48,6 +48,8 @@ class QuizController extends Controller
         $books = ResourceBook::with('subject')
             ->withCount(['pdfs', 'items'])
             ->where('user_id', $userId)
+            // 生徒側限定の教材（鉄緑会など）は講師には出さない
+            ->when($request->user()->isTutor(), fn ($q) => $q->where('student_only', false))
             ->orderBy('type')
             ->orderByDesc('pinned')
             ->orderBy('sort_order')
@@ -72,6 +74,7 @@ class QuizController extends Controller
     {
         $userId = $this->targetUserId($request);
         abort_unless($resourceBook->user_id === $userId, 403);
+        abort_if($request->user()->isTutor() && $resourceBook->student_only, 403, 'この教材は生徒側限定です。');
 
         $pdfs = $resourceBook->pdfs()->get();
         $rows = $resourceBook->items()->get();

@@ -64,6 +64,7 @@ class ResourceBookController extends Controller
                 'imageUrl' => $b->image_path ? url('/api/resource-books/'.$b->id.'/image').'?v='.$b->updated_at?->timestamp : null,
                 'sortOrder' => $b->sort_order,
                 'pinned' => (bool) $b->pinned,
+                'studentOnly' => (bool) $b->student_only,
                 'totalRows' => (int) ($s->total_rows ?? 0),
                 'doneRows' => (int) ($s->done_rows ?? 0),
                 'targetRows' => (int) ($s->target_rows ?? 0),
@@ -103,6 +104,7 @@ class ResourceBookController extends Controller
             'title' => ['sometimes', 'string', 'max:255'],
             'subjectId' => ['nullable', 'integer'],
             'pinned' => ['sometimes', 'boolean'],
+            'studentOnly' => ['sometimes', 'boolean'],
         ]);
 
         $payload = [];
@@ -114,6 +116,9 @@ class ResourceBookController extends Controller
         }
         if (array_key_exists('pinned', $data)) {
             $payload['pinned'] = $data['pinned'];
+        }
+        if (array_key_exists('studentOnly', $data)) {
+            $payload['student_only'] = $data['studentOnly'];
         }
         $resourceBook->update($payload);
 

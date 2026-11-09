@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Resources\VocabularyResource;
 use App\Models\StudyResource;
 use App\Models\Vocabulary;
+use App\Models\QuizSession;
+use App\Models\ReviewState;
 use App\Models\VocabularyAttempt;
+use App\Services\ReviewService;
 use App\Services\VocabularyService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -13,7 +16,7 @@ use Illuminate\Http\Request;
 
 class VocabularyQuizController extends Controller
 {
-    public function __construct(private VocabularyService $service) {}
+    public function __construct(private VocabularyService $service, private ReviewService $review) {}
 
     /** 出題取得（出題単語 + 4択） */
     public function quiz(Request $request, StudyResource $studyResource): JsonResponse
@@ -32,6 +35,7 @@ class VocabularyQuizController extends Controller
             'vocabularyIds' => $this->csv($request->query('vocabularyIds')),
             'rangeFrom' => (int) $request->query('rangeFrom', 0),
             'rangeTo' => (int) $request->query('rangeTo', 0),
+            'due' => filter_var($request->query('due', false), FILTER_VALIDATE_BOOLEAN), // 忘却曲線の復習（期限が来ている単語だけ）
         ];
 
         $words = $this->service->getQuizWords($studyResource, $userId, $params);
@@ -56,19 +60,28 @@ class VocabularyQuizController extends Controller
         $data = $request->validate([
             'is_correct' => ['required', 'boolean'],
             'quiz_type' => ['required', 'in:choice,input'],
+            'elapsed_ms' => ['nullable', 'integer', 'min:0', 'max:86400000'],
+            'session_id' => ['nullable', 'integer'],
         ]);
+        $userId = $request->user()->id;
+        $sessionId = ! empty($data['session_id']) && QuizSession::where('id', $data['session_id'])->where('user_id', $userId)->exists()
+            ? (int) $data['session_id'] : null;
 
         $attempt = $this->service->recordAttempt(
             $vocabulary,
-            $request->user()->id,
+            $userId,
             $data['is_correct'],
-            $data['quiz_type']
+            $data['quiz_type'],
+            $data['elapsed_ms'] ?? null,
+            $sessionId,
         );
+        $state = ReviewState::where(['user_id' => $userId, 'kind' => ReviewState::KIND_VOCAB, 'item_id' => $vocabulary->id])->first();
 
         return response()->json(['data' => [
             'id' => $attempt->id,
             'isCorrect' => $attempt->is_correct,
             'quizType' => $attempt->quiz_type,
+            'review' => $state ? $this->review->payload($state) : null,
         ]]);
     }
 
@@ -78,11 +91,15 @@ class VocabularyQuizController extends Controller
         abort_unless($attempt->user_id === $request->user()->id, 403);
         $data = $request->validate(['is_unsure' => ['required', 'boolean']]);
         $attempt->update(['is_unsure' => $attempt->is_correct && $data['is_unsure']]);
+        // 復習状態を、この回答の前の状態に戻してから付け替え後の結果（あいまい=難しい）で進め直す
+        $prev = $attempt->review_prev;
+        $state = $this->review->reapply($attempt->user_id, ReviewState::KIND_VOCAB, $attempt->vocabulary_id, $prev['state'] ?? null, is_array($prev), $attempt->is_correct, $attempt->is_unsure);
 
         return response()->json(['data' => [
             'id' => $attempt->id,
             'isCorrect' => $attempt->is_correct,
             'isUnsure' => $attempt->is_unsure,
+            'review' => $this->review->payload($state),
         ]]);
     }
 

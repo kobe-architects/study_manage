@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\GrammarAttempt;
 use App\Models\GrammarQuestion;
+use App\Models\QuizSession;
+use App\Models\ReviewState;
+use App\Services\ReviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +18,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  */
 class GrammarController extends Controller
 {
+    public function __construct(private ReviewService $review) {}
+
     /** 問題集（英文法・語法）の一覧と、自分の回答状況（最新の回答で正解・不正解・未回答を数える） */
     public function books(Request $request): JsonResponse
     {
@@ -30,6 +35,15 @@ class GrammarController extends Controller
             ->groupBy('grammar_questions.book', 'grammar_attempts.is_correct')
             ->get();
 
+        // 忘却曲線の復習期限が来ている問題数（本ごと）
+        $dueRows = ReviewState::query()
+            ->join('grammar_questions', 'grammar_questions.id', '=', 'review_states.item_id')
+            ->where('review_states.user_id', $userId)->where('review_states.kind', ReviewState::KIND_GRAMMAR)
+            ->whereNotNull('review_states.due_at')->where('review_states.due_at', '<=', now())
+            ->selectRaw('grammar_questions.book AS book, COUNT(*) AS n')
+            ->groupBy('grammar_questions.book')
+            ->pluck('n', 'book');
+
         $data = [];
         foreach (GrammarQuestion::BOOKS as $key => $name) {
             $total = (int) ($totals[$key] ?? 0);
@@ -42,6 +56,7 @@ class GrammarController extends Controller
                 'correct' => $correct,
                 'incorrect' => $incorrect,
                 'unanswered' => max(0, $total - $correct - $incorrect),
+                'due' => (int) ($dueRows[$key] ?? 0),
             ];
         }
 
@@ -93,15 +108,24 @@ class GrammarController extends Controller
             'isCorrect' => ['required', 'boolean'],
             'isUnsure' => ['sometimes', 'boolean'],
             'answer' => ['nullable', 'string', 'max:1000'],
+            'elapsedMs' => ['nullable', 'integer', 'min:0', 'max:86400000'],
+            'sessionId' => ['nullable', 'integer'],
         ]);
         $userId = $request->user()->id;
+        $isCorrect = (bool) $data['isCorrect'];
+        $isUnsure = $isCorrect && ! empty($data['isUnsure']);
+        // 忘却曲線の復習状態を進める（不正解=もう一度 / あいまい=難しい / 正解=正解）。更新前の状態は回答に残す
+        [$prev] = $this->review->applyResult($userId, ReviewState::KIND_GRAMMAR, $question->id, $isCorrect, $isUnsure);
         $attempt = GrammarAttempt::create([
             'user_id' => $userId,
+            'quiz_session_id' => $this->ownSessionId($userId, $data['sessionId'] ?? null),
             'grammar_question_id' => $question->id,
-            'is_correct' => $data['isCorrect'],
-            'is_unsure' => $data['isCorrect'] && ! empty($data['isUnsure']),
+            'is_correct' => $isCorrect,
+            'is_unsure' => $isUnsure,
             'answer' => $data['answer'] ?? null,
             'answered_at' => now(),
+            'elapsed_ms' => $data['elapsedMs'] ?? null,
+            'review_prev' => ['state' => $prev],
         ]);
 
         return response()->json(['data' => [
@@ -126,6 +150,9 @@ class GrammarController extends Controller
         $isCorrect = array_key_exists('isCorrect', $data) ? (bool) $data['isCorrect'] : $attempt->is_correct;
         $isUnsure = array_key_exists('isUnsure', $data) ? (bool) $data['isUnsure'] : $attempt->is_unsure;
         $attempt->update(['is_correct' => $isCorrect, 'is_unsure' => $isCorrect && $isUnsure]);
+        // 復習状態を、この回答の前の状態に戻してから付け替え後の結果で進め直す
+        $prev = $attempt->review_prev;
+        $this->review->reapply($userId, ReviewState::KIND_GRAMMAR, $attempt->grammar_question_id, $prev['state'] ?? null, is_array($prev), $isCorrect, $isCorrect && $isUnsure);
 
         return response()->json(['data' => [
             'attemptId' => $attempt->id,
@@ -163,6 +190,16 @@ class GrammarController extends Controller
         return response()->json(['data' => ['marks' => (object) $marks]]);
     }
 
+    /** 自分のセッションの ID だけ受け付ける（他人・存在しない ID は無視） */
+    private function ownSessionId(int $userId, ?int $id): ?int
+    {
+        if (! $id) {
+            return null;
+        }
+
+        return QuizSession::where('id', $id)->where('user_id', $userId)->exists() ? $id : null;
+    }
+
     /**
      * 問題ごとの回答状況。
      * @return array<int, array{correct:int, incorrect:int, last:bool|null, lastUnsure:bool, lastAt:string|null, lastAnswer:string|null}>
@@ -182,6 +219,7 @@ class GrammarController extends Controller
             return [];
         }
         $last = GrammarAttempt::query()->whereIn('id', $rows->pluck('last_id'))->get()->keyBy('grammar_question_id');
+        $reviews = $this->review->payloads($userId, ReviewState::KIND_GRAMMAR, $rows->pluck('qid')->map(fn ($v) => (int) $v)->all());
 
         $out = [];
         foreach ($rows as $r) {
@@ -193,6 +231,7 @@ class GrammarController extends Controller
                 'lastUnsure' => $l ? (bool) $l->is_unsure : false,
                 'lastAt' => $l?->answered_at?->toDateTimeString(),
                 'lastAnswer' => $l?->answer,
+                'review' => $reviews[(int) $r->qid] ?? null,
             ];
         }
 

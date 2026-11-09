@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\StudyTask;
 use App\Models\StudyTaskLog;
 use App\Models\Subject;
+use App\Support\TaskQuota;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +15,7 @@ use Illuminate\Support\Facades\DB;
  * タスク管理（生徒）。
  * 科目ごとの「やるべきこと」を 1 日あたり／1 週あたりの量で登録し（例: 英単語 LEAP basic 140 words / week）、
  * 日別・週別の計画への展開と消化量の記録はトップページで行う。日割りの計算は画面側（lib/tasks.ts）。
+ * iOS アプリ・ホーム画面ウィジェット向けには、日割り済みの「その日のタスク」を返す day() がある（計算は App\Support\TaskQuota）。
  */
 class StudyTaskController extends Controller
 {
@@ -95,6 +98,90 @@ class StudyTaskController extends Controller
         });
 
         return response()->json(['message' => 'ok']);
+    }
+
+    /**
+     * その日のタスク（日割り済み・消化量つき）。iOS アプリとホーム画面ウィジェットが使う。
+     * 並びはトップページの日別表示と同じ（科目の並び順 → タスクの並び順。科目なしは最後）。
+     * date は端末のローカル日付（YYYY-MM-DD）。省略時はサーバーの今日。
+     */
+    public function day(Request $request): JsonResponse
+    {
+        $userId = $this->targetUserId($request);
+        $data = $request->validate(['date' => ['nullable', 'date']]);
+        $date = CarbonImmutable::parse(isset($data['date']) ? substr((string) $data['date'], 0, 10) : now()->toDateString());
+
+        $tasks = StudyTask::with('subject:id,name,color_soft,color_vivid,sort_order')
+            ->where('user_id', $userId)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (StudyTask $t) => TaskQuota::quotaOn($t, $date) > 0)
+            ->values();
+
+        $weekStart = TaskQuota::weekStart($date);
+        $weekDates = TaskQuota::weekDates($weekStart);
+        $logs = [];
+        if ($tasks->isNotEmpty()) {
+            $rows = StudyTaskLog::whereIn('study_task_id', $tasks->pluck('id'))
+                ->whereBetween('date', [$weekStart->toDateString(), $weekStart->addDays(6)->toDateString()])
+                ->get();
+            foreach ($rows as $l) {
+                $logs[$l->study_task_id.'|'.$l->date->toDateString()] = (int) $l->amount;
+            }
+        }
+        $subjectRank = Subject::where('user_id', $userId)->orderBy('sort_order')->orderBy('id')->pluck('id')
+            ->flip()->all();
+
+        $ds = $date->toDateString();
+        $items = [];
+        foreach ($tasks as $t) {
+            $quota = TaskQuota::quotaOn($t, $date);
+            $done = $logs[$t->id.'|'.$ds] ?? 0;
+            $weekQuota = 0;
+            $weekDone = 0;
+            if ($t->period === 'week') {
+                foreach ($weekDates as $x) {
+                    $weekQuota += TaskQuota::quotaOn($t, $x);
+                    $weekDone += $logs[$t->id.'|'.$x->toDateString()] ?? 0;
+                }
+            }
+            $items[] = [
+                'rank' => [$t->subject_id === null ? 9999 : ($subjectRank[$t->subject_id] ?? 9998), (int) $t->sort_order, $t->id],
+                'row' => [
+                    'id' => $t->id,
+                    'subjectId' => $t->subject_id,
+                    'subjectName' => $t->subject?->name,
+                    'colorSoft' => $t->subject?->color_soft ?? '#64748b',
+                    'colorVivid' => $t->subject?->color_vivid ?? '#475569',
+                    'title' => $t->title,
+                    'unit' => $t->unit,
+                    'period' => $t->period,
+                    'quota' => $quota,
+                    'done' => $done,
+                    'complete' => $done >= $quota,
+                    'pct' => (int) min(100, round($done / $quota * 100)),
+                    'weekQuota' => $weekQuota,
+                    'weekDone' => $weekDone,
+                    'isOneDay' => $t->end_on !== null && $t->end_on->toDateString() === $t->start_on->toDateString(),
+                    'quotaLabel' => TaskQuota::fmtAmount($quota, $t->unit),
+                ],
+            ];
+        }
+        usort($items, fn ($a, $b) => $a['rank'] <=> $b['rank']);
+        $rows = array_map(fn ($i) => $i['row'], $items);
+        $total = count($rows);
+        $ratio = $total ? array_sum(array_map(fn ($r) => min(1, $r['done'] / $r['quota']), $rows)) / $total : 0;
+
+        return response()->json(['data' => [
+            'date' => $ds,
+            'weekStart' => $weekStart->toDateString(),
+            'tasks' => $rows,
+            'total' => $total,
+            'complete' => count(array_filter($rows, fn ($r) => $r['complete'])),
+            'pct' => (int) round($ratio * 100),
+        ]]);
     }
 
     /** 期間内の消化量（タスク × 日付） */

@@ -10,8 +10,11 @@ import GrammarExplain from '@/components/GrammarExplain.vue'
 import GrammarQuestionCard, { type GrammarAnswerResult } from '@/components/GrammarQuestionCard.vue'
 import HelpTip from '@/components/HelpTip.vue'
 import QuizFullscreen from '@/components/QuizFullscreen.vue'
+import SessionHistory from '@/components/SessionHistory.vue'
 import { grammarApi } from '@/api/grammar'
+import { sessionsApi } from '@/api/sessions'
 import { shuffle } from '@/lib/design'
+import { QuestionTimer } from '@/lib/quizTimer'
 import { CIRCLED, FORMATS, FORMAT_INFO, chapterParts, questionPreview, statusOf } from '@/lib/grammar'
 import { openGrammarCheckSheet } from '@/lib/grammarSheet'
 import { playResultSound } from '@/lib/sound'
@@ -39,7 +42,10 @@ onMounted(async () => {
     loading.value = false
   }
 })
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey)
+  timer.dispose()
+})
 
 async function selectBook(key: GrammarBookKey) {
   if (g.book === key) return
@@ -147,7 +153,7 @@ const impSel = ref<string[]>([])
 function toggleImp(v: string) {
   impSel.value = impSel.value.includes(v) ? impSel.value.filter((x) => x !== v) : [...impSel.value, v]
 }
-type Target = 'all' | 'unanswered' | 'incorrect' | 'unsure'
+type Target = 'all' | 'unanswered' | 'incorrect' | 'unsure' | 'due'
 const target = ref<Target>('all')
 const ordered = ref(true)
 const count = ref(10)
@@ -174,8 +180,11 @@ function matchTarget(q: GrammarQuestion): boolean {
   if (target.value === 'unanswered') return q.stat?.last === null || q.stat?.last === undefined
   if (target.value === 'incorrect') return q.stat?.last === false
   if (target.value === 'unsure') return q.stat?.last === true && !!q.stat.lastUnsure
+  if (target.value === 'due') return !!q.stat?.review?.isDue
   return true
 }
+/** 忘却曲線の復習期限が来ている問題（期限の古い順） */
+const dueAll = computed(() => all.value.filter((q) => q.stat?.review?.isDue).sort((a, b) => (a.stat?.review?.dueAt ?? '').localeCompare(b.stat?.review?.dueAt ?? '')))
 
 // ---- チェックシート（文法・語法 725 問の解いた日を、付属のチェックシートと同じ並びで印刷用に出力） ----
 const sheetBusy = ref(false)
@@ -193,16 +202,17 @@ async function openSheet() {
     sheetBusy.value = false
   }
 }
-/** 設定に合う問題（番号順） */
-const pool = computed(() =>
-  all.value.filter(
+/** 設定に合う問題（番号順。復習期限は期限の古い順） */
+const pool = computed(() => {
+  const list = all.value.filter(
     (q) =>
       (rangeActive.value ? q.no >= Number(range.from) && q.no <= Number(range.to) : chapSel.value[q.chapterNo]) &&
       (!fmtSel.value.length || fmtSel.value.includes(q.format)) &&
       (!impSel.value.length || impSel.value.includes(q.importance ?? '無印')) &&
       matchTarget(q),
-  ),
-)
+  )
+  return target.value === 'due' ? list.slice().sort((a, b) => (a.stat?.review?.dueAt ?? '').localeCompare(b.stat?.review?.dueAt ?? '')) : list
+})
 const startCount = computed(() => (wantCount.value ? Math.min(wantCount.value, pool.value.length) : pool.value.length))
 
 // ---- 統計 ----
@@ -211,14 +221,34 @@ const stats = computed(() => {
   const correct = all.value.filter((q) => q.stat?.last === true).length
   const incorrect = all.value.filter((q) => q.stat?.last === false).length
   const answered = correct + incorrect
-  return { total, correct, incorrect, unanswered: total - answered, rate: answered ? Math.round((correct / answered) * 100) : 0 }
+  return { total, correct, incorrect, unanswered: total - answered, rate: answered ? Math.round((correct / answered) * 100) : 0, due: dueAll.value.length }
 })
 
 // ---- クイズ ----
 interface QuizResult extends GrammarAnswerResult {
   attemptId: number | null
+  /** 解答までの時間（ミリ秒） */
+  elapsedMs: number | null
 }
-const quiz = reactive<{ list: GrammarQuestion[]; index: number; results: (QuizResult | undefined)[] }>({ list: [], index: 0, results: [] })
+const quiz = reactive<{ list: GrammarQuestion[]; index: number; results: (QuizResult | undefined)[]; review: boolean }>({ list: [], index: 0, results: [], review: false })
+/** 解答時間の計測と、1 回の出題（セッション）の記録 */
+const timer = new QuestionTimer()
+const sessionId = ref<number | null>(null)
+const history = ref<InstanceType<typeof SessionHistory> | null>(null)
+async function startSession(review: boolean) {
+  sessionId.value = null
+  try {
+    const s = await sessionsApi.start({ kind: 'grammar', refKey: g.book, mode: review ? 'review' : 'quiz' })
+    sessionId.value = s.id
+  } catch {
+    sessionId.value = null
+  }
+}
+function finishSession() {
+  const id = sessionId.value
+  sessionId.value = null
+  if (id) sessionsApi.finish(id).then(() => history.value?.reload()).catch(() => {})
+}
 /** 「順番」×問題数指定のとき、続きを出すための情報 */
 const session = ref<{ pool: GrammarQuestion[]; offset: number; size: number } | null>(null)
 const cardRef = ref<InstanceType<typeof GrammarQuestionCard> | null>(null)
@@ -231,24 +261,37 @@ function scrollTop() {
 function scrollQuizTop() {
   document.querySelector('.qf-body')?.scrollTo({ top: 0 })
 }
-function runQuiz(list: GrammarQuestion[]) {
+function runQuiz(list: GrammarQuestion[], review = false) {
   quiz.list = list
   quiz.index = 0
   quiz.results = []
+  quiz.review = review
   explainOpen.value = false
   canSubmit.value = false
   phase.value = 'quiz'
+  timer.start()
+  startSession(review)
 }
 function start() {
-  const base = ordered.value ? pool.value : shuffle(pool.value)
+  const base = ordered.value || target.value === 'due' ? pool.value : shuffle(pool.value)
   const size = wantCount.value || base.length
   const list = base.slice(0, size)
   if (!list.length) {
     ui.notify('対象の問題がありません')
     return
   }
-  session.value = ordered.value && size < base.length ? { pool: base, offset: 0, size } : null
-  runQuiz(list)
+  session.value = (ordered.value || target.value === 'due') && size < base.length ? { pool: base, offset: 0, size } : null
+  runQuiz(list, target.value === 'due')
+}
+/** 今日の復習（忘却曲線で期限が来ている問題を古い順に） */
+function startReview() {
+  const list = dueAll.value
+  if (!list.length) {
+    ui.notify('復習期限の問題はありません')
+    return
+  }
+  session.value = null
+  runQuiz(list, true)
 }
 /** 一覧の問題をタップ: その問題から順番に（設定の絞り込みは使わず、一覧の絞り込みで） */
 function startFrom(q: GrammarQuestion) {
@@ -289,10 +332,10 @@ function giveUp() {
 async function onAnswer(payload: { isCorrect: boolean; answer: string | null }) {
   const q = current.value
   if (!q || quiz.results[quiz.index]) return
-  const r: QuizResult = { ...payload, overridden: false, unsure: false, attemptId: null }
+  const r: QuizResult = { ...payload, overridden: false, unsure: false, attemptId: null, elapsedMs: timer.stop() }
   quiz.results[quiz.index] = r
   playResultSound(payload.isCorrect)
-  r.attemptId = await g.recordAttempt(q, payload.isCorrect, payload.answer)
+  r.attemptId = await g.recordAttempt(q, payload.isCorrect, payload.answer, r.elapsedMs, sessionId.value)
 }
 async function onOverride(isCorrect: boolean) {
   const q = current.value
@@ -314,12 +357,14 @@ async function onUnsure(unsure: boolean) {
 function next() {
   explainOpen.value = false
   if (quiz.index + 1 >= quiz.list.length) {
+    finishSession()
     phase.value = 'results'
     scrollTop()
     return
   }
   canSubmit.value = false
   quiz.index++
+  timer.start()
   scrollQuizTop()
 }
 function prev() {
@@ -330,10 +375,20 @@ function prev() {
   scrollQuizTop()
 }
 function exitQuiz() {
+  finishSession()
   phase.value = 'home'
   explainOpen.value = false
   session.value = null
   g.fetchBooks().catch(() => {})
+}
+/** 結果画面用: 1 問あたりの解答時間 */
+const avgMs = computed(() => {
+  const v = quiz.results.filter((r) => r && r.elapsedMs !== null).map((r) => r!.elapsedMs!)
+  return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null
+})
+function fmtSec(ms: number | null): string {
+  if (ms === null) return '—'
+  return ms < 10000 ? `${(ms / 1000).toFixed(1)}秒` : `${Math.round(ms / 1000)}秒`
 }
 /** キーボード（PC）: 解答後は Enter／→ で次へ、← で前へ（選択や解答はカード側。解説が開いている間は何もしない） */
 function onKey(e: KeyboardEvent) {
@@ -398,7 +453,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
           </button>
         </div>
         <div style="display: flex; align-items: center; gap: 10px">
-          <div style="font-size: 12px; color: var(--faint)">スクランブル英文法・語法</div>
+          <div style="font-size: 12px; color: var(--faint)">Scramble 英文法・語法</div>
           <button class="sheet-btn" :disabled="sheetBusy" @click="openSheet">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
             チェックシート
@@ -414,6 +469,11 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
         <div class="card vstat"><div class="vstat-l">不正解</div><div class="dm vstat-n" style="color: #cf5563">{{ stats.incorrect }}</div></div>
         <div class="card vstat"><div class="vstat-l">未回答</div><div class="dm vstat-n" style="color: #9aa1ab">{{ stats.unanswered }}</div></div>
         <div class="card vstat"><div class="vstat-l">正答率</div><div class="dm vstat-n">{{ stats.rate }}<span style="font-size: 12px">%</span></div></div>
+        <button class="card vstat due" :disabled="!stats.due" @click="startReview">
+          <div class="vstat-l">今日の復習</div>
+          <div class="dm vstat-n" style="color: #d98a2b">{{ stats.due }}</div>
+          <div class="due-go">{{ stats.due ? '始める ›' : '期限なし' }}</div>
+        </button>
       </div>
 
       <div class="home-grid">
@@ -468,6 +528,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
             <button :class="{ on: target === 'unanswered' }" @click="target = 'unanswered'">未回答</button>
             <button :class="{ on: target === 'incorrect' }" @click="target = 'incorrect'">不正解</button>
             <button :class="{ on: target === 'unsure' }" @click="target = 'unsure'">あいまい</button>
+            <button :class="{ on: target === 'due' }" @click="target = 'due'">復習期限</button>
           </div>
 
           <div style="display: flex; gap: 14px; margin: 12px 0 14px">
@@ -488,6 +549,8 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
           </div>
 
           <button class="start-btn" :disabled="loading || !pool.length" @click="start">開始（{{ startCount }}問<span v-if="wantCount && wantCount < pool.length" style="font-weight: 500; opacity: 0.8"> / 対象 {{ pool.length }}問</span>）</button>
+
+          <SessionHistory ref="history" kind="grammar" :ref-key="g.book" :mode-label="(m) => (m === 'review' ? '復習' : '出題')" style="margin-top: 16px" />
         </div>
 
         <!-- 問題一覧 -->
@@ -530,7 +593,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
         <div class="card" style="padding: 30px 26px; text-align: center; margin-bottom: 16px; border-radius: 18px">
           <div style="font-size: 13px; color: var(--faint); margin-bottom: 8px">結果</div>
           <div class="dm" :style="{ fontSize: '48px', fontWeight: 700, color: resultColor, lineHeight: 1 }">{{ resultPct }}<span style="font-size: 22px">%</span></div>
-          <div style="font-size: 14px; color: var(--mut); margin-top: 6px">{{ score.correct }} / {{ score.total }} 問 正解</div>
+          <div style="font-size: 14px; color: var(--mut); margin-top: 6px">{{ score.correct }} / {{ score.total }} 問 正解<span v-if="avgMs !== null">　・　1問あたり {{ fmtSec(avgMs) }}</span></div>
           <div v-if="session" style="font-size: 12px; color: var(--faint); margin-top: 8px">
             {{ session.offset + 1 }}〜{{ Math.min(session.offset + session.size, session.pool.length) }} 問目 / 全 {{ session.pool.length }} 問
           </div>
@@ -589,6 +652,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
           @can-submit="canSubmit = $event"
           @unsure="onUnsure"
         />
+        <div v-if="currentResult && current.stat?.review" class="next-chip">次の復習: {{ current.stat.review.intervalLabel }}後<span v-if="currentResult.elapsedMs !== null">　・　解答 {{ fmtSec(currentResult.elapsedMs) }}</span></div>
         <template #footer>
           <button class="qf-ghost" :disabled="quiz.index === 0" @click="prev">前へ</button>
           <button v-if="currentResult" class="qf-ghost" @click="explainOpen = true">解説</button>
@@ -680,6 +744,34 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
 .vstat-n {
   font-size: 22px;
   font-weight: 700;
+}
+button.vstat.due {
+  cursor: pointer;
+  border-color: #f0d0a8;
+  background: #fffaf3;
+  text-align: left;
+  font-family: inherit;
+}
+button.vstat.due:disabled {
+  cursor: default;
+  border-color: var(--line);
+  background: #fff;
+}
+.due-go {
+  font-size: 11px;
+  font-weight: 700;
+  color: #d98a2b;
+  margin-top: 2px;
+}
+button.vstat.due:disabled .due-go {
+  color: var(--faint);
+  font-weight: 500;
+}
+.next-chip {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--faint);
 }
 .home-grid {
   display: grid;

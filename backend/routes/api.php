@@ -3,6 +3,7 @@
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CalendarEventController;
+use App\Http\Controllers\CardController;
 use App\Http\Controllers\GanttController;
 use App\Http\Controllers\GoalController;
 use App\Http\Controllers\GrammarController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\LineWebhookController;
 use App\Http\Controllers\MistakeDeckController;
 use App\Http\Controllers\MistakeNoteController;
 use App\Http\Controllers\QuizController;
+use App\Http\Controllers\QuizSessionController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\ResourceBookController;
 use App\Http\Controllers\ResourceBookPdfController;
@@ -137,6 +139,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/tasks', [StudyTaskController::class, 'store']);
         Route::put('/tasks/reorder', [StudyTaskController::class, 'reorder']);
         Route::get('/tasks/logs', [StudyTaskController::class, 'logs']); // 期間内の消化量
+        Route::get('/tasks/day', [StudyTaskController::class, 'day']); // その日のタスク（日割り済み。iOS アプリ・ウィジェット用）
         Route::put('/tasks/{task}', [StudyTaskController::class, 'update']);
         Route::delete('/tasks/{task}', [StudyTaskController::class, 'destroy']);
         Route::put('/tasks/{task}/log', [StudyTaskController::class, 'saveLog']); // その日の消化量
@@ -197,6 +200,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/grammar/attempts/{attempt}', [GrammarController::class, 'updateAttempt']);
         // チェックシート用: 文法・語法 725 問の日ごとの結果（正解・不正解・あいまい）
         Route::get('/grammar/checksheet', [GrammarController::class, 'checksheet']);
+
+        // ===== 学習カード（鉄緑会 英文法の覚える表現・例文、合格る確率・合格る計算の問題。カードは共通データ・回答履歴は生徒ごと） =====
+        Route::get('/cards/decks', [CardController::class, 'decks']);
+        Route::get('/cards/decks/{deck}/items', [CardController::class, 'items']);
+        Route::get('/cards/decks/{deck}/checksheet', [CardController::class, 'checksheet']);
+        Route::get('/cards/items/{item}/image/{kind}', [CardController::class, 'image'])->where('kind', 'problem|answer');
+        Route::post('/cards/items/{item}/attempt', [CardController::class, 'attempt']);
+        Route::put('/cards/attempts/{attempt}', [CardController::class, 'updateAttempt']);
+
+        // ===== 1 回の出題（セッション）の記録: 問題数・正解数・解答時間（スクランブル・英単語・学習カード共通） =====
+        Route::get('/quiz-sessions', [QuizSessionController::class, 'index']);
+        Route::post('/quiz-sessions', [QuizSessionController::class, 'store']);
+        Route::post('/quiz-sessions/{session}/finish', [QuizSessionController::class, 'finish']);
 
         // ===== 英単語クイズ サブシステム =====
         Route::get('/study-resources', [StudyResourceController::class, 'index']);

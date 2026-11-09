@@ -1,0 +1,1307 @@
+{
+ "title": "合格る確率＋場合の数",
+ "type": "問題集",
+ "subject": "数学",
+ "items": [
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "1",
+   "title": "ITEM 1 数え上げ",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "22-23",
+    "解答ページ": "2"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "2",
+   "title": "ITEM 2 順列",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "24-25",
+    "解答ページ": "2"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "3",
+   "title": "ITEM 3 量複順列",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "26-27",
+    "解答ページ": "2"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "4",
+   "title": "ITEM 4 数える順序",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "28-29",
+    "解答ページ": "2"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "5",
+   "title": "ITEM 5 場合分け",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "30-31",
+    "解答ページ": "3"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "6",
+   "title": "ITEM 6 補集合の利用",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "32-33",
+    "解答ページ": "3"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "7",
+   "title": "ITEM 7 組合せ",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "34-35",
+    "解答ページ": "3"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "8",
+   "title": "ITEM 8 同じものを含む順列",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "36-37",
+    "解答ページ": "3"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "9",
+   "title": "ITEM 9 円順列",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "38-39",
+    "解答ページ": "3"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "10",
+   "title": "ITEM 10 場合の数の比",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "40-41",
+    "解答ページ": "4"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "11",
+   "title": "ITEM 11 乗法定理(独立試行)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "42-43",
+    "解答ページ": "4"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "12",
+   "title": "ITEM 12 等確率",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "44-45",
+    "解答ページ": "4"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "13",
+   "title": "ITEM 13 同基準",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "46-47",
+    "解答ページ": "4"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "14",
+   "title": "ITEM 14 独立反復試行",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "48-49",
+    "解答ページ": "5"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "15",
+   "title": "ITEM 15 独立でない試行(非復元抽出)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "50-51",
+    "解答ページ": "5"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "16",
+   "title": "ITEM 16 起こりやすさの割合",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "52-53",
+    "解答ページ": "6"
+   }
+  },
+  {
+   "chapter": "Stage1 原理原則編",
+   "seqNo": "17",
+   "title": "ITEM 17 余事象の利用",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "54-61",
+    "解答ページ": "6"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "18",
+   "title": "ITEM 18 隣り合う,隣り合わない(その1)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "62-63",
+    "解答ページ": "6"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "19",
+   "title": "ITEM 19 組合せ→順列",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "64-65",
+    "解答ページ": "7"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "20",
+   "title": "ITEM 20 順序が指定されているとき",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "66-67",
+    "解答ページ": "7"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "21",
+   "title": "ITEM 21 対称性の活用",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "68-69",
+    "解答ページ": "7"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "22",
+   "title": "ITEM 22 包除原理",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "70-71",
+    "解答ページ": "8"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "23",
+   "title": "ITEM 23 最短経路",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "72-73",
+    "解答ページ": "8"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "24",
+   "title": "ITEM 24 〇を一で仕切る(その1)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "74-75",
+    "解答ページ": "8"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "25",
+   "title": "ITEM 25 〇を一で仕切る(その2)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "76-77",
+    "解答ページ": "9"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "26",
+   "title": "ITEM 26 組分け",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "78-79",
+    "解答ページ": "9"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "27",
+   "title": "ITEM 27 円順列と数珠順列",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "80-81",
+    "解答ページ": "10"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "28",
+   "title": "ITEM 28 注目すべきことのみに集中",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "82-83",
+    "解答ページ": "10"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "29",
+   "title": "ITEM 29 一方を固定して",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "84-85",
+    "解答ページ": "10"
+   }
+  },
+  {
+   "chapter": "Stage2 典型手法編",
+   "seqNo": "30",
+   "title": "ITEM 30 独立反復試行(回数指定)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "86-89",
+    "解答ページ": "11"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "31",
+   "title": "ITEM 31 書き出しか?法則か?",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "90-91",
+    "解答ページ": "11"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "32",
+   "title": "ITEM 32",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "92-93",
+    "解答ページ": "12"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "33",
+   "title": "ITEM 33",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "94-95",
+    "解答ページ": "12"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "34",
+   "title": "ITEM 34 隣り合う,隣り合わない(その2)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "96-97",
+    "解答ページ": "13"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "35",
+   "title": "ITEM 35 最短経路(通れない点)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "98-99",
+    "解答ページ": "14"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "36",
+   "title": "ITEM 36 最短経路\"的な\"",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "100-101",
+    "解答ページ": "15"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "37",
+   "title": "ITEM 37 座標の変化",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "102-103",
+    "解答ページ": "15"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "38",
+   "title": "ITEM 38 〇を一で仕切る→整数解の個数",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "104-105",
+    "解答ページ": "16"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "39",
+   "title": "ITEM 39 〇を一で仕切る→増加列",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "106-107",
+    "解答ページ": "16"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "40",
+   "title": "ITEM 40 〇を一で仕切る→「連」",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "108-109",
+    "解答ページ": "17"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "41",
+   "title": "ITEM 41 〇を一で仕切る→アラカルト",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "110-111",
+    "解答ページ": "17"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "42",
+   "title": "ITEM 42 ポールと箱(相互関係1)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "112-113",
+    "解答ページ": "18"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "43",
+   "title": "ITEM 43 ポールと箱(相互関係2)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "114-115",
+    "解答ページ": "19"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "44",
+   "title": "ITEM 44 ホールと箱(相互関係3)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "116-117",
+    "解答ページ": "19"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "45",
+   "title": "ITEM 45 トーナメント",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "118-119",
+    "解答ページ": "20"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "46",
+   "title": "ITEM 46 じゃんけん",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "120-121",
+    "解答ページ": "20"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "47",
+   "title": "ITEM 47 番号と色(その1)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "122-123",
+    "解答ページ": "21"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "48",
+   "title": "ITEM 48 番号と色(その2)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "124-125",
+    "解答ページ": "22"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "49",
+   "title": "ITEM 49 円順列と確率",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "126-127",
+    "解答ページ": "22"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "50",
+   "title": "ITEM 50 立方体の塗り方",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "128-129",
+    "解答ページ": "23"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "51",
+   "title": "ITEM 51 独立反復試行",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "130-131",
+    "解答ページ": "24"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "52",
+   "title": "ITEM 52 独立反復試行:~勝したら終了",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "132-133",
+    "解答ページ": "25"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "53",
+   "title": "ITEM 53 独立反復試行:~勝リードで終了",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "134-135",
+    "解答ページ": "25"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "54",
+   "title": "ITEM 54 独立反復試行.デュース",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "136-137",
+    "解答ページ": "26"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "55",
+   "title": "ITEM 55 積が2,6の倍数",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "138-139",
+    "解答ページ": "26"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "56",
+   "title": "ITEM 56 積が4,12の倍数",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "140-141",
+    "解答ページ": "27"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "57",
+   "title": "ITEM 57 最大値",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "142-143",
+    "解答ページ": "28"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "58",
+   "title": "ITEM 58 最大値,最小値",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "144-145",
+    "解答ページ": "28"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "59",
+   "title": "ITEM 59 第〇回に△度目の(反復試行)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "146-147",
+    "解答ページ": "29"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "60",
+   "title": "ITEM 60 第〇回に△度目の(非復元)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "148-149",
+    "解答ページ": "30"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "61",
+   "title": "ITEM 61 条件付き確率(単なる割合)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "150-151",
+    "解答ページ": "31"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "62",
+   "title": "ITEM 62",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "152-153",
+    "解答ページ": "31"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "63",
+   "title": "ITEM 63 条件付き確率(原因の確率)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "154-155",
+    "解答ページ": "32"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "64",
+   "title": "ITEM 64 条件付き確率(応用)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "156-157",
+    "解答ページ": "32"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "65",
+   "title": "ITEM 65 条件付き確率(抽象的)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "158-159",
+    "解答ページ": "33"
+   }
+  },
+  {
+   "chapter": "Stage3 入試実戦編",
+   "seqNo": "66",
+   "title": "ITEM 66 事象の独立(数学B)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "160-164",
+    "解答ページ": "33,34"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "67",
+   "title": "ITEM 67",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "165-183",
+    "解答ページ": "35"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "68",
+   "title": "ITEM 68 正多角形",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "184-185",
+    "解答ページ": "36,37"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "69",
+   "title": "ITEM 69 変数の条件",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "186-187",
+    "解答ページ": "38"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "70",
+   "title": "ITEM 70 独立反復試行:2連勝で終了",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "188-191",
+    "解答ページ": "39"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "71",
+   "title": "ITEM 71 「まで」から「ちょうど」へ",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "192-193",
+    "解答ページ": "40"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "72",
+   "title": "ITEM 72 一定方向への推移",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "194-195",
+    "解答ページ": "41"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "73",
+   "title": "ITEM 73 確率漸化式(各回2状態)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "196-199",
+    "解答ページ": "42"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "74",
+   "title": "ITEM 74 確率漸化式(明示的てない\"ドミノ\"構造)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "200-201",
+    "解答ページ": "43"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "75",
+   "title": "ITEM 75 確率漸化式(1ーでよい??)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "202-203",
+    "解答ページ": "44"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "76",
+   "title": "ITEM 76 確率漸化式(\"束ねる\")",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "204-205",
+    "解答ページ": "45"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "77",
+   "title": "ITEM 77 確率漸化式(偶奇分け)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "206-207",
+    "解答ページ": "46,47"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "78",
+   "title": "ITEM 78 確率漸化式(各回3状態:対称性あり)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "208-209",
+    "解答ページ": "48"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "79",
+   "title": "ITEM 79 確率漸化式(各回3状態対称性なし)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "210-211",
+    "解答ページ": "49,50"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "80",
+   "title": "ITEM 80 確率漸化式(ちょうど~になる)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "212-213",
+    "解答ページ": "51"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "81",
+   "title": "ITEM 81 すころく",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "214-215",
+    "解答ページ": "52"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "82",
+   "title": "ITEM 82 確率漸化式(連続しない)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "216-217",
+    "解答ページ": "53"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "83",
+   "title": "ITEM 83 領域の分割",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "218-219",
+    "解答ページ": "54"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "84",
+   "title": "ITEM 84 確率漸化式?",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "220-221",
+    "解答ページ": "55"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "85",
+   "title": "ITEM 85 漸化式と条件付き確率",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "222-223",
+    "解答ページ": "56"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "86",
+   "title": "ITEM 86 数列と条件付き確率",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "224-225",
+    "解答ページ": "57"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "87",
+   "title": "ITEM 87 区分求積法との融合(数学Ⅲ)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "226-227",
+    "解答ページ": "57,58"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "88",
+   "title": "ITEM 88 は匹確率",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "228-229",
+    "解答ページ": "59"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "89",
+   "title": "ITEM 89 期待値",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "230-231",
+    "解答ページ": "60,61"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "90",
+   "title": "ITEM 90 期待値とニ項係数",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "232-233",
+    "解答ページ": "62"
+   }
+  },
+  {
+   "chapter": "Stage4 実戦融合問題編",
+   "seqNo": "91",
+   "title": "ITEM 91 良問",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "234-237",
+    "解答ページ": "62,63"
+   }
+  },
+  {
+   "chapter": "Stage5 超高難度有名問題編",
+   "seqNo": "92",
+   "title": "ITEM 92 巴戦(数学Ⅲ)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "238-239",
+    "解答ページ": "64"
+   }
+  },
+  {
+   "chapter": "Stage5 超高難度有名問題編",
+   "seqNo": "93",
+   "title": "ITEM 93 ランダムウォーク(反射壁)。。",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "240-241",
+    "解答ページ": "65,66"
+   }
+  },
+  {
+   "chapter": "Stage5 超高難度有名問題編",
+   "seqNo": "94",
+   "title": "ITEM 94 破産の確率",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "242-243",
+    "解答ページ": "67"
+   }
+  },
+  {
+   "chapter": "Stage5 超高難度有名問題編",
+   "seqNo": "95",
+   "title": "ITEM 95 〔けにM)場合の数",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "244-245",
+    "解答ページ": "68"
+   }
+  },
+  {
+   "chapter": "Stage5 超高難度有名問題編",
+   "seqNo": "96",
+   "title": "ITEM 96 ホイヤの壺(",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "246-247",
+    "解答ページ": "69,70,71"
+   }
+  },
+  {
+   "chapter": "Stage5 超高難度有名問題編",
+   "seqNo": "97",
+   "title": "ITEM 97 包除原理(一般)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "248-249",
+    "解答ページ": "72"
+   }
+  },
+  {
+   "chapter": "Stage5 超高難度有名問題編",
+   "seqNo": "98",
+   "title": "ITEM 98 乱列",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "250-251",
+    "解答ページ": "73"
+   }
+  },
+  {
+   "chapter": "Stage5 超高難度有名問題編",
+   "seqNo": "99",
+   "title": "ITEM 99 期待値の加法性(数学B)",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "252-253",
+    "解答ページ": "74,75"
+   }
+  },
+  {
+   "chapter": "Stage5 超高難度有名問題編",
+   "seqNo": "100",
+   "title": "ITEM 100 ク-ホンコレクタ-(数学B,数学Ⅲレ",
+   "subject": "数学",
+   "major": "",
+   "mid": "",
+   "sub": "",
+   "meta": {
+    "ページ": "254-255",
+    "解答ページ": "76,77,78,79"
+   }
+  }
+ ]
+}

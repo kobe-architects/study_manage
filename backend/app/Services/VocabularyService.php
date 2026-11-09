@@ -6,6 +6,7 @@ use App\Models\StudyResource;
 use App\Models\Vocabulary;
 use App\Models\VocabularyAttempt;
 use App\Models\VocabularyLearningStat;
+use App\Models\ReviewState;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\DB;
  */
 class VocabularyService
 {
+    public function __construct(private ReviewService $review) {}
+
     /** SM-2 配分（ハードコード）: 復習60% / 新規30% / 苦手10% */
     private const DUE_RATIO = 0.6;
 
@@ -49,6 +52,27 @@ class VocabularyService
         // 1. 特定単語指定（リトライ/復習）
         if (! empty($vocabularyIds)) {
             return $base->whereIn('id', $vocabularyIds)->get()->shuffle()->values();
+        }
+
+        // 1-2. 忘却曲線の復習（期限が来ている単語だけ。期限の古い順。セクション・重要度・ラベルの絞り込みは適用する）
+        if (! empty($params['due'])) {
+            if (! empty($sectionIds)) {
+                $base->whereIn('study_resource_section_id', $sectionIds);
+            }
+            $pool = $base->get();
+            if (! empty($importances)) {
+                $pool = $pool->whereIn('importance', $importances)->values();
+            }
+            if (! empty($labels)) {
+                $pool = $pool->whereIn('label', $labels)->values();
+            }
+            $dueIds = $this->review->dueIds($userId, ReviewState::KIND_VOCAB, $pool->pluck('id')->all());
+            $order = $dueIds->flip();
+            $due = $pool->filter(fn (Vocabulary $v) => $order->has($v->id))
+                ->sortBy(fn (Vocabulary $v) => $order[$v->id])
+                ->values();
+
+            return $count > 0 ? $due->take($count)->values() : $due;
         }
 
         // 2. 絞り込み（通し番号の範囲指定があればセクション選択より優先）
@@ -187,14 +211,19 @@ class VocabularyService
     /**
      * 回答を記録し、SM-2 で学習統計を更新する。
      */
-    public function recordAttempt(Vocabulary $word, int $userId, bool $isCorrect, string $quizType): VocabularyAttempt
+    public function recordAttempt(Vocabulary $word, int $userId, bool $isCorrect, string $quizType, ?int $elapsedMs = null, ?int $sessionId = null): VocabularyAttempt
     {
+        // 忘却曲線の復習状態（review_states）も進める。更新前の状態は回答に残す（あいまいの付け替えでやり直すため）
+        [$prev] = $this->review->applyResult($userId, ReviewState::KIND_VOCAB, $word->id, $isCorrect, false);
         $attempt = VocabularyAttempt::create([
             'vocabulary_id' => $word->id,
             'user_id' => $userId,
+            'quiz_session_id' => $sessionId,
             'is_correct' => $isCorrect,
             'quiz_type' => $quizType,
             'answered_at' => Carbon::now(),
+            'elapsed_ms' => $elapsedMs,
+            'review_prev' => ['state' => $prev],
         ]);
 
         $stat = VocabularyLearningStat::firstOrCreate(
@@ -250,7 +279,7 @@ class VocabularyService
         if ($totalWords === 0) {
             return [
                 'totalWords' => 0, 'masteredCount' => 0, 'learningCount' => 0,
-                'newCount' => 0, 'overallAccuracy' => 0, 'dueForReview' => 0,
+                'newCount' => 0, 'overallAccuracy' => 0, 'dueForReview' => 0, 'reviewDue' => 0,
             ];
         }
 
@@ -281,6 +310,8 @@ class VocabularyService
             'newCount' => $totalWords - $statCount,
             'overallAccuracy' => $accuracy,
             'dueForReview' => $due,
+            // 忘却曲線（review_states）で期限が来ている単語数（「今日の復習」の件数）
+            'reviewDue' => $this->review->summary($userId, ReviewState::KIND_VOCAB, $vocabIds->all())['due'],
         ];
     }
 

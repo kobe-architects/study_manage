@@ -67,7 +67,7 @@ async function startReviewQuiz() {
     count: 0,
     vocabularyIds: words.value.map((w) => w.id),
   })
-  router.push({ name: 'quiz' })
+  router.push({ name: 'english', query: { tab: 'vocab' } })
 }
 
 function openPrint() {
@@ -87,7 +87,7 @@ function openPrint() {
           <div style="font-size: 16px; font-weight: 700">間違えた単語の復習</div>
           <VocabResourceSwitch @change="words = []; loaded = false" />
         </div>
-        <button class="link-btn" @click="router.push({ name: 'quiz' })">クイズへ</button>
+        <button class="link-btn" @click="router.push({ name: 'english', query: { tab: 'vocab' } })">英単語へ</button>
       </div>
       <div style="font-size: 12px; color: var(--faint); margin-bottom: 16px">指定期間に誤答した単語を抽出して復習します。</div>
 

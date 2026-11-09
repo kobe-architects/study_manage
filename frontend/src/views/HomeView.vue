@@ -604,7 +604,7 @@ async function deleteEvent(id: number) {
                     <span style="font-size: 16px; font-weight: 700">英単語</span>
                     <span :style="{ fontSize: '10.5px', fontWeight: 600, color: v.color, background: v.light, padding: '2px 7px', borderRadius: '99px' }">習得率</span>
                   </div>
-                  <router-link :to="{ name: 'quiz' }" style="font-size: 11.5px; color: var(--faint); text-decoration: none; white-space: nowrap">クイズへ ›</router-link>
+                  <router-link :to="{ name: 'english', query: { tab: 'vocab' } }" style="font-size: 11.5px; color: var(--faint); text-decoration: none; white-space: nowrap">英単語へ ›</router-link>
                 </div>
                 <div style="font-size: 11px; color: var(--faint); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ v.resourceName }}</div>
                 <template v-if="ui.progressStyle !== 'リング'">

@@ -49,10 +49,10 @@ export const useGrammarStore = defineStore('grammar', {
       }
     },
 
-    /** 回答を記録して問題の状況を更新する。失敗時は null（画面の進行は止めない） */
-    async recordAttempt(q: GrammarQuestion, isCorrect: boolean, answer: string | null): Promise<number | null> {
+    /** 回答を記録して問題の状況を更新する（解答時間・出題セッションつき）。失敗時は null（画面の進行は止めない） */
+    async recordAttempt(q: GrammarQuestion, isCorrect: boolean, answer: string | null, elapsedMs: number | null = null, sessionId: number | null = null): Promise<number | null> {
       try {
-        const res = await grammarApi.attempt(q.id, { isCorrect, answer })
+        const res = await grammarApi.attempt(q.id, { isCorrect, answer, elapsedMs, sessionId })
         this.applyStat(q.id, res.stat)
         return res.attemptId
       } catch {

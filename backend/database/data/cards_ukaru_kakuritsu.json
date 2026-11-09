@@ -1,0 +1,2693 @@
+{
+ "deck": {
+  "key": "ukaru_kakuritsu",
+  "subject": "math",
+  "name": "合格る確率＋場合の数",
+  "shortName": "合格る確率",
+  "studentOnly": false,
+  "resourceBookTitle": "合格る確率＋場合の数",
+  "structure": [
+   [
+    1,
+    "Stage1 原理原則編",
+    1,
+    17
+   ],
+   [
+    2,
+    "Stage2 典型手法編",
+    18,
+    30
+   ],
+   [
+    3,
+    "Stage3 入試実戦編",
+    31,
+    66
+   ],
+   [
+    4,
+    "Stage4 実戦融合問題編",
+    67,
+    91
+   ],
+   [
+    5,
+    "Stage5 超高難度有名問題編",
+    92,
+    100
+   ]
+  ],
+  "sortOrder": 1
+ },
+ "items": [
+  {
+   "no": 1,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 1 数え上げ",
+   "kind": "problem",
+   "front": "類題 1",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     23
+    ],
+    "answerPages": [
+     2
+    ],
+    "itemPages": [
+     22,
+     23
+    ],
+    "title": "数え上げ"
+   },
+   "page": 23,
+   "bookPage": "23",
+   "problemImage": "ukaru_kakuritsu/q001.jpg",
+   "answerImage": "ukaru_kakuritsu/a001.jpg"
+  },
+  {
+   "no": 2,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 2 順列",
+   "kind": "problem",
+   "front": "類題 2",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     25
+    ],
+    "answerPages": [
+     2
+    ],
+    "itemPages": [
+     24,
+     25
+    ],
+    "title": "順列"
+   },
+   "page": 25,
+   "bookPage": "25",
+   "problemImage": "ukaru_kakuritsu/q002.jpg",
+   "answerImage": "ukaru_kakuritsu/a002.jpg"
+  },
+  {
+   "no": 3,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 3 量複順列",
+   "kind": "problem",
+   "front": "類題 3",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     27
+    ],
+    "answerPages": [
+     2
+    ],
+    "itemPages": [
+     26,
+     27
+    ],
+    "title": "量複順列"
+   },
+   "page": 27,
+   "bookPage": "27",
+   "problemImage": "ukaru_kakuritsu/q003.jpg",
+   "answerImage": "ukaru_kakuritsu/a003.jpg"
+  },
+  {
+   "no": 4,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 4 数える順序",
+   "kind": "problem",
+   "front": "類題 4",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     29
+    ],
+    "answerPages": [
+     2
+    ],
+    "itemPages": [
+     28,
+     29
+    ],
+    "title": "数える順序"
+   },
+   "page": 29,
+   "bookPage": "29",
+   "problemImage": "ukaru_kakuritsu/q004.jpg",
+   "answerImage": "ukaru_kakuritsu/a004.jpg"
+  },
+  {
+   "no": 5,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 5 場合分け",
+   "kind": "problem",
+   "front": "類題 5",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     31
+    ],
+    "answerPages": [
+     3
+    ],
+    "itemPages": [
+     30,
+     31
+    ],
+    "title": "場合分け"
+   },
+   "page": 31,
+   "bookPage": "31",
+   "problemImage": "ukaru_kakuritsu/q005.jpg",
+   "answerImage": "ukaru_kakuritsu/a005.jpg"
+  },
+  {
+   "no": 6,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 6 補集合の利用",
+   "kind": "problem",
+   "front": "類題 6",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     33
+    ],
+    "answerPages": [
+     3
+    ],
+    "itemPages": [
+     32,
+     33
+    ],
+    "title": "補集合の利用"
+   },
+   "page": 33,
+   "bookPage": "33",
+   "problemImage": "ukaru_kakuritsu/q006.jpg",
+   "answerImage": "ukaru_kakuritsu/a006.jpg"
+  },
+  {
+   "no": 7,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 7 組合せ",
+   "kind": "problem",
+   "front": "類題 7",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     35
+    ],
+    "answerPages": [
+     3
+    ],
+    "itemPages": [
+     34,
+     35
+    ],
+    "title": "組合せ"
+   },
+   "page": 35,
+   "bookPage": "35",
+   "problemImage": "ukaru_kakuritsu/q007.jpg",
+   "answerImage": "ukaru_kakuritsu/a007.jpg"
+  },
+  {
+   "no": 8,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 8 同じものを含む順列",
+   "kind": "problem",
+   "front": "類題 8",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     37
+    ],
+    "answerPages": [
+     3
+    ],
+    "itemPages": [
+     36,
+     37
+    ],
+    "title": "同じものを含む順列"
+   },
+   "page": 37,
+   "bookPage": "37",
+   "problemImage": "ukaru_kakuritsu/q008.jpg",
+   "answerImage": "ukaru_kakuritsu/a008.jpg"
+  },
+  {
+   "no": 9,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 9 円順列",
+   "kind": "problem",
+   "front": "類題 9",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     39
+    ],
+    "answerPages": [
+     3
+    ],
+    "itemPages": [
+     38,
+     39
+    ],
+    "title": "円順列"
+   },
+   "page": 39,
+   "bookPage": "39",
+   "problemImage": "ukaru_kakuritsu/q009.jpg",
+   "answerImage": "ukaru_kakuritsu/a009.jpg"
+  },
+  {
+   "no": 10,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 10 場合の数の比",
+   "kind": "problem",
+   "front": "類題 10",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     41
+    ],
+    "answerPages": [
+     4
+    ],
+    "itemPages": [
+     40,
+     41
+    ],
+    "title": "場合の数の比"
+   },
+   "page": 41,
+   "bookPage": "41",
+   "problemImage": "ukaru_kakuritsu/q010.jpg",
+   "answerImage": "ukaru_kakuritsu/a010.jpg"
+  },
+  {
+   "no": 11,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 11 乗法定理(独立試行)",
+   "kind": "problem",
+   "front": "類題 11",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     43
+    ],
+    "answerPages": [
+     4
+    ],
+    "itemPages": [
+     42,
+     43
+    ],
+    "title": "乗法定理(独立試行)"
+   },
+   "page": 43,
+   "bookPage": "43",
+   "problemImage": "ukaru_kakuritsu/q011.jpg",
+   "answerImage": "ukaru_kakuritsu/a011.jpg"
+  },
+  {
+   "no": 12,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 12 等確率",
+   "kind": "problem",
+   "front": "類題 12",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     45
+    ],
+    "answerPages": [
+     4
+    ],
+    "itemPages": [
+     44,
+     45
+    ],
+    "title": "等確率"
+   },
+   "page": 45,
+   "bookPage": "45",
+   "problemImage": "ukaru_kakuritsu/q012.jpg",
+   "answerImage": "ukaru_kakuritsu/a012.jpg"
+  },
+  {
+   "no": 13,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 13 同基準",
+   "kind": "problem",
+   "front": "類題 13",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     47
+    ],
+    "answerPages": [
+     4
+    ],
+    "itemPages": [
+     46,
+     47
+    ],
+    "title": "同基準"
+   },
+   "page": 47,
+   "bookPage": "47",
+   "problemImage": "ukaru_kakuritsu/q013.jpg",
+   "answerImage": "ukaru_kakuritsu/a013.jpg"
+  },
+  {
+   "no": 14,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 14 独立反復試行",
+   "kind": "problem",
+   "front": "類題 14",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     49
+    ],
+    "answerPages": [
+     5
+    ],
+    "itemPages": [
+     48,
+     49
+    ],
+    "title": "独立反復試行"
+   },
+   "page": 49,
+   "bookPage": "49",
+   "problemImage": "ukaru_kakuritsu/q014.jpg",
+   "answerImage": "ukaru_kakuritsu/a014.jpg"
+  },
+  {
+   "no": 15,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 15 独立でない試行(非復元抽出)",
+   "kind": "problem",
+   "front": "類題 15",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     51
+    ],
+    "answerPages": [
+     5
+    ],
+    "itemPages": [
+     50,
+     51
+    ],
+    "title": "独立でない試行(非復元抽出)"
+   },
+   "page": 51,
+   "bookPage": "51",
+   "problemImage": "ukaru_kakuritsu/q015.jpg",
+   "answerImage": "ukaru_kakuritsu/a015.jpg"
+  },
+  {
+   "no": 16,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 16 起こりやすさの割合",
+   "kind": "problem",
+   "front": "類題 16",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     53
+    ],
+    "answerPages": [
+     6
+    ],
+    "itemPages": [
+     52,
+     53
+    ],
+    "title": "起こりやすさの割合"
+   },
+   "page": 53,
+   "bookPage": "53",
+   "problemImage": "ukaru_kakuritsu/q016.jpg",
+   "answerImage": "ukaru_kakuritsu/a016.jpg"
+  },
+  {
+   "no": 17,
+   "chapterNo": 1,
+   "chapter": "Stage1 原理原則編",
+   "section": "ITEM 17 余事象の利用",
+   "kind": "problem",
+   "front": "類題 17",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     55
+    ],
+    "answerPages": [
+     6
+    ],
+    "itemPages": [
+     54,
+     55,
+     56,
+     57,
+     58,
+     59,
+     60,
+     61
+    ],
+    "title": "余事象の利用"
+   },
+   "page": 55,
+   "bookPage": "55",
+   "problemImage": "ukaru_kakuritsu/q017.jpg",
+   "answerImage": "ukaru_kakuritsu/a017.jpg"
+  },
+  {
+   "no": 18,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 18 隣り合う,隣り合わない(その1)",
+   "kind": "problem",
+   "front": "類題 18",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     63
+    ],
+    "answerPages": [
+     6
+    ],
+    "itemPages": [
+     62,
+     63
+    ],
+    "title": "隣り合う,隣り合わない(その1)"
+   },
+   "page": 63,
+   "bookPage": "63",
+   "problemImage": "ukaru_kakuritsu/q018.jpg",
+   "answerImage": "ukaru_kakuritsu/a018.jpg"
+  },
+  {
+   "no": 19,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 19 組合せ→順列",
+   "kind": "problem",
+   "front": "類題 19",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     65
+    ],
+    "answerPages": [
+     7
+    ],
+    "itemPages": [
+     64,
+     65
+    ],
+    "title": "組合せ→順列"
+   },
+   "page": 65,
+   "bookPage": "65",
+   "problemImage": "ukaru_kakuritsu/q019.jpg",
+   "answerImage": "ukaru_kakuritsu/a019.jpg"
+  },
+  {
+   "no": 20,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 20 順序が指定されているとき",
+   "kind": "problem",
+   "front": "類題 20",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     67
+    ],
+    "answerPages": [
+     7
+    ],
+    "itemPages": [
+     66,
+     67
+    ],
+    "title": "順序が指定されているとき"
+   },
+   "page": 67,
+   "bookPage": "67",
+   "problemImage": "ukaru_kakuritsu/q020.jpg",
+   "answerImage": "ukaru_kakuritsu/a020.jpg"
+  },
+  {
+   "no": 21,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 21 対称性の活用",
+   "kind": "problem",
+   "front": "類題 21",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     69
+    ],
+    "answerPages": [
+     7
+    ],
+    "itemPages": [
+     68,
+     69
+    ],
+    "title": "対称性の活用"
+   },
+   "page": 69,
+   "bookPage": "69",
+   "problemImage": "ukaru_kakuritsu/q021.jpg",
+   "answerImage": "ukaru_kakuritsu/a021.jpg"
+  },
+  {
+   "no": 22,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 22 包除原理",
+   "kind": "problem",
+   "front": "類題 22",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     71
+    ],
+    "answerPages": [
+     8
+    ],
+    "itemPages": [
+     70,
+     71
+    ],
+    "title": "包除原理"
+   },
+   "page": 71,
+   "bookPage": "71",
+   "problemImage": "ukaru_kakuritsu/q022.jpg",
+   "answerImage": "ukaru_kakuritsu/a022.jpg"
+  },
+  {
+   "no": 23,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 23 最短経路",
+   "kind": "problem",
+   "front": "類題 23",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     73
+    ],
+    "answerPages": [
+     8
+    ],
+    "itemPages": [
+     72,
+     73
+    ],
+    "title": "最短経路"
+   },
+   "page": 73,
+   "bookPage": "73",
+   "problemImage": "ukaru_kakuritsu/q023.jpg",
+   "answerImage": "ukaru_kakuritsu/a023.jpg"
+  },
+  {
+   "no": 24,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 24 〇を一で仕切る(その1)",
+   "kind": "problem",
+   "front": "類題 24",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     75
+    ],
+    "answerPages": [
+     8
+    ],
+    "itemPages": [
+     74,
+     75
+    ],
+    "title": "〇を一で仕切る(その1)"
+   },
+   "page": 75,
+   "bookPage": "75",
+   "problemImage": "ukaru_kakuritsu/q024.jpg",
+   "answerImage": "ukaru_kakuritsu/a024.jpg"
+  },
+  {
+   "no": 25,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 25 〇を一で仕切る(その2)",
+   "kind": "problem",
+   "front": "類題 25",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     77
+    ],
+    "answerPages": [
+     9
+    ],
+    "itemPages": [
+     76,
+     77
+    ],
+    "title": "〇を一で仕切る(その2)"
+   },
+   "page": 77,
+   "bookPage": "77",
+   "problemImage": "ukaru_kakuritsu/q025.jpg",
+   "answerImage": "ukaru_kakuritsu/a025.jpg"
+  },
+  {
+   "no": 26,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 26 組分け",
+   "kind": "problem",
+   "front": "類題 26",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     79
+    ],
+    "answerPages": [
+     9
+    ],
+    "itemPages": [
+     78,
+     79
+    ],
+    "title": "組分け"
+   },
+   "page": 79,
+   "bookPage": "79",
+   "problemImage": "ukaru_kakuritsu/q026.jpg",
+   "answerImage": "ukaru_kakuritsu/a026.jpg"
+  },
+  {
+   "no": 27,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 27 円順列と数珠順列",
+   "kind": "problem",
+   "front": "類題 27",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     81
+    ],
+    "answerPages": [
+     10
+    ],
+    "itemPages": [
+     80,
+     81
+    ],
+    "title": "円順列と数珠順列"
+   },
+   "page": 81,
+   "bookPage": "81",
+   "problemImage": "ukaru_kakuritsu/q027.jpg",
+   "answerImage": "ukaru_kakuritsu/a027.jpg"
+  },
+  {
+   "no": 28,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 28 注目すべきことのみに集中",
+   "kind": "problem",
+   "front": "類題 28",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     83
+    ],
+    "answerPages": [
+     10
+    ],
+    "itemPages": [
+     82,
+     83
+    ],
+    "title": "注目すべきことのみに集中"
+   },
+   "page": 83,
+   "bookPage": "83",
+   "problemImage": "ukaru_kakuritsu/q028.jpg",
+   "answerImage": "ukaru_kakuritsu/a028.jpg"
+  },
+  {
+   "no": 29,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 29 一方を固定して",
+   "kind": "problem",
+   "front": "類題 29",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     85
+    ],
+    "answerPages": [
+     10
+    ],
+    "itemPages": [
+     84,
+     85
+    ],
+    "title": "一方を固定して"
+   },
+   "page": 85,
+   "bookPage": "85",
+   "problemImage": "ukaru_kakuritsu/q029.jpg",
+   "answerImage": "ukaru_kakuritsu/a029.jpg"
+  },
+  {
+   "no": 30,
+   "chapterNo": 2,
+   "chapter": "Stage2 典型手法編",
+   "section": "ITEM 30 独立反復試行(回数指定)",
+   "kind": "problem",
+   "front": "類題 30",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     87
+    ],
+    "answerPages": [
+     11
+    ],
+    "itemPages": [
+     86,
+     87,
+     88,
+     89
+    ],
+    "title": "独立反復試行(回数指定)"
+   },
+   "page": 87,
+   "bookPage": "87",
+   "problemImage": "ukaru_kakuritsu/q030.jpg",
+   "answerImage": "ukaru_kakuritsu/a030.jpg"
+  },
+  {
+   "no": 31,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 31 書き出しか?法則か?",
+   "kind": "problem",
+   "front": "類題 31",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     91
+    ],
+    "answerPages": [
+     11
+    ],
+    "itemPages": [
+     90,
+     91
+    ],
+    "title": "書き出しか?法則か?"
+   },
+   "page": 91,
+   "bookPage": "91",
+   "problemImage": "ukaru_kakuritsu/q031.jpg",
+   "answerImage": "ukaru_kakuritsu/a031.jpg"
+  },
+  {
+   "no": 32,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 32",
+   "kind": "problem",
+   "front": "類題 32",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     93
+    ],
+    "answerPages": [
+     12
+    ],
+    "itemPages": [
+     92,
+     93
+    ],
+    "title": ""
+   },
+   "page": 93,
+   "bookPage": "93",
+   "problemImage": "ukaru_kakuritsu/q032.jpg",
+   "answerImage": "ukaru_kakuritsu/a032.jpg"
+  },
+  {
+   "no": 33,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 33",
+   "kind": "problem",
+   "front": "類題 33",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     95
+    ],
+    "answerPages": [
+     12
+    ],
+    "itemPages": [
+     94,
+     95
+    ],
+    "title": ""
+   },
+   "page": 95,
+   "bookPage": "95",
+   "problemImage": "ukaru_kakuritsu/q033.jpg",
+   "answerImage": "ukaru_kakuritsu/a033.jpg"
+  },
+  {
+   "no": 34,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 34 隣り合う,隣り合わない(その2)",
+   "kind": "problem",
+   "front": "類題 34",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     97
+    ],
+    "answerPages": [
+     13
+    ],
+    "itemPages": [
+     96,
+     97
+    ],
+    "title": "隣り合う,隣り合わない(その2)"
+   },
+   "page": 97,
+   "bookPage": "97",
+   "problemImage": "ukaru_kakuritsu/q034.jpg",
+   "answerImage": "ukaru_kakuritsu/a034.jpg"
+  },
+  {
+   "no": 35,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 35 最短経路(通れない点)",
+   "kind": "problem",
+   "front": "類題 35",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     99
+    ],
+    "answerPages": [
+     14
+    ],
+    "itemPages": [
+     98,
+     99
+    ],
+    "title": "最短経路(通れない点)"
+   },
+   "page": 99,
+   "bookPage": "99",
+   "problemImage": "ukaru_kakuritsu/q035.jpg",
+   "answerImage": "ukaru_kakuritsu/a035.jpg"
+  },
+  {
+   "no": 36,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 36 最短経路\"的な\"",
+   "kind": "problem",
+   "front": "類題 36",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     101
+    ],
+    "answerPages": [
+     15
+    ],
+    "itemPages": [
+     100,
+     101
+    ],
+    "title": "最短経路\"的な\""
+   },
+   "page": 101,
+   "bookPage": "101",
+   "problemImage": "ukaru_kakuritsu/q036.jpg",
+   "answerImage": "ukaru_kakuritsu/a036.jpg"
+  },
+  {
+   "no": 37,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 37 座標の変化",
+   "kind": "problem",
+   "front": "類題 37",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     103
+    ],
+    "answerPages": [
+     15
+    ],
+    "itemPages": [
+     102,
+     103
+    ],
+    "title": "座標の変化"
+   },
+   "page": 103,
+   "bookPage": "103",
+   "problemImage": "ukaru_kakuritsu/q037.jpg",
+   "answerImage": "ukaru_kakuritsu/a037.jpg"
+  },
+  {
+   "no": 38,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 38 〇を一で仕切る→整数解の個数",
+   "kind": "problem",
+   "front": "類題 38",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     105
+    ],
+    "answerPages": [
+     16
+    ],
+    "itemPages": [
+     104,
+     105
+    ],
+    "title": "〇を一で仕切る→整数解の個数"
+   },
+   "page": 105,
+   "bookPage": "105",
+   "problemImage": "ukaru_kakuritsu/q038.jpg",
+   "answerImage": "ukaru_kakuritsu/a038.jpg"
+  },
+  {
+   "no": 39,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 39 〇を一で仕切る→増加列",
+   "kind": "problem",
+   "front": "類題 39",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     107
+    ],
+    "answerPages": [
+     16
+    ],
+    "itemPages": [
+     106,
+     107
+    ],
+    "title": "〇を一で仕切る→増加列"
+   },
+   "page": 107,
+   "bookPage": "107",
+   "problemImage": "ukaru_kakuritsu/q039.jpg",
+   "answerImage": "ukaru_kakuritsu/a039.jpg"
+  },
+  {
+   "no": 40,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 40 〇を一で仕切る→「連」",
+   "kind": "problem",
+   "front": "類題 40",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     109
+    ],
+    "answerPages": [
+     17
+    ],
+    "itemPages": [
+     108,
+     109
+    ],
+    "title": "〇を一で仕切る→「連」"
+   },
+   "page": 109,
+   "bookPage": "109",
+   "problemImage": "ukaru_kakuritsu/q040.jpg",
+   "answerImage": "ukaru_kakuritsu/a040.jpg"
+  },
+  {
+   "no": 41,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 41 〇を一で仕切る→アラカルト",
+   "kind": "problem",
+   "front": "類題 41",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     111
+    ],
+    "answerPages": [
+     17
+    ],
+    "itemPages": [
+     110,
+     111
+    ],
+    "title": "〇を一で仕切る→アラカルト"
+   },
+   "page": 111,
+   "bookPage": "111",
+   "problemImage": "ukaru_kakuritsu/q041.jpg",
+   "answerImage": "ukaru_kakuritsu/a041.jpg"
+  },
+  {
+   "no": 42,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 42 ポールと箱(相互関係1)",
+   "kind": "problem",
+   "front": "類題 42",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     113
+    ],
+    "answerPages": [
+     18
+    ],
+    "itemPages": [
+     112,
+     113
+    ],
+    "title": "ポールと箱(相互関係1)"
+   },
+   "page": 113,
+   "bookPage": "113",
+   "problemImage": "ukaru_kakuritsu/q042.jpg",
+   "answerImage": "ukaru_kakuritsu/a042.jpg"
+  },
+  {
+   "no": 43,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 43 ポールと箱(相互関係2)",
+   "kind": "problem",
+   "front": "類題 43",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     115
+    ],
+    "answerPages": [
+     19
+    ],
+    "itemPages": [
+     114,
+     115
+    ],
+    "title": "ポールと箱(相互関係2)"
+   },
+   "page": 115,
+   "bookPage": "115",
+   "problemImage": "ukaru_kakuritsu/q043.jpg",
+   "answerImage": "ukaru_kakuritsu/a043.jpg"
+  },
+  {
+   "no": 44,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 44 ホールと箱(相互関係3)",
+   "kind": "problem",
+   "front": "類題 44",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     117
+    ],
+    "answerPages": [
+     19
+    ],
+    "itemPages": [
+     116,
+     117
+    ],
+    "title": "ホールと箱(相互関係3)"
+   },
+   "page": 117,
+   "bookPage": "117",
+   "problemImage": "ukaru_kakuritsu/q044.jpg",
+   "answerImage": "ukaru_kakuritsu/a044.jpg"
+  },
+  {
+   "no": 45,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 45 トーナメント",
+   "kind": "problem",
+   "front": "類題 45",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     119
+    ],
+    "answerPages": [
+     20
+    ],
+    "itemPages": [
+     118,
+     119
+    ],
+    "title": "トーナメント"
+   },
+   "page": 119,
+   "bookPage": "119",
+   "problemImage": "ukaru_kakuritsu/q045.jpg",
+   "answerImage": "ukaru_kakuritsu/a045.jpg"
+  },
+  {
+   "no": 46,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 46 じゃんけん",
+   "kind": "problem",
+   "front": "類題 46",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     121
+    ],
+    "answerPages": [
+     20
+    ],
+    "itemPages": [
+     120,
+     121
+    ],
+    "title": "じゃんけん"
+   },
+   "page": 121,
+   "bookPage": "121",
+   "problemImage": "ukaru_kakuritsu/q046.jpg",
+   "answerImage": "ukaru_kakuritsu/a046.jpg"
+  },
+  {
+   "no": 47,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 47 番号と色(その1)",
+   "kind": "problem",
+   "front": "類題 47",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     123
+    ],
+    "answerPages": [
+     21
+    ],
+    "itemPages": [
+     122,
+     123
+    ],
+    "title": "番号と色(その1)"
+   },
+   "page": 123,
+   "bookPage": "123",
+   "problemImage": "ukaru_kakuritsu/q047.jpg",
+   "answerImage": "ukaru_kakuritsu/a047.jpg"
+  },
+  {
+   "no": 48,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 48 番号と色(その2)",
+   "kind": "problem",
+   "front": "類題 48",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     125
+    ],
+    "answerPages": [
+     22
+    ],
+    "itemPages": [
+     124,
+     125
+    ],
+    "title": "番号と色(その2)"
+   },
+   "page": 125,
+   "bookPage": "125",
+   "problemImage": "ukaru_kakuritsu/q048.jpg",
+   "answerImage": "ukaru_kakuritsu/a048.jpg"
+  },
+  {
+   "no": 49,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 49 円順列と確率",
+   "kind": "problem",
+   "front": "類題 49",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     127
+    ],
+    "answerPages": [
+     22
+    ],
+    "itemPages": [
+     126,
+     127
+    ],
+    "title": "円順列と確率"
+   },
+   "page": 127,
+   "bookPage": "127",
+   "problemImage": "ukaru_kakuritsu/q049.jpg",
+   "answerImage": "ukaru_kakuritsu/a049.jpg"
+  },
+  {
+   "no": 50,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 50 立方体の塗り方",
+   "kind": "problem",
+   "front": "類題 50",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     129
+    ],
+    "answerPages": [
+     23
+    ],
+    "itemPages": [
+     128,
+     129
+    ],
+    "title": "立方体の塗り方"
+   },
+   "page": 129,
+   "bookPage": "129",
+   "problemImage": "ukaru_kakuritsu/q050.jpg",
+   "answerImage": "ukaru_kakuritsu/a050.jpg"
+  },
+  {
+   "no": 51,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 51 独立反復試行",
+   "kind": "problem",
+   "front": "類題 51",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     131
+    ],
+    "answerPages": [
+     24
+    ],
+    "itemPages": [
+     130,
+     131
+    ],
+    "title": "独立反復試行"
+   },
+   "page": 131,
+   "bookPage": "131",
+   "problemImage": "ukaru_kakuritsu/q051.jpg",
+   "answerImage": "ukaru_kakuritsu/a051.jpg"
+  },
+  {
+   "no": 52,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 52 独立反復試行:~勝したら終了",
+   "kind": "problem",
+   "front": "類題 52",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     133
+    ],
+    "answerPages": [
+     25
+    ],
+    "itemPages": [
+     132,
+     133
+    ],
+    "title": "独立反復試行:~勝したら終了"
+   },
+   "page": 133,
+   "bookPage": "133",
+   "problemImage": "ukaru_kakuritsu/q052.jpg",
+   "answerImage": "ukaru_kakuritsu/a052.jpg"
+  },
+  {
+   "no": 53,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 53 独立反復試行:~勝リードで終了",
+   "kind": "problem",
+   "front": "類題 53",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     135
+    ],
+    "answerPages": [
+     25
+    ],
+    "itemPages": [
+     134,
+     135
+    ],
+    "title": "独立反復試行:~勝リードで終了"
+   },
+   "page": 135,
+   "bookPage": "135",
+   "problemImage": "ukaru_kakuritsu/q053.jpg",
+   "answerImage": "ukaru_kakuritsu/a053.jpg"
+  },
+  {
+   "no": 54,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 54 独立反復試行.デュース",
+   "kind": "problem",
+   "front": "類題 54",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     137
+    ],
+    "answerPages": [
+     26
+    ],
+    "itemPages": [
+     136,
+     137
+    ],
+    "title": "独立反復試行.デュース"
+   },
+   "page": 137,
+   "bookPage": "137",
+   "problemImage": "ukaru_kakuritsu/q054.jpg",
+   "answerImage": "ukaru_kakuritsu/a054.jpg"
+  },
+  {
+   "no": 55,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 55 積が2,6の倍数",
+   "kind": "problem",
+   "front": "類題 55",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     139
+    ],
+    "answerPages": [
+     26
+    ],
+    "itemPages": [
+     138,
+     139
+    ],
+    "title": "積が2,6の倍数"
+   },
+   "page": 139,
+   "bookPage": "139",
+   "problemImage": "ukaru_kakuritsu/q055.jpg",
+   "answerImage": "ukaru_kakuritsu/a055.jpg"
+  },
+  {
+   "no": 56,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 56 積が4,12の倍数",
+   "kind": "problem",
+   "front": "類題 56",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     141
+    ],
+    "answerPages": [
+     27
+    ],
+    "itemPages": [
+     140,
+     141
+    ],
+    "title": "積が4,12の倍数"
+   },
+   "page": 141,
+   "bookPage": "141",
+   "problemImage": "ukaru_kakuritsu/q056.jpg",
+   "answerImage": "ukaru_kakuritsu/a056.jpg"
+  },
+  {
+   "no": 57,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 57 最大値",
+   "kind": "problem",
+   "front": "類題 57",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     143
+    ],
+    "answerPages": [
+     28
+    ],
+    "itemPages": [
+     142,
+     143
+    ],
+    "title": "最大値"
+   },
+   "page": 143,
+   "bookPage": "143",
+   "problemImage": "ukaru_kakuritsu/q057.jpg",
+   "answerImage": "ukaru_kakuritsu/a057.jpg"
+  },
+  {
+   "no": 58,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 58 最大値,最小値",
+   "kind": "problem",
+   "front": "類題 58",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     145
+    ],
+    "answerPages": [
+     28
+    ],
+    "itemPages": [
+     144,
+     145
+    ],
+    "title": "最大値,最小値"
+   },
+   "page": 145,
+   "bookPage": "145",
+   "problemImage": "ukaru_kakuritsu/q058.jpg",
+   "answerImage": "ukaru_kakuritsu/a058.jpg"
+  },
+  {
+   "no": 59,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 59 第〇回に△度目の(反復試行)",
+   "kind": "problem",
+   "front": "類題 59",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     147
+    ],
+    "answerPages": [
+     29
+    ],
+    "itemPages": [
+     146,
+     147
+    ],
+    "title": "第〇回に△度目の(反復試行)"
+   },
+   "page": 147,
+   "bookPage": "147",
+   "problemImage": "ukaru_kakuritsu/q059.jpg",
+   "answerImage": "ukaru_kakuritsu/a059.jpg"
+  },
+  {
+   "no": 60,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 60 第〇回に△度目の(非復元)",
+   "kind": "problem",
+   "front": "類題 60",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     149
+    ],
+    "answerPages": [
+     30
+    ],
+    "itemPages": [
+     148,
+     149
+    ],
+    "title": "第〇回に△度目の(非復元)"
+   },
+   "page": 149,
+   "bookPage": "149",
+   "problemImage": "ukaru_kakuritsu/q060.jpg",
+   "answerImage": "ukaru_kakuritsu/a060.jpg"
+  },
+  {
+   "no": 61,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 61 条件付き確率(単なる割合)",
+   "kind": "problem",
+   "front": "類題 61",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     151
+    ],
+    "answerPages": [
+     31
+    ],
+    "itemPages": [
+     150,
+     151
+    ],
+    "title": "条件付き確率(単なる割合)"
+   },
+   "page": 151,
+   "bookPage": "151",
+   "problemImage": "ukaru_kakuritsu/q061.jpg",
+   "answerImage": "ukaru_kakuritsu/a061.jpg"
+  },
+  {
+   "no": 62,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 62",
+   "kind": "problem",
+   "front": "類題 62",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     153
+    ],
+    "answerPages": [
+     31
+    ],
+    "itemPages": [
+     152,
+     153
+    ],
+    "title": ""
+   },
+   "page": 153,
+   "bookPage": "153",
+   "problemImage": "ukaru_kakuritsu/q062.jpg",
+   "answerImage": "ukaru_kakuritsu/a062.jpg"
+  },
+  {
+   "no": 63,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 63 条件付き確率(原因の確率)",
+   "kind": "problem",
+   "front": "類題 63",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     155
+    ],
+    "answerPages": [
+     32
+    ],
+    "itemPages": [
+     154,
+     155
+    ],
+    "title": "条件付き確率(原因の確率)"
+   },
+   "page": 155,
+   "bookPage": "155",
+   "problemImage": "ukaru_kakuritsu/q063.jpg",
+   "answerImage": "ukaru_kakuritsu/a063.jpg"
+  },
+  {
+   "no": 64,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 64 条件付き確率(応用)",
+   "kind": "problem",
+   "front": "類題 64",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     157
+    ],
+    "answerPages": [
+     32
+    ],
+    "itemPages": [
+     156,
+     157
+    ],
+    "title": "条件付き確率(応用)"
+   },
+   "page": 157,
+   "bookPage": "157",
+   "problemImage": "ukaru_kakuritsu/q064.jpg",
+   "answerImage": "ukaru_kakuritsu/a064.jpg"
+  },
+  {
+   "no": 65,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 65 条件付き確率(抽象的)",
+   "kind": "problem",
+   "front": "類題 65",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     159
+    ],
+    "answerPages": [
+     33
+    ],
+    "itemPages": [
+     158,
+     159
+    ],
+    "title": "条件付き確率(抽象的)"
+   },
+   "page": 159,
+   "bookPage": "159",
+   "problemImage": "ukaru_kakuritsu/q065.jpg",
+   "answerImage": "ukaru_kakuritsu/a065.jpg"
+  },
+  {
+   "no": 66,
+   "chapterNo": 3,
+   "chapter": "Stage3 入試実戦編",
+   "section": "ITEM 66 事象の独立(数学B)",
+   "kind": "problem",
+   "front": "類題 66",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     161
+    ],
+    "answerPages": [
+     33,
+     34
+    ],
+    "itemPages": [
+     160,
+     161,
+     162,
+     163,
+     164
+    ],
+    "title": "事象の独立(数学B)"
+   },
+   "page": 161,
+   "bookPage": "161",
+   "problemImage": "ukaru_kakuritsu/q066.jpg",
+   "answerImage": "ukaru_kakuritsu/a066.jpg"
+  },
+  {
+   "no": 67,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 67",
+   "kind": "problem",
+   "front": "類題 67",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     183
+    ],
+    "answerPages": [
+     35
+    ],
+    "itemPages": [
+     165,
+     166,
+     167,
+     168,
+     169,
+     170,
+     171,
+     172,
+     173,
+     174,
+     175,
+     176,
+     177,
+     178,
+     179,
+     180,
+     181,
+     182,
+     183
+    ],
+    "title": ""
+   },
+   "page": 183,
+   "bookPage": "183",
+   "problemImage": "ukaru_kakuritsu/q067.jpg",
+   "answerImage": "ukaru_kakuritsu/a067.jpg"
+  },
+  {
+   "no": 68,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 68 正多角形",
+   "kind": "problem",
+   "front": "類題 68",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     185
+    ],
+    "answerPages": [
+     36,
+     37
+    ],
+    "itemPages": [
+     184,
+     185
+    ],
+    "title": "正多角形"
+   },
+   "page": 185,
+   "bookPage": "185",
+   "problemImage": "ukaru_kakuritsu/q068.jpg",
+   "answerImage": "ukaru_kakuritsu/a068.jpg"
+  },
+  {
+   "no": 69,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 69 変数の条件",
+   "kind": "problem",
+   "front": "類題 69",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     187
+    ],
+    "answerPages": [
+     38
+    ],
+    "itemPages": [
+     186,
+     187
+    ],
+    "title": "変数の条件"
+   },
+   "page": 187,
+   "bookPage": "187",
+   "problemImage": "ukaru_kakuritsu/q069.jpg",
+   "answerImage": "ukaru_kakuritsu/a069.jpg"
+  },
+  {
+   "no": 70,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 70 独立反復試行:2連勝で終了",
+   "kind": "problem",
+   "front": "類題 70",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     191
+    ],
+    "answerPages": [
+     39
+    ],
+    "itemPages": [
+     188,
+     189,
+     190,
+     191
+    ],
+    "title": "独立反復試行:2連勝で終了"
+   },
+   "page": 191,
+   "bookPage": "191",
+   "problemImage": "ukaru_kakuritsu/q070.jpg",
+   "answerImage": "ukaru_kakuritsu/a070.jpg"
+  },
+  {
+   "no": 71,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 71 「まで」から「ちょうど」へ",
+   "kind": "problem",
+   "front": "類題 71",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     193
+    ],
+    "answerPages": [
+     40
+    ],
+    "itemPages": [
+     192,
+     193
+    ],
+    "title": "「まで」から「ちょうど」へ"
+   },
+   "page": 193,
+   "bookPage": "193",
+   "problemImage": "ukaru_kakuritsu/q071.jpg",
+   "answerImage": "ukaru_kakuritsu/a071.jpg"
+  },
+  {
+   "no": 72,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 72 一定方向への推移",
+   "kind": "problem",
+   "front": "類題 72",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     195
+    ],
+    "answerPages": [
+     41
+    ],
+    "itemPages": [
+     194,
+     195
+    ],
+    "title": "一定方向への推移"
+   },
+   "page": 195,
+   "bookPage": "195",
+   "problemImage": "ukaru_kakuritsu/q072.jpg",
+   "answerImage": "ukaru_kakuritsu/a072.jpg"
+  },
+  {
+   "no": 73,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 73 確率漸化式(各回2状態)",
+   "kind": "problem",
+   "front": "類題 73",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     199
+    ],
+    "answerPages": [
+     42
+    ],
+    "itemPages": [
+     196,
+     197,
+     198,
+     199
+    ],
+    "title": "確率漸化式(各回2状態)"
+   },
+   "page": 199,
+   "bookPage": "199",
+   "problemImage": "ukaru_kakuritsu/q073.jpg",
+   "answerImage": "ukaru_kakuritsu/a073.jpg"
+  },
+  {
+   "no": 74,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 74 確率漸化式(明示的てない\"ドミノ\"構造)",
+   "kind": "problem",
+   "front": "類題 74",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     201
+    ],
+    "answerPages": [
+     43
+    ],
+    "itemPages": [
+     200,
+     201
+    ],
+    "title": "確率漸化式(明示的てない\"ドミノ\"構造)"
+   },
+   "page": 201,
+   "bookPage": "201",
+   "problemImage": "ukaru_kakuritsu/q074.jpg",
+   "answerImage": "ukaru_kakuritsu/a074.jpg"
+  },
+  {
+   "no": 75,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 75 確率漸化式(1ーでよい??)",
+   "kind": "problem",
+   "front": "類題 75",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     203
+    ],
+    "answerPages": [
+     44
+    ],
+    "itemPages": [
+     202,
+     203
+    ],
+    "title": "確率漸化式(1ーでよい??)"
+   },
+   "page": 203,
+   "bookPage": "203",
+   "problemImage": "ukaru_kakuritsu/q075.jpg",
+   "answerImage": "ukaru_kakuritsu/a075.jpg"
+  },
+  {
+   "no": 76,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 76 確率漸化式(\"束ねる\")",
+   "kind": "problem",
+   "front": "類題 76",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     205
+    ],
+    "answerPages": [
+     45
+    ],
+    "itemPages": [
+     204,
+     205
+    ],
+    "title": "確率漸化式(\"束ねる\")"
+   },
+   "page": 205,
+   "bookPage": "205",
+   "problemImage": "ukaru_kakuritsu/q076.jpg",
+   "answerImage": "ukaru_kakuritsu/a076.jpg"
+  },
+  {
+   "no": 77,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 77 確率漸化式(偶奇分け)",
+   "kind": "problem",
+   "front": "類題 77",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     207
+    ],
+    "answerPages": [
+     46,
+     47
+    ],
+    "itemPages": [
+     206,
+     207
+    ],
+    "title": "確率漸化式(偶奇分け)"
+   },
+   "page": 207,
+   "bookPage": "207",
+   "problemImage": "ukaru_kakuritsu/q077.jpg",
+   "answerImage": "ukaru_kakuritsu/a077.jpg"
+  },
+  {
+   "no": 78,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 78 確率漸化式(各回3状態:対称性あり)",
+   "kind": "problem",
+   "front": "類題 78",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     209
+    ],
+    "answerPages": [
+     48
+    ],
+    "itemPages": [
+     208,
+     209
+    ],
+    "title": "確率漸化式(各回3状態:対称性あり)"
+   },
+   "page": 209,
+   "bookPage": "209",
+   "problemImage": "ukaru_kakuritsu/q078.jpg",
+   "answerImage": "ukaru_kakuritsu/a078.jpg"
+  },
+  {
+   "no": 79,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 79 確率漸化式(各回3状態対称性なし)",
+   "kind": "problem",
+   "front": "類題 79",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     211
+    ],
+    "answerPages": [
+     49,
+     50
+    ],
+    "itemPages": [
+     210,
+     211
+    ],
+    "title": "確率漸化式(各回3状態対称性なし)"
+   },
+   "page": 211,
+   "bookPage": "211",
+   "problemImage": "ukaru_kakuritsu/q079.jpg",
+   "answerImage": "ukaru_kakuritsu/a079.jpg"
+  },
+  {
+   "no": 80,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 80 確率漸化式(ちょうど~になる)",
+   "kind": "problem",
+   "front": "類題 80",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     213
+    ],
+    "answerPages": [
+     51
+    ],
+    "itemPages": [
+     212,
+     213
+    ],
+    "title": "確率漸化式(ちょうど~になる)"
+   },
+   "page": 213,
+   "bookPage": "213",
+   "problemImage": "ukaru_kakuritsu/q080.jpg",
+   "answerImage": "ukaru_kakuritsu/a080.jpg"
+  },
+  {
+   "no": 81,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 81 すころく",
+   "kind": "problem",
+   "front": "類題 81",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     215
+    ],
+    "answerPages": [
+     52
+    ],
+    "itemPages": [
+     214,
+     215
+    ],
+    "title": "すころく"
+   },
+   "page": 215,
+   "bookPage": "215",
+   "problemImage": "ukaru_kakuritsu/q081.jpg",
+   "answerImage": "ukaru_kakuritsu/a081.jpg"
+  },
+  {
+   "no": 82,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 82 確率漸化式(連続しない)",
+   "kind": "problem",
+   "front": "類題 82",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     217
+    ],
+    "answerPages": [
+     53
+    ],
+    "itemPages": [
+     216,
+     217
+    ],
+    "title": "確率漸化式(連続しない)"
+   },
+   "page": 217,
+   "bookPage": "217",
+   "problemImage": "ukaru_kakuritsu/q082.jpg",
+   "answerImage": "ukaru_kakuritsu/a082.jpg"
+  },
+  {
+   "no": 83,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 83 領域の分割",
+   "kind": "problem",
+   "front": "類題 83",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     219
+    ],
+    "answerPages": [
+     54
+    ],
+    "itemPages": [
+     218,
+     219
+    ],
+    "title": "領域の分割"
+   },
+   "page": 219,
+   "bookPage": "219",
+   "problemImage": "ukaru_kakuritsu/q083.jpg",
+   "answerImage": "ukaru_kakuritsu/a083.jpg"
+  },
+  {
+   "no": 84,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 84 確率漸化式?",
+   "kind": "problem",
+   "front": "類題 84",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     221
+    ],
+    "answerPages": [
+     55
+    ],
+    "itemPages": [
+     220,
+     221
+    ],
+    "title": "確率漸化式?"
+   },
+   "page": 221,
+   "bookPage": "221",
+   "problemImage": "ukaru_kakuritsu/q084.jpg",
+   "answerImage": "ukaru_kakuritsu/a084.jpg"
+  },
+  {
+   "no": 85,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 85 漸化式と条件付き確率",
+   "kind": "problem",
+   "front": "類題 85",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     223
+    ],
+    "answerPages": [
+     56
+    ],
+    "itemPages": [
+     222,
+     223
+    ],
+    "title": "漸化式と条件付き確率"
+   },
+   "page": 223,
+   "bookPage": "223",
+   "problemImage": "ukaru_kakuritsu/q085.jpg",
+   "answerImage": "ukaru_kakuritsu/a085.jpg"
+  },
+  {
+   "no": 86,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 86 数列と条件付き確率",
+   "kind": "problem",
+   "front": "類題 86",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     225
+    ],
+    "answerPages": [
+     57
+    ],
+    "itemPages": [
+     224,
+     225
+    ],
+    "title": "数列と条件付き確率"
+   },
+   "page": 225,
+   "bookPage": "225",
+   "problemImage": "ukaru_kakuritsu/q086.jpg",
+   "answerImage": "ukaru_kakuritsu/a086.jpg"
+  },
+  {
+   "no": 87,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 87 区分求積法との融合(数学Ⅲ)",
+   "kind": "problem",
+   "front": "類題 87",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     227
+    ],
+    "answerPages": [
+     57,
+     58
+    ],
+    "itemPages": [
+     226,
+     227
+    ],
+    "title": "区分求積法との融合(数学Ⅲ)"
+   },
+   "page": 227,
+   "bookPage": "227",
+   "problemImage": "ukaru_kakuritsu/q087.jpg",
+   "answerImage": "ukaru_kakuritsu/a087.jpg"
+  },
+  {
+   "no": 88,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 88 は匹確率",
+   "kind": "problem",
+   "front": "類題 88",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     229
+    ],
+    "answerPages": [
+     59
+    ],
+    "itemPages": [
+     228,
+     229
+    ],
+    "title": "は匹確率"
+   },
+   "page": 229,
+   "bookPage": "229",
+   "problemImage": "ukaru_kakuritsu/q088.jpg",
+   "answerImage": "ukaru_kakuritsu/a088.jpg"
+  },
+  {
+   "no": 89,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 89 期待値",
+   "kind": "problem",
+   "front": "類題 89",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     231
+    ],
+    "answerPages": [
+     60,
+     61
+    ],
+    "itemPages": [
+     230,
+     231
+    ],
+    "title": "期待値"
+   },
+   "page": 231,
+   "bookPage": "231",
+   "problemImage": "ukaru_kakuritsu/q089.jpg",
+   "answerImage": "ukaru_kakuritsu/a089.jpg"
+  },
+  {
+   "no": 90,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 90 期待値とニ項係数",
+   "kind": "problem",
+   "front": "類題 90",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     233
+    ],
+    "answerPages": [
+     62
+    ],
+    "itemPages": [
+     232,
+     233
+    ],
+    "title": "期待値とニ項係数"
+   },
+   "page": 233,
+   "bookPage": "233",
+   "problemImage": "ukaru_kakuritsu/q090.jpg",
+   "answerImage": "ukaru_kakuritsu/a090.jpg"
+  },
+  {
+   "no": 91,
+   "chapterNo": 4,
+   "chapter": "Stage4 実戦融合問題編",
+   "section": "ITEM 91 良問",
+   "kind": "problem",
+   "front": "類題 91",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     235
+    ],
+    "answerPages": [
+     62,
+     63
+    ],
+    "itemPages": [
+     234,
+     235,
+     236,
+     237
+    ],
+    "title": "良問"
+   },
+   "page": 235,
+   "bookPage": "235",
+   "problemImage": "ukaru_kakuritsu/q091.jpg",
+   "answerImage": "ukaru_kakuritsu/a091.jpg"
+  },
+  {
+   "no": 92,
+   "chapterNo": 5,
+   "chapter": "Stage5 超高難度有名問題編",
+   "section": "ITEM 92 巴戦(数学Ⅲ)",
+   "kind": "problem",
+   "front": "類題 92",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     239
+    ],
+    "answerPages": [
+     64
+    ],
+    "itemPages": [
+     238,
+     239
+    ],
+    "title": "巴戦(数学Ⅲ)"
+   },
+   "page": 239,
+   "bookPage": "239",
+   "problemImage": "ukaru_kakuritsu/q092.jpg",
+   "answerImage": "ukaru_kakuritsu/a092.jpg"
+  },
+  {
+   "no": 93,
+   "chapterNo": 5,
+   "chapter": "Stage5 超高難度有名問題編",
+   "section": "ITEM 93 ランダムウォーク(反射壁)。。",
+   "kind": "problem",
+   "front": "類題 93",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     241
+    ],
+    "answerPages": [
+     65,
+     66
+    ],
+    "itemPages": [
+     240,
+     241
+    ],
+    "title": "ランダムウォーク(反射壁)。。"
+   },
+   "page": 241,
+   "bookPage": "241",
+   "problemImage": "ukaru_kakuritsu/q093.jpg",
+   "answerImage": "ukaru_kakuritsu/a093.jpg"
+  },
+  {
+   "no": 94,
+   "chapterNo": 5,
+   "chapter": "Stage5 超高難度有名問題編",
+   "section": "ITEM 94 破産の確率",
+   "kind": "problem",
+   "front": "類題 94",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     243
+    ],
+    "answerPages": [
+     67
+    ],
+    "itemPages": [
+     242,
+     243
+    ],
+    "title": "破産の確率"
+   },
+   "page": 243,
+   "bookPage": "243",
+   "problemImage": "ukaru_kakuritsu/q094.jpg",
+   "answerImage": "ukaru_kakuritsu/a094.jpg"
+  },
+  {
+   "no": 95,
+   "chapterNo": 5,
+   "chapter": "Stage5 超高難度有名問題編",
+   "section": "ITEM 95 〔けにM)場合の数",
+   "kind": "problem",
+   "front": "類題 95",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     245
+    ],
+    "answerPages": [
+     68
+    ],
+    "itemPages": [
+     244,
+     245
+    ],
+    "title": "〔けにM)場合の数"
+   },
+   "page": 245,
+   "bookPage": "245",
+   "problemImage": "ukaru_kakuritsu/q095.jpg",
+   "answerImage": "ukaru_kakuritsu/a095.jpg"
+  },
+  {
+   "no": 96,
+   "chapterNo": 5,
+   "chapter": "Stage5 超高難度有名問題編",
+   "section": "ITEM 96 ホイヤの壺(",
+   "kind": "problem",
+   "front": "類題 96",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     247
+    ],
+    "answerPages": [
+     69,
+     70,
+     71
+    ],
+    "itemPages": [
+     246,
+     247
+    ],
+    "title": "ホイヤの壺("
+   },
+   "page": 247,
+   "bookPage": "247",
+   "problemImage": "ukaru_kakuritsu/q096.jpg",
+   "answerImage": "ukaru_kakuritsu/a096.jpg"
+  },
+  {
+   "no": 97,
+   "chapterNo": 5,
+   "chapter": "Stage5 超高難度有名問題編",
+   "section": "ITEM 97 包除原理(一般)",
+   "kind": "problem",
+   "front": "類題 97",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     249
+    ],
+    "answerPages": [
+     72
+    ],
+    "itemPages": [
+     248,
+     249
+    ],
+    "title": "包除原理(一般)"
+   },
+   "page": 249,
+   "bookPage": "249",
+   "problemImage": "ukaru_kakuritsu/q097.jpg",
+   "answerImage": "ukaru_kakuritsu/a097.jpg"
+  },
+  {
+   "no": 98,
+   "chapterNo": 5,
+   "chapter": "Stage5 超高難度有名問題編",
+   "section": "ITEM 98 乱列",
+   "kind": "problem",
+   "front": "類題 98",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     251
+    ],
+    "answerPages": [
+     73
+    ],
+    "itemPages": [
+     250,
+     251
+    ],
+    "title": "乱列"
+   },
+   "page": 251,
+   "bookPage": "251",
+   "problemImage": "ukaru_kakuritsu/q098.jpg",
+   "answerImage": "ukaru_kakuritsu/a098.jpg"
+  },
+  {
+   "no": 99,
+   "chapterNo": 5,
+   "chapter": "Stage5 超高難度有名問題編",
+   "section": "ITEM 99 期待値の加法性(数学B)",
+   "kind": "problem",
+   "front": "類題 99",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     253
+    ],
+    "answerPages": [
+     74,
+     75
+    ],
+    "itemPages": [
+     252,
+     253
+    ],
+    "title": "期待値の加法性(数学B)"
+   },
+   "page": 253,
+   "bookPage": "253",
+   "problemImage": "ukaru_kakuritsu/q099.jpg",
+   "answerImage": "ukaru_kakuritsu/a099.jpg"
+  },
+  {
+   "no": 100,
+   "chapterNo": 5,
+   "chapter": "Stage5 超高難度有名問題編",
+   "section": "ITEM 100 ク-ホンコレクタ-(数学B,数学Ⅲレ",
+   "kind": "problem",
+   "front": "類題 100",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     255
+    ],
+    "answerPages": [
+     76,
+     77,
+     78,
+     79
+    ],
+    "itemPages": [
+     254,
+     255
+    ],
+    "title": "ク-ホンコレクタ-(数学B,数学Ⅲレ"
+   },
+   "page": 255,
+   "bookPage": "255",
+   "problemImage": "ukaru_kakuritsu/q100.jpg",
+   "answerImage": "ukaru_kakuritsu/a100.jpg"
+  }
+ ]
+}

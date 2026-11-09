@@ -17,10 +17,11 @@ return new class extends Migration
             $table->unsignedInteger('score')->nullable()->after('max_score_per_page');
             $table->unsignedInteger('max_score')->nullable()->after('score');
         });
-        DB::statement("UPDATE quizzes q SET
-            score = (SELECT SUM(p.score) FROM quiz_pages p WHERE p.quiz_id = q.id AND p.score IS NOT NULL),
-            max_score = (SELECT SUM(COALESCE(p.max_score, q.max_score_per_page)) FROM quiz_pages p WHERE p.quiz_id = q.id)
-            WHERE q.status = 'graded'");
+        // テーブルの別名を使わない書き方（MySQL と、テストで使う SQLite の両方で動く）
+        DB::statement("UPDATE quizzes SET
+            score = (SELECT SUM(p.score) FROM quiz_pages p WHERE p.quiz_id = quizzes.id AND p.score IS NOT NULL),
+            max_score = (SELECT SUM(COALESCE(p.max_score, quizzes.max_score_per_page)) FROM quiz_pages p WHERE p.quiz_id = quizzes.id)
+            WHERE status = 'graded'");
     }
 
     public function down(): void

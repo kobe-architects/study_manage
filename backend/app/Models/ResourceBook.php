@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Storage;
 
 class ResourceBook extends Model
 {
-    protected $fillable = ['user_id', 'type', 'title', 'subject_id', 'image_path', 'sort_order', 'pinned'];
+    protected $fillable = ['user_id', 'type', 'title', 'subject_id', 'image_path', 'sort_order', 'pinned', 'student_only'];
 
-    protected $casts = ['pinned' => 'boolean'];
+    protected $casts = ['pinned' => 'boolean', 'student_only' => 'boolean']; // student_only = 生徒側だけに表示（講師の小テスト出題から除く）
 
     protected static function booted(): void
     {

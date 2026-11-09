@@ -21,7 +21,10 @@ import HelpTip from '@/components/HelpTip.vue'
 import VocabResourceSwitch from '@/components/VocabResourceSwitch.vue'
 import TestSheetPrint from '@/components/TestSheetPrint.vue'
 import QuizFullscreen from '@/components/QuizFullscreen.vue'
+import SessionHistory from '@/components/SessionHistory.vue'
 import VocabExplainModal from '@/components/VocabExplainModal.vue'
+import { sessionsApi } from '@/api/sessions'
+import { QuestionTimer } from '@/lib/quizTimer'
 
 const router = useRouter()
 const vocab = useVocabularyStore()
@@ -209,8 +212,52 @@ onMounted(async () => {
 
 // ---- stats ----
 const stats = computed(
-  () => vocab.stats ?? { totalWords: 0, masteredCount: 0, learningCount: 0, newCount: 0, overallAccuracy: 0, dueForReview: 0 },
+  () => vocab.stats ?? { totalWords: 0, masteredCount: 0, learningCount: 0, newCount: 0, overallAccuracy: 0, dueForReview: 0, reviewDue: 0 },
 )
+
+// ---- 解答時間の計測と、1 回の出題（セッション）の記録 ----
+const timer = new QuestionTimer()
+const sessionId = ref<number | null>(null)
+const history = ref<InstanceType<typeof SessionHistory> | null>(null)
+const reviewMode = ref(false)
+async function startSession(mode: string) {
+  sessionId.value = null
+  if (!resourceId.value) return
+  try {
+    const s = await sessionsApi.start({ kind: 'vocab', refId: resourceId.value, mode })
+    sessionId.value = s.id
+  } catch {
+    sessionId.value = null
+  }
+}
+function finishSession() {
+  const id = sessionId.value
+  sessionId.value = null
+  if (id) sessionsApi.finish(id).then(() => history.value?.reload()).catch(() => {})
+}
+/** 今日の復習（忘却曲線で期限が来ている単語を期限の古い順に全部） */
+async function startReview() {
+  if (!resourceId.value) return
+  const n = await vocab.startQuiz(resourceId.value, { sectionIds: [], quizType: quizType.value, count: 0, due: true })
+  if (!n) {
+    ui.notify('復習期限の単語はありません')
+    return
+  }
+  session.value = null
+  everIncorrect.value = []
+  reviewMode.value = true
+  phase.value = 'quiz'
+  primeDisplay()
+  startSession('review')
+}
+function fmtSec(ms: number | null | undefined): string {
+  if (ms === null || ms === undefined) return '—'
+  return ms < 10000 ? `${(ms / 1000).toFixed(1)}秒` : `${Math.round(ms / 1000)}秒`
+}
+const avgMs = computed(() => {
+  const v = vocab.quizResults.filter((r) => r && r.elapsedMs !== undefined).map((r) => r.elapsedMs!)
+  return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null
+})
 
 const selCount = computed(() => printWords.value.length)
 // 問題数の自由入力を正規化（空欄・不正値・0以下は「全件」扱い）
@@ -280,6 +327,7 @@ function primeDisplay() {
   choicesShown.value = !!ans // 回答済みなら選択肢を復元表示
   explainOpen.value = false
   if (!ans && displayed.value) speak(displayed.value.vocab.word)
+  if (!ans) timer.start()
 }
 
 // ---- メモのその場編集 ----
@@ -368,8 +416,10 @@ async function startQuiz(vocabularyIds?: number[]) {
     }
     everIncorrect.value = []
   }
+  reviewMode.value = false
   phase.value = 'quiz'
   primeDisplay()
+  startSession(vocabularyIds ? 'retry' : incorrectOnly.value ? 'incorrect' : quizType.value)
 }
 
 async function continueSession() {
@@ -383,6 +433,7 @@ async function continueSession() {
   session.value = { ...session.value, offset: next }
   phase.value = 'quiz'
   primeDisplay()
+  startSession(quizType.value)
 }
 
 async function startFlash() {
@@ -400,7 +451,7 @@ function answerChoice(i: number) {
   const ok = displayed.value.choices[i].isCorrect
   selected.value = i
   revealed.value = true
-  vocab.submitAnswer({ isCorrect: ok, selected: i })
+  vocab.submitAnswer({ isCorrect: ok, selected: i, elapsedMs: timer.stop() ?? undefined }, sessionId.value)
   playResultSound(ok)
   // 効果音とかぶらないよう少し待ってから発音
   if (!ok) {
@@ -412,14 +463,15 @@ function dontKnow() {
   if (revealed.value) return
   selected.value = -1
   revealed.value = true
-  vocab.submitAnswer(quizType.value === 'choice' ? { isCorrect: false, selected: -1 } : { isCorrect: false, input: inputVal.value })
+  const ms = timer.stop() ?? undefined
+  vocab.submitAnswer(quizType.value === 'choice' ? { isCorrect: false, selected: -1, elapsedMs: ms } : { isCorrect: false, input: inputVal.value, elapsedMs: ms }, sessionId.value)
   playResultSound(false)
 }
 function submitInput() {
   if (revealed.value || !displayed.value) return
   const ok = inputVal.value.trim().toLowerCase() === displayed.value.vocab.word.toLowerCase()
   revealed.value = true
-  vocab.submitAnswer({ isCorrect: ok, input: inputVal.value })
+  vocab.submitAnswer({ isCorrect: ok, input: inputVal.value, elapsedMs: timer.stop() ?? undefined }, sessionId.value)
   playResultSound(ok)
 }
 function nextQ() {
@@ -432,6 +484,7 @@ function nextQ() {
         if (!seen.has(w.id)) everIncorrect.value.push(w)
       }
     }
+    finishSession()
     phase.value = 'results'
     return
   }
@@ -451,9 +504,11 @@ async function setProf(p: 'high' | 'medium' | 'low') {
 }
 
 function exitQuiz() {
+  finishSession()
   vocab.resetQuiz()
   session.value = null
   everIncorrect.value = []
+  reviewMode.value = false
   phase.value = 'home'
   if (resourceId.value) vocab.fetchStats(resourceId.value)
 }
@@ -566,7 +621,10 @@ function onQuizKey(e: KeyboardEvent) {
     else answerChoice(Number(e.key) - 1)
   }
 }
-onBeforeUnmount(() => window.removeEventListener('keydown', onQuizKey))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onQuizKey)
+  timer.dispose()
+})
 
 function allSec() {
   const sel: Record<number, boolean> = {}
@@ -592,7 +650,11 @@ function toggleSec(id: number) {
         <div class="card vstat"><div class="vstat-l">学習中</div><div class="dm vstat-n" style="color: #3b50cc">{{ stats.learningCount }}</div></div>
         <div class="card vstat"><div class="vstat-l">新規</div><div class="dm vstat-n" style="color: #9aa1ab">{{ stats.newCount }}</div></div>
         <div class="card vstat"><div class="vstat-l">正答率</div><div class="dm vstat-n">{{ stats.overallAccuracy }}<span style="font-size: 12px">%</span></div></div>
-        <div class="card vstat"><div class="vstat-l">復習期限</div><div class="dm vstat-n" style="color: #d98a2b">{{ stats.dueForReview }}</div></div>
+        <button class="card vstat due" :disabled="!stats.reviewDue" @click="startReview">
+          <div class="vstat-l">今日の復習</div>
+          <div class="dm vstat-n" style="color: #d98a2b">{{ stats.reviewDue ?? 0 }}</div>
+          <div class="due-go">{{ stats.reviewDue ? '始める ›' : '期限なし' }}</div>
+        </button>
       </div>
 
       <div style="display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 18px; align-items: start" class="vq-grid">
@@ -706,8 +768,9 @@ function toggleSec(id: number) {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
               チェックシート
             </button>
-            <HelpTip text="解いた日を単語ごとに一覧にして印刷用に出力します（セクション・番号範囲で選んだ単語。未選択なら全単語）。&#10;黒=正解、赤=不正解、青=あいまい（正解だったが自信がないとき、解答後に「あいまい」を付けた単語）。&#10;同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら赤になります。" />
+            <HelpTip text="解いた日を単語ごとに一覧にして印刷用に出力します（セクション・番号範囲で選んだ単語。未選択なら全単語）。A4 横で過去 30 回ぶんの欄があります。&#10;黒=正解、赤=不正解、青=あいまい（正解だったが自信がないとき、解答後に「あいまい」を付けた単語）。&#10;同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら赤になります。" />
           </div>
+          <SessionHistory v-if="resourceId" ref="history" kind="vocab" :ref-id="resourceId" :mode-label="(m) => ({ choice: '4択', input: '入力', review: '復習', retry: '再挑戦', incorrect: '誤答のみ' } as Record<string, string>)[m ?? ''] ?? (m ?? '')" style="margin-top: 14px" />
         </div>
 
         <!-- word list -->
@@ -806,6 +869,10 @@ function toggleSec(id: number) {
               <span v-if="displayed.vocab.meaningSupplement" style="font-size: 12.5px; color: #9aa1ab">{{ displayed.vocab.meaningSupplement }}</span>
             </div>
             <div v-if="examples.length" class="dm" style="margin-top: 8px; font-size: 13.5px; color: #4b5563; line-height: 1.6">{{ examples[0]?.sentence }}</div>
+            <div v-if="vocab.currentAnswer?.review || vocab.currentAnswer?.elapsedMs !== undefined" style="margin-top: 10px; font-size: 12px; color: var(--faint)">
+              <span v-if="vocab.currentAnswer?.review">次の復習: {{ vocab.currentAnswer.review.intervalLabel }}後</span>
+              <span v-if="vocab.currentAnswer?.elapsedMs !== undefined">　・　解答 {{ fmtSec(vocab.currentAnswer.elapsedMs) }}</span>
+            </div>
           </div>
         </div>
 
@@ -866,9 +933,9 @@ function toggleSec(id: number) {
     <template v-if="phase === 'results'">
       <div style="max-width: 520px; margin: 0 auto">
         <div class="card" style="padding: 30px 26px; text-align: center; margin-bottom: 16px; border-radius: 18px">
-          <div style="font-size: 13px; color: var(--faint); margin-bottom: 8px">クイズ結果</div>
+          <div style="font-size: 13px; color: var(--faint); margin-bottom: 8px">{{ reviewMode ? '今日の復習 結果' : 'クイズ結果' }}</div>
           <div class="dm" :style="{ fontSize: '48px', fontWeight: 700, color: resultColor, lineHeight: 1 }">{{ resultPct }}<span style="font-size: 22px">%</span></div>
-          <div style="font-size: 14px; color: var(--mut); margin-top: 6px">{{ score.correct }} / {{ score.total }} 問 正解</div>
+          <div style="font-size: 14px; color: var(--mut); margin-top: 6px">{{ score.correct }} / {{ score.total }} 問 正解<span v-if="avgMs !== null">　・　1問あたり {{ fmtSec(avgMs) }}</span></div>
           <div v-if="session" style="font-size: 12px; color: var(--faint); margin-top: 8px">
             {{ session.offset + 1 }}〜{{ sessionRangeEnd }}語目 / 全{{ session.total }}語
           </div>
@@ -1010,6 +1077,28 @@ function toggleSec(id: number) {
 .vstat-n {
   font-size: 22px;
   font-weight: 700;
+}
+button.vstat.due {
+  cursor: pointer;
+  border-color: #f0d0a8;
+  background: #fffaf3;
+  text-align: left;
+  font-family: inherit;
+}
+button.vstat.due:disabled {
+  cursor: default;
+  border-color: var(--line);
+  background: #fff;
+}
+.due-go {
+  font-size: 11px;
+  font-weight: 700;
+  color: #d98a2b;
+  margin-top: 2px;
+}
+button.vstat.due:disabled .due-go {
+  color: var(--faint);
+  font-weight: 500;
 }
 .link-btn {
   border: none;

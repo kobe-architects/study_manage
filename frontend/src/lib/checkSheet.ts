@@ -59,12 +59,19 @@ export interface SheetSpec {
   /** 1 段に入る行数（章見出しは 2 行分） */
   capacity?: number
   accent?: string
+  /** 用紙: portrait2 = A4 縦 2 段（既定）/ landscape1 = A4 横 1 段（回数欄を 30 回ぶん並べる英単語用） */
+  layout?: 'portrait2' | 'landscape1'
 }
 
 const ROW_MM = 5.6
 const CHAPTER_UNITS = 2
-/** 1 段の幅（mm）: A4 幅 210 − 左右余白 9×2 − 段の間 5 を 2 で割る */
-const COL_MM = (210 - 18 - 5) / 2
+/** 1 段の幅（mm）: A4 縦は 幅 210 − 左右余白 9×2 − 段の間 5 を 2 で割る。A4 横 1 段は 297 − 18 */
+function colMm(spec: SheetSpec): number {
+  return spec.layout === 'landscape1' ? 297 - 18 : (210 - 18 - 5) / 2
+}
+function colsPerPage(spec: SheetSpec): number {
+  return spec.layout === 'landscape1' ? 1 : 2
+}
 /** 回数欄 1 つの最小幅（mm）。小さい文字（5.2pt）で「11/22」が入る幅 */
 const MARK_MIN_MM = 5.6
 /** 回数欄がこの幅（mm）より狭いときは小さい文字にする（6pt の「11/22」が入らない） */
@@ -96,7 +103,8 @@ interface Page {
 
 /** 章と行を、段（1 ページ 2 段）に割り付ける */
 function paginate(spec: SheetSpec): Page[] {
-  const cap = spec.capacity ?? 44
+  const cap = spec.capacity ?? (spec.layout === 'landscape1' ? 29 : 44)
+  const nCols = colsPerPage(spec)
   const pages: Page[] = []
   let used = 0
   let badge = spec.badge ?? ''
@@ -111,7 +119,7 @@ function paginate(spec: SheetSpec): Page[] {
   /** 次の段へ（ページの 2 段目が埋まっていれば新しいページ） */
   const newCol = (): Block[] => {
     let p = curPage()
-    if (!p || p.cols.length >= 2 || forceNewPage) {
+    if (!p || p.cols.length >= nCols || forceNewPage) {
       p = { badge, headline, cols: [] }
       pages.push(p)
       forceNewPage = false
@@ -218,16 +226,18 @@ export function buildCheckSheetHtml(spec: SheetSpec): string {
   for (const ch of spec.chapters) for (const r of ch.rows) maxMarks = Math.max(maxMarks, r.marks.length)
   // 回数欄: 固定列を除いた残りの幅に入るだけ（最低 5 つ。多すぎる回数は新しい方から入れる）
   const fixed = (spec.groupColumn?.width ?? 0) + (spec.noWidth ?? 7) + spec.columns.reduce((n, c) => n + c.width, 0)
-  const avail = Math.max(MARK_MIN_MM * 5, COL_MM - fixed)
+  const avail = Math.max(MARK_MIN_MM * 5, colMm(spec) - fixed)
   const maxFit = Math.max(5, Math.floor(avail / MARK_MIN_MM))
-  const markCount = spec.markCount ?? Math.max(5, Math.min(maxMarks, maxFit))
+  const markCount = Math.min(maxFit, spec.markCount ?? Math.max(5, Math.min(maxMarks, maxFit)))
   const markWidth = avail / markCount
   const pages = paginate(spec)
   const total = pages.length
+  const landscape = spec.layout === 'landscape1'
+  const nCols = colsPerPage(spec)
 
   const pageHtml = pages
     .map((p, pi) => {
-      const cols = [0, 1].map((k) => `<div class="col">${p.cols[k] ? renderColumn(spec, p.cols[k]!, markCount, markWidth) : ''}</div>`).join('')
+      const cols = Array.from({ length: nCols }, (_, k) => `<div class="col">${p.cols[k] ? renderColumn(spec, p.cols[k]!, markCount, markWidth) : ''}</div>`).join('')
       return `<section class="page">
   <div class="head">
     <div class="head-l">
@@ -250,13 +260,13 @@ export function buildCheckSheetHtml(spec: SheetSpec): string {
 <style>
   :root { --accent: ${accent}; --s: 1; }
   * { box-sizing: border-box; }
-  @page { size: A4 portrait; margin: 0; }
+  @page { size: A4 ${landscape ? 'landscape' : 'portrait'}; margin: 0; }
   html, body { margin: 0; padding: 0; }
   body { background: #e6e8ec; font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; color: #1c2024; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .toolbar { position: fixed; top: 12px; right: 14px; z-index: 5; }
   .toolbar button { padding: 8px 18px; border: none; border-radius: 8px; background: #3b50cc; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
   .pages { zoom: var(--s); padding: 8mm 0; }
-  .page { position: relative; width: 210mm; height: 297mm; margin: 0 auto 8mm; padding: 9mm 9mm 7mm; background: #fff; box-shadow: 0 4px 18px rgba(0,0,0,0.12); overflow: hidden; page-break-after: always; break-after: page; }
+  .page { position: relative; width: ${landscape ? '297mm' : '210mm'}; height: ${landscape ? '210mm' : '297mm'}; margin: 0 auto 8mm; padding: 9mm 9mm 7mm; background: #fff; box-shadow: 0 4px 18px rgba(0,0,0,0.12); overflow: hidden; page-break-after: always; break-after: page; }
   .page:last-child { margin-bottom: 0; }
   .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 6mm; border-bottom: 0.6mm solid var(--accent); padding-bottom: 1.6mm; margin-bottom: 2.4mm; height: 13mm; }
   .title { font-size: 15pt; font-weight: 800; color: var(--accent); letter-spacing: 0.02em; line-height: 1.1; white-space: nowrap; }
@@ -268,7 +278,7 @@ export function buildCheckSheetHtml(spec: SheetSpec): string {
   .name-v { display: inline-block; min-width: 42mm; border-bottom: 0.3mm solid #333; padding: 0 2mm 0.4mm; font-size: 9.5pt; font-weight: 600; text-align: left; }
   .legend { margin-top: 1.4mm; font-size: 6.2pt; display: flex; gap: 2.4mm; justify-content: flex-end; }
   .legend .note { color: #777; }
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; align-items: start; }
+  .cols { display: grid; grid-template-columns: ${nCols === 1 ? '1fr' : '1fr 1fr'}; gap: 5mm; align-items: start; }
   .col { min-width: 0; }
   .t { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 6.5pt; }
   .t th { height: 5mm; padding: 0 0.8mm; font-size: 5.6pt; font-weight: 600; color: #555; text-align: left; border-bottom: 0.3mm solid #888; white-space: nowrap; overflow: hidden; }

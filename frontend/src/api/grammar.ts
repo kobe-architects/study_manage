@@ -25,7 +25,7 @@ export const grammarApi = {
     return data.data
   },
 
-  async attempt(questionId: number, payload: { isCorrect: boolean; answer: string | null; isUnsure?: boolean }): Promise<{ attemptId: number; stat: GrammarStat }> {
+  async attempt(questionId: number, payload: { isCorrect: boolean; answer: string | null; isUnsure?: boolean; elapsedMs?: number | null; sessionId?: number | null }): Promise<{ attemptId: number; stat: GrammarStat }> {
     const { data } = await client.post(`/grammar/questions/${questionId}/attempt`, payload)
     return data.data
   },

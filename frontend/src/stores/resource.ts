@@ -75,7 +75,7 @@ export const useResourceStore = defineStore('resource', {
       return data.data.id as number
     },
 
-    async updateBook(id: number, payload: { title?: string; subjectId?: number | null }) {
+    async updateBook(id: number, payload: { title?: string; subjectId?: number | null; studentOnly?: boolean }) {
       await client.put(`/resource-books/${id}`, payload)
       await this.fetchBooks()
     },

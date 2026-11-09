@@ -4,6 +4,8 @@ import AuthImage from '@/components/AuthImage.vue'
 import BookPdfManager from '@/components/BookPdfManager.vue'
 import { computeReviewOn, iso, REVIEW_OPTIONS } from '@/lib/design'
 import { openListPrint, type PrintCell, type PrintColumn } from '@/lib/printList'
+import { type SheetChapter, type SheetRow, openCheckSheet } from '@/lib/checkSheet'
+import { useAuthStore } from '@/stores/auth'
 import { useResourceStore } from '@/stores/resource'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
@@ -13,6 +15,7 @@ import { appConfirm } from '@/lib/dialog'
 const resource = useResourceStore()
 const study = useStudyStore()
 const ui = useUiStore()
+const auth = useAuthStore()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const imgInput = ref<HTMLInputElement | null>(null)
@@ -44,23 +47,26 @@ function pct(a: number, b: number) {
 }
 
 // 教材 追加/編集モーダル
-const bookModal = reactive<{ open: boolean; id: number | null; title: string; subjectId: number | null }>({
+const bookModal = reactive<{ open: boolean; id: number | null; title: string; subjectId: number | null; studentOnly: boolean }>({
   open: false,
   id: null,
   title: '',
   subjectId: null,
+  studentOnly: false,
 })
 function openAddBook() {
   bookModal.open = true
   bookModal.id = null
   bookModal.title = ''
   bookModal.subjectId = subjectOptions.value[0]?.id ?? null
+  bookModal.studentOnly = false
 }
 function openEditBook(b: ResourceBook) {
   bookModal.open = true
   bookModal.id = b.id
   bookModal.title = b.title
   bookModal.subjectId = b.subjectId
+  bookModal.studentOnly = !!b.studentOnly
 }
 async function saveBook() {
   if (!bookModal.title.trim()) {
@@ -68,10 +74,11 @@ async function saveBook() {
     return
   }
   if (bookModal.id) {
-    await resource.updateBook(bookModal.id, { title: bookModal.title.trim(), subjectId: bookModal.subjectId })
+    await resource.updateBook(bookModal.id, { title: bookModal.title.trim(), subjectId: bookModal.subjectId, studentOnly: bookModal.studentOnly })
     ui.notify('保存しました')
   } else {
-    await resource.createBook(resource.activeType, bookModal.title.trim(), bookModal.subjectId)
+    const id = await resource.createBook(resource.activeType, bookModal.title.trim(), bookModal.subjectId)
+    if (bookModal.studentOnly) await resource.updateBook(id, { studentOnly: true })
     ui.notify('一覧を追加しました')
   }
   bookModal.open = false
@@ -361,6 +368,55 @@ function printBookList() {
     subtitle: `${b.subjectName ?? '科目未設定'}・全${rows.length}行${fImportant.value ? '（重要のみ）' : ''}・出力日 ${todayLabel()}`,
     columns: cols,
     rows: data,
+  })
+  if (!ok) ui.notify('ポップアップがブロックされました。ブラウザ設定で許可してください。')
+}
+
+// ---- チェックシート（スクランブルのチェックシートと同じ体裁で、行ごとの学習日を回数欄に。赤=赤の学習日、青=青、黒=それ以外） ----
+function openBookCheckSheet() {
+  const b = resource.activeBook
+  if (!b) return
+  const rows = filteredRows.value
+  if (!rows.length) {
+    ui.notify('出力する行がありません')
+    return
+  }
+  const groups = new Map<string, SheetRow[]>()
+  const order: string[] = []
+  rows.forEach((r, i) => {
+    const key = r.chapter?.trim() || '（章未設定）'
+    if (!groups.has(key)) {
+      groups.set(key, [])
+      order.push(key)
+    }
+    const no = r.seqNo && /^\d+$/.test(r.seqNo.trim()) ? Number(r.seqNo) : i + 1
+    const title = [r.title, r.difficulty].filter(Boolean).join('　')
+    groups.get(key)!.push({
+      no,
+      cells: [title || r.sub || '', r.sub ?? ''],
+      marks: r.dates.map((d) => ({ date: d.date, status: d.color === 'red' ? 0 : d.color === 'blue' ? 2 : 1 })),
+    })
+  })
+  const chapters: SheetChapter[] = order.map((k) => {
+    const list = groups.get(k)!
+    const m = k.match(/^(第\d+[章回講]|UNIT\s*\d+|Stage\s*\d+|\d+章)\s*(.*)$/i)
+    return { label: m ? m[1] : undefined, title: m && m[2] ? m[2] : k, sub: `${list.length}行`, rows: list }
+  })
+  const d = new Date()
+  const ok = openCheckSheet({
+    title: b.title,
+    badge: b.subjectName ?? undefined,
+    headline: `${resource.activeType} ・ ${rows.length}行${fImportant.value ? '（重要のみ）' : ''}`,
+    name: auth.user?.name ?? '',
+    note: `出力日 ${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`,
+    noLabel: 'No',
+    noWidth: 8,
+    columns: [
+      { label: 'タイトル', width: 32 },
+      { label: '小分類', width: 18 },
+    ],
+    chapters,
+    accent: b.colorVivid || '#d0266f',
   })
   if (!ok) ui.notify('ポップアップがブロックされました。ブラウザ設定で許可してください。')
 }
@@ -737,6 +793,7 @@ async function saveRow() {
             <button class="mini-btn" style="color: #9aa1ab" @click="setAllChapters(false)">全て折りたたむ</button>
           </template>
           <button class="btn-out" @click="printBookList">一覧を印刷</button>
+          <button class="btn-out" title="行ごとの学習日を回数欄に入れたチェックシート（スクランブルと同じ体裁）を出力" @click="openBookCheckSheet">チェックシート</button>
           <button v-if="resource.activeType === '講義'" class="btn-out" @click="printRelatedProblems">関連問題を出力</button>
           <button class="btn-out" @click="openAddRow">＋ 行を追加</button>
         </template>
@@ -897,6 +954,7 @@ async function saveRow() {
               <option v-for="s in subjectOptions" :key="s.id" :value="s.id">{{ s.name }}</option>
             </select>
           </label>
+          <label class="fld chk"><input v-model="bookModal.studentOnly" type="checkbox" /><span>生徒側限定（講師の小テスト出題・教材一覧に表示しない）</span></label>
           <div class="modal-actions">
             <button class="btn-out" @click="bookModal.open = false">キャンセル</button>
             <button class="btn-dark" @click="saveBook">保存</button>

@@ -339,3 +339,37 @@ php artisan config:cache && php artisan route:cache
   （`php artisan migrate --force` で自動適用）。追加の Composer 依存はない。
 - 科目「その他」は subjects に行を作らず `mistake_notes.subject_id = NULL`（API では subjectId = -1）。
 - 解答の画像は `mistake_note_images.role = 'answer'`（保存先は従来と同じ `storage/app/private/mistake-notes/`）。
+
+## 16. 英語学習・数学学習・学習カード・忘却曲線の復習（2026-11-09 追加）の運用メモ
+
+- 画面構成: 「英単語クイズ」「英文法・語法」のメニューは「英語学習」（タブ: スクランブル／英単語／鉄緑会 英文法）に統合し、
+  「数学学習」（タブ: 合格る確率／合格る計算）を追加した。旧 URL `/quiz` `/grammar` は英語学習の該当タブへリダイレクトする。
+- マイグレーション（`php artisan migrate --force` で自動適用。追加の Composer 依存はない）:
+  - `2026_11_09_000001_create_review_states_and_quiz_sessions` … `review_states`（忘却曲線の復習状態。生徒 × 問題。kind = grammar / vocab / card）、
+    `quiz_sessions`（1 回の出題の記録: 問題数・正解・あいまい・解答時間の合計）、`grammar_attempts` / `vocabulary_attempts` に
+    `quiz_session_id`・`elapsed_ms`（解答時間）・`review_prev`（回答前の復習状態。あいまい・正誤の付け替えでやり直す）。
+  - `2026_11_09_000002_create_card_tables` … `card_decks` / `card_items` / `card_attempts`（学習カード）、`resource_books.student_only`（生徒側限定の教材）。
+- 復習の規則は `App\Support\ReviewScheduler`（間違いノートと同じ: 不正解=もう一度 10 分後・正解だがあいまい=難しい・正解=正解。
+  係数 1.3〜3.0、最長 365 日）。期限が来た問題は各画面の「今日の復習」に数えられ、ボタンで古い順に出題できる。
+- 学習カードのデータ（Git 管理）: `backend/database/data/cards_tetsuryoku_grammar.json`（鉄緑会 英文法。囲みの表現 1300・例文 1358）、
+  `cards_ukaru_kakuritsu.json`（合格る確率 100 ITEM）、`cards_ukaru_keisan.json`（合格る計算 89 ITEM）。登録・更新は
+  ```
+  php artisan cards:import --file=database/data/cards_tetsuryoku_grammar.json [--prune]
+  ```
+  （束は key、カードは (束, no) で upsert。回答履歴・復習状態は残る。`--prune` は JSON に無いカードを削除）。
+- カードの画像（Git 管理外。`storage/app/private/cards/{束の key}/`。合計約 70MB）は WinSCP で put する。
+  鉄緑会は例文の切り抜き `pNNN_exNN.jpg` と囲みの切り抜き `pNNN_boxN.jpg`、合格るは 類題の切り抜き `qNNN.jpg` と解答編ページ `aNNN.jpg`。
+- 対応する個別学習データ（教材）と PDF の登録は、日本語の引数を避けるため JSON 経由:
+  ```
+  php database/data/register_card_book.php book_tetsuryoku_grammar.json pages_tetsuryoku_grammar.json --pdf=/path/tk.pdf --move
+  php database/data/register_card_book.php book_ukaru_kakuritsu.json pages_ukaru_kakuritsu.json --pdf=/path/kk.pdf --answer-pdf=/path/kka.pdf --move
+  php database/data/register_card_book.php book_ukaru_keisan.json pages_ukaru_keisan.json --pdf=/path/kc.pdf --answer-pdf=/path/kca.pdf --move
+  ```
+  教材（無ければ作成。`studentOnly` を反映）・行（週／ITEM ごと）・PDF（`row_pages` = 行→ページ、問題 PDF の `page_links` = 類題ページ→解答ページ）を登録する。再実行可。
+- 鉄緑会 英文法は生徒側限定（`resource_books.student_only` と `card_decks.student_only`）。講師の小テスト出題（`/tutor/quiz-books` など）には出ない。
+- データの作り直し: 5 冊の PDF（docs/other、Git 管理外）は画像のみなので Windows OCR（winrt）で文字起こしし、
+  鉄緑会は週見出し・`N.N` 見出し・`Ex.` 行（en-US OCR）・囲み（OpenCV の矩形検出）を取り出し、太字（空所にする語）はストローク幅の比（中央値の 1.12 倍以上）で判定、
+  合格るは 類題 の桃色バッジ（色検出）〜「解答▶解答編」行を問題、解答編の脚注「N〜Mの解答」でページを対応づけた。スクリプトはスクラッチパッド（`ocr_batch.py` / `build_tk.py` / `build_math.py`）で Git には無い。
+- チェックシート: 学習カードは `GET /cards/decks/{id}/checksheet`、個別学習データは画面側で行の学習日（赤=0・青=2・それ以外=1）から組み立てる。
+  英単語のチェックシートは A4 横 1 段で回数欄を 30 回ぶん並べる（`lib/checkSheet.ts` の `layout: 'landscape1'`）。
+- 出題履歴: `GET /quiz-sessions?kind=&refId=|refKey=`。各出題は開始時に `POST /quiz-sessions`、終了時に `POST /quiz-sessions/{id}/finish`（回答から集計。回答 0 なら削除）。

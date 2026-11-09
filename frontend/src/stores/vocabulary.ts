@@ -116,6 +116,7 @@ export const useVocabularyStore = defineStore('vocabulary', {
       }
       if (settings.vocabularyIds?.length)
         params.set('vocabularyIds', settings.vocabularyIds.join(','))
+      if (settings.due) params.set('due', '1')
 
       const { data } = await client.get(
         `/study-resources/${resourceId}/quiz?${params.toString()}`,
@@ -127,8 +128,8 @@ export const useVocabularyStore = defineStore('vocabulary', {
       return this.quizQuestions.length
     },
 
-    /** 回答を記録（結果へ push ＋ 非同期 attempt 送信。失敗はサイレント無視） */
-    submitAnswer(answer: QuizAnswerRecord) {
+    /** 回答を記録（結果へ push ＋ 非同期 attempt 送信。失敗はサイレント無視）。elapsedMs = 解答時間、sessionId = 出題セッション */
+    submitAnswer(answer: QuizAnswerRecord, sessionId: number | null = null) {
       const q = this.quizQuestions[this.quizIndex]
       if (!q) return
       const index = this.quizIndex
@@ -138,11 +139,16 @@ export const useVocabularyStore = defineStore('vocabulary', {
         .post(`/vocabularies/${q.vocabulary.id}/attempt`, {
           is_correct: answer.isCorrect,
           quiz_type: this.quizType,
+          elapsed_ms: answer.elapsedMs ?? null,
+          session_id: sessionId,
         })
         .then((res) => {
           const id = Number(res.data?.data?.id) || null
           const rec = this.quizResults[index]
-          if (rec) rec.attemptId = id
+          if (rec) {
+            rec.attemptId = id
+            rec.review = res.data?.data?.review ?? null
+          }
           return id
         })
         .catch(() => {
@@ -162,7 +168,9 @@ export const useVocabularyStore = defineStore('vocabulary', {
       const id = rec.attemptId !== undefined ? rec.attemptId : await pendingAttempts.get(index)
       if (!id) return
       try {
-        await client.put(`/vocabulary-attempts/${id}`, { is_unsure: unsure })
+        const { data } = await client.put(`/vocabulary-attempts/${id}`, { is_unsure: unsure })
+        const rec2 = this.quizResults[index]
+        if (rec2) rec2.review = data?.data?.review ?? rec2.review
       } catch {
         // 付け外しに失敗しても出題は続ける
       }
