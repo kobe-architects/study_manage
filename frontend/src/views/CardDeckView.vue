@@ -13,6 +13,7 @@ import QuizFullscreen from '@/components/QuizFullscreen.vue'
 import SessionHistory from '@/components/SessionHistory.vue'
 import { cardsApi } from '@/api/cards'
 import { sessionsApi } from '@/api/sessions'
+import { buildSubQuestions } from '@/lib/cardChoices'
 import { openCardCheckSheet } from '@/lib/cardSheet'
 import { shuffle } from '@/lib/design'
 import { QuestionTimer } from '@/lib/quizTimer'
@@ -318,7 +319,8 @@ const currentMode = computed<CardMode>(() => (current.value ? modeOf(current.val
 const currentResult = computed<QuizResult | null>(() => quiz.results[quiz.index] ?? null)
 const progress = computed(() => (quiz.list.length ? Math.round(((quiz.index + 1) / quiz.list.length) * 100) : 0))
 const isLast = computed(() => quiz.index + 1 >= quiz.list.length)
-const needsSubmit = computed(() => currentMode.value === 'fill' && !!current.value?.extra?.blanks?.length)
+/** 4 択で出せるカード（選択肢をそろえてから「解答」）。4 択にできないカードは「答えを見る」→ ○／× */
+const needsSubmit = computed(() => !!current.value && buildSubQuestions(current.value, currentMode.value, all.value) !== null)
 const primaryLabel = computed(() => (currentResult.value ? (isLast.value ? '結果を見る' : '次の問題へ') : needsSubmit.value ? '解答' : peeked.value ? '○／× を選んでください' : '答えを見る'))
 const primaryDisabled = computed(() => (currentResult.value ? false : needsSubmit.value ? !canSubmit.value : peeked.value))
 function primary() {
@@ -417,7 +419,7 @@ function onKey(e: KeyboardEvent) {
   else if (currentResult.value && (e.key === 'Enter' || e.key === 'ArrowRight')) {
     e.preventDefault()
     next()
-  } else if (!currentResult.value && (e.key === ' ' || e.key === 'Enter') && !needsSubmit.value) {
+  } else if (!currentResult.value && (e.key === ' ' || e.key === 'Enter') && (!needsSubmit.value || canSubmit.value)) {
     e.preventDefault()
     cardRef.value?.submit()
   }
@@ -441,7 +443,9 @@ function retryIncorrect() {
 }
 /** 結果一覧・リスト用の表示 */
 function preview(c: CardItem): string {
-  return c.kind === 'problem' ? `${c.section ?? ''} ${c.front}`.trim() : c.front
+  if (c.kind === 'problem') return `${c.section ?? ''} ${c.front}`.trim()
+  if (c.kind === 'phrase' && c.extra?.rows?.length) return `${c.extra.rows.map((r) => r.en).join(' ／ ')}`
+  return c.front
 }
 function statusOf(c: CardItem): { t: string; c: string; key: 'correct' | 'unsure' | 'incorrect' | 'none' } {
   const last = c.stat?.last
@@ -503,7 +507,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
         <div class="card" style="padding: 20px">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px">
             <div style="font-size: 15px; font-weight: 700">出題設定</div>
-            <HelpTip :text="isMath ? '章（Stage）・出題対象で絞り込み、「開始」で全画面で 1 問ずつ解きます。問題の画像を見て解いてから「答えを見る」で解答の画像を表示し、○／× を自分で付けます。\n正解でも自信がなければ「あいまい」を付けられます（チェックシートでは青の日付）。\n回答は忘却曲線に沿って次の復習日が決まり、期限が来ると「今日の復習」に数えられます。' : '週・種類・形式・出題対象で絞り込み、「開始」で全画面で 1 枚ずつ解答します。\n例文は「和訳」（英文→和訳を自己判定）か「空所補充」（太字の語を入力）、囲みの表現は「意味→表現」か「表現→意味」で出題します。\n正解でも自信がなければ「あいまい」を付けられます（チェックシートでは青の日付）。\n回答は忘却曲線に沿って次の復習日が決まり、期限が来ると「今日の復習」に数えられます。'" />
+            <HelpTip :text="isMath ? '章・出題対象で絞り込み、「開始」で全画面で 1 問ずつ解きます。例題の画像を見て解き、小問ごとに答えを 4 つから選んで「解答」。解答後は「詳細を表示」で解説の画像を見られます。\n答えを読み取れなかった例題は「答えを見る」で解説を表示して ○／× を自分で付けます。読み取った答えが違うときは「正解にする／不正解にする」で直せます。\n正解でも自信がなければ「あいまい」を付けられます（チェックシートでは青の日付）。\n回答は忘却曲線に沿って次の復習日が決まり、期限が来ると「今日の復習」に数えられます。' : '週・種類・形式・出題対象で絞り込み、「開始」で全画面で 1 枚ずつ解答します。すべて 4 択です。\n例文は「和訳」（正しい和訳を選ぶ）か「空所補充」（太字の語に入る語句を選ぶ）、囲みの表現は「意味→表現」か「表現→意味」で、囲み 1 つを 1 枚として行ごとに選びます（全部正解で正解）。\n正解でも自信がなければ「あいまい」を付けられます（チェックシートでは青の日付）。\n回答は忘却曲線に沿って次の復習日が決まり、期限が来ると「今日の復習」に数えられます。'" />
           </div>
 
           <div class="row-between" style="margin-bottom: 6px">
@@ -675,13 +679,14 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
 
     <!-- ============ QUIZ（全画面） ============ -->
     <Transition name="ui-modal">
-      <QuizFullscreen v-if="phase === 'quiz' && current" :progress="progress" :counter="`${quiz.index + 1}/${quiz.list.length}`" :fixed="currentMode !== 'fill' || !current.extra?.blanks?.length" @close="exitQuiz">
+      <QuizFullscreen v-if="phase === 'quiz' && current" :progress="progress" :counter="`${quiz.index + 1}/${quiz.list.length}`" :fixed="!needsSubmit" @close="exitQuiz">
         <CardQuestion
           ref="cardRef"
           :key="current.id + ':' + currentMode"
           :item="current"
           :mode="currentMode"
           :result="currentResult"
+          :pool="all"
           @answer="onAnswer"
           @can-submit="canSubmit = $event"
           @unsure="onUnsure"

@@ -14,9 +14,9 @@ export const cardsApi = {
     return data.data
   },
 
-  /** 問題・解答の画像 URL（要 Bearer。AuthImage で表示） */
-  imageUrl(itemId: number, kind: 'problem' | 'answer'): string {
-    return `/cards/items/${itemId}/image/${kind}`
+  /** 問題・解答の画像 URL（要 Bearer。AuthImage で表示）。iv は画像の版（差し替え時のキャッシュ避け） */
+  imageUrl(itemId: number, kind: 'problem' | 'answer', iv?: string): string {
+    return `/cards/items/${itemId}/image/${kind}${iv ? `?v=${iv}` : ''}`
   },
 
   async attempt(

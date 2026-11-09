@@ -32,7 +32,9 @@ export function buildCardSheetSpec(deck: CardDeck, items: CardItem[], targetIds:
       groups.push(g)
     }
     g.to = it.no
-    const text = isMath ? it.front : it.kind === 'example' ? it.front : `${it.front}${it.back ? `　${it.back}` : ''}`
+    // 囲み（表現）は行をつないであるので長い → 90 字で切る
+    const raw = isMath ? `${it.front}${it.extra?.subs?.length ? `（${it.extra.subs.length} 問）` : ''}` : it.kind === 'example' ? it.front : `${it.front}${it.back ? `　${it.back}` : ''}`
+    const text = raw.length > 90 ? `${raw.slice(0, 88)}…` : raw
     g.rows.push({
       no: it.no,
       cells: isMath

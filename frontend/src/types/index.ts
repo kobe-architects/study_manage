@@ -1040,7 +1040,7 @@ export interface GrammarBook {
 // ===== 学習カード（鉄緑会 英文法の覚える表現・例文、合格る確率・合格る計算の問題） =====
 /** phrase=囲みの中の覚える表現 / example=例文 / problem=画像の問題 */
 export type CardKind = 'phrase' | 'example' | 'problem'
-/** 出題形式: translate=和訳（英文→和訳を自己判定） / fill=空所補充（太字の語を入力） / ja2en=意味→表現 / en2ja=表現→意味 / image=問題画像→解答画像で自己判定 */
+/** 出題形式: translate=和訳（4 択） / fill=空所補充（空所ごとに 4 択） / ja2en=意味→表現 / en2ja=表現→意味（囲みの行ごとに 4 択） / image=問題画像→答えを 4 択（読めない問題は解説画像で自己判定） */
 export type CardMode = 'translate' | 'fill' | 'ja2en' | 'en2ja' | 'image'
 
 export interface CardDeck {
@@ -1082,12 +1082,28 @@ export interface CardItem {
   front: string
   /** 和訳 / 意味 */
   back: string | null
-  /** blanks = 空所にする語（front を空白で分けた語のインデックス範囲 [開始, 終了]）、table = 表（画像だけ）、ex = 教材の Ex. 番号 */
-  extra: { blanks?: [number, number][]; table?: boolean; ex?: number; problemPages?: number[]; answerPages?: number[] } | null
+  /**
+   * blanks = 空所にする語（front を空白で分けた語のインデックス範囲 [開始, 終了]）、table = 表（画像だけ）、ex = 教材の Ex. 番号、
+   * rows = 囲みの行（英語の表現と意味。囲み 1 つが 1 枚）、subs = 問題（合格る）の小問ごとの答えと誤答（4 択）、
+   * partial = 一部の小問だけ 4 択、label = 問題の見出し（例題 12A）
+   */
+  extra: {
+    blanks?: [number, number][]
+    table?: boolean
+    ex?: number
+    rows?: { en: string; ja: string | null }[]
+    subs?: { label: string | null; answer: string; options: string[] }[]
+    partial?: boolean
+    label?: string
+    problemPages?: number[]
+    answerPages?: number[]
+  } | null
   page: number | null
   bookPage: string | null
   hasProblemImage: boolean
   hasAnswerImage: boolean
+  /** 画像の版（画像が差し替わったときにキャッシュを避ける） */
+  iv?: string
   stat: CardStat | null
 }
 

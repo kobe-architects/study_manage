@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 /**
  * 学習カード（鉄緑会 英文法の「覚える表現」「例文」、合格る確率・合格る計算の問題）。
  * カードは全ユーザー共通のデータ（php artisan cards:import で登録）。回答履歴と復習状態だけ生徒ごと。
- * 採点は画面側（自己判定・空所補充の照合）で行い、結果だけを記録する。生徒（owner）専用。
+ * 採点は画面側（4 択の照合・自己判定）で行い、結果だけを記録する。生徒（owner）専用。
  */
 class CardController extends Controller
 {
@@ -236,6 +236,7 @@ class CardController extends Controller
             'bookPage' => $i->book_page,
             'hasProblemImage' => $i->problem_image !== null,
             'hasAnswerImage' => $i->answer_image !== null,
+            'iv' => substr(md5(($i->problem_image ?? '').'|'.($i->answer_image ?? '')), 0, 6),
             'stat' => $stat,
         ];
     }

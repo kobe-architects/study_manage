@@ -17,10 +17,12 @@ use Illuminate\Support\Facades\DB;
  *     "problemImage": "deck/p0001.jpg", "answerImage": null } ] }
  * 画像ファイルは storage/app/private/cards/ 以下に別途置く（Git 管理外。本番へは WinSCP で put）。
  * --prune を付けると JSON に無い no のカードを削除する。
+ * --reset を付けると、この束のカードに対する回答履歴（card_attempts）・復習状態（review_states）・出題履歴（quiz_sessions）を消してから登録する
+ *   （no の振り直しなどカードの中身が変わり、古い回答が別のカードに付いてしまうとき）。
  */
 class ImportCards extends Command
 {
-    protected $signature = 'cards:import {--file= : JSON ファイルパス} {--prune : JSON に無いカードを削除する}';
+    protected $signature = 'cards:import {--file= : JSON ファイルパス} {--prune : JSON に無いカードを削除する} {--reset : この束の回答履歴・復習状態・出題履歴を消してから登録する（カードの中身が変わったとき）}';
 
     protected $description = '学習カード（鉄緑会 英文法・合格るシリーズ）のデータを登録する（再実行可）';
 
@@ -51,6 +53,13 @@ class ImportCards extends Command
                 'structure' => $d['structure'] ?? null,
                 'sort_order' => (int) ($d['sortOrder'] ?? 0),
             ]);
+            if ($this->option('reset')) {
+                $ids = DB::table('card_items')->where('card_deck_id', $deck->id)->pluck('id');
+                $a = DB::table('card_attempts')->whereIn('card_item_id', $ids)->delete();
+                $r = DB::table('review_states')->where('kind', 'card')->whereIn('item_id', $ids)->delete();
+                $s = DB::table('quiz_sessions')->where('kind', 'card')->where('ref_id', $deck->id)->delete();
+                $this->line("  リセット: 回答 {$a} 件・復習状態 {$r} 件・出題履歴 {$s} 件を削除");
+            }
             $now = now();
             $rows = [];
             $nos = [];

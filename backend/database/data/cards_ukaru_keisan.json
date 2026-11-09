@@ -11,97 +11,97 @@
     1,
     "1章 整数",
     1,
-    7
+    9
    ],
    [
     2,
     "2章 数値計算",
-    8,
-    12
+    10,
+    15
    ],
    [
     3,
     "3章 整式の変形",
-    13,
-    20
+    16,
+    23
    ],
    [
     4,
     "4章 分数と分数式",
-    21,
-    23
+    24,
+    26
    ],
    [
     5,
     "5章 簡単な関数のグラフ",
-    24,
-    29
+    27,
+    32
    ],
    [
     6,
     "6章 方程式",
-    30,
-    37
+    33,
+    41
    ],
    [
     7,
     "7章 不等式",
-    38,
-    42
+    42,
+    47
    ],
    [
     8,
     "8章 三角関数",
-    43,
-    51
+    48,
+    53
    ],
    [
     9,
     "9章 平面図形・三角比",
-    52,
-    60
+    54,
+    62
    ],
    [
     10,
     "10章 ベクトル",
-    61,
+    63,
     67
    ],
    [
     11,
     "11章 図形と式",
     68,
-    71
+    68
    ],
    [
     12,
     "12章 微分・積分",
-    72,
-    76
+    69,
+    74
    ],
    [
     13,
     "13章 指数関数・対数関数",
-    77,
-    80
+    75,
+    78
    ],
    [
     14,
     "14章 場合の数・確率",
-    81,
-    82
+    79,
+    81
    ],
    [
     15,
     "15章 数列",
-    83,
-    88
+    82,
+    86
    ],
    [
     16,
     "16章 データの分析",
-    89,
-    89
+    87,
+    87
    ]
   ],
   "sortOrder": 2
@@ -113,7 +113,7 @@
    "chapter": "1章 整数",
    "section": "ITEM 1 約数の見つけ方",
    "kind": "problem",
-   "front": "類題 1",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
@@ -126,12 +126,13 @@
      16,
      17
     ],
-    "title": "約数の見つけ方"
+    "title": "約数の見つけ方",
+    "label": "例題"
    },
    "page": 17,
    "bookPage": "17",
-   "problemImage": "ukaru_keisan/q001.jpg",
-   "answerImage": "ukaru_keisan/a001.jpg"
+   "problemImage": "ukaru_keisan/e001.jpg",
+   "answerImage": "ukaru_keisan/s001.jpg"
   },
   {
    "no": 2,
@@ -139,7 +140,34 @@
    "chapter": "1章 整数",
    "section": "ITEM 2 素因数分解",
    "kind": "problem",
-   "front": "類題 2",
+   "front": "例題A",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     18
+    ],
+    "answerPages": [
+     2
+    ],
+    "itemPages": [
+     18,
+     19
+    ],
+    "title": "素因数分解",
+    "label": "例題A"
+   },
+   "page": 18,
+   "bookPage": "18",
+   "problemImage": "ukaru_keisan/e002a.jpg",
+   "answerImage": "ukaru_keisan/s002a.jpg"
+  },
+  {
+   "no": 3,
+   "chapterNo": 1,
+   "chapter": "1章 整数",
+   "section": "ITEM 2 素因数分解",
+   "kind": "problem",
+   "front": "例題B",
    "back": null,
    "extra": {
     "problemPages": [
@@ -152,24 +180,25 @@
      18,
      19
     ],
-    "title": "素因数分解"
+    "title": "素因数分解",
+    "label": "例題B"
    },
    "page": 19,
    "bookPage": "19",
-   "problemImage": "ukaru_keisan/q002.jpg",
-   "answerImage": "ukaru_keisan/a002.jpg"
+   "problemImage": "ukaru_keisan/e002b.jpg",
+   "answerImage": "ukaru_keisan/s002b.jpg"
   },
   {
-   "no": 3,
+   "no": 4,
    "chapterNo": 1,
    "chapter": "1章 整数",
    "section": "ITEM 3 最大公約数・最小公倍数",
    "kind": "problem",
-   "front": "類題 3",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     21
+     20
     ],
     "answerPages": [
      2,
@@ -179,20 +208,68 @@
      20,
      21
     ],
-    "title": "最大公約数・最小公倍数"
+    "title": "最大公約数・最小公倍数",
+    "label": "例題",
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "最大公約数 6、最小公倍数 36",
+      "options": [
+       "最大公約数 16、最小公倍数 39",
+       "最大公約数 18、最小公倍数 34",
+       "最大公約数 5、最小公倍数 37"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "最大公約数 18、最小公倍数 1890",
+      "options": [
+       "最大公約数 21、最小公倍数 1888",
+       "最大公約数 6、最小公倍数 1890",
+       "最大公約数 12、最小公倍数 1888"
+      ]
+     }
+    ]
    },
-   "page": 21,
-   "bookPage": "21",
-   "problemImage": "ukaru_keisan/q003.jpg",
-   "answerImage": "ukaru_keisan/a003.jpg"
+   "page": 20,
+   "bookPage": "20",
+   "problemImage": "ukaru_keisan/e003.jpg",
+   "answerImage": "ukaru_keisan/s003.jpg"
   },
   {
-   "no": 4,
+   "no": 5,
    "chapterNo": 1,
    "chapter": "1章 整数",
    "section": "ITEM 4 互除法",
    "kind": "problem",
-   "front": "類題 4",
+   "front": "例題A",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     22
+    ],
+    "answerPages": [
+     4
+    ],
+    "itemPages": [
+     22,
+     23
+    ],
+    "title": "互除法",
+    "label": "例題A"
+   },
+   "page": 22,
+   "bookPage": "22",
+   "problemImage": "ukaru_keisan/e004a.jpg",
+   "answerImage": "ukaru_keisan/s004a.jpg"
+  },
+  {
+   "no": 6,
+   "chapterNo": 1,
+   "chapter": "1章 整数",
+   "section": "ITEM 4 互除法",
+   "kind": "problem",
+   "front": "例題B",
    "back": null,
    "extra": {
     "problemPages": [
@@ -205,24 +282,25 @@
      22,
      23
     ],
-    "title": "互除法"
+    "title": "互除法",
+    "label": "例題B"
    },
    "page": 23,
    "bookPage": "23",
-   "problemImage": "ukaru_keisan/q004.jpg",
-   "answerImage": "ukaru_keisan/a004.jpg"
+   "problemImage": "ukaru_keisan/e004b.jpg",
+   "answerImage": "ukaru_keisan/s004b.jpg"
   },
   {
-   "no": 5,
+   "no": 7,
    "chapterNo": 1,
    "chapter": "1章 整数",
    "section": "ITEM 5 不定方程式(その1)",
    "kind": "problem",
-   "front": "類題 5",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     25
+     24
     ],
     "answerPages": [
      5,
@@ -232,24 +310,25 @@
      24,
      25
     ],
-    "title": "不定方程式(その1)"
+    "title": "不定方程式(その1)",
+    "label": "例題"
    },
-   "page": 25,
-   "bookPage": "25",
-   "problemImage": "ukaru_keisan/q005.jpg",
-   "answerImage": "ukaru_keisan/a005.jpg"
+   "page": 24,
+   "bookPage": "24",
+   "problemImage": "ukaru_keisan/e005.jpg",
+   "answerImage": "ukaru_keisan/s005.jpg"
   },
   {
-   "no": 6,
+   "no": 8,
    "chapterNo": 1,
    "chapter": "1章 整数",
    "section": "ITEM 6 匠こ」一い",
    "kind": "problem",
-   "front": "類題 6",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     27
+     26
     ],
     "answerPages": [
      7,
@@ -259,24 +338,25 @@
      26,
      27
     ],
-    "title": "匠こ」一い"
+    "title": "匠こ」一い",
+    "label": "例題"
    },
-   "page": 27,
-   "bookPage": "27",
-   "problemImage": "ukaru_keisan/q006.jpg",
-   "answerImage": "ukaru_keisan/a006.jpg"
+   "page": 26,
+   "bookPage": "26",
+   "problemImage": "ukaru_keisan/e006.jpg",
+   "answerImage": "ukaru_keisan/s006.jpg"
   },
   {
-   "no": 7,
+   "no": 9,
    "chapterNo": 1,
    "chapter": "1章 整数",
    "section": "ITEM 7 N進法",
    "kind": "problem",
-   "front": "類題 7",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     29
+     28
     ],
     "answerPages": [
      9
@@ -285,20 +365,48 @@
      28,
      29
     ],
-    "title": "N進法"
+    "title": "N進法",
+    "label": "例題"
    },
-   "page": 29,
-   "bookPage": "29",
-   "problemImage": "ukaru_keisan/q007.jpg",
-   "answerImage": "ukaru_keisan/a007.jpg"
+   "page": 28,
+   "bookPage": "28",
+   "problemImage": "ukaru_keisan/e007.jpg",
+   "answerImage": "ukaru_keisan/s007.jpg"
   },
   {
-   "no": 8,
+   "no": 10,
    "chapterNo": 2,
    "chapter": "2章 数値計算",
    "section": "ITEM 8 桁><I桁,3桁><1桁の暗算",
    "kind": "problem",
-   "front": "類題 8",
+   "front": "例題A",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     30
+    ],
+    "answerPages": [
+     10
+    ],
+    "itemPages": [
+     30,
+     31
+    ],
+    "title": "桁><I桁,3桁><1桁の暗算",
+    "label": "例題A"
+   },
+   "page": 30,
+   "bookPage": "30",
+   "problemImage": "ukaru_keisan/e008a.jpg",
+   "answerImage": "ukaru_keisan/s008a.jpg"
+  },
+  {
+   "no": 11,
+   "chapterNo": 2,
+   "chapter": "2章 数値計算",
+   "section": "ITEM 8 桁><I桁,3桁><1桁の暗算",
+   "kind": "problem",
+   "front": "例題B",
    "back": null,
    "extra": {
     "problemPages": [
@@ -311,24 +419,25 @@
      30,
      31
     ],
-    "title": "桁><I桁,3桁><1桁の暗算"
+    "title": "桁><I桁,3桁><1桁の暗算",
+    "label": "例題B"
    },
    "page": 31,
    "bookPage": "31",
-   "problemImage": "ukaru_keisan/q008.jpg",
-   "answerImage": "ukaru_keisan/a008.jpg"
+   "problemImage": "ukaru_keisan/e008b.jpg",
+   "answerImage": "ukaru_keisan/s008b.jpg"
   },
   {
-   "no": 9,
+   "no": 12,
    "chapterNo": 2,
    "chapter": "2章 数値計算",
    "section": "ITEM 9 平方根の簡約化",
    "kind": "problem",
-   "front": "類題 9",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     33
+     32
     ],
     "answerPages": [
      11
@@ -337,24 +446,25 @@
      32,
      33
     ],
-    "title": "平方根の簡約化"
+    "title": "平方根の簡約化",
+    "label": "例題"
    },
-   "page": 33,
-   "bookPage": "33",
-   "problemImage": "ukaru_keisan/q009.jpg",
-   "answerImage": "ukaru_keisan/a009.jpg"
+   "page": 32,
+   "bookPage": "32",
+   "problemImage": "ukaru_keisan/e009.jpg",
+   "answerImage": "ukaru_keisan/s009.jpg"
   },
   {
-   "no": 10,
+   "no": 13,
    "chapterNo": 2,
    "chapter": "2章 数値計算",
    "section": "ITEM 10 分母の有理化",
    "kind": "problem",
-   "front": "類題 10",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     35
+     34
     ],
     "answerPages": [
      12,
@@ -364,20 +474,21 @@
      34,
      35
     ],
-    "title": "分母の有理化"
+    "title": "分母の有理化",
+    "label": "例題"
    },
-   "page": 35,
-   "bookPage": "35",
-   "problemImage": "ukaru_keisan/q010.jpg",
-   "answerImage": "ukaru_keisan/a010.jpg"
+   "page": 34,
+   "bookPage": "34",
+   "problemImage": "ukaru_keisan/e010.jpg",
+   "answerImage": "ukaru_keisan/s010.jpg"
   },
   {
-   "no": 11,
+   "no": 14,
    "chapterNo": 2,
    "chapter": "2章 数値計算",
    "section": "ITEM 11 重根号の外し方",
    "kind": "problem",
-   "front": "類題 11",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
@@ -389,20 +500,21 @@
     "itemPages": [
      36
     ],
-    "title": "重根号の外し方"
+    "title": "重根号の外し方",
+    "label": "例題"
    },
    "page": 36,
    "bookPage": "36",
-   "problemImage": "ukaru_keisan/q011.jpg",
-   "answerImage": "ukaru_keisan/a011.jpg"
+   "problemImage": "ukaru_keisan/e011.jpg",
+   "answerImage": "ukaru_keisan/s011.jpg"
   },
   {
-   "no": 12,
+   "no": 15,
    "chapterNo": 2,
    "chapter": "2章 数値計算",
    "section": "ITEM 12 無理数の概算値",
    "kind": "problem",
-   "front": "類題 12",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
@@ -414,24 +526,25 @@
     "itemPages": [
      37
     ],
-    "title": "無理数の概算値"
+    "title": "無理数の概算値",
+    "label": "例題"
    },
    "page": 37,
    "bookPage": "37",
-   "problemImage": "ukaru_keisan/q012.jpg",
-   "answerImage": "ukaru_keisan/a012.jpg"
+   "problemImage": "ukaru_keisan/e012.jpg",
+   "answerImage": "ukaru_keisan/s012.jpg"
   },
   {
-   "no": 13,
+   "no": 16,
    "chapterNo": 3,
    "chapter": "3章 整式の変形",
    "section": "ITEM 13 「展開」の仕組み",
    "kind": "problem",
-   "front": "類題 13",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     39
+     38
     ],
     "answerPages": [
      14
@@ -440,20 +553,21 @@
      38,
      39
     ],
-    "title": "「展開」の仕組み"
+    "title": "「展開」の仕組み",
+    "label": "例題"
    },
-   "page": 39,
-   "bookPage": "39",
-   "problemImage": "ukaru_keisan/q013.jpg",
-   "answerImage": "ukaru_keisan/a013.jpg"
+   "page": 38,
+   "bookPage": "38",
+   "problemImage": "ukaru_keisan/e013.jpg",
+   "answerImage": "ukaru_keisan/s013.jpg"
   },
   {
-   "no": 14,
+   "no": 17,
    "chapterNo": 3,
    "chapter": "3章 整式の変形",
    "section": "ITEM 14 展開(公式利用)",
    "kind": "problem",
-   "front": "類題 14",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
@@ -466,24 +580,25 @@
      40,
      41
     ],
-    "title": "展開(公式利用)"
+    "title": "展開(公式利用)",
+    "label": "例題"
    },
    "page": 41,
    "bookPage": "41",
-   "problemImage": "ukaru_keisan/q014.jpg",
-   "answerImage": "ukaru_keisan/a014.jpg"
+   "problemImage": "ukaru_keisan/e014.jpg",
+   "answerImage": "ukaru_keisan/s014.jpg"
   },
   {
-   "no": 15,
+   "no": 18,
    "chapterNo": 3,
    "chapter": "3章 整式の変形",
    "section": "ITEM 15 ニ項定理",
    "kind": "problem",
-   "front": "類題 15",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     43
+     42
     ],
     "answerPages": [
      16
@@ -492,20 +607,21 @@
      42,
      43
     ],
-    "title": "ニ項定理"
+    "title": "ニ項定理",
+    "label": "例題"
    },
-   "page": 43,
-   "bookPage": "43",
-   "problemImage": "ukaru_keisan/q015.jpg",
-   "answerImage": "ukaru_keisan/a015.jpg"
+   "page": 42,
+   "bookPage": "42",
+   "problemImage": "ukaru_keisan/e015.jpg",
+   "answerImage": "ukaru_keisan/s015.jpg"
   },
   {
-   "no": 16,
+   "no": 19,
    "chapterNo": 3,
    "chapter": "3章 整式の変形",
    "section": "ITEM 16 対称(な)式",
    "kind": "problem",
-   "front": "類題 16",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
@@ -518,24 +634,25 @@
      44,
      45
     ],
-    "title": "対称(な)式"
+    "title": "対称(な)式",
+    "label": "例題"
    },
    "page": 45,
    "bookPage": "45",
-   "problemImage": "ukaru_keisan/q016.jpg",
-   "answerImage": "ukaru_keisan/a016.jpg"
+   "problemImage": "ukaru_keisan/e016.jpg",
+   "answerImage": "ukaru_keisan/s016.jpg"
   },
   {
-   "no": 17,
+   "no": 20,
    "chapterNo": 3,
    "chapter": "3章 整式の変形",
    "section": "ITEM 17 因数分解(2次式)",
    "kind": "problem",
-   "front": "類題 17",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     47
+     46
     ],
     "answerPages": [
      18
@@ -544,24 +661,25 @@
      46,
      47
     ],
-    "title": "因数分解(2次式)"
+    "title": "因数分解(2次式)",
+    "label": "例題"
    },
-   "page": 47,
-   "bookPage": "47",
-   "problemImage": "ukaru_keisan/q017.jpg",
-   "answerImage": "ukaru_keisan/a017.jpg"
+   "page": 46,
+   "bookPage": "46",
+   "problemImage": "ukaru_keisan/e017.jpg",
+   "answerImage": "ukaru_keisan/s017.jpg"
   },
   {
-   "no": 18,
+   "no": 21,
    "chapterNo": 3,
    "chapter": "3章 整式の変形",
    "section": "ITEM 18 因数分解(公式利用)",
    "kind": "problem",
-   "front": "類題 18",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     49
+     48
     ],
     "answerPages": [
      19
@@ -570,24 +688,25 @@
      48,
      49
     ],
-    "title": "因数分解(公式利用)"
+    "title": "因数分解(公式利用)",
+    "label": "例題"
    },
-   "page": 49,
-   "bookPage": "49",
-   "problemImage": "ukaru_keisan/q018.jpg",
-   "answerImage": "ukaru_keisan/a018.jpg"
+   "page": 48,
+   "bookPage": "48",
+   "problemImage": "ukaru_keisan/e018.jpg",
+   "answerImage": "ukaru_keisan/s018.jpg"
   },
   {
-   "no": 19,
+   "no": 22,
    "chapterNo": 3,
    "chapter": "3章 整式の変形",
    "section": "ITEM 19 因数分解(総合)",
    "kind": "problem",
-   "front": "類題 19",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     51
+     50
     ],
     "answerPages": [
      20,
@@ -597,24 +716,25 @@
      50,
      51
     ],
-    "title": "因数分解(総合)"
+    "title": "因数分解(総合)",
+    "label": "例題"
    },
-   "page": 51,
-   "bookPage": "51",
-   "problemImage": "ukaru_keisan/q019.jpg",
-   "answerImage": "ukaru_keisan/a019.jpg"
+   "page": 50,
+   "bookPage": "50",
+   "problemImage": "ukaru_keisan/e019.jpg",
+   "answerImage": "ukaru_keisan/s019.jpg"
   },
   {
-   "no": 20,
+   "no": 23,
    "chapterNo": 3,
    "chapter": "3章 整式の変形",
    "section": "ITEM 20 整式の除法",
    "kind": "problem",
-   "front": "類題 20",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     53
+     52
     ],
     "answerPages": [
      22,
@@ -624,24 +744,25 @@
      52,
      53
     ],
-    "title": "整式の除法"
+    "title": "整式の除法",
+    "label": "例題"
    },
-   "page": 53,
-   "bookPage": "53",
-   "problemImage": "ukaru_keisan/q020.jpg",
-   "answerImage": "ukaru_keisan/a020.jpg"
+   "page": 52,
+   "bookPage": "52",
+   "problemImage": "ukaru_keisan/e020.jpg",
+   "answerImage": "ukaru_keisan/s020.jpg"
   },
   {
-   "no": 21,
+   "no": 24,
    "chapterNo": 4,
    "chapter": "4章 分数と分数式",
    "section": "ITEM 21 通分",
    "kind": "problem",
-   "front": "類題 21",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     55
+     54
     ],
     "answerPages": [
      24
@@ -650,24 +771,25 @@
      54,
      55
     ],
-    "title": "通分"
+    "title": "通分",
+    "label": "例題"
    },
-   "page": 55,
-   "bookPage": "55",
-   "problemImage": "ukaru_keisan/q021.jpg",
-   "answerImage": "ukaru_keisan/a021.jpg"
+   "page": 54,
+   "bookPage": "54",
+   "problemImage": "ukaru_keisan/e021.jpg",
+   "answerImage": "ukaru_keisan/s021.jpg"
   },
   {
-   "no": 22,
+   "no": 25,
    "chapterNo": 4,
    "chapter": "4章 分数と分数式",
    "section": "ITEM 22 繁分数の処理",
    "kind": "problem",
-   "front": "類題 22",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     57
+     56
     ],
     "answerPages": [
      25,
@@ -677,24 +799,25 @@
      56,
      57
     ],
-    "title": "繁分数の処理"
+    "title": "繁分数の処理",
+    "label": "例題"
    },
-   "page": 57,
-   "bookPage": "57",
-   "problemImage": "ukaru_keisan/q022.jpg",
-   "answerImage": "ukaru_keisan/a022.jpg"
+   "page": 56,
+   "bookPage": "56",
+   "problemImage": "ukaru_keisan/e022.jpg",
+   "answerImage": "ukaru_keisan/s022.jpg"
   },
   {
-   "no": 23,
+   "no": 26,
    "chapterNo": 4,
    "chapter": "4章 分数と分数式",
    "section": "ITEM 23 分子の低次化",
    "kind": "problem",
-   "front": "類題 23",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     59
+     58
     ],
     "answerPages": [
      27,
@@ -704,24 +827,25 @@
      58,
      59
     ],
-    "title": "分子の低次化"
+    "title": "分子の低次化",
+    "label": "例題"
    },
-   "page": 59,
-   "bookPage": "59",
-   "problemImage": "ukaru_keisan/q023.jpg",
-   "answerImage": "ukaru_keisan/a023.jpg"
+   "page": 58,
+   "bookPage": "58",
+   "problemImage": "ukaru_keisan/e023.jpg",
+   "answerImage": "ukaru_keisan/s023.jpg"
   },
   {
-   "no": 24,
+   "no": 27,
    "chapterNo": 5,
    "chapter": "5章 簡単な関数のグラフ",
    "section": "ITEM 24 平方完成",
    "kind": "problem",
-   "front": "類題 24",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     61
+     60
     ],
     "answerPages": [
      28
@@ -730,24 +854,25 @@
      60,
      61
     ],
-    "title": "平方完成"
+    "title": "平方完成",
+    "label": "例題"
    },
-   "page": 61,
-   "bookPage": "61",
-   "problemImage": "ukaru_keisan/q024.jpg",
-   "answerImage": "ukaru_keisan/a024.jpg"
+   "page": 60,
+   "bookPage": "60",
+   "problemImage": "ukaru_keisan/e024.jpg",
+   "answerImage": "ukaru_keisan/s024.jpg"
   },
   {
-   "no": 25,
+   "no": 28,
    "chapterNo": 5,
    "chapter": "5章 簡単な関数のグラフ",
    "section": "ITEM 25 次関数のグラフ",
    "kind": "problem",
-   "front": "類題 25",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     63
+     62
     ],
     "answerPages": [
      29
@@ -756,24 +881,25 @@
      62,
      63
     ],
-    "title": "次関数のグラフ"
+    "title": "次関数のグラフ",
+    "label": "例題"
    },
-   "page": 63,
-   "bookPage": "63",
-   "problemImage": "ukaru_keisan/q025.jpg",
-   "answerImage": "ukaru_keisan/a025.jpg"
+   "page": 62,
+   "bookPage": "62",
+   "problemImage": "ukaru_keisan/e025.jpg",
+   "answerImage": "ukaru_keisan/s025.jpg"
   },
   {
-   "no": 26,
+   "no": 29,
    "chapterNo": 5,
    "chapter": "5章 簡単な関数のグラフ",
    "section": "ITEM 26 放物線の軸の求め方",
    "kind": "problem",
-   "front": "類題 26",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     65
+     64
     ],
     "answerPages": [
      30
@@ -782,24 +908,25 @@
      64,
      65
     ],
-    "title": "放物線の軸の求め方"
+    "title": "放物線の軸の求め方",
+    "label": "例題"
    },
-   "page": 65,
-   "bookPage": "65",
-   "problemImage": "ukaru_keisan/q026.jpg",
-   "answerImage": "ukaru_keisan/a026.jpg"
+   "page": 64,
+   "bookPage": "64",
+   "problemImage": "ukaru_keisan/e026.jpg",
+   "answerImage": "ukaru_keisan/s026.jpg"
   },
   {
-   "no": 27,
+   "no": 30,
    "chapterNo": 5,
    "chapter": "5章 簡単な関数のグラフ",
    "section": "ITEM 27 次関数の最大・最小",
    "kind": "problem",
-   "front": "類題 27",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     67
+     66
     ],
     "answerPages": [
      31
@@ -808,24 +935,36 @@
      66,
      67
     ],
-    "title": "次関数の最大・最小"
+    "title": "次関数の最大・最小",
+    "label": "例題",
+    "subs": [
+     {
+      "label": null,
+      "answer": "最大値 14",
+      "options": [
+       "最大値 42",
+       "最大値 12",
+       "最大値 8"
+      ]
+     }
+    ]
    },
-   "page": 67,
-   "bookPage": "67",
-   "problemImage": "ukaru_keisan/q027.jpg",
-   "answerImage": "ukaru_keisan/a027.jpg"
+   "page": 66,
+   "bookPage": "66",
+   "problemImage": "ukaru_keisan/e027.jpg",
+   "answerImage": "ukaru_keisan/s027.jpg"
   },
   {
-   "no": 28,
+   "no": 31,
    "chapterNo": 5,
    "chapter": "5章 簡単な関数のグラフ",
    "section": "ITEM 28 放物線の移動",
    "kind": "problem",
-   "front": "類題 28",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     69
+     68
     ],
     "answerPages": [
      32,
@@ -835,24 +974,25 @@
      68,
      69
     ],
-    "title": "放物線の移動"
+    "title": "放物線の移動",
+    "label": "例題"
    },
-   "page": 69,
-   "bookPage": "69",
-   "problemImage": "ukaru_keisan/q028.jpg",
-   "answerImage": "ukaru_keisan/a028.jpg"
+   "page": 68,
+   "bookPage": "68",
+   "problemImage": "ukaru_keisan/e028.jpg",
+   "answerImage": "ukaru_keisan/s028.jpg"
   },
   {
-   "no": 29,
+   "no": 32,
    "chapterNo": 5,
    "chapter": "5章 簡単な関数のグラフ",
    "section": "ITEM 29 絶対値付き関数",
    "kind": "problem",
-   "front": "類題 29",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     71
+     70
     ],
     "answerPages": [
      33
@@ -861,20 +1001,21 @@
      70,
      71
     ],
-    "title": "絶対値付き関数"
+    "title": "絶対値付き関数",
+    "label": "例題"
    },
-   "page": 71,
-   "bookPage": "71",
-   "problemImage": "ukaru_keisan/q029.jpg",
-   "answerImage": "ukaru_keisan/a029.jpg"
+   "page": 70,
+   "bookPage": "70",
+   "problemImage": "ukaru_keisan/e029.jpg",
+   "answerImage": "ukaru_keisan/s029.jpg"
   },
   {
-   "no": 30,
+   "no": 33,
    "chapterNo": 6,
    "chapter": "6章 方程式",
    "section": "ITEM 30 次方程式",
    "kind": "problem",
-   "front": "類題 30",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
@@ -886,20 +1027,21 @@
     "itemPages": [
      72
     ],
-    "title": "次方程式"
+    "title": "次方程式",
+    "label": "例題"
    },
    "page": 72,
    "bookPage": "72",
-   "problemImage": "ukaru_keisan/q030.jpg",
-   "answerImage": "ukaru_keisan/a030.jpg"
+   "problemImage": "ukaru_keisan/e030.jpg",
+   "answerImage": "ukaru_keisan/s030.jpg"
   },
   {
-   "no": 31,
+   "no": 34,
    "chapterNo": 6,
    "chapter": "6章 方程式",
    "section": "ITEM 31",
    "kind": "problem",
-   "front": "類題 31",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
@@ -911,24 +1053,25 @@
     "itemPages": [
      73
     ],
-    "title": ""
+    "title": "",
+    "label": "例題"
    },
    "page": 73,
    "bookPage": "73",
-   "problemImage": "ukaru_keisan/q031.jpg",
-   "answerImage": "ukaru_keisan/a031.jpg"
+   "problemImage": "ukaru_keisan/e031.jpg",
+   "answerImage": "ukaru_keisan/s031.jpg"
   },
   {
-   "no": 32,
+   "no": 35,
    "chapterNo": 6,
    "chapter": "6章 方程式",
    "section": "ITEM 32 次方程式",
    "kind": "problem",
-   "front": "類題 32",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     75
+     74
     ],
     "answerPages": [
      35
@@ -937,20 +1080,49 @@
      74,
      75
     ],
-    "title": "次方程式"
+    "title": "次方程式",
+    "label": "例題"
    },
-   "page": 75,
-   "bookPage": "75",
-   "problemImage": "ukaru_keisan/q032.jpg",
-   "answerImage": "ukaru_keisan/a032.jpg"
+   "page": 74,
+   "bookPage": "74",
+   "problemImage": "ukaru_keisan/e032.jpg",
+   "answerImage": "ukaru_keisan/s032.jpg"
   },
   {
-   "no": 33,
+   "no": 36,
    "chapterNo": 6,
    "chapter": "6章 方程式",
    "section": "ITEM 33 判別式",
    "kind": "problem",
-   "front": "類題 33",
+   "front": "例題A",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     76
+    ],
+    "answerPages": [
+     36,
+     37
+    ],
+    "itemPages": [
+     76,
+     77
+    ],
+    "title": "判別式",
+    "label": "例題A"
+   },
+   "page": 76,
+   "bookPage": "76",
+   "problemImage": "ukaru_keisan/e033a.jpg",
+   "answerImage": "ukaru_keisan/s033a.jpg"
+  },
+  {
+   "no": 37,
+   "chapterNo": 6,
+   "chapter": "6章 方程式",
+   "section": "ITEM 33 判別式",
+   "kind": "problem",
+   "front": "例題B",
    "back": null,
    "extra": {
     "problemPages": [
@@ -964,24 +1136,25 @@
      76,
      77
     ],
-    "title": "判別式"
+    "title": "判別式",
+    "label": "例題B"
    },
    "page": 77,
    "bookPage": "77",
-   "problemImage": "ukaru_keisan/q033.jpg",
-   "answerImage": "ukaru_keisan/a033.jpg"
+   "problemImage": "ukaru_keisan/e033b.jpg",
+   "answerImage": "ukaru_keisan/s033b.jpg"
   },
   {
-   "no": 34,
+   "no": 38,
    "chapterNo": 6,
    "chapter": "6章 方程式",
    "section": "ITEM 34 高次方程式",
    "kind": "problem",
-   "front": "類題 34",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     79
+     78
     ],
     "answerPages": [
      37,
@@ -991,24 +1164,25 @@
      78,
      79
     ],
-    "title": "高次方程式"
+    "title": "高次方程式",
+    "label": "例題"
    },
-   "page": 79,
-   "bookPage": "79",
-   "problemImage": "ukaru_keisan/q034.jpg",
-   "answerImage": "ukaru_keisan/a034.jpg"
+   "page": 78,
+   "bookPage": "78",
+   "problemImage": "ukaru_keisan/e034.jpg",
+   "answerImage": "ukaru_keisan/s034.jpg"
   },
   {
-   "no": 35,
+   "no": 39,
    "chapterNo": 6,
    "chapter": "6章 方程式",
    "section": "ITEM 35 解と係数の関係",
    "kind": "problem",
-   "front": "類題 35",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     81
+     80
     ],
     "answerPages": [
      39
@@ -1017,24 +1191,25 @@
      80,
      81
     ],
-    "title": "解と係数の関係"
+    "title": "解と係数の関係",
+    "label": "例題"
    },
-   "page": 81,
-   "bookPage": "81",
-   "problemImage": "ukaru_keisan/q035.jpg",
-   "answerImage": "ukaru_keisan/a035.jpg"
+   "page": 80,
+   "bookPage": "80",
+   "problemImage": "ukaru_keisan/e035.jpg",
+   "answerImage": "ukaru_keisan/s035.jpg"
   },
   {
-   "no": 36,
+   "no": 40,
    "chapterNo": 6,
    "chapter": "6章 方程式",
    "section": "ITEM 36 いろいろな方程式",
    "kind": "problem",
-   "front": "類題 36",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     83
+     82
     ],
     "answerPages": [
      40
@@ -1043,24 +1218,25 @@
      82,
      83
     ],
-    "title": "いろいろな方程式"
+    "title": "いろいろな方程式",
+    "label": "例題"
    },
-   "page": 83,
-   "bookPage": "83",
-   "problemImage": "ukaru_keisan/q036.jpg",
-   "answerImage": "ukaru_keisan/a036.jpg"
+   "page": 82,
+   "bookPage": "82",
+   "problemImage": "ukaru_keisan/e036.jpg",
+   "answerImage": "ukaru_keisan/s036.jpg"
   },
   {
-   "no": 37,
+   "no": 41,
    "chapterNo": 6,
    "chapter": "6章 方程式",
    "section": "ITEM 37 連立方程式",
    "kind": "problem",
-   "front": "類題 37",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     85
+     84
     ],
     "answerPages": [
      41,
@@ -1070,20 +1246,48 @@
      84,
      85
     ],
-    "title": "連立方程式"
+    "title": "連立方程式",
+    "label": "例題"
    },
-   "page": 85,
-   "bookPage": "85",
-   "problemImage": "ukaru_keisan/q037.jpg",
-   "answerImage": "ukaru_keisan/a037.jpg"
+   "page": 84,
+   "bookPage": "84",
+   "problemImage": "ukaru_keisan/e037.jpg",
+   "answerImage": "ukaru_keisan/s037.jpg"
   },
   {
-   "no": 38,
+   "no": 42,
    "chapterNo": 7,
    "chapter": "7章 不等式",
    "section": "ITEM 38 次不等式",
    "kind": "problem",
-   "front": "類題 38",
+   "front": "例題A",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     86
+    ],
+    "answerPages": [
+     42
+    ],
+    "itemPages": [
+     86,
+     87
+    ],
+    "title": "次不等式",
+    "label": "例題A"
+   },
+   "page": 86,
+   "bookPage": "86",
+   "problemImage": "ukaru_keisan/e038a.jpg",
+   "answerImage": "ukaru_keisan/s038a.jpg"
+  },
+  {
+   "no": 43,
+   "chapterNo": 7,
+   "chapter": "7章 不等式",
+   "section": "ITEM 38 次不等式",
+   "kind": "problem",
+   "front": "例題B",
    "back": null,
    "extra": {
     "problemPages": [
@@ -1096,24 +1300,25 @@
      86,
      87
     ],
-    "title": "次不等式"
+    "title": "次不等式",
+    "label": "例題B"
    },
    "page": 87,
    "bookPage": "87",
-   "problemImage": "ukaru_keisan/q038.jpg",
-   "answerImage": "ukaru_keisan/a038.jpg"
+   "problemImage": "ukaru_keisan/e038b.jpg",
+   "answerImage": "ukaru_keisan/s038b.jpg"
   },
   {
-   "no": 39,
+   "no": 44,
    "chapterNo": 7,
    "chapter": "7章 不等式",
    "section": "ITEM 39 次不等式",
    "kind": "problem",
-   "front": "類題 39",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     89
+     88
     ],
     "answerPages": [
      43
@@ -1122,24 +1327,25 @@
      88,
      89
     ],
-    "title": "次不等式"
+    "title": "次不等式",
+    "label": "例題"
    },
-   "page": 89,
-   "bookPage": "89",
-   "problemImage": "ukaru_keisan/q039.jpg",
-   "answerImage": "ukaru_keisan/a039.jpg"
+   "page": 88,
+   "bookPage": "88",
+   "problemImage": "ukaru_keisan/e039.jpg",
+   "answerImage": "ukaru_keisan/s039.jpg"
   },
   {
-   "no": 40,
+   "no": 45,
    "chapterNo": 7,
    "chapter": "7章 不等式",
    "section": "ITEM 40 高次&分数不等式",
    "kind": "problem",
-   "front": "類題 40",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     91
+     90
     ],
     "answerPages": [
      44
@@ -1148,24 +1354,25 @@
      90,
      91
     ],
-    "title": "高次&分数不等式"
+    "title": "高次&分数不等式",
+    "label": "例題"
    },
-   "page": 91,
-   "bookPage": "91",
-   "problemImage": "ukaru_keisan/q040.jpg",
-   "answerImage": "ukaru_keisan/a040.jpg"
+   "page": 90,
+   "bookPage": "90",
+   "problemImage": "ukaru_keisan/e040.jpg",
+   "answerImage": "ukaru_keisan/s040.jpg"
   },
   {
-   "no": 41,
+   "no": 46,
    "chapterNo": 7,
    "chapter": "7章 不等式",
    "section": "ITEM 41 いろいろな不等式",
    "kind": "problem",
-   "front": "類題 41",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     93
+     92
     ],
     "answerPages": [
      45,
@@ -1175,24 +1382,25 @@
      92,
      93
     ],
-    "title": "いろいろな不等式"
+    "title": "いろいろな不等式",
+    "label": "例題"
    },
-   "page": 93,
-   "bookPage": "93",
-   "problemImage": "ukaru_keisan/q041.jpg",
-   "answerImage": "ukaru_keisan/a041.jpg"
+   "page": 92,
+   "bookPage": "92",
+   "problemImage": "ukaru_keisan/e041.jpg",
+   "answerImage": "ukaru_keisan/s041.jpg"
   },
   {
-   "no": 42,
+   "no": 47,
    "chapterNo": 7,
    "chapter": "7章 不等式",
    "section": "ITEM 42 絶対不等式の証明",
    "kind": "problem",
-   "front": "類題 42",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     95
+     94
     ],
     "answerPages": [
      47,
@@ -1202,103 +1410,25 @@
      94,
      95
     ],
-    "title": "絶対不等式の証明"
+    "title": "絶対不等式の証明",
+    "label": "例題"
    },
-   "page": 95,
-   "bookPage": "95",
-   "problemImage": "ukaru_keisan/q042.jpg",
-   "answerImage": "ukaru_keisan/a042.jpg"
+   "page": 94,
+   "bookPage": "94",
+   "problemImage": "ukaru_keisan/e042.jpg",
+   "answerImage": "ukaru_keisan/s042.jpg"
   },
   {
-   "no": 43,
-   "chapterNo": 8,
-   "chapter": "8章 三角関数",
-   "section": "ITEM 43 角の表し方",
-   "kind": "problem",
-   "front": "類題 43",
-   "back": null,
-   "extra": {
-    "problemPages": [
-     97
-    ],
-    "answerPages": [
-     49
-    ],
-    "itemPages": [
-     96,
-     97
-    ],
-    "title": "角の表し方"
-   },
-   "page": 97,
-   "bookPage": "97",
-   "problemImage": "ukaru_keisan/q043.jpg",
-   "answerImage": "ukaru_keisan/a043.jpg"
-  },
-  {
-   "no": 44,
-   "chapterNo": 8,
-   "chapter": "8章 三角関数",
-   "section": "ITEM 44 有名角に対する値",
-   "kind": "problem",
-   "front": "類題 44",
-   "back": null,
-   "extra": {
-    "problemPages": [
-     99
-    ],
-    "answerPages": [
-     50,
-     51
-    ],
-    "itemPages": [
-     98,
-     99
-    ],
-    "title": "有名角に対する値"
-   },
-   "page": 99,
-   "bookPage": "99",
-   "problemImage": "ukaru_keisan/q044.jpg",
-   "answerImage": "ukaru_keisan/a044.jpg"
-  },
-  {
-   "no": 45,
-   "chapterNo": 8,
-   "chapter": "8章 三角関数",
-   "section": "ITEM 45 三角方程式・不等式",
-   "kind": "problem",
-   "front": "類題 45",
-   "back": null,
-   "extra": {
-    "problemPages": [
-     101
-    ],
-    "answerPages": [
-     52
-    ],
-    "itemPages": [
-     100,
-     101
-    ],
-    "title": "三角方程式・不等式"
-   },
-   "page": 101,
-   "bookPage": "101",
-   "problemImage": "ukaru_keisan/q045.jpg",
-   "answerImage": "ukaru_keisan/a045.jpg"
-  },
-  {
-   "no": 46,
+   "no": 48,
    "chapterNo": 8,
    "chapter": "8章 三角関数",
    "section": "ITEM 46 cos(ーの=",
    "kind": "problem",
-   "front": "類題 46",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     103
+     102
     ],
     "answerPages": [
      53
@@ -1307,24 +1437,25 @@
      102,
      103
     ],
-    "title": "cos(ーの="
+    "title": "cos(ーの=",
+    "label": "例題"
    },
-   "page": 103,
-   "bookPage": "103",
-   "problemImage": "ukaru_keisan/q046.jpg",
-   "answerImage": "ukaru_keisan/a046.jpg"
+   "page": 102,
+   "bookPage": "102",
+   "problemImage": "ukaru_keisan/e046.jpg",
+   "answerImage": "ukaru_keisan/s046.jpg"
   },
   {
-   "no": 47,
+   "no": 49,
    "chapterNo": 8,
    "chapter": "8章 三角関数",
    "section": "ITEM 47 相互関係",
    "kind": "problem",
-   "front": "類題 47",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     105
+     104
     ],
     "answerPages": [
      54,
@@ -1334,24 +1465,25 @@
      104,
      105
     ],
-    "title": "相互関係"
+    "title": "相互関係",
+    "label": "例題"
    },
-   "page": 105,
-   "bookPage": "105",
-   "problemImage": "ukaru_keisan/q047.jpg",
-   "answerImage": "ukaru_keisan/a047.jpg"
+   "page": 104,
+   "bookPage": "104",
+   "problemImage": "ukaru_keisan/e047.jpg",
+   "answerImage": "ukaru_keisan/s047.jpg"
   },
   {
-   "no": 48,
+   "no": 50,
    "chapterNo": 8,
    "chapter": "8章 三角関数",
    "section": "ITEM 48 加法定理",
    "kind": "problem",
-   "front": "類題 48",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     107
+     106
     ],
     "answerPages": [
      55,
@@ -1361,24 +1493,25 @@
      106,
      107
     ],
-    "title": "加法定理"
+    "title": "加法定理",
+    "label": "例題"
    },
-   "page": 107,
-   "bookPage": "107",
-   "problemImage": "ukaru_keisan/q048.jpg",
-   "answerImage": "ukaru_keisan/a048.jpg"
+   "page": 106,
+   "bookPage": "106",
+   "problemImage": "ukaru_keisan/e048.jpg",
+   "answerImage": "ukaru_keisan/s048.jpg"
   },
   {
-   "no": 49,
+   "no": 51,
    "chapterNo": 8,
    "chapter": "8章 三角関数",
    "section": "ITEM 49 倍角公式・半角公式",
    "kind": "problem",
-   "front": "類題 49",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     109
+     108
     ],
     "answerPages": [
      56,
@@ -1388,24 +1521,25 @@
      108,
      109
     ],
-    "title": "倍角公式・半角公式"
+    "title": "倍角公式・半角公式",
+    "label": "例題"
    },
-   "page": 109,
-   "bookPage": "109",
-   "problemImage": "ukaru_keisan/q049.jpg",
-   "answerImage": "ukaru_keisan/a049.jpg"
+   "page": 108,
+   "bookPage": "108",
+   "problemImage": "ukaru_keisan/e049.jpg",
+   "answerImage": "ukaru_keisan/s049.jpg"
   },
   {
-   "no": 50,
+   "no": 52,
    "chapterNo": 8,
    "chapter": "8章 三角関数",
    "section": "ITEM 50 合成",
    "kind": "problem",
-   "front": "類題 50",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     111
+     110
     ],
     "answerPages": [
      58
@@ -1414,24 +1548,25 @@
      110,
      111
     ],
-    "title": "合成"
+    "title": "合成",
+    "label": "例題"
    },
-   "page": 111,
-   "bookPage": "111",
-   "problemImage": "ukaru_keisan/q050.jpg",
-   "answerImage": "ukaru_keisan/a050.jpg"
+   "page": 110,
+   "bookPage": "110",
+   "problemImage": "ukaru_keisan/e050.jpg",
+   "answerImage": "ukaru_keisan/s050.jpg"
   },
   {
-   "no": 51,
+   "no": 53,
    "chapterNo": 8,
    "chapter": "8章 三角関数",
    "section": "ITEM 51 和積&積和公式",
    "kind": "problem",
-   "front": "類題 51",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     113
+     112
     ],
     "answerPages": [
      59
@@ -1440,24 +1575,25 @@
      112,
      113
     ],
-    "title": "和積&積和公式"
+    "title": "和積&積和公式",
+    "label": "例題"
    },
-   "page": 113,
-   "bookPage": "113",
-   "problemImage": "ukaru_keisan/q051.jpg",
-   "answerImage": "ukaru_keisan/a051.jpg"
+   "page": 112,
+   "bookPage": "112",
+   "problemImage": "ukaru_keisan/e051.jpg",
+   "answerImage": "ukaru_keisan/s051.jpg"
   },
   {
-   "no": 52,
+   "no": 54,
    "chapterNo": 9,
    "chapter": "9章 平面図形・三角比",
    "section": "ITEM 52 三平方の定理",
    "kind": "problem",
-   "front": "類題 52",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     115
+     114
     ],
     "answerPages": [
      60
@@ -1466,24 +1602,25 @@
      114,
      115
     ],
-    "title": "三平方の定理"
+    "title": "三平方の定理",
+    "label": "例題"
    },
-   "page": 115,
-   "bookPage": "115",
-   "problemImage": "ukaru_keisan/q052.jpg",
-   "answerImage": "ukaru_keisan/a052.jpg"
+   "page": 114,
+   "bookPage": "114",
+   "problemImage": "ukaru_keisan/e052.jpg",
+   "answerImage": "ukaru_keisan/s052.jpg"
   },
   {
-   "no": 53,
+   "no": 55,
    "chapterNo": 9,
    "chapter": "9章 平面図形・三角比",
    "section": "ITEM 53 角を求める",
    "kind": "problem",
-   "front": "類題 53",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     117
+     116
     ],
     "answerPages": [
      60
@@ -1492,24 +1629,25 @@
      116,
      117
     ],
-    "title": "角を求める"
+    "title": "角を求める",
+    "label": "例題"
    },
-   "page": 117,
-   "bookPage": "117",
-   "problemImage": "ukaru_keisan/q053.jpg",
-   "answerImage": "ukaru_keisan/a053.jpg"
+   "page": 116,
+   "bookPage": "116",
+   "problemImage": "ukaru_keisan/e053.jpg",
+   "answerImage": "ukaru_keisan/s053.jpg"
   },
   {
-   "no": 54,
+   "no": 56,
    "chapterNo": 9,
    "chapter": "9章 平面図形・三角比",
    "section": "ITEM 54 平面図形の基本形",
    "kind": "problem",
-   "front": "類題 54",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     119
+     118
     ],
     "answerPages": [
      61,
@@ -1519,24 +1657,25 @@
      118,
      119
     ],
-    "title": "平面図形の基本形"
+    "title": "平面図形の基本形",
+    "label": "例題"
    },
-   "page": 119,
-   "bookPage": "119",
-   "problemImage": "ukaru_keisan/q054.jpg",
-   "answerImage": "ukaru_keisan/a054.jpg"
+   "page": 118,
+   "bookPage": "118",
+   "problemImage": "ukaru_keisan/e054.jpg",
+   "answerImage": "ukaru_keisan/s054.jpg"
   },
   {
-   "no": 55,
+   "no": 57,
    "chapterNo": 9,
    "chapter": "9章 平面図形・三角比",
    "section": "ITEM 55 相似と比",
    "kind": "problem",
-   "front": "類題 55",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     121
+     120
     ],
     "answerPages": [
      63
@@ -1545,24 +1684,25 @@
      120,
      121
     ],
-    "title": "相似と比"
+    "title": "相似と比",
+    "label": "例題"
    },
-   "page": 121,
-   "bookPage": "121",
-   "problemImage": "ukaru_keisan/q055.jpg",
-   "answerImage": "ukaru_keisan/a055.jpg"
+   "page": 120,
+   "bookPage": "120",
+   "problemImage": "ukaru_keisan/e055.jpg",
+   "answerImage": "ukaru_keisan/s055.jpg"
   },
   {
-   "no": 56,
+   "no": 58,
    "chapterNo": 9,
    "chapter": "9章 平面図形・三角比",
    "section": "ITEM 56 直角三角形と三角比",
    "kind": "problem",
-   "front": "類題 56",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     123
+     122
     ],
     "answerPages": [
      64
@@ -1571,24 +1711,25 @@
      122,
      123
     ],
-    "title": "直角三角形と三角比"
+    "title": "直角三角形と三角比",
+    "label": "例題"
    },
-   "page": 123,
-   "bookPage": "123",
-   "problemImage": "ukaru_keisan/q056.jpg",
-   "answerImage": "ukaru_keisan/a056.jpg"
+   "page": 122,
+   "bookPage": "122",
+   "problemImage": "ukaru_keisan/e056.jpg",
+   "answerImage": "ukaru_keisan/s056.jpg"
   },
   {
-   "no": 57,
+   "no": 59,
    "chapterNo": 9,
    "chapter": "9章 平面図形・三角比",
    "section": "ITEM 57 正弦定理",
    "kind": "problem",
-   "front": "類題 57",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     125
+     124
     ],
     "answerPages": [
      65
@@ -1597,24 +1738,25 @@
      124,
      125
     ],
-    "title": "正弦定理"
+    "title": "正弦定理",
+    "label": "例題"
    },
-   "page": 125,
-   "bookPage": "125",
-   "problemImage": "ukaru_keisan/q057.jpg",
-   "answerImage": "ukaru_keisan/a057.jpg"
+   "page": 124,
+   "bookPage": "124",
+   "problemImage": "ukaru_keisan/e057.jpg",
+   "answerImage": "ukaru_keisan/s057.jpg"
   },
   {
-   "no": 58,
+   "no": 60,
    "chapterNo": 9,
    "chapter": "9章 平面図形・三角比",
    "section": "ITEM 58 余弦定理",
    "kind": "problem",
-   "front": "類題 58",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     127
+     126
     ],
     "answerPages": [
      66
@@ -1623,24 +1765,25 @@
      126,
      127
     ],
-    "title": "余弦定理"
+    "title": "余弦定理",
+    "label": "例題"
    },
-   "page": 127,
-   "bookPage": "127",
-   "problemImage": "ukaru_keisan/q058.jpg",
-   "answerImage": "ukaru_keisan/a058.jpg"
+   "page": 126,
+   "bookPage": "126",
+   "problemImage": "ukaru_keisan/e058.jpg",
+   "answerImage": "ukaru_keisan/s058.jpg"
   },
   {
-   "no": 59,
+   "no": 61,
    "chapterNo": 9,
    "chapter": "9章 平面図形・三角比",
    "section": "ITEM 59 面積",
    "kind": "problem",
-   "front": "類題 59",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     129
+     128
     ],
     "answerPages": [
      67
@@ -1649,24 +1792,25 @@
      128,
      129
     ],
-    "title": "面積"
+    "title": "面積",
+    "label": "例題"
    },
-   "page": 129,
-   "bookPage": "129",
-   "problemImage": "ukaru_keisan/q059.jpg",
-   "answerImage": "ukaru_keisan/a059.jpg"
+   "page": 128,
+   "bookPage": "128",
+   "problemImage": "ukaru_keisan/e059.jpg",
+   "answerImage": "ukaru_keisan/s059.jpg"
   },
   {
-   "no": 60,
+   "no": 62,
    "chapterNo": 9,
    "chapter": "9章 平面図形・三角比",
    "section": "ITEM 60 面積比",
    "kind": "problem",
-   "front": "類題 60",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     131
+     130
     ],
     "answerPages": [
      68,
@@ -1676,64 +1820,13 @@
      130,
      131
     ],
-    "title": "面積比"
+    "title": "面積比",
+    "label": "例題"
    },
-   "page": 131,
-   "bookPage": "131",
-   "problemImage": "ukaru_keisan/q060.jpg",
-   "answerImage": "ukaru_keisan/a060.jpg"
-  },
-  {
-   "no": 61,
-   "chapterNo": 10,
-   "chapter": "10章 ベクトル",
-   "section": "ITEM 61 平面べクトルの分解",
-   "kind": "problem",
-   "front": "類題 61",
-   "back": null,
-   "extra": {
-    "problemPages": [
-     133
-    ],
-    "answerPages": [
-     70
-    ],
-    "itemPages": [
-     132,
-     133
-    ],
-    "title": "平面べクトルの分解"
-   },
-   "page": 133,
-   "bookPage": "133",
-   "problemImage": "ukaru_keisan/q061.jpg",
-   "answerImage": "ukaru_keisan/a061.jpg"
-  },
-  {
-   "no": 62,
-   "chapterNo": 10,
-   "chapter": "10章 ベクトル",
-   "section": "ITEM 62 空間へクトルの分解",
-   "kind": "problem",
-   "front": "類題 62",
-   "back": null,
-   "extra": {
-    "problemPages": [
-     135
-    ],
-    "answerPages": [
-     71
-    ],
-    "itemPages": [
-     134,
-     135
-    ],
-    "title": "空間へクトルの分解"
-   },
-   "page": 135,
-   "bookPage": "135",
-   "problemImage": "ukaru_keisan/q062.jpg",
-   "answerImage": "ukaru_keisan/a062.jpg"
+   "page": 130,
+   "bookPage": "130",
+   "problemImage": "ukaru_keisan/e060.jpg",
+   "answerImage": "ukaru_keisan/s060.jpg"
   },
   {
    "no": 63,
@@ -1741,11 +1834,11 @@
    "chapter": "10章 ベクトル",
    "section": "ITEM 63 内積の基礎",
    "kind": "problem",
-   "front": "類題 63",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     137
+     136
     ],
     "answerPages": [
      71
@@ -1754,12 +1847,13 @@
      136,
      137
     ],
-    "title": "内積の基礎"
+    "title": "内積の基礎",
+    "label": "例題"
    },
-   "page": 137,
-   "bookPage": "137",
-   "problemImage": "ukaru_keisan/q063.jpg",
-   "answerImage": "ukaru_keisan/a063.jpg"
+   "page": 136,
+   "bookPage": "136",
+   "problemImage": "ukaru_keisan/e063.jpg",
+   "answerImage": "ukaru_keisan/s063.jpg"
   },
   {
    "no": 64,
@@ -1767,11 +1861,11 @@
    "chapter": "10章 ベクトル",
    "section": "ITEM 64 内積の演算",
    "kind": "problem",
-   "front": "類題 64",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     139
+     138
     ],
     "answerPages": [
      72
@@ -1780,12 +1874,13 @@
      138,
      139
     ],
-    "title": "内積の演算"
+    "title": "内積の演算",
+    "label": "例題"
    },
-   "page": 139,
-   "bookPage": "139",
-   "problemImage": "ukaru_keisan/q064.jpg",
-   "answerImage": "ukaru_keisan/a064.jpg"
+   "page": 138,
+   "bookPage": "138",
+   "problemImage": "ukaru_keisan/e064.jpg",
+   "answerImage": "ukaru_keisan/s064.jpg"
   },
   {
    "no": 65,
@@ -1793,11 +1888,11 @@
    "chapter": "10章 ベクトル",
    "section": "ITEM 65 内積の計算(成分)",
    "kind": "problem",
-   "front": "類題 65",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     141
+     140
     ],
     "answerPages": [
      73,
@@ -1807,12 +1902,13 @@
      140,
      141
     ],
-    "title": "内積の計算(成分)"
+    "title": "内積の計算(成分)",
+    "label": "例題"
    },
-   "page": 141,
-   "bookPage": "141",
-   "problemImage": "ukaru_keisan/q065.jpg",
-   "answerImage": "ukaru_keisan/a065.jpg"
+   "page": 140,
+   "bookPage": "140",
+   "problemImage": "ukaru_keisan/e065.jpg",
+   "answerImage": "ukaru_keisan/s065.jpg"
   },
   {
    "no": 66,
@@ -1820,11 +1916,11 @@
    "chapter": "10章 ベクトル",
    "section": "ITEM 66 向きと長さからへクトルを作る",
    "kind": "problem",
-   "front": "類題 66",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     143
+     142
     ],
     "answerPages": [
      74
@@ -1833,12 +1929,13 @@
      142,
      143
     ],
-    "title": "向きと長さからへクトルを作る"
+    "title": "向きと長さからへクトルを作る",
+    "label": "例題"
    },
-   "page": 143,
-   "bookPage": "143",
-   "problemImage": "ukaru_keisan/q066.jpg",
-   "answerImage": "ukaru_keisan/a066.jpg"
+   "page": 142,
+   "bookPage": "142",
+   "problemImage": "ukaru_keisan/e066.jpg",
+   "answerImage": "ukaru_keisan/s066.jpg"
   },
   {
    "no": 67,
@@ -1846,11 +1943,11 @@
    "chapter": "10章 ベクトル",
    "section": "ITEM 67 正射影ペクトル",
    "kind": "problem",
-   "front": "類題 67",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     145
+     144
     ],
     "answerPages": [
      75,
@@ -1860,105 +1957,25 @@
      144,
      145
     ],
-    "title": "正射影ペクトル"
+    "title": "正射影ペクトル",
+    "label": "例題"
    },
-   "page": 145,
-   "bookPage": "145",
-   "problemImage": "ukaru_keisan/q067.jpg",
-   "answerImage": "ukaru_keisan/a067.jpg"
+   "page": 144,
+   "bookPage": "144",
+   "problemImage": "ukaru_keisan/e067.jpg",
+   "answerImage": "ukaru_keisan/s067.jpg"
   },
   {
    "no": 68,
    "chapterNo": 11,
    "chapter": "11章 図形と式",
-   "section": "ITEM 68 直線とその方程式",
-   "kind": "problem",
-   "front": "類題 68",
-   "back": null,
-   "extra": {
-    "problemPages": [
-     147
-    ],
-    "answerPages": [
-     77,
-     78
-    ],
-    "itemPages": [
-     146,
-     147
-    ],
-    "title": "直線とその方程式"
-   },
-   "page": 147,
-   "bookPage": "147",
-   "problemImage": "ukaru_keisan/q068.jpg",
-   "answerImage": "ukaru_keisan/a068.jpg"
-  },
-  {
-   "no": 69,
-   "chapterNo": 11,
-   "chapter": "11章 図形と式",
-   "section": "ITEM 69 離",
-   "kind": "problem",
-   "front": "類題 69",
-   "back": null,
-   "extra": {
-    "problemPages": [
-     149
-    ],
-    "answerPages": [
-     78,
-     79
-    ],
-    "itemPages": [
-     148,
-     149
-    ],
-    "title": "離"
-   },
-   "page": 149,
-   "bookPage": "149",
-   "problemImage": "ukaru_keisan/q069.jpg",
-   "answerImage": "ukaru_keisan/a069.jpg"
-  },
-  {
-   "no": 70,
-   "chapterNo": 11,
-   "chapter": "11章 図形と式",
-   "section": "ITEM 70 〔こ」宀やや重",
-   "kind": "problem",
-   "front": "類題 70",
-   "back": null,
-   "extra": {
-    "problemPages": [
-     151
-    ],
-    "answerPages": [
-     79,
-     80
-    ],
-    "itemPages": [
-     150,
-     151
-    ],
-    "title": "〔こ」宀やや重"
-   },
-   "page": 151,
-   "bookPage": "151",
-   "problemImage": "ukaru_keisan/q070.jpg",
-   "answerImage": "ukaru_keisan/a070.jpg"
-  },
-  {
-   "no": 71,
-   "chapterNo": 11,
-   "chapter": "11章 図形と式",
    "section": "ITEM 71 〔Dー)重",
    "kind": "problem",
-   "front": "類題 71",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     153
+     152
     ],
     "answerPages": [
      81,
@@ -1968,20 +1985,48 @@
      152,
      153
     ],
-    "title": "〔Dー)重"
+    "title": "〔Dー)重",
+    "label": "例題"
    },
-   "page": 153,
-   "bookPage": "153",
-   "problemImage": "ukaru_keisan/q071.jpg",
-   "answerImage": "ukaru_keisan/a071.jpg"
+   "page": 152,
+   "bookPage": "152",
+   "problemImage": "ukaru_keisan/e071.jpg",
+   "answerImage": "ukaru_keisan/s071.jpg"
   },
   {
-   "no": 72,
+   "no": 69,
    "chapterNo": 12,
    "chapter": "12章 微分・積分",
    "section": "ITEM 72 微分法の計算",
    "kind": "problem",
-   "front": "類題 72",
+   "front": "例題A",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     154
+    ],
+    "answerPages": [
+     83
+    ],
+    "itemPages": [
+     154,
+     155
+    ],
+    "title": "微分法の計算",
+    "label": "例題A"
+   },
+   "page": 154,
+   "bookPage": "154",
+   "problemImage": "ukaru_keisan/e072a.jpg",
+   "answerImage": "ukaru_keisan/s072a.jpg"
+  },
+  {
+   "no": 70,
+   "chapterNo": 12,
+   "chapter": "12章 微分・積分",
+   "section": "ITEM 72 微分法の計算",
+   "kind": "problem",
+   "front": "例題B",
    "back": null,
    "extra": {
     "problemPages": [
@@ -1994,24 +2039,25 @@
      154,
      155
     ],
-    "title": "微分法の計算"
+    "title": "微分法の計算",
+    "label": "例題B"
    },
    "page": 155,
    "bookPage": "155",
-   "problemImage": "ukaru_keisan/q072.jpg",
-   "answerImage": "ukaru_keisan/a072.jpg"
+   "problemImage": "ukaru_keisan/e072b.jpg",
+   "answerImage": "ukaru_keisan/s072b.jpg"
   },
   {
-   "no": 73,
+   "no": 71,
    "chapterNo": 12,
    "chapter": "12章 微分・積分",
    "section": "ITEM 73 次関数のグラフ",
    "kind": "problem",
-   "front": "類題 73",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     157
+     156
     ],
     "answerPages": [
      84
@@ -2020,24 +2066,25 @@
      156,
      157
     ],
-    "title": "次関数のグラフ"
+    "title": "次関数のグラフ",
+    "label": "例題"
    },
-   "page": 157,
-   "bookPage": "157",
-   "problemImage": "ukaru_keisan/q073.jpg",
-   "answerImage": "ukaru_keisan/a073.jpg"
+   "page": 156,
+   "bookPage": "156",
+   "problemImage": "ukaru_keisan/e073.jpg",
+   "answerImage": "ukaru_keisan/s073.jpg"
   },
   {
-   "no": 74,
+   "no": 72,
    "chapterNo": 12,
    "chapter": "12章 微分・積分",
    "section": "ITEM 74 接線",
    "kind": "problem",
-   "front": "類題 74",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     159
+     158
     ],
     "answerPages": [
      84,
@@ -2047,24 +2094,25 @@
      158,
      159
     ],
-    "title": "接線"
+    "title": "接線",
+    "label": "例題"
    },
-   "page": 159,
-   "bookPage": "159",
-   "problemImage": "ukaru_keisan/q074.jpg",
-   "answerImage": "ukaru_keisan/a074.jpg"
+   "page": 158,
+   "bookPage": "158",
+   "problemImage": "ukaru_keisan/e074.jpg",
+   "answerImage": "ukaru_keisan/s074.jpg"
   },
   {
-   "no": 75,
+   "no": 73,
    "chapterNo": 12,
    "chapter": "12章 微分・積分",
    "section": "ITEM 75 定積分の計算",
    "kind": "problem",
-   "front": "類題 75",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     161
+     160
     ],
     "answerPages": [
      86
@@ -2073,24 +2121,25 @@
      160,
      161
     ],
-    "title": "定積分の計算"
+    "title": "定積分の計算",
+    "label": "例題"
    },
-   "page": 161,
-   "bookPage": "161",
-   "problemImage": "ukaru_keisan/q075.jpg",
-   "answerImage": "ukaru_keisan/a075.jpg"
+   "page": 160,
+   "bookPage": "160",
+   "problemImage": "ukaru_keisan/e075.jpg",
+   "answerImage": "ukaru_keisan/s075.jpg"
   },
   {
-   "no": 76,
+   "no": 74,
    "chapterNo": 12,
    "chapter": "12章 微分・積分",
    "section": "ITEM 76 定積分と面積",
    "kind": "problem",
-   "front": "類題 76",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     163
+     162
     ],
     "answerPages": [
      87,
@@ -2100,24 +2149,25 @@
      162,
      163
     ],
-    "title": "定積分と面積"
+    "title": "定積分と面積",
+    "label": "例題"
    },
-   "page": 163,
-   "bookPage": "163",
-   "problemImage": "ukaru_keisan/q076.jpg",
-   "answerImage": "ukaru_keisan/a076.jpg"
+   "page": 162,
+   "bookPage": "162",
+   "problemImage": "ukaru_keisan/e076.jpg",
+   "answerImage": "ukaru_keisan/s076.jpg"
   },
   {
-   "no": 77,
+   "no": 75,
    "chapterNo": 13,
    "chapter": "13章 指数関数・対数関数",
    "section": "ITEM 77 指数法則",
    "kind": "problem",
-   "front": "類題 77",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     165
+     164
     ],
     "answerPages": [
      89
@@ -2126,24 +2176,25 @@
      164,
      165
     ],
-    "title": "指数法則"
+    "title": "指数法則",
+    "label": "例題"
    },
-   "page": 165,
-   "bookPage": "165",
-   "problemImage": "ukaru_keisan/q077.jpg",
-   "answerImage": "ukaru_keisan/a077.jpg"
+   "page": 164,
+   "bookPage": "164",
+   "problemImage": "ukaru_keisan/e077.jpg",
+   "answerImage": "ukaru_keisan/s077.jpg"
   },
   {
-   "no": 78,
+   "no": 76,
    "chapterNo": 13,
    "chapter": "13章 指数関数・対数関数",
    "section": "ITEM 78 対数の定義",
    "kind": "problem",
-   "front": "類題 78",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     167
+     166
     ],
     "answerPages": [
      90
@@ -2152,24 +2203,25 @@
      166,
      167
     ],
-    "title": "対数の定義"
+    "title": "対数の定義",
+    "label": "例題"
    },
-   "page": 167,
-   "bookPage": "167",
-   "problemImage": "ukaru_keisan/q078.jpg",
-   "answerImage": "ukaru_keisan/a078.jpg"
+   "page": 166,
+   "bookPage": "166",
+   "problemImage": "ukaru_keisan/e078.jpg",
+   "answerImage": "ukaru_keisan/s078.jpg"
   },
   {
-   "no": 79,
+   "no": 77,
    "chapterNo": 13,
    "chapter": "13章 指数関数・対数関数",
    "section": "ITEM 79 対数の計算",
    "kind": "problem",
-   "front": "類題 79",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     169
+     168
     ],
     "answerPages": [
      91
@@ -2178,20 +2230,21 @@
      168,
      169
     ],
-    "title": "対数の計算"
+    "title": "対数の計算",
+    "label": "例題"
    },
-   "page": 169,
-   "bookPage": "169",
-   "problemImage": "ukaru_keisan/q079.jpg",
-   "answerImage": "ukaru_keisan/a079.jpg"
+   "page": 168,
+   "bookPage": "168",
+   "problemImage": "ukaru_keisan/e079.jpg",
+   "answerImage": "ukaru_keisan/s079.jpg"
   },
   {
-   "no": 80,
+   "no": 78,
    "chapterNo": 13,
    "chapter": "13章 指数関数・対数関数",
    "section": "ITEM 80 指数・対数の方程式・不等式",
    "kind": "problem",
-   "front": "類題 80",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
@@ -2204,20 +2257,48 @@
      170,
      171
     ],
-    "title": "指数・対数の方程式・不等式"
+    "title": "指数・対数の方程式・不等式",
+    "label": "例題"
    },
    "page": 171,
    "bookPage": "171",
-   "problemImage": "ukaru_keisan/q080.jpg",
-   "answerImage": "ukaru_keisan/a080.jpg"
+   "problemImage": "ukaru_keisan/e080.jpg",
+   "answerImage": "ukaru_keisan/s080.jpg"
   },
   {
-   "no": 81,
+   "no": 79,
    "chapterNo": 14,
    "chapter": "14章 場合の数・確率",
    "section": "ITEM 81 階乗",
    "kind": "problem",
-   "front": "類題 81",
+   "front": "例題A",
+   "back": null,
+   "extra": {
+    "problemPages": [
+     172
+    ],
+    "answerPages": [
+     93
+    ],
+    "itemPages": [
+     172,
+     173
+    ],
+    "title": "階乗",
+    "label": "例題A"
+   },
+   "page": 172,
+   "bookPage": "172",
+   "problemImage": "ukaru_keisan/e081a.jpg",
+   "answerImage": "ukaru_keisan/s081a.jpg"
+  },
+  {
+   "no": 80,
+   "chapterNo": 14,
+   "chapter": "14章 場合の数・確率",
+   "section": "ITEM 81 階乗",
+   "kind": "problem",
+   "front": "例題B",
    "back": null,
    "extra": {
     "problemPages": [
@@ -2230,24 +2311,25 @@
      172,
      173
     ],
-    "title": "階乗"
+    "title": "階乗",
+    "label": "例題B"
    },
    "page": 173,
    "bookPage": "173",
-   "problemImage": "ukaru_keisan/q081.jpg",
-   "answerImage": "ukaru_keisan/a081.jpg"
+   "problemImage": "ukaru_keisan/e081b.jpg",
+   "answerImage": "ukaru_keisan/s081b.jpg"
   },
   {
-   "no": 82,
+   "no": 81,
    "chapterNo": 14,
    "chapter": "14章 場合の数・確率",
    "section": "ITEM 82 ニ項係数",
    "kind": "problem",
-   "front": "類題 82",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     175
+     174
     ],
     "answerPages": [
      94,
@@ -2257,24 +2339,25 @@
      174,
      175
     ],
-    "title": "ニ項係数"
+    "title": "ニ項係数",
+    "label": "例題"
    },
-   "page": 175,
-   "bookPage": "175",
-   "problemImage": "ukaru_keisan/q082.jpg",
-   "answerImage": "ukaru_keisan/a082.jpg"
+   "page": 174,
+   "bookPage": "174",
+   "problemImage": "ukaru_keisan/e082.jpg",
+   "answerImage": "ukaru_keisan/s082.jpg"
   },
   {
-   "no": 83,
+   "no": 82,
    "chapterNo": 15,
    "chapter": "15章 数列",
    "section": "ITEM 83 等差数列",
    "kind": "problem",
-   "front": "類題 83",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     177
+     176
     ],
     "answerPages": [
      95
@@ -2283,24 +2366,25 @@
      176,
      177
     ],
-    "title": "等差数列"
+    "title": "等差数列",
+    "label": "例題"
    },
-   "page": 177,
-   "bookPage": "177",
-   "problemImage": "ukaru_keisan/q083.jpg",
-   "answerImage": "ukaru_keisan/a083.jpg"
+   "page": 176,
+   "bookPage": "176",
+   "problemImage": "ukaru_keisan/e083.jpg",
+   "answerImage": "ukaru_keisan/s083.jpg"
   },
   {
-   "no": 84,
+   "no": 83,
    "chapterNo": 15,
    "chapter": "15章 数列",
    "section": "ITEM 84 等比数列",
    "kind": "problem",
-   "front": "類題 84",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     179
+     178
     ],
     "answerPages": [
      96
@@ -2309,24 +2393,25 @@
      178,
      179
     ],
-    "title": "等比数列"
+    "title": "等比数列",
+    "label": "例題"
    },
-   "page": 179,
-   "bookPage": "179",
-   "problemImage": "ukaru_keisan/q084.jpg",
-   "answerImage": "ukaru_keisan/a084.jpg"
+   "page": 178,
+   "bookPage": "178",
+   "problemImage": "ukaru_keisan/e084.jpg",
+   "answerImage": "ukaru_keisan/s084.jpg"
   },
   {
-   "no": 85,
+   "no": 84,
    "chapterNo": 15,
    "chapter": "15章 数列",
    "section": "ITEM 85 記号による表記",
    "kind": "problem",
-   "front": "類題 85",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     181
+     180
     ],
     "answerPages": [
      97,
@@ -2336,51 +2421,25 @@
      180,
      181
     ],
-    "title": "記号による表記"
+    "title": "記号による表記",
+    "label": "例題"
    },
-   "page": 181,
-   "bookPage": "181",
-   "problemImage": "ukaru_keisan/q085.jpg",
-   "answerImage": "ukaru_keisan/a085.jpg"
+   "page": 180,
+   "bookPage": "180",
+   "problemImage": "ukaru_keisan/e085.jpg",
+   "answerImage": "ukaru_keisan/s085.jpg"
   },
   {
-   "no": 86,
-   "chapterNo": 15,
-   "chapter": "15章 数列",
-   "section": "ITEM 86 (多項式)の計算",
-   "kind": "problem",
-   "front": "類題 86",
-   "back": null,
-   "extra": {
-    "problemPages": [
-     183
-    ],
-    "answerPages": [
-     98,
-     99
-    ],
-    "itemPages": [
-     182,
-     183
-    ],
-    "title": "(多項式)の計算"
-   },
-   "page": 183,
-   "bookPage": "183",
-   "problemImage": "ukaru_keisan/q086.jpg",
-   "answerImage": "ukaru_keisan/a086.jpg"
-  },
-  {
-   "no": 87,
+   "no": 85,
    "chapterNo": 15,
    "chapter": "15章 数列",
    "section": "ITEM 87 階差から和へ",
    "kind": "problem",
-   "front": "類題 87",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     187
+     184
     ],
     "answerPages": [
      100,
@@ -2392,24 +2451,25 @@
      186,
      187
     ],
-    "title": "階差から和へ"
+    "title": "階差から和へ",
+    "label": "例題"
    },
-   "page": 187,
-   "bookPage": "187",
-   "problemImage": "ukaru_keisan/q087.jpg",
-   "answerImage": "ukaru_keisan/a087.jpg"
+   "page": 184,
+   "bookPage": "184",
+   "problemImage": "ukaru_keisan/e087.jpg",
+   "answerImage": "ukaru_keisan/s087.jpg"
   },
   {
-   "no": 88,
+   "no": 86,
    "chapterNo": 15,
    "chapter": "15章 数列",
    "section": "ITEM 88 階差数列から一般項へ",
    "kind": "problem",
-   "front": "類題 88",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     189
+     188
     ],
     "answerPages": [
      102,
@@ -2419,24 +2479,25 @@
      188,
      189
     ],
-    "title": "階差数列から一般項へ"
+    "title": "階差数列から一般項へ",
+    "label": "例題"
    },
-   "page": 189,
-   "bookPage": "189",
-   "problemImage": "ukaru_keisan/q088.jpg",
-   "answerImage": "ukaru_keisan/a088.jpg"
+   "page": 188,
+   "bookPage": "188",
+   "problemImage": "ukaru_keisan/e088.jpg",
+   "answerImage": "ukaru_keisan/s088.jpg"
   },
   {
-   "no": 89,
+   "no": 87,
    "chapterNo": 16,
    "chapter": "16章 データの分析",
    "section": "ITEM 89 平均値・分散",
    "kind": "problem",
-   "front": "類題 89",
+   "front": "例題",
    "back": null,
    "extra": {
     "problemPages": [
-     191
+     190
     ],
     "answerPages": [
      103
@@ -2445,12 +2506,13 @@
      190,
      191
     ],
-    "title": "平均値・分散"
+    "title": "平均値・分散",
+    "label": "例題"
    },
-   "page": 191,
-   "bookPage": "191",
-   "problemImage": "ukaru_keisan/q089.jpg",
-   "answerImage": "ukaru_keisan/a089.jpg"
+   "page": 190,
+   "bookPage": "190",
+   "problemImage": "ukaru_keisan/e089.jpg",
+   "answerImage": "ukaru_keisan/s089.jpg"
   }
  ]
 }

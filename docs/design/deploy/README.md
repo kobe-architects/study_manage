@@ -351,14 +351,21 @@ php artisan config:cache && php artisan route:cache
   - `2026_11_09_000002_create_card_tables` … `card_decks` / `card_items` / `card_attempts`（学習カード）、`resource_books.student_only`（生徒側限定の教材）。
 - 復習の規則は `App\Support\ReviewScheduler`（間違いノートと同じ: 不正解=もう一度 10 分後・正解だがあいまい=難しい・正解=正解。
   係数 1.3〜3.0、最長 365 日）。期限が来た問題は各画面の「今日の復習」に数えられ、ボタンで古い順に出題できる。
-- 学習カードのデータ（Git 管理）: `backend/database/data/cards_tetsuryoku_grammar.json`（鉄緑会 英文法。囲みの表現 1300・例文 1358）、
-  `cards_ukaru_kakuritsu.json`（合格る確率 100 ITEM）、`cards_ukaru_keisan.json`（合格る計算 89 ITEM）。登録・更新は
+- 出題はすべて 4 択（`frontend/src/lib/cardChoices.ts` で組み立て。2026-11-10）:
+  例文の和訳は正しい和訳を選ぶ（誤答＝同じ週の他の例文の和訳）、空所補充は空所ごとに語句を選ぶ（誤答＝他の例文の空所の語句）、
+  囲みは 1 つが 1 枚のカードで、行ごとに意味→表現／表現→意味を選び全部正解で正解（誤答＝同じ週の他の囲みの行）、
+  合格るは例題の画像を見て小問ごとに答えを選ぶ（答えと誤答は OCR からデータに入れてある `extra.subs`）。解答後に「詳細を表示」で解説の画像。
+  4 択にできないカード（和訳の無い例文・表だけの囲み・答えを読み取れなかった例題）は従来どおり「答えを見る」→ ○／× の自己判定。
+- 学習カードのデータ（Git 管理）: `backend/database/data/cards_tetsuryoku_grammar.json`（鉄緑会 英文法。囲み 457・例文 1358）、
+  `cards_ukaru_kakuritsu.json`（合格る確率。例題 106 枚）、`cards_ukaru_keisan.json`（合格る計算。例題 87 枚）。登録・更新は
   ```
-  php artisan cards:import --file=database/data/cards_tetsuryoku_grammar.json [--prune]
+  php artisan cards:import --file=database/data/cards_tetsuryoku_grammar.json [--prune] [--reset]
   ```
-  （束は key、カードは (束, no) で upsert。回答履歴・復習状態は残る。`--prune` は JSON に無いカードを削除）。
-- カードの画像（Git 管理外。`storage/app/private/cards/{束の key}/`。合計約 70MB）は WinSCP で put する。
-  鉄緑会は例文の切り抜き `pNNN_exNN.jpg` と囲みの切り抜き `pNNN_boxN.jpg`、合格るは 類題の切り抜き `qNNN.jpg` と解答編ページ `aNNN.jpg`。
+  （束は key、カードは (束, no) で upsert。回答履歴・復習状態は残る。`--prune` は JSON に無いカードを削除。
+  `--reset` はその束の回答履歴・復習状態・出題履歴を消してから登録する。no の振り直しなどカードの中身が変わったときに付ける）。
+- カードの画像（Git 管理外。`storage/app/private/cards/{束の key}/`。合計約 60MB）は WinSCP で put する。
+  鉄緑会は例文の切り抜き `pNNN_exNN.jpg` と囲みの切り抜き `pNNN_boxN.jpg`、合格るは 例題の切り抜き `eNNN[a-f].jpg` と解説（枠の下〜類題の手前）`sNNN[a-f].jpg`
+  （1 つの ITEM に例題 A/B があるときは a, b …）。画像を差し替えたときは URL の `?v=`（画像名の md5）が変わるのでブラウザのキャッシュは気にしなくてよい。
 - 対応する個別学習データ（教材）と PDF の登録は、日本語の引数を避けるため JSON 経由:
   ```
   php database/data/register_card_book.php book_tetsuryoku_grammar.json pages_tetsuryoku_grammar.json --pdf=/path/tk.pdf --move
@@ -367,9 +374,14 @@ php artisan config:cache && php artisan route:cache
   ```
   教材（無ければ作成。`studentOnly` を反映）・行（週／ITEM ごと）・PDF（`row_pages` = 行→ページ、問題 PDF の `page_links` = 類題ページ→解答ページ）を登録する。再実行可。
 - 鉄緑会 英文法は生徒側限定（`resource_books.student_only` と `card_decks.student_only`）。講師の小テスト出題（`/tutor/quiz-books` など）には出ない。
-- データの作り直し: 5 冊の PDF（docs/other、Git 管理外）は画像のみなので Windows OCR（winrt）で文字起こしし、
-  鉄緑会は週見出し・`N.N` 見出し・`Ex.` 行（en-US OCR）・囲み（OpenCV の矩形検出）を取り出し、太字（空所にする語）はストローク幅の比（中央値の 1.12 倍以上）で判定、
-  合格るは 類題 の桃色バッジ（色検出）〜「解答▶解答編」行を問題、解答編の脚注「N〜Mの解答」でページを対応づけた。スクリプトはスクラッチパッド（`ocr_batch.py` / `build_tk.py` / `build_math.py`）で Git には無い。
+- データの作り直し（スクリプトは `docs/design/deploy/ocr/` に置いてある。Windows + Python。pymupdf / winrt / opencv / numpy / Pillow）:
+  5 冊の PDF（docs/other、Git 管理外）は画像のみなので `ocr_batch.py` で Windows OCR（winrt。ja と en-US）により全ページを JSON に文字起こしし、
+  鉄緑会（`build_tk.py`）は週見出し・`N.N` 見出し・`Ex.` 行（en-US OCR）・囲み（OpenCV の矩形検出）を取り出し、太字（空所にする語）はストローク幅の比（中央値の 1.12 倍以上）で判定、
+  囲みの各行は英語（en-US OCR）と意味（ja OCR）を位置の重なりで振り分けて `extra.rows` に入れる。
+  合格る（`build_math2.py`）は例題の枠（桃色の細い罫の矩形。左上の「例題」ラベルを桃色の文字密度か OCR で確認）を色で検出して例題の画像にし、
+  枠の下〜類題バッジ（桃色・色検出）までを解説の画像にする。答えは解説の「解答」見出し以降の OCR 行から「よって…は N 通り」「= N (通り)」「最大公約数は 6」、縦に並んだ分数などを拾い、
+  問題文との整合（確率なら分数、何通りなら整数）で検証し、数値を変えた誤答 3 つを付ける。読めなかった例題は自己判定のまま（合格る確率は約 4 割、合格る計算は答えが式なのでほとんど）。
+  `build_math.py` は旧版（類題＋解答編ページ）で、ITEM 見出し・類題バッジ・解答編の脚注の関数を `build_math2.py` が流用している。
 - チェックシート: 学習カードは `GET /cards/decks/{id}/checksheet`、個別学習データは画面側で行の学習日（赤=0・青=2・それ以外=1）から組み立てる。
   英単語のチェックシートは A4 横 1 段で回数欄を 30 回ぶん並べる（`lib/checkSheet.ts` の `layout: 'landscape1'`）。
 - 出題履歴: `GET /quiz-sessions?kind=&refId=|refKey=`。各出題は開始時に `POST /quiz-sessions`、終了時に `POST /quiz-sessions/{id}/finish`（回答から集計。回答 0 なら削除）。

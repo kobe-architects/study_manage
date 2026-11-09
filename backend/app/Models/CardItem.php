@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * 学習カード 1 枚。
- * kind: phrase（囲みの中の覚える表現。front = 英語の表現、back = 意味）
+ * kind: phrase（囲み 1 つ。extra.rows = 行ごとの英語の表現と意味。front/back は一覧・検索用に行をつないだもの）
  *       example（例文。front = 英文、back = 和訳、extra.blanks = 空所にする語の位置）
- *       problem（画像の問題。problem_image / answer_image。front = 見出し）
+ *       problem（例題。problem_image = 例題の画像、answer_image = 解説の画像、extra.subs = 小問ごとの答えと誤答（4 択））
  */
 class CardItem extends Model
 {
