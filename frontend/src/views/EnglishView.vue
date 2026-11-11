@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 英語学習。スクランブル（英文法・語法）／英単語／鉄緑会 英文法 を 1 つの画面にまとめ、上のタブで切り替える。
+ * 英語学習。スクランブル（英文法・語法）／英単語／鉄緑会 英文法／ファーストステップ（高校リード問題集 英文法）を 1 つの画面にまとめ、上のタブで切り替える。
  * タブは URL の ?tab= と端末（localStorage）に記憶する。各タブの中身は従来の画面（GrammarView・QuizView）と学習カード（CardDeckView）。
  */
 import { computed, watch } from 'vue'
@@ -9,11 +9,12 @@ import CardDeckView from '@/views/CardDeckView.vue'
 import GrammarView from '@/views/GrammarView.vue'
 import QuizView from '@/views/QuizView.vue'
 
-type Tab = 'scramble' | 'vocab' | 'tetsuryoku'
+type Tab = 'scramble' | 'vocab' | 'tetsuryoku' | 'first_step'
 const TABS: { key: Tab; label: string; short: string }[] = [
   { key: 'scramble', label: 'スクランブル', short: 'スクランブル' },
   { key: 'vocab', label: '英単語', short: '英単語' },
   { key: 'tetsuryoku', label: '鉄緑会 英文法', short: '鉄緑会' },
+  { key: 'first_step', label: 'ファーストステップ', short: 'ファースト' },
 ]
 const KEY = 'sm_english_tab'
 const route = useRoute()
@@ -48,10 +49,13 @@ function select(t: Tab) {
 <template>
   <div>
     <div v-seg class="etabs" role="tablist" aria-label="英語学習">
-      <button v-for="t in TABS" :key="t.key" class="etab" :class="{ on: tab === t.key }" role="tab" :aria-selected="tab === t.key" @click="select(t.key)">{{ t.label }}</button>
+      <button v-for="t in TABS" :key="t.key" class="etab" :class="{ on: tab === t.key }" role="tab" :aria-selected="tab === t.key" @click="select(t.key)">
+        <span class="etab-l">{{ t.label }}</span><span class="etab-s">{{ t.short }}</span>
+      </button>
     </div>
-    <GrammarView v-if="tab === 'scramble'" />
+    <GrammarView v-if="tab === 'scramble'" series="scramble" />
     <QuizView v-else-if="tab === 'vocab'" />
+    <GrammarView v-else-if="tab === 'first_step'" series="first_step" />
     <CardDeckView v-else deck-key="tetsuryoku_grammar" subject="english" />
   </div>
 </template>
@@ -80,5 +84,21 @@ function select(t: Tab) {
 .etab.on {
   background: #1c2024;
   color: #fff;
+}
+/* 狭い画面では短い名前にする */
+.etab-s {
+  display: none;
+}
+@media (max-width: 560px) {
+  .etab {
+    padding: 8px 6px;
+    font-size: 12.5px;
+  }
+  .etab-l {
+    display: none;
+  }
+  .etab-s {
+    display: inline;
+  }
 }
 </style>

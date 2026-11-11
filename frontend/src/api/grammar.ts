@@ -36,9 +36,9 @@ export const grammarApi = {
     return data.data
   },
 
-  /** チェックシート用: 文法・語法 725 問の日ごとの結果（連番 → [[日付, 0=不正解|1=正解|2=あいまい], ...]） */
-  async checksheet(): Promise<Record<string, [string, 0 | 1 | 2][]>> {
-    const { data } = await client.get('/grammar/checksheet', { params: { tz: -new Date().getTimezoneOffset() } })
+  /** チェックシート用: 文法・語法 725 問（または book=first_step）の日ごとの結果（連番 → [[日付, 0=不正解|1=正解|2=あいまい], ...]） */
+  async checksheet(book?: GrammarBookKey): Promise<Record<string, [string, 0 | 1 | 2][]>> {
+    const { data } = await client.get('/grammar/checksheet', { params: { tz: -new Date().getTimezoneOffset(), ...(book ? { book } : {}) } })
     return data.data.marks ?? {}
   },
 }

@@ -7,8 +7,9 @@
  *   語句整序（order） … 下部固定の語句チップを順にタップして文中の空所に並べる。並べた語句はタップで戻す・ドラッグで前後に移動。
  *                        不足語は入力して追加。「解答」は下部のボタン（親が submit() を呼ぶ）
  *   空所補充（fill）  … 空所がそのまま入力欄（空所と正答の数が合わないときは下に入力欄）。Enter で次の欄・解答
- *   画像（image）    … 語い以降の Part。教材の問題を画像で表示。選択肢の数と正解が分かる問題は下部固定の①〜で解答、
- *                        分からない問題は「答えを見る」で解答欄の画像を見て ○／× を自分で付ける（自己判定）
+ *   画像（image）    … 語い以降の Part・ファーストステップ。教材の問題を画像で表示。選択肢の数と正解が分かる問題は下部固定の①〜
+ *                        （choices があれば ア〜）で解答、answers がある問題（ファーストステップの記入）は画像の下の入力欄に答えて「解答」、
+ *                        どちらも無い問題は「答えを見る」で解答欄の画像を見て ○／× を自分で付ける（自己判定）
  * 解答後は正誤と正解だけを簡潔に表示する（和訳・出典などの解説は親の「解説」モーダル）。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -64,6 +65,12 @@ const lead = computed(() => splitLeadingNote(q.value.question))
 const sentenceText = computed(() => lead.value.text)
 /** 画像出題で ①〜 のボタンで解答できるか（選択肢の数と正解が分かっている） */
 const imageChoice = computed(() => q.value.format === 'image' && !!q.value.choiceCount && q.value.answerIndex !== null)
+/** 画像出題で答えを入力して自動採点できるか（ファーストステップの記入） */
+const imageTyped = computed(() => q.value.format === 'image' && !imageChoice.value && !!q.value.answers?.length)
+/** 画像出題の ①〜 のボタンの表示（ファーストステップは ア〜エ） */
+const choiceLabel = (i: number) => q.value.choices?.[i] ?? CIRCLED[i] ?? String(i + 1)
+/** 画像出題の解答欄の見出し（ファーストステップは大問の答えの行なので、どの番号を見るかを示す） */
+const answerImageLabel = computed(() => (q.value.book === 'first_step' ? `解答欄（${(q.value.source ?? '').split('・')[1] ?? ''} の答えを見てください）` : `解答欄（No.${q.value.no} の行を見てください）`))
 const peeked = ref(false) // 画像出題（自己判定）: 答えを見た
 
 // ---- 形式ごとの入力状態 ----
@@ -81,18 +88,18 @@ function reset() {
   inputs.value = Array(fillInputCount(q.value)).fill('')
   // 回答済みの問題に戻ってきたときは選んだ番号などを復元する
   const a = props.result?.answer ?? ''
-  if ((q.value.format === 'choice' || q.value.format === 'error') && a) {
-    const i = CIRCLED.indexOf(a[0] ?? '')
+  if ((q.value.format === 'choice' || q.value.format === 'error' || imageChoice.value) && a) {
+    const i = q.value.choices ? q.value.choices.indexOf(a.split(' ')[0] ?? '') : CIRCLED.indexOf(a[0] ?? '')
     selected.value = a === 'わからない' ? -1 : i >= 0 ? i : null
   }
-  if (q.value.format === 'fill' && a && a !== 'わからない') {
+  if ((q.value.format === 'fill' || imageTyped.value) && a && a !== 'わからない') {
     const parts = a.split(' / ')
     if (parts.length === inputs.value.length) inputs.value = parts
   }
   if (q.value.format === 'order' && a && a !== 'わからない') {
     chosen.value = a.split(' ').map((t) => ({ text: t, from: null }))
   }
-  if (!revealed.value && q.value.format === 'fill') focusBlank(0)
+  if (!revealed.value && (q.value.format === 'fill' || imageTyped.value)) focusBlank(0)
 }
 watch(() => q.value.id, reset)
 onMounted(reset)
@@ -110,7 +117,7 @@ function pick(i: number) {
   selected.value = i
   haptic()
   const ok = i === q.value.answerIndex
-  emit('answer', { isCorrect: ok, answer: i < 0 ? 'わからない' : `${CIRCLED[i]} ${choices.value[i] ?? ''}`.trim() })
+  emit('answer', { isCorrect: ok, answer: i < 0 ? 'わからない' : q.value.format === 'image' ? choiceLabel(i) : `${CIRCLED[i]} ${choices.value[i] ?? ''}`.trim() })
 }
 function choiceClass(i: number) {
   if (!revealed.value) return { sel: selected.value === i }
@@ -239,14 +246,14 @@ const fillAnswerLabel = computed(() => (q.value.answers ?? []).map((alts) => alt
 const canSubmit = computed(() => {
   if (revealed.value) return false
   if (q.value.format === 'order') return chosen.value.length > 0
-  if (q.value.format === 'fill') return filled.value
+  if (q.value.format === 'fill' || imageTyped.value) return filled.value
   if (q.value.format === 'image' && !imageChoice.value) return !peeked.value // 「答えを見る」
   return false
 })
 watch(canSubmit, (v) => emit('canSubmit', v), { immediate: true })
 function submit() {
   if (q.value.format === 'order') submitOrder()
-  else if (q.value.format === 'fill') submitFill()
+  else if (q.value.format === 'fill' || imageTyped.value) submitFill()
   else if (q.value.format === 'image' && !imageChoice.value) peeked.value = true
 }
 /** 画像出題（自己判定）: 答えを見てから ○／× を付ける */
@@ -288,13 +295,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     <div class="gq-meta">
       <span class="dm gq-no">No.{{ q.no }}</span>
       <span class="gq-ch">{{ q.chapter }}</span>
-      <span class="gq-th">Theme {{ q.theme }}</span>
+      <span class="gq-th">{{ q.book === 'first_step' ? q.source : `Theme ${q.theme}` }}</span>
       <span class="gq-fmt" :style="{ background: fmt.bg, color: fmt.fg }">{{ q.formatLabel }}</span>
       <span v-if="q.importance" class="gq-imp">{{ q.importance }}</span>
     </div>
 
     <!-- 日本文・指示 -->
-    <div v-if="q.instruction || lead.note || q.format === 'error'" class="gq-inst">
+    <!-- ファーストステップは指示が問題画像に含まれているので文字では出さない（OCR の文字は検索用） -->
+    <div v-if="(q.instruction && q.book !== 'first_step') || lead.note || q.format === 'error'" class="gq-inst">
       <div v-if="lead.note">〔{{ lead.note }}〕</div>
       <div v-if="q.instruction">{{ q.instruction }}</div>
       <div v-else-if="q.format === 'error'">誤りを含む下線部を選べ</div>
@@ -335,8 +343,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     <template v-else-if="q.format === 'image'">
       <AuthImage v-if="q.hasProblemImage" :src="grammarApi.imageUrl(q.id, 'problem')" class="gq-img" alt="問題" />
       <p v-else class="gq-sent dm">{{ sentenceText }}</p>
-      <div v-if="(peeked || revealed) && q.hasAnswerImage" class="gq-ansimg">
-        <div class="gq-anslab">解答欄（No.{{ q.no }} の行を見てください）</div>
+      <!-- 記入（ファーストステップ）: 画像の下の入力欄に答える。空所が複数なら (1)(2)… -->
+      <div v-if="imageTyped && !revealed" class="gq-fill-row">
+        <template v-for="i in fillCount" :key="i">
+          <span v-if="fillCount > 1" class="fill-n">({{ i }})</span>
+          <input :ref="(el) => { if (el) blankEls[i - 1] = el as HTMLInputElement }" v-model="inputs[i - 1]" class="gq-blank dm wide" placeholder="答えを入力" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" :enterkeyhint="i === fillCount ? 'done' : 'next'" @keydown.enter.prevent="onBlankEnter(i - 1)" />
+        </template>
+      </div>
+      <div v-if="(peeked || (revealed && !imageTyped && !imageChoice)) && q.hasAnswerImage" class="gq-ansimg">
+        <div class="gq-anslab">{{ answerImageLabel }}</div>
         <AuthImage :src="grammarApi.imageUrl(q.id, 'answer')" class="gq-img" alt="解答" />
       </div>
     </template>
@@ -381,7 +396,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           <span class="dm"><template v-for="(s, i) in orderAnswer" :key="i"><span :class="{ 'rv-strong': s.hl }">{{ s.text }}</span></template></span>
         </template>
         <template v-else-if="q.format === 'image'">
-          <span v-if="imageChoice" class="dm rv-strong">{{ CIRCLED[q.answerIndex ?? 0] }}</span>
+          <span v-if="imageChoice" class="dm rv-strong">{{ choiceLabel(q.answerIndex ?? 0) }}</span>
+          <span v-else-if="imageTyped" class="dm rv-strong">{{ fillAnswerLabel }}</span>
           <span v-else class="dm">{{ q.answerText || '上の解答欄を見てください' }}</span>
         </template>
         <template v-else><span class="dm rv-strong">{{ fillAnswerLabel }}</span></template>
@@ -390,11 +406,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     </div>
 
     <!-- ============ 下部固定: 選択肢・番号・語句チップ ============ -->
-    <Teleport v-if="q.format !== 'fill'" defer to="#qf-fixed">
+    <Teleport v-if="q.format !== 'fill' && !imageTyped" defer to="#qf-fixed">
       <div class="gq-fixed">
         <div v-if="q.format === 'image' && imageChoice" class="gq-nums">
-          <button v-for="(_, i) in choices" :key="i" class="num" :class="choiceClass(i)" :disabled="revealed" @click="pick(i)">{{ CIRCLED[i] }}</button>
-          <span class="gq-nums-hint">問題の①〜から選んでください</span>
+          <button v-for="(_, i) in choices" :key="i" class="num" :class="choiceClass(i)" :disabled="revealed" @click="pick(i)">{{ choiceLabel(i) }}</button>
+          <span class="gq-nums-hint">問題の{{ q.choices ? 'ア〜' : '①〜' }}から選んでください</span>
         </div>
         <div v-else-if="q.format === 'image'" class="gq-judge">
           <template v-if="peeked && !revealed">

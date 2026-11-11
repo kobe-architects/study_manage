@@ -385,3 +385,22 @@ php artisan config:cache && php artisan route:cache
 - チェックシート: 学習カードは `GET /cards/decks/{id}/checksheet`、個別学習データは画面側で行の学習日（赤=0・青=2・それ以外=1）から組み立てる。
   英単語のチェックシートは A4 横 1 段で回数欄を 30 回ぶん並べる（`lib/checkSheet.ts` の `layout: 'landscape1'`）。
 - 出題履歴: `GET /quiz-sessions?kind=&refId=|refKey=`。各出題は開始時に `POST /quiz-sessions`、終了時に `POST /quiz-sessions/{id}/finish`（回答から集計。回答 0 なら削除）。
+
+## 17. 英文法ファーストステップ（高校リード問題集。2026-11-12 追加）の運用メモ
+
+- 「英語学習」に「ファーストステップ」タブを追加。中身は英文法・語法（スクランブル）と同じ画面（`GrammarView` の `series="first_step"`）で、
+  問題は `grammar_questions` の book = `first_step`（全問 format = image）。STEP 1・STEP 2・まとめのテスト 1〜5・総合問題 1・2 の
+  小問 1 つが 1 問（1199 問。章 = 第1章〜第20章・まとめのテスト（chapter_no 21〜25）・総合問題（26・27）、theme = 教材のページ、
+  importance = 区分「STEP 1 / STEP 2 / まとめのテスト / 総合問題」、source = 「p.5 STEP 1・1A〜C (1)」）。
+  マイグレーションは無い（既存の列だけ）。
+- 出題: 問題は教材の画像（大問の見出し + その小問 + 語群）。答えが ア〜オ の記号なら下部の ア〜エ ボタン（`choices`・`choiceCount`・`answerIndex`）、
+  英単語 1〜3 語の空所なら画像の下の入力欄に記入して自動採点（`answers`。〔 〕[ ] は別解。採点が合わなければ「解説」で正解にする／不正解にする）、
+  書きかえ・和訳・英作文などは「答えを見る」で答えの文字と解答の箱の画像を出して ○／× の自己判定。「解説」→「詳細解説」で解答編の解説の画像。
+- チェックシート（`lib/firstStepSheet.ts`）は章 → 区分（ページ）→ 小問の並び。API は `GET /grammar/checksheet?book=first_step`。
+- データ: `backend/database/data/first_step_grammar.json`（Git 管理）を `php artisan grammar:import --file=database/data/first_step_grammar.json`
+  で登録（(book, no) で upsert。回答履歴は残る）。画像（Git 管理外。約 48MB・1820 枚）は `storage/app/private/grammar/first_step/`
+  （問題 `qNNNN.jpg`、解答の箱 `aPPP_K.jpg`、解説 `ePPP_K.jpg`。PPP = ページ、K = ページ内の大問の順）に置き、WinSCP で put する。
+- 作り直し: `docs/design/deploy/ocr/build_fs.py <scratch>`（<scratch>/ocr/fsq・fsa に ocr_batch.py と同じ要領で OCR した JSON を置く。250dpi・ja と en-US）。
+  解答編の「P.5 STEP 1」の見出しで演習ページを知り、問題編は左端の大問ラベルと「(2)」以降の小問番号で切る（「(1)」は OCR で落ちやすいので見出し直後の行とみなす）。
+  答えは「(1) で始まる行」と大問ラベルで箱を分け、小問数と突き合わせる。合わない大問（約 35／300）は答えの文字を付けず「箱の画像を見て自己判定」になる。
+  確認用に `<scratch>/out/fs/REPORT.txt`（ページごとの突き合わせ結果）と `answers.txt`（全問の答え）を出す。

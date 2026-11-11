@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
- * 英文法・語法 問題演習（スクランブル英文法・語法）。
- * 設定（問題集・章・形式・重要度・出題対象・出題順・問題数）→ 全画面で 1 問ずつ解答 → 結果。
+ * 英文法・語法 問題演習（スクランブル英文法・語法、英文法ファーストステップ）。
+ * series で問題集のまとまりを切り替える（scramble = スクランブルの 7 冊、first_step = 高校リード問題集 英文法ファーストステップ）。
+ * 設定（問題集・章・形式・重要度／区分・出題対象・出題順・問題数）→ 全画面で 1 問ずつ解答 → 結果。
  * 出題中は QuizFullscreen（上: 進み具合、中: 問題、下: 固定の選択肢とボタン）。解説は下部の「解説」でモーダル表示。
  * 問題は 1 冊分をまとめて取得し、絞り込み・出題順は画面側で決める。回答は 1 問ごとにサーバーへ記録する。
  */
@@ -16,6 +17,7 @@ import { sessionsApi } from '@/api/sessions'
 import { shuffle } from '@/lib/design'
 import { QuestionTimer } from '@/lib/quizTimer'
 import { CIRCLED, FORMATS, FORMAT_INFO, chapterParts, questionPreview, statusOf } from '@/lib/grammar'
+import { openFirstStepCheckSheet } from '@/lib/firstStepSheet'
 import { openGrammarCheckSheet } from '@/lib/grammarSheet'
 import { playResultSound } from '@/lib/sound'
 import { useAuthStore } from '@/stores/auth'
@@ -23,9 +25,18 @@ import { useGrammarStore } from '@/stores/grammar'
 import { useUiStore } from '@/stores/ui'
 import type { GrammarBookKey, GrammarFormat, GrammarQuestion } from '@/types'
 
+const props = defineProps<{ series?: 'scramble' | 'first_step' }>()
+const SERIES_BOOKS: Record<'scramble' | 'first_step', GrammarBookKey[]> = {
+  scramble: ['grammar', 'usage', 'vocab', 'idiom', 'conversation', 'pronunciation', 'special'],
+  first_step: ['first_step'],
+}
+const series = computed(() => props.series ?? 'scramble')
+const isFirstStep = computed(() => series.value === 'first_step')
 const g = useGrammarStore()
 const ui = useUiStore()
 const auth = useAuthStore()
+/** この画面で扱う問題集（series に属するものだけ） */
+const books = computed(() => g.books.filter((b) => SERIES_BOOKS[series.value].includes(b.key)))
 
 type Phase = 'home' | 'quiz' | 'results'
 const phase = ref<Phase>('home')
@@ -33,6 +44,8 @@ const loading = ref(true)
 
 onMounted(async () => {
   window.addEventListener('keydown', onKey)
+  // 別のまとまりの問題集が選ばれていたら、このまとまりの最初の問題集にする
+  if (!SERIES_BOOKS[series.value].includes(g.book)) g.selectBook(SERIES_BOOKS[series.value][0]!)
   try {
     await Promise.all([g.fetchBooks(), g.fetchQuestions()])
     loadChapterSel()
@@ -141,8 +154,8 @@ const fmtCounts = computed(() => {
   for (const q of all.value) m[q.format] = (m[q.format] ?? 0) + 1
   return m
 })
-/** 重要度（語法のみ。無印は「無印」として選べる） */
-const IMP_ORDER = ['超頻', '基本・頻出', '頻出', '頻出・発展', '基本', '発展', '無印']
+/** 重要度（語法のみ。無印は「無印」として選べる）。ファーストステップでは区分（STEP 1 / STEP 2 / まとめのテスト / 総合問題）を同じ欄で選ぶ */
+const IMP_ORDER = ['STEP 1', 'STEP 2', 'まとめのテスト', '総合問題', '超頻', '基本・頻出', '頻出', '頻出・発展', '基本', '発展', '無印']
 const importances = computed(() => {
   const set = new Set<string>()
   for (const q of all.value) set.add(q.importance ?? '無印')
@@ -192,9 +205,10 @@ async function openSheet() {
   if (sheetBusy.value) return
   sheetBusy.value = true
   try {
-    const marks = await grammarApi.checksheet()
+    const marks = await grammarApi.checksheet(isFirstStep.value ? 'first_step' : undefined)
     const d = new Date()
-    const ok = openGrammarCheckSheet(marks, auth.user?.name ?? '', `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`)
+    const date = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
+    const ok = isFirstStep.value ? openFirstStepCheckSheet(all.value, marks, auth.user?.name ?? '', date) : openGrammarCheckSheet(marks, auth.user?.name ?? '', date)
     if (!ok) ui.notify('ポップアップがブロックされました。ブラウザ設定で許可してください。')
   } catch {
     ui.notify('チェックシートの作成に失敗しました')
@@ -316,9 +330,10 @@ const current = computed(() => quiz.list[quiz.index])
 const currentResult = computed<QuizResult | null>(() => quiz.results[quiz.index] ?? null)
 const progress = computed(() => (quiz.list.length ? Math.round(((quiz.index + 1) / quiz.list.length) * 100) : 0))
 const isLast = computed(() => quiz.index + 1 >= quiz.list.length)
-/** 整序・空所補充は「解答」ボタンで採点（選択・誤り指摘はタップで即採点）。画像出題（自己判定）は「答えを見る」 */
-const imageSelfJudge = computed(() => current.value?.format === 'image' && !(current.value.choiceCount && current.value.answerIndex !== null))
-const needsSubmit = computed(() => current.value?.format === 'order' || current.value?.format === 'fill' || imageSelfJudge.value)
+/** 整序・空所補充は「解答」ボタンで採点（選択・誤り指摘はタップで即採点）。画像出題は、記入（answers あり）は「解答」、自己判定は「答えを見る」 */
+const imageTyped = computed(() => current.value?.format === 'image' && !!current.value.answers?.length)
+const imageSelfJudge = computed(() => current.value?.format === 'image' && !(current.value.choiceCount && current.value.answerIndex !== null) && !imageTyped.value)
+const needsSubmit = computed(() => current.value?.format === 'order' || current.value?.format === 'fill' || imageTyped.value || imageSelfJudge.value)
 const primaryLabel = computed(() => (currentResult.value ? (isLast.value ? '結果を見る' : '次の問題へ') : imageSelfJudge.value ? '答えを見る' : needsSubmit.value ? '解答' : '次の問題へ'))
 const primaryDisabled = computed(() => (currentResult.value ? false : needsSubmit.value ? !canSubmit.value : true))
 function primary() {
@@ -418,7 +433,11 @@ function answerLabel(q: GrammarQuestion): string {
   if (q.format === 'choice') return `${CIRCLED[q.answerIndex ?? 0]} ${q.answerText ?? ''}`
   if (q.format === 'error') return `${CIRCLED[q.answerIndex ?? 0]} ${q.answerText ?? ''}`
   if (q.format === 'order') return (q.answerText ?? '').replace(/[()]/g, '')
-  if (q.format === 'image') return q.answerIndex !== null && q.choiceCount ? (CIRCLED[q.answerIndex] ?? '') : (q.answerText ?? '解答欄を参照')
+  if (q.format === 'image') {
+    if (q.answerIndex !== null && q.choiceCount) return q.choices?.[q.answerIndex] ?? CIRCLED[q.answerIndex] ?? ''
+    if (q.answers?.length) return q.answers.map((a) => a.join(' / ')).join('，')
+    return q.answerText ?? '解答欄を参照'
+  }
   return (q.answers ?? []).map((a) => a.join(' / ')).join('，')
 }
 
@@ -448,17 +467,17 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
       <!-- 問題集の切替 -->
       <div class="row-between" style="margin-bottom: 14px; flex-wrap: wrap; gap: 10px">
         <div v-seg class="book-switch" role="tablist" aria-label="問題集">
-          <button v-for="b in g.books" :key="b.key" class="opt" :class="{ on: g.book === b.key }" role="tab" :aria-selected="g.book === b.key" @click="selectBook(b.key)">
+          <button v-for="b in books" :key="b.key" class="opt" :class="{ on: g.book === b.key }" role="tab" :aria-selected="g.book === b.key" @click="selectBook(b.key)">
             {{ b.name }}<span class="cnt">{{ b.total }}問</span>
           </button>
         </div>
         <div style="display: flex; align-items: center; gap: 10px">
-          <div style="font-size: 12px; color: var(--faint)">Scramble 英文法・語法</div>
+          <div style="font-size: 12px; color: var(--faint)">{{ isFirstStep ? '高校リード問題集 英文法ファーストステップ' : 'Scramble 英文法・語法' }}</div>
           <button class="sheet-btn" :disabled="sheetBusy" @click="openSheet">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
             チェックシート
           </button>
-          <HelpTip text="文法・語法 全725問を、教材付属のチェックシートと同じ並び（章・Theme・連番・形式・区分）で印刷用に出力します。&#10;回数欄には解いた日付が入ります。黒=正解、赤=不正解、青=あいまい（正解だったが自信がないとき、解答後に「あいまい」を付けた問題）。&#10;同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら赤になります。" />
+          <HelpTip :text="(isFirstStep ? 'STEP 1・STEP 2・まとめのテスト・総合問題の全問を、章 → 区分（ページ）→ 小問の並びで印刷用に出力します。' : '文法・語法 全725問を、教材付属のチェックシートと同じ並び（章・Theme・連番・形式・区分）で印刷用に出力します。') + '\n回数欄には解いた日付が入ります。黒=正解、赤=不正解、青=あいまい（正解だったが自信がないとき、解答後に「あいまい」を付けた問題）。\n同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら赤になります。'" />
         </div>
       </div>
 
@@ -481,7 +500,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
         <div class="card" style="padding: 20px">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px">
             <div style="font-size: 15px; font-weight: 700">出題設定</div>
-            <HelpTip text="章・形式・重要度・出題対象で絞り込み、「開始」で全画面で 1 問ずつ解答します。&#10;一覧の問題をタップすると、その問題から順番に始められます。&#10;選択・誤り指摘は下の選択肢をタップで即採点。整序は下の語句を順にタップ（並べた語句はドラッグで前後に移動）、空所補充は空所に入力して「解答」。&#10;正解でも自信がなければ「あいまい」を付けられます（一覧では △、チェックシートでは青の日付）。&#10;解答後は下の「解説」で和訳・出典などを表示。&#10;PC: 1〜5 キーで選択、Enter で解答・次へ、← → で前後、Backspace で整序を 1 つ戻す。" />
+            <HelpTip :text="(isFirstStep ? '章・区分（STEP 1／STEP 2／まとめのテスト／総合問題）・出題対象で絞り込み、「開始」で全画面で 1 問ずつ解答します。教材のページを画像で表示し、記号選択はア〜エをタップ、記入は答えを入力して「解答」、書きかえ・和訳などは「答えを見る」で答えを表示して ○／× を自分で付けます。採点が合わないときは「解説」の中で正解にする／不正解にする。' : '章・形式・重要度・出題対象で絞り込み、「開始」で全画面で 1 問ずつ解答します。') + '\n一覧の問題をタップすると、その問題から順番に始められます。\n選択・誤り指摘は下の選択肢をタップで即採点。整序は下の語句を順にタップ（並べた語句はドラッグで前後に移動）、空所補充は空所に入力して「解答」。\n正解でも自信がなければ「あいまい」を付けられます（一覧では △、チェックシートでは青の日付）。\n解答後は下の「解説」で和訳・出典などを表示。\nPC: 1〜5 キーで選択、Enter で解答・次へ、← → で前後、Backspace で整序を 1 つ戻す。'" />
           </div>
 
           <div class="row-between" style="margin-bottom: 6px">
@@ -508,15 +527,15 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
             <button v-if="range.from !== null || range.to !== null" class="link-btn" style="color: #9aa1ab" @click="clearRange">クリア</button>
           </div>
 
-          <div class="lab" style="margin-top: 12px">形式</div>
-          <div class="chips">
+          <div v-if="Object.keys(fmtCounts).length > 1" class="lab" style="margin-top: 12px">形式</div>
+          <div v-if="Object.keys(fmtCounts).length > 1" class="chips">
             <button v-for="f in FORMATS" :key="f" class="chip" :class="{ on: fmtSel.includes(f) }" :disabled="!fmtCounts[f]" @click="toggleFmt(f)">
               {{ FORMAT_INFO[f].label }}<span class="chip-n">{{ fmtCounts[f] ?? 0 }}</span>
             </button>
           </div>
 
           <template v-if="importances.length">
-            <div class="lab" style="margin-top: 12px">重要度</div>
+            <div class="lab" style="margin-top: 12px">{{ isFirstStep ? '区分' : '重要度' }}</div>
             <div class="chips">
               <button v-for="v in importances" :key="v" class="chip" :class="{ on: impSel.includes(v) }" @click="toggleImp(v)">{{ v }}</button>
             </div>
@@ -640,7 +659,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
         v-if="phase === 'quiz' && current"
         :progress="progress"
         :counter="`${quiz.index + 1}/${quiz.list.length}`"
-        :fixed="current.format !== 'fill'"
+        :fixed="current.format !== 'fill' && !imageTyped"
         @close="exitQuiz"
       >
         <GrammarQuestionCard

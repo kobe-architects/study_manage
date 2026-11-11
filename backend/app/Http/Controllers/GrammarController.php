@@ -161,7 +161,7 @@ class GrammarController extends Controller
     }
 
     /**
-     * チェックシート用: 文法・語法（連番 1〜725）の日ごとの結果。
+     * チェックシート用: 文法・語法（連番 1〜725）または ファーストステップ（book=first_step）の日ごとの結果。
      * 同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら不正解（0）、正解だけであいまいがあれば あいまい（2）、それ以外は正解（1）。
      * 日付は端末のタイムゾーン（tz = UTC からのずれ・分。既定は日本時間）で区切る。
      * 返り値: { marks: { 連番: [[YYYY-MM-DD, 0|1|2], ...] } }
@@ -170,10 +170,11 @@ class GrammarController extends Controller
     {
         $userId = $request->user()->id;
         $tz = max(-840, min(840, (int) $request->query('tz', 540)));
+        $books = $request->query('book') === 'first_step' ? ['first_step'] : ['grammar', 'usage'];
         $rows = GrammarAttempt::query()
             ->join('grammar_questions', 'grammar_questions.id', '=', 'grammar_attempts.grammar_question_id')
             ->where('grammar_attempts.user_id', $userId)
-            ->whereIn('grammar_questions.book', ['grammar', 'usage'])
+            ->whereIn('grammar_questions.book', $books)
             ->selectRaw(
                 'grammar_questions.no AS no, DATE(DATE_ADD(grammar_attempts.answered_at, INTERVAL ? MINUTE)) AS d, MIN(grammar_attempts.is_correct) AS ok, MAX(grammar_attempts.is_unsure) AS unsure',
                 [$tz],

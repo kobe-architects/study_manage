@@ -973,7 +973,8 @@ export interface MistakeNoteDetail extends MistakeNoteSummary {
 }
 
 // ===== 英文法・語法 問題演習（スクランブル英文法・語法） =====
-export type GrammarBookKey = 'grammar' | 'usage' | 'vocab' | 'idiom' | 'conversation' | 'pronunciation' | 'special'
+/** スクランブルの 7 冊と、高校リード問題集 英文法ファーストステップ（first_step） */
+export type GrammarBookKey = 'grammar' | 'usage' | 'vocab' | 'idiom' | 'conversation' | 'pronunciation' | 'special' | 'first_step'
 /** choice=選択（不適切選択・同意語選択を含む） / error=誤り指摘 / order=語句整序・並べ替え / fill=空所補充・共通語補充 / image=画像で出題（語い以降の Part。PDF の切り抜き） */
 export type GrammarFormat = 'choice' | 'error' | 'order' | 'fill' | 'image'
 
@@ -1018,7 +1019,7 @@ export interface GrammarQuestion {
   note: string | null
   /** 教材の解説ページの文章（詳細解説）があるか。本文は別 API で取得 */
   hasExplanation: boolean
-  /** 画像出題（format=image）で選択肢の数が分かるとき（①〜のボタンで解答。null なら答えを見て自己判定） */
+  /** 画像出題（format=image）で選択肢の数が分かるとき（①〜（choices があればア〜）のボタンで解答。null で answers があれば記入、どちらも無ければ答えを見て自己判定） */
   choiceCount: number | null
   hasProblemImage: boolean
   hasAnswerImage: boolean

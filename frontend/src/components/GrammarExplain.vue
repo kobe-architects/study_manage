@@ -22,10 +22,15 @@ const sentence = computed(() => completedSentence(q.value))
 const correction = computed(() => splitCorrection(q.value.answerText))
 const orderAnswer = computed(() => answerSegments(q.value.answerText ?? ''))
 const fillAnswerLabel = computed(() => (q.value.answers ?? []).map((alts) => alts.join(' / ')).join('，'))
-const canOverride = computed(() => q.value.format === 'order' || q.value.format === 'fill')
+/** 画像出題の種類（ファーストステップ）: 記号選択 / 記入（自動採点） */
+const imageChoice = computed(() => q.value.format === 'image' && !!q.value.choiceCount && q.value.answerIndex !== null)
+const imageTyped = computed(() => q.value.format === 'image' && !imageChoice.value && !!q.value.answers?.length)
+const canOverride = computed(() => q.value.format === 'order' || q.value.format === 'fill' || imageTyped.value)
 const showMyAnswer = computed(
-  () => !!props.result && !props.result.isCorrect && !!props.result.answer && props.result.answer !== 'わからない' && (q.value.format === 'order' || q.value.format === 'fill'),
+  () => !!props.result && !props.result.isCorrect && !!props.result.answer && props.result.answer !== 'わからない' && (q.value.format === 'order' || q.value.format === 'fill' || imageTyped.value),
 )
+/** 見出しの場所（ファーストステップはページ・大問・番号、スクランブルは章と Theme） */
+const where = computed(() => (q.value.book === 'first_step' ? q.value.source : `${q.value.chapter} / Theme ${q.value.theme}`))
 
 // ---- 詳細解説（教材の解説ページの画像） ----
 const detailOpen = ref(false)
@@ -40,7 +45,7 @@ watch(() => q.value.id, () => {
       <div class="ex-head">
         <span class="ex-title">解説</span>
         <span class="ex-no dm">No.{{ q.no }}</span>
-        <span class="ex-ch">{{ q.chapter }} / Theme {{ q.theme }}</span>
+        <span class="ex-ch">{{ where }}</span>
         <button class="ex-x" aria-label="閉じる" @click="emit('close')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
@@ -49,7 +54,7 @@ watch(() => q.value.id, () => {
       <div class="ex-body">
         <!-- 画像出題: 解答欄の画像 -->
         <div v-if="q.format === 'image' && q.hasAnswerImage" class="ex-imgbox">
-          <div class="ex-imglab">解答欄（No.{{ q.no }} の行）</div>
+          <div class="ex-imglab">{{ q.book === 'first_step' ? `解答欄（${(q.source ?? '').split('・')[1] ?? ''} の答え）` : `解答欄（No.${q.no} の行）` }}</div>
           <AuthImage :src="grammarApi.imageUrl(q.id, 'answer')" class="ex-img" alt="解答" />
         </div>
         <!-- 完成文（タップで読み上げ） -->
@@ -73,13 +78,13 @@ watch(() => q.value.id, () => {
           <template v-else-if="q.format === 'order'">
             <span class="dm"><template v-for="(s, i) in orderAnswer" :key="i"><span :class="{ 'ex-strong': s.hl }">{{ s.text }}</span></template></span>
           </template>
-          <template v-else-if="q.format === 'image'"><span class="dm ex-strong">{{ q.choiceCount && q.answerIndex !== null ? CIRCLED[q.answerIndex] : q.answerText }}</span></template>
+          <template v-else-if="q.format === 'image'"><span class="dm ex-strong">{{ imageChoice ? (q.choices?.[q.answerIndex ?? 0] ?? CIRCLED[q.answerIndex ?? 0]) : imageTyped ? fillAnswerLabel : q.answerText }}</span></template>
           <template v-else><span class="dm ex-strong">{{ fillAnswerLabel }}</span></template>
         </div>
         <div v-if="q.answerNote" class="ex-note">〔{{ q.answerNote }}〕</div>
         <div v-if="q.format === 'order' && q.unneeded.length" class="ex-sub">不要な語句: <span class="dm">{{ q.unneeded.join(' / ') }}</span></div>
         <div v-if="q.format === 'order' && q.missing.length" class="ex-sub">不足している語: <span class="dm">{{ q.missing.join(' / ') }}</span></div>
-        <div v-if="q.format === 'fill' && (q.answers ?? []).some((a) => a.length > 1)" class="ex-sub">[ ] 内は別解。どちらでも正解です</div>
+        <div v-if="(q.format === 'fill' || imageTyped) && (q.answers ?? []).some((a) => a.length > 1)" class="ex-sub">[ ] 内は別解。どちらでも正解です</div>
 
         <!-- あなたの答え・判定 -->
         <div v-if="result" class="ex-row" style="margin-top: 12px">
@@ -91,8 +96,8 @@ watch(() => q.value.id, () => {
         <div v-if="showMyAnswer && result" class="ex-mine"><span class="ex-lab">あなたの答え</span><span class="dm">{{ result.answer }}</span></div>
 
         <div class="ex-foot">
-          <span v-if="q.source">出典: {{ q.source }}</span>
-          <span v-if="q.importance">重要度: {{ q.importance }}</span>
+          <span v-if="q.source && q.book !== 'first_step'">出典: {{ q.source }}</span>
+          <span v-if="q.importance">{{ q.book === 'first_step' ? '区分' : '重要度' }}: {{ q.importance }}</span>
           <span v-if="q.note" class="ex-remark">{{ q.note }}</span>
         </div>
       </div>
@@ -113,7 +118,7 @@ watch(() => q.value.id, () => {
           <div class="ex-head">
             <span class="ex-title">詳細解説</span>
             <span class="ex-no dm">No.{{ q.no }}</span>
-            <span class="ex-ch">{{ q.chapter }} / Theme {{ q.theme }}</span>
+            <span class="ex-ch">{{ where }}</span>
             <button class="ex-x" aria-label="閉じる" @click="detailOpen = false">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
             </button>

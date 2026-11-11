@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\DB;
  *   "answers": null, "answerNote": null, "missing": [], "unneeded": [], "translation": "...", "source": "...", "note": null,
  *   "explanation": "解説ページの文章（任意）", "explanationPage": 2 } ] } ] }
  * （JSON の生成は docs/other の Excel から。変換スクリプトはこのコマンドの説明に従う形式で出力する）
+ * ファーストステップ（database/data/first_step_grammar.json。docs/design/deploy/ocr/build_fs.py で PDF から生成）も同じ形式で、
+ *   php artisan grammar:import --file=database/data/first_step_grammar.json
  */
 class ImportGrammarQuestions extends Command
 {
