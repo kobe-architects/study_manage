@@ -10,11 +10,12 @@ import GrammarView from '@/views/GrammarView.vue'
 import QuizView from '@/views/QuizView.vue'
 
 type Tab = 'scramble' | 'vocab' | 'tetsuryoku' | 'first_step'
-const TABS: { key: Tab; label: string; short: string }[] = [
-  { key: 'scramble', label: 'スクランブル', short: 'スクランブル' },
-  { key: 'vocab', label: '英単語', short: '英単語' },
-  { key: 'tetsuryoku', label: '鉄緑会 英文法', short: '鉄緑会' },
-  { key: 'first_step', label: 'ファーストステップ', short: 'ファースト' },
+/** タブ。4 つ並べると横に長いので、スマホでは 2 列 2 段にする（名前は省略しない） */
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'scramble', label: 'スクランブル' },
+  { key: 'vocab', label: '英単語' },
+  { key: 'tetsuryoku', label: '鉄緑会 英文法' },
+  { key: 'first_step', label: 'ファーストステップ' },
 ]
 const KEY = 'sm_english_tab'
 const route = useRoute()
@@ -49,9 +50,7 @@ function select(t: Tab) {
 <template>
   <div>
     <div v-seg class="etabs" role="tablist" aria-label="英語学習">
-      <button v-for="t in TABS" :key="t.key" class="etab" :class="{ on: tab === t.key }" role="tab" :aria-selected="tab === t.key" @click="select(t.key)">
-        <span class="etab-l">{{ t.label }}</span><span class="etab-s">{{ t.short }}</span>
-      </button>
+      <button v-for="t in TABS" :key="t.key" class="etab" :class="{ on: tab === t.key }" role="tab" :aria-selected="tab === t.key" @click="select(t.key)">{{ t.label }}</button>
     </div>
     <GrammarView v-if="tab === 'scramble'" series="scramble" />
     <QuizView v-else-if="tab === 'vocab'" />
@@ -85,20 +84,16 @@ function select(t: Tab) {
   background: #1c2024;
   color: #fff;
 }
-/* 狭い画面では短い名前にする */
-.etab-s {
-  display: none;
-}
-@media (max-width: 560px) {
+/* 狭い画面では 2 列 2 段（1 段に 4 つ並べると字が入らない） */
+@media (max-width: 600px) {
+  .etabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
   .etab {
-    padding: 8px 6px;
-    font-size: 12.5px;
-  }
-  .etab-l {
-    display: none;
-  }
-  .etab-s {
-    display: inline;
+    min-height: 44px;
+    padding: 8px 8px;
+    font-size: 13.5px;
   }
 }
 </style>

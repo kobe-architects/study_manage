@@ -7,6 +7,7 @@
  * 問題は 1 冊分をまとめて取得し、絞り込み・出題順は画面側で決める。回答は 1 問ごとにサーバーへ記録する。
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import FirstStepCard from '@/components/FirstStepCard.vue'
 import GrammarExplain from '@/components/GrammarExplain.vue'
 import GrammarQuestionCard, { type GrammarAnswerResult } from '@/components/GrammarQuestionCard.vue'
 import HelpTip from '@/components/HelpTip.vue'
@@ -227,7 +228,7 @@ const pool = computed(() => {
   )
   return target.value === 'due' ? list.slice().sort((a, b) => (a.stat?.review?.dueAt ?? '').localeCompare(b.stat?.review?.dueAt ?? '')) : list
 })
-const startCount = computed(() => (wantCount.value ? Math.min(wantCount.value, pool.value.length) : pool.value.length))
+const startCount = computed(() => batchFrom(pool.value, 0).length)
 
 // ---- 統計 ----
 const stats = computed(() => {
@@ -239,12 +240,47 @@ const stats = computed(() => {
 })
 
 // ---- クイズ ----
+// 出題の単位（ユニット）: スクランブルは 1 問、ファーストステップは大問（連続する小問をまとめて 1 画面で解答）。
+// quiz.list は問題の平らな並び、quiz.results は同じ添字、quiz.index はユニットの番号。
 interface QuizResult extends GrammarAnswerResult {
   attemptId: number | null
   /** 解答までの時間（ミリ秒） */
   elapsedMs: number | null
 }
 const quiz = reactive<{ list: GrammarQuestion[]; index: number; results: (QuizResult | undefined)[]; review: boolean }>({ list: [], index: 0, results: [], review: false })
+/** 大問のキー（「p.5 STEP 1・1A〜C (1)」→「p.5 STEP 1・1A〜C」） */
+function groupKeyOf(q: GrammarQuestion): string {
+  return (q.source ?? '').replace(/\s\(\d+\)$/, '')
+}
+/** 問題の並びをユニット（開始位置と長さ）に分ける */
+function unitsOf(list: GrammarQuestion[]): { start: number; len: number }[] {
+  if (!isFirstStep.value) return list.map((_, i) => ({ start: i, len: 1 }))
+  const out: { start: number; len: number }[] = []
+  let i = 0
+  while (i < list.length) {
+    const k = groupKeyOf(list[i]!)
+    let j = i + 1
+    while (j < list.length && groupKeyOf(list[j]!) === k) j++
+    out.push({ start: i, len: j - i })
+    i = j
+  }
+  return out
+}
+/** offset から 1 回分（問題数の設定ぶん。ファーストステップは大問の数）を取り出す */
+function batchFrom(list: GrammarQuestion[], offset: number): GrammarQuestion[] {
+  if (!wantCount.value) return list.slice(offset)
+  if (!isFirstStep.value) return list.slice(offset, offset + wantCount.value)
+  const us = unitsOf(list).filter((u) => u.start >= offset).slice(0, wantCount.value)
+  const last = us[us.length - 1]
+  return last ? list.slice(offset, last.start + last.len) : []
+}
+/** ランダム: ファーストステップは大問の単位で混ぜる */
+function shuffled(list: GrammarQuestion[]): GrammarQuestion[] {
+  if (!isFirstStep.value) return shuffle(list)
+  return shuffle(unitsOf(list).map((u) => list.slice(u.start, u.start + u.len))).flat()
+}
+const units = computed(() => unitsOf(quiz.list))
+const unit = computed(() => units.value[quiz.index])
 /** 解答時間の計測と、1 回の出題（セッション）の記録 */
 const timer = new QuestionTimer()
 const sessionId = ref<number | null>(null)
@@ -263,11 +299,14 @@ function finishSession() {
   sessionId.value = null
   if (id) sessionsApi.finish(id).then(() => history.value?.reload()).catch(() => {})
 }
-/** 「順番」×問題数指定のとき、続きを出すための情報 */
+/** 「順番」×問題数指定のとき、続きを出すための情報（offset・size は問題の数） */
 const session = ref<{ pool: GrammarQuestion[]; offset: number; size: number } | null>(null)
 const cardRef = ref<InstanceType<typeof GrammarQuestionCard> | null>(null)
-const canSubmit = ref(false) // 整序・空所補充で「解答」を押せるか（カードから通知）
+const fsRef = ref<InstanceType<typeof FirstStepCard> | null>(null)
+const canSubmit = ref(false) // 整序・空所補充・大問で「解答」を押せるか（カードから通知）
 const explainOpen = ref(false)
+/** ファーストステップ: 「解答」を押して答えを表示したユニット */
+const revealedUnits = ref<Record<number, boolean>>({})
 
 function scrollTop() {
   document.querySelector('.app-scroll')?.scrollTo({ top: 0 })
@@ -280,6 +319,8 @@ function runQuiz(list: GrammarQuestion[], review = false) {
   quiz.index = 0
   quiz.results = []
   quiz.review = review
+  revealedUnits.value = {}
+  unitElapsed = null
   explainOpen.value = false
   canSubmit.value = false
   phase.value = 'quiz'
@@ -287,14 +328,13 @@ function runQuiz(list: GrammarQuestion[], review = false) {
   startSession(review)
 }
 function start() {
-  const base = ordered.value || target.value === 'due' ? pool.value : shuffle(pool.value)
-  const size = wantCount.value || base.length
-  const list = base.slice(0, size)
+  const base = ordered.value || target.value === 'due' ? pool.value : shuffled(pool.value)
+  const list = batchFrom(base, 0)
   if (!list.length) {
     ui.notify('対象の問題がありません')
     return
   }
-  session.value = (ordered.value || target.value === 'due') && size < base.length ? { pool: base, offset: 0, size } : null
+  session.value = (ordered.value || target.value === 'due') && list.length < base.length ? { pool: base, offset: 0, size: list.length } : null
   runQuiz(list, target.value === 'due')
 }
 /** 今日の復習（忘却曲線で期限が来ている問題を古い順に） */
@@ -307,71 +347,118 @@ function startReview() {
   session.value = null
   runQuiz(list, true)
 }
-/** 一覧の問題をタップ: その問題から順番に（設定の絞り込みは使わず、一覧の絞り込みで） */
+/** 一覧の問題をタップ: その問題から順番に（設定の絞り込みは使わず、一覧の絞り込みで）。ファーストステップは大問の先頭から */
 function startFrom(q: GrammarQuestion) {
-  const base = listPool.value
-  const idx = base.findIndex((x) => x.id === q.id)
+  // ファーストステップは検索で絞っていても大問の小問が揃うように、全問の並びから始める
+  const base = isFirstStep.value ? all.value : listPool.value
+  let idx = base.findIndex((x) => x.id === q.id)
   if (idx < 0) return
-  const size = wantCount.value || base.length - idx
-  session.value = size < base.length - idx ? { pool: base, offset: idx, size } : null
-  runQuiz(base.slice(idx, idx + size))
+  if (isFirstStep.value) {
+    while (idx > 0 && groupKeyOf(base[idx - 1]!) === groupKeyOf(q)) idx--
+  }
+  const list = batchFrom(base, idx)
+  session.value = idx + list.length < base.length ? { pool: base, offset: idx, size: list.length } : null
+  runQuiz(list)
 }
 const sessionHasMore = computed(() => !!session.value && session.value.offset + session.value.size < session.value.pool.length)
-const nextBatchSize = computed(() => (session.value ? Math.min(session.value.size, session.value.pool.length - session.value.offset - session.value.size) : 0))
+const nextBatch = computed(() => (session.value ? batchFrom(session.value.pool, session.value.offset + session.value.size) : []))
+const nextBatchSize = computed(() => (isFirstStep.value ? unitsOf(nextBatch.value).length : nextBatch.value.length))
 function continueSession() {
   const s = session.value
   if (!s) return
   const offset = s.offset + s.size
-  session.value = { ...s, offset }
-  runQuiz(s.pool.slice(offset, offset + s.size))
+  const list = batchFrom(s.pool, offset)
+  session.value = { ...s, offset, size: list.length }
+  runQuiz(list)
 }
 
-const current = computed(() => quiz.list[quiz.index])
-const currentResult = computed<QuizResult | null>(() => quiz.results[quiz.index] ?? null)
-const progress = computed(() => (quiz.list.length ? Math.round(((quiz.index + 1) / quiz.list.length) * 100) : 0))
-const isLast = computed(() => quiz.index + 1 >= quiz.list.length)
-/** 整序・空所補充は「解答」ボタンで採点（選択・誤り指摘はタップで即採点）。画像出題は、記入（answers あり）は「解答」、自己判定は「答えを見る」 */
+const current = computed(() => (unit.value ? quiz.list[unit.value.start] : undefined))
+/** ユニットの問題（ファーストステップは大問の小問）と、その結果（問題 id →） */
+const unitQuestions = computed(() => (unit.value ? quiz.list.slice(unit.value.start, unit.value.start + unit.value.len) : []))
+const unitResults = computed(() => {
+  const m: Record<number, QuizResult | undefined> = {}
+  unitQuestions.value.forEach((q, k) => {
+    m[q.id] = quiz.results[(unit.value?.start ?? 0) + k]
+  })
+  return m
+})
+const currentResult = computed<QuizResult | null>(() => (unit.value ? (quiz.results[unit.value.start] ?? null) : null))
+/** 解答済み（次へ進める状態）: スクランブルは結果あり、ファーストステップは答えを表示して全小問に ○／× が付いた */
+const unitRevealed = computed(() => !!revealedUnits.value[quiz.index])
+const answered = computed(() => (isFirstStep.value ? unitRevealed.value : !!currentResult.value))
+const unitComplete = computed(() => (isFirstStep.value ? unitRevealed.value && unitQuestions.value.every((q) => !!unitResults.value[q.id]) : !!currentResult.value))
+const progress = computed(() => (units.value.length ? Math.round(((quiz.index + 1) / units.value.length) * 100) : 0))
+const isLast = computed(() => quiz.index + 1 >= units.value.length)
+/** 整序・空所補充は「解答」ボタンで採点（選択・誤り指摘はタップで即採点）。画像出題は、記入（answers あり）は「解答」、自己判定は「答えを見る」。大問は常に「解答」 */
 const imageTyped = computed(() => current.value?.format === 'image' && !!current.value.answers?.length)
-const imageSelfJudge = computed(() => current.value?.format === 'image' && !(current.value.choiceCount && current.value.answerIndex !== null) && !imageTyped.value)
-const needsSubmit = computed(() => current.value?.format === 'order' || current.value?.format === 'fill' || imageTyped.value || imageSelfJudge.value)
-const primaryLabel = computed(() => (currentResult.value ? (isLast.value ? '結果を見る' : '次の問題へ') : imageSelfJudge.value ? '答えを見る' : needsSubmit.value ? '解答' : '次の問題へ'))
-const primaryDisabled = computed(() => (currentResult.value ? false : needsSubmit.value ? !canSubmit.value : true))
+const imageSelfJudge = computed(() => !isFirstStep.value && current.value?.format === 'image' && !(current.value.choiceCount && current.value.answerIndex !== null) && !imageTyped.value)
+const needsSubmit = computed(() => isFirstStep.value || current.value?.format === 'order' || current.value?.format === 'fill' || imageTyped.value || imageSelfJudge.value)
+const primaryLabel = computed(() => (answered.value ? (isLast.value ? '結果を見る' : '次の問題へ') : imageSelfJudge.value ? '答えを見る' : needsSubmit.value ? '解答' : '次の問題へ'))
+const primaryDisabled = computed(() => (answered.value ? !unitComplete.value : needsSubmit.value ? !canSubmit.value : true))
 function primary() {
-  if (currentResult.value) next()
-  else if (needsSubmit.value) cardRef.value?.submit()
+  if (answered.value) next()
+  else if (needsSubmit.value) (isFirstStep.value ? fsRef.value : cardRef.value)?.submit()
 }
 function giveUp() {
-  cardRef.value?.giveUp()
+  ;(isFirstStep.value ? fsRef.value : cardRef.value)?.giveUp()
 }
 
-async function onAnswer(payload: { isCorrect: boolean; answer: string | null }) {
-  const q = current.value
-  if (!q || quiz.results[quiz.index]) return
-  const r: QuizResult = { ...payload, overridden: false, unsure: false, attemptId: null, elapsedMs: timer.stop() }
-  quiz.results[quiz.index] = r
-  playResultSound(payload.isCorrect)
+/** 大問の解答時間: 最初の小問の記録時に計り、同じ大問の残りの小問にも同じ値を付ける */
+let unitElapsed: number | null = null
+async function recordAnswer(q: GrammarQuestion, flat: number, payload: { isCorrect: boolean; answer: string | null }) {
+  if (quiz.results[flat]) return
+  const ms = unitElapsed ?? timer.stop()
+  unitElapsed = ms
+  const r: QuizResult = { ...payload, overridden: false, unsure: false, attemptId: null, elapsedMs: ms }
+  quiz.results[flat] = r
   r.attemptId = await g.recordAttempt(q, payload.isCorrect, payload.answer, r.elapsedMs, sessionId.value)
 }
-async function onOverride(isCorrect: boolean) {
+async function onAnswer(payload: { isCorrect: boolean; answer: string | null }) {
   const q = current.value
-  const r = quiz.results[quiz.index]
-  if (!q || !r) return
+  if (!q || !unit.value) return
+  playResultSound(payload.isCorrect)
+  await recordAnswer(q, unit.value.start, payload)
+}
+/** ファーストステップ: 小問ごとの解答（音は大問の全部が正解なら正解の音） */
+async function onUnitAnswer(q: GrammarQuestion, payload: { isCorrect: boolean; answer: string | null }) {
+  const k = unitQuestions.value.findIndex((x) => x.id === q.id)
+  if (k < 0 || !unit.value) return
+  await recordAnswer(q, unit.value.start + k, payload)
+}
+function revealUnit() {
+  revealedUnits.value = { ...revealedUnits.value, [quiz.index]: true }
+  const rs = unitQuestions.value.map((q) => unitResults.value[q.id]).filter((r): r is QuizResult => !!r)
+  if (rs.length) playResultSound(rs.every((r) => r.isCorrect))
+}
+async function overrideFor(q: GrammarQuestion, flat: number, isCorrect: boolean) {
+  const r = quiz.results[flat]
+  if (!r) return
   r.isCorrect = isCorrect
   r.overridden = true
   if (!isCorrect) r.unsure = false // 不正解にしたら「あいまい」は外れる
   r.attemptId = await g.overrideAttempt(q, r.attemptId, isCorrect)
 }
-/** 正解のときの「あいまい」（自信がない）の付け外し。チェックシートでは青の日付になる */
+async function onOverride(isCorrect: boolean) {
+  if (current.value && unit.value) await overrideFor(current.value, unit.value.start, isCorrect)
+}
+async function onUnitOverride(q: GrammarQuestion, isCorrect: boolean) {
+  const k = unitQuestions.value.findIndex((x) => x.id === q.id)
+  if (k >= 0 && unit.value) await overrideFor(q, unit.value.start + k, isCorrect)
+}
+/** 正解のときの「あいまい」（自信がない）の付け外し。チェックシートでは青の日付になる。大問では正解だった小問すべて */
 async function onUnsure(unsure: boolean) {
-  const q = current.value
-  const r = quiz.results[quiz.index]
-  if (!q || !r || !r.isCorrect) return
-  r.unsure = unsure
-  r.attemptId = await g.setUnsure(q, r.attemptId, unsure)
+  if (!unit.value) return
+  for (let k = 0; k < unitQuestions.value.length; k++) {
+    const q = unitQuestions.value[k]!
+    const r = quiz.results[unit.value.start + k]
+    if (!r || !r.isCorrect || r.unsure === unsure) continue
+    r.unsure = unsure
+    r.attemptId = await g.setUnsure(q, r.attemptId, unsure)
+  }
 }
 function next() {
   explainOpen.value = false
-  if (quiz.index + 1 >= quiz.list.length) {
+  if (quiz.index + 1 >= units.value.length) {
     finishSession()
     phase.value = 'results'
     scrollTop()
@@ -379,6 +466,7 @@ function next() {
   }
   canSubmit.value = false
   quiz.index++
+  unitElapsed = null
   timer.start()
   scrollQuizTop()
 }
@@ -413,7 +501,7 @@ function onKey(e: KeyboardEvent) {
   // 解説モーダルは「閉じる」でだけ閉じる（キーでは閉じない）
   if (explainOpen.value) return
   if (e.key === 'ArrowLeft') prev()
-  else if (currentResult.value && (e.key === 'Enter' || e.key === 'ArrowRight')) {
+  else if (answered.value && !primaryDisabled.value && (e.key === 'Enter' || e.key === 'ArrowRight')) {
     e.preventDefault()
     next()
   }
@@ -426,7 +514,9 @@ const incorrectList = computed(() => quiz.list.filter((_, i) => quiz.results[i] 
 const unsureList = computed(() => quiz.list.filter((_, i) => quiz.results[i]?.isCorrect && quiz.results[i]!.unsure))
 function retryIncorrect() {
   session.value = null
-  runQuiz([...incorrectList.value, ...unsureList.value])
+  const list = [...incorrectList.value, ...unsureList.value]
+  // ファーストステップは同じ大問の小問が続くように番号順に
+  runQuiz(isFirstStep.value ? list.slice().sort((a, b) => a.no - b.no) : list)
 }
 /** 結果一覧用の正解表示 */
 function answerLabel(q: GrammarQuestion): string {
@@ -466,13 +556,18 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
     <template v-if="phase !== 'results'">
       <!-- 問題集の切替 -->
       <div class="row-between" style="margin-bottom: 14px; flex-wrap: wrap; gap: 10px">
-        <div v-seg class="book-switch" role="tablist" aria-label="問題集">
+        <!-- 問題集が 1 冊だけ（ファーストステップ）のときは切替を出さず、教材名を見出しにする -->
+        <div v-if="books.length === 1" class="book-title">
+          <div class="book-name">英文法ファーストステップ</div>
+          <div class="book-sub">高校リード問題集 ・ {{ books[0]?.total ?? 0 }}問</div>
+        </div>
+        <div v-else v-seg class="book-switch" role="tablist" aria-label="問題集">
           <button v-for="b in books" :key="b.key" class="opt" :class="{ on: g.book === b.key }" role="tab" :aria-selected="g.book === b.key" @click="selectBook(b.key)">
             {{ b.name }}<span class="cnt">{{ b.total }}問</span>
           </button>
         </div>
         <div style="display: flex; align-items: center; gap: 10px">
-          <div style="font-size: 12px; color: var(--faint)">{{ isFirstStep ? '高校リード問題集 英文法ファーストステップ' : 'Scramble 英文法・語法' }}</div>
+          <div v-if="!isFirstStep" style="font-size: 12px; color: var(--faint)">Scramble 英文法・語法</div>
           <button class="sheet-btn" :disabled="sheetBusy" @click="openSheet">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
             チェックシート
@@ -559,7 +654,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
               </div>
             </div>
             <div style="flex: 1">
-              <div class="lab">問題数</div>
+              <div class="lab">{{ isFirstStep ? '大問の数' : '問題数' }}</div>
               <div style="display: flex; align-items: center; gap: 6px">
                 <button class="all-btn" :class="{ on: wantCount === 0 }" @click="count = 0">すべて</button>
                 <input v-model.number="count" type="number" inputmode="numeric" min="1" :max="pool.length || undefined" class="num-input" @focus="count === 0 && (count = Math.min(10, pool.length) || 1)" />
@@ -567,7 +662,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
             </div>
           </div>
 
-          <button class="start-btn" :disabled="loading || !pool.length" @click="start">開始（{{ startCount }}問<span v-if="wantCount && wantCount < pool.length" style="font-weight: 500; opacity: 0.8"> / 対象 {{ pool.length }}問</span>）</button>
+          <button class="start-btn" :disabled="loading || !pool.length" @click="start">開始（{{ startCount }}問<span v-if="startCount < pool.length" style="font-weight: 500; opacity: 0.8"> / 対象 {{ pool.length }}問</span>）</button>
 
           <SessionHistory ref="history" kind="grammar" :ref-key="g.book" :mode-label="(m) => (m === 'review' ? '復習' : '出題')" style="margin-top: 16px" />
         </div>
@@ -647,7 +742,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
 
         <div style="display: flex; gap: 10px; flex-wrap: wrap">
           <button v-if="incorrectList.length || unsureList.length" class="next-btn" @click="retryIncorrect">{{ incorrectList.length && unsureList.length ? '不正解・あいまいだけ再挑戦' : incorrectList.length ? '不正解だけ再挑戦' : 'あいまいだけ再挑戦' }}</button>
-          <button v-if="sessionHasMore" class="next-btn" @click="continueSession">続ける（次の {{ nextBatchSize }} 問）</button>
+          <button v-if="sessionHasMore" class="next-btn" @click="continueSession">続ける（次の {{ nextBatchSize }} {{ isFirstStep ? '大問' : '問' }}）</button>
           <button class="prev-btn" style="flex: 1" @click="exitQuiz">設定に戻る</button>
         </div>
       </div>
@@ -658,11 +753,25 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
       <QuizFullscreen
         v-if="phase === 'quiz' && current"
         :progress="progress"
-        :counter="`${quiz.index + 1}/${quiz.list.length}`"
-        :fixed="current.format !== 'fill' && !imageTyped"
+        :counter="`${quiz.index + 1}/${units.length}`"
+        :fixed="!isFirstStep && current.format !== 'fill' && !imageTyped"
         @close="exitQuiz"
       >
+        <FirstStepCard
+          v-if="isFirstStep"
+          ref="fsRef"
+          :key="current.id"
+          :questions="unitQuestions"
+          :results="unitResults"
+          :revealed="unitRevealed"
+          @answer="onUnitAnswer"
+          @override="onUnitOverride"
+          @unsure="onUnsure"
+          @can-submit="canSubmit = $event"
+          @reveal="revealUnit"
+        />
         <GrammarQuestionCard
+          v-else
           ref="cardRef"
           :key="current.id"
           :question="current"
@@ -671,16 +780,16 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
           @can-submit="canSubmit = $event"
           @unsure="onUnsure"
         />
-        <div v-if="currentResult && current.stat?.review" class="next-chip">次の復習: {{ current.stat.review.intervalLabel }}後<span v-if="currentResult.elapsedMs !== null">　・　解答 {{ fmtSec(currentResult.elapsedMs) }}</span></div>
+        <div v-if="answered && current.stat?.review" class="next-chip">次の復習: {{ current.stat.review.intervalLabel }}後<span v-if="currentResult && currentResult.elapsedMs !== null">　・　解答 {{ fmtSec(currentResult.elapsedMs) }}</span></div>
         <template #footer>
           <button class="qf-ghost" :disabled="quiz.index === 0" @click="prev">前へ</button>
-          <button v-if="currentResult" class="qf-ghost" @click="explainOpen = true">解説</button>
+          <button v-if="answered" class="qf-ghost" @click="explainOpen = true">解説</button>
           <button v-else class="qf-ghost" @click="giveUp">わからない</button>
           <button class="qf-main" :disabled="primaryDisabled" @click="primary">{{ primaryLabel }}</button>
         </template>
         <template #modals>
           <Transition name="ui-modal">
-            <GrammarExplain v-if="explainOpen" :question="current" :result="currentResult" @close="explainOpen = false" @override="onOverride" @unsure="onUnsure" />
+            <GrammarExplain v-if="explainOpen" :question="current" :result="isFirstStep ? null : currentResult" :simple="isFirstStep" @close="explainOpen = false" @override="onOverride" @unsure="onUnsure" />
           </Transition>
         </template>
       </QuizFullscreen>
@@ -726,6 +835,21 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
   font-size: 10px;
   font-weight: 500;
   opacity: 0.7;
+}
+.book-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.book-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.book-sub {
+  font-size: 12px;
+  color: var(--faint);
 }
 .sheet-btn {
   display: inline-flex;

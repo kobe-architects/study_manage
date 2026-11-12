@@ -14,7 +14,8 @@ import { speak } from '@/lib/design'
 import { CIRCLED, answerSegments, completedSentence, splitCorrection } from '@/lib/grammar'
 import type { GrammarQuestion } from '@/types'
 
-const props = defineProps<{ question: GrammarQuestion; result: GrammarAnswerResult | null }>()
+/** simple: 大問まとめ出題（ファーストステップ）用。解答編の答えの画像と詳細解説だけを出す（正解・判定の行は大問カード側） */
+const props = defineProps<{ question: GrammarQuestion; result: GrammarAnswerResult | null; simple?: boolean }>()
 const emit = defineEmits<{ close: []; override: [isCorrect: boolean]; unsure: [unsure: boolean] }>()
 
 const q = computed(() => props.question)
@@ -68,7 +69,7 @@ watch(() => q.value.id, () => {
         <div v-else-if="q.instruction && q.format === 'order'" class="ex-trans">{{ q.instruction.replace(/〔.*?〕/g, '').trim() }}</div>
 
         <!-- 正解 -->
-        <div v-if="q.format !== 'image' || q.answerText || (q.choiceCount && q.answerIndex !== null)" class="ex-row">
+        <div v-if="!simple && (q.format !== 'image' || q.answerText || (q.choiceCount && q.answerIndex !== null))" class="ex-row">
           <span class="ex-lab">正解</span>
           <template v-if="q.format === 'choice'"><span class="dm ex-strong">{{ CIRCLED[q.answerIndex ?? 0] }} {{ q.answerText }}</span></template>
           <template v-else-if="q.format === 'error'">
@@ -87,7 +88,7 @@ watch(() => q.value.id, () => {
         <div v-if="(q.format === 'fill' || imageTyped) && (q.answers ?? []).some((a) => a.length > 1)" class="ex-sub">[ ] 内は別解。どちらでも正解です</div>
 
         <!-- あなたの答え・判定 -->
-        <div v-if="result" class="ex-row" style="margin-top: 12px">
+        <div v-if="result && !simple" class="ex-row" style="margin-top: 12px">
           <span class="ex-lab">判定</span>
           <span class="ex-badge" :class="result.isCorrect ? (result.unsure ? 'un' : 'ok') : 'ng'">{{ result.isCorrect ? (result.unsure ? '正解（あいまい）' : '正解') : '不正解' }}</span>
           <button v-if="canOverride" class="ex-judge" @click="emit('override', !result.isCorrect)">{{ result.isCorrect ? '不正解にする' : '正解にする' }}</button>

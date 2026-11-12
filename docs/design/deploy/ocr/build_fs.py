@@ -776,21 +776,18 @@ def main():
                 fn = f'e{page:03d}_{k}.jpg'
                 save_jpg(stack(ims), os.path.join(IMG_DIR, fn))
                 it['explanation_image'] = fn
-            # 小問ごとの問題
-            head_im = crop(docQ, page, it['x0'], it['hy0'], geo['xmax'], it['hy1'], geo['W'], geo['H']) if it['hy1'] > it['hy0'] + 4 else None
-            foot_im = crop(docQ, page, it['x0'], it['foot'][0], geo['xmax'], it['foot'][1], geo['W'], geo['H']) if it['foot'] else None
+            # 問題画像は大問ごと（見出し〜語群まで丸ごと。画面では大問の小問をまとめて出題する）
+            g_end = it['foot'][1] if it['foot'] else max([s['y1'] for s in it['subs']] + [it['hy1']])
+            fn_g = f'g{page:03d}_{k}.jpg'
+            save_jpg(crop(docQ, page, it['x0'], it['hy0'], geo['xmax'], g_end, geo['W'], geo['H']), os.path.join(IMG_DIR, fn_g))
+            written.add(fn_g)
             nchoice_item = max([choice_count_of(s['rows']) for s in it['subs']] + [choice_count_of([r for r in it['body_rows']])])
             for j, sub in enumerate(it['subs']):
                 no += 1
                 ans = g[j][2] if (flags[k] and j < len(g)) else None
                 kind, answers, aidx, ans_clean = classify(ans) if ans is not None else ('self', None, None, None)
                 nchoice = choice_count_of(sub['rows']) or nchoice_item or 4
-                x1 = sub['x1'] if sub['x1'] else geo['xmax']
-                sub_im = crop(docQ, page, sub['x0'], sub['y0'], x1, sub['y1'], geo['W'], geo['H'])
-                fn = f'q{no:04d}.jpg'
-                ims = ([head_im] if head_im else []) + [sub_im] + ([foot_im] if foot_im else [])
-                save_jpg(stack(ims), os.path.join(IMG_DIR, fn))
-                written.add(fn)
+                fn = fn_g
                 label_sub = f'{it["label"]} ({j + 1})'
                 questions.append({
                     'no': no,
@@ -820,7 +817,7 @@ def main():
                     'choiceCount': max(2, nchoice) if kind == 'choice' else None,
                 })
     for fn in os.listdir(IMG_DIR):
-        if fn.startswith('q') and fn not in written:
+        if fn[0] in 'qg' and fn not in written:
             os.remove(os.path.join(IMG_DIR, fn))
     with open(OUT_JSON, 'w', encoding='utf-8') as f:
         json.dump({'books': [{'key': 'first_step', 'name': 'ファーストステップ', 'questions': questions}]}, f, ensure_ascii=False, indent=1)
