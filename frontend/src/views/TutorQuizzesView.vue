@@ -245,8 +245,10 @@ async function chooseBook(b: QuizBook, advance = true) {
     const [pdfs, rows] = await Promise.all([quizApi.listPdfs(b.id), quizApi.rows(b.id)])
     wiz.bookId = b.id
     wiz.bookTitle = b.title
-    // 「解答」を含むタイトルの PDF は採点・添削用のため出題対象から除外する
-    wiz.pdfs = pdfs.filter((p) => !p.title.includes('解答'))
+    // 「解答」を含むタイトルの PDF は採点・添削用のため出題対象から除外する。
+    // ただし 1 冊に問題と解答が入った PDF しか無い教材（ハイパートレーニングなど。解答は page_links で自動表示）は、その PDF を出題に使う
+    const problemPdfs = pdfs.filter((p) => !p.title.includes('解答'))
+    wiz.pdfs = problemPdfs.length ? problemPdfs : pdfs
     wiz.rows = rows
     if (advance) wiz.step = 3
   } catch {
