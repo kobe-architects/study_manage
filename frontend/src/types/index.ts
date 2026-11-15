@@ -617,6 +617,8 @@ export interface QuizSummary {
   /** 生徒の表示名（一覧の「一言」に（姓）を付けるため） */
   studentName: string
   createdByName: string | null
+  /** 生徒が自分で出題した小テスト（講師の採点・添削のほか、生徒自身でも採点・添削できる） */
+  selfCreated: boolean
   overdue: boolean
 }
 
@@ -1154,4 +1156,40 @@ export interface StudyTaskLog {
   taskId: number
   date: string
   amount: number
+}
+
+// ===== ファイル共有（生徒と講師で学習データの PDF などを階層フォルダで共有） =====
+export interface SharedFolder {
+  id: number
+  parentId: number | null
+  name: string
+  folderCount: number
+  fileCount: number
+  updatedAt: string | null
+  /** 検索結果のとき: ルートからの親フォルダの道 */
+  path?: { id: number; name: string }[]
+}
+export interface SharedFile {
+  id: number
+  folderId: number | null
+  name: string
+  mime: string | null
+  isPdf: boolean
+  sizeBytes: number
+  pageCount: number | null
+  note: string | null
+  /** 本文（PDF の文字）で検索できるか */
+  hasText: boolean
+  createdByName: string | null
+  createdAt: string | null
+  updatedAt: string | null
+  /** 検索結果のとき: ルートからのフォルダの道と、本文のヒット箇所 */
+  path?: { id: number; name: string }[]
+  snippet?: string | null
+}
+export interface SharedBrowse {
+  folder: { id: number; name: string; parentId: number | null } | null
+  breadcrumbs: { id: number; name: string }[]
+  folders: SharedFolder[]
+  files: SharedFile[]
 }

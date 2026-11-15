@@ -145,7 +145,14 @@ type ActionKey = 'pdf' | 'remove' | 'edit' | 'grade' | 'resubmit'
 function secondary(q: QuizSummary): (ActionMenuItem & { key: ActionKey })[] {
   const pdf = { key: 'pdf' as const, label: '問題PDF' }
   if (props.role === 'owner') {
-    return q.status === 'graded' && q.selfGraded ? [{ key: 'resubmit', label: '再提出' }, pdf] : [pdf]
+    const list: (ActionMenuItem & { key: ActionKey })[] = []
+    // 自己出題の提出済みは主操作が「自分で採点・添削」なので、撮り直しはこちら
+    if (q.status === 'submitted' && q.selfCreated) list.push({ key: 'resubmit', label: '撮り直して再提出' })
+    if (q.status === 'graded' && (q.selfGraded || q.selfCreated)) list.push({ key: 'resubmit', label: '再提出' })
+    if (q.status === 'graded' && q.selfCreated) list.push({ key: 'grade', label: '採点・添削をやり直す' })
+    list.push(pdf)
+    if (q.selfCreated) list.push({ key: 'remove', label: '削除', danger: true })
+    return list
   }
   const remove = { key: 'remove' as const, label: '削除', danger: true }
   if (q.status === 'submitted') return [pdf, remove]
@@ -313,6 +320,8 @@ function dueClass(q: QuizSummary): string {
                   <!-- 主操作 -->
                   <template v-if="role === 'owner'">
                     <button v-if="q.status === 'graded'" class="btn primary" @click="emit('result', q)">結果を見る</button>
+                    <!-- 自己出題: 提出後は自分で採点・添削できる（先生の採点・添削を待ってもよい） -->
+                    <button v-else-if="q.status === 'submitted' && q.selfCreated" class="btn primary" @click="emit('grade', q)">自分で採点・添削</button>
                     <button v-else class="btn primary" @click="emit('capture', q)">{{ q.status === 'submitted' ? '撮り直して再提出' : '撮影して提出' }}</button>
                   </template>
                   <template v-else>
@@ -329,6 +338,7 @@ function dueClass(q: QuizSummary): string {
               <td class="c-status">
                 <div class="badges">
                   <span class="badge" :class="statusOf(q)">{{ STATUS_LABEL[statusOf(q)] }}</span>
+                  <span v-if="q.selfCreated" class="badge self" title="生徒が自分で出題した小テスト">自己出題</span>
                   <span v-if="q.status === 'graded' && q.selfGraded" class="badge self">自己採点</span>
                   <span v-if="q.status === 'assigned' && q.answeredCount" class="badge sub">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</span>
                 </div>

@@ -61,6 +61,10 @@ export interface SheetSpec {
   accent?: string
   /** 用紙: portrait2 = A4 縦 2 段（既定）/ landscape1 = A4 横 1 段（回数欄を 30 回ぶん並べる英単語用） */
   layout?: 'portrait2' | 'landscape1'
+  /** 回数欄の表し方: date = 解いた日付（既定。生徒用）/ symbol = ○（正解・黒）△（あいまい・青）×（不正解・赤）（講師の画面表示用。日付はツールチップ） */
+  markMode?: 'date' | 'symbol'
+  /** 印刷ボタンを出さない（画面に埋め込んで表示するとき） */
+  noToolbar?: boolean
 }
 
 const ROW_MM = 5.6
@@ -212,6 +216,7 @@ function renderColumn(spec: SheetSpec, blocks: Block[], markCount: number, markW
     for (let k = 0; k < markCount; k++) {
       const m = marks[k]
       if (!m) tds.push('<td class="mk"></td>')
+      else if (spec.markMode === 'symbol') tds.push(`<td class="mk sym ${m.status === 0 ? 'ng' : m.status === 2 ? 'un' : 'ok'}" title="${esc(m.date)}">${m.status === 0 ? '×' : m.status === 2 ? '△' : '○'}</td>`)
       else tds.push(`<td class="mk ${m.status === 0 ? 'ng' : m.status === 2 ? 'un' : 'ok'}" title="${esc(m.date)}">${esc(markLabel(m.date))}</td>`)
     }
     body.push(`<tr>${tds.join('')}</tr>`)
@@ -246,7 +251,11 @@ export function buildCheckSheetHtml(spec: SheetSpec): string {
     </div>
     <div class="head-r">
       <div class="name">名前 <span class="name-v">${esc(spec.name)}</span></div>
-      <div class="legend"><span class="ok">11/2 正解</span><span class="ng">11/2 不正解</span><span class="un">11/2 あいまい</span>${spec.note ? `<span class="note">${esc(spec.note)}</span>` : ''}</div>
+      <div class="legend">${
+        spec.markMode === 'symbol'
+          ? '<span class="ok">○ 正解</span><span class="un">△ あいまい</span><span class="ng">× 不正解</span>'
+          : '<span class="ok">11/2 正解</span><span class="ng">11/2 不正解</span><span class="un">11/2 あいまい</span>'
+      }${spec.note ? `<span class="note">${esc(spec.note)}</span>` : ''}</div>
     </div>
   </div>
   <div class="cols">${cols}</div>
@@ -288,6 +297,8 @@ export function buildCheckSheetHtml(spec: SheetSpec): string {
   .t td.no { text-align: right; font-size: 8.2pt; font-weight: 700; }
   .t td.mk { text-align: center; font-size: 6pt; font-weight: 700; padding: 0 0.5mm; border-left: 0.2mm solid #e3e3e3; letter-spacing: -0.02em; text-overflow: clip; }
   .t.tight td.mk { font-size: 5.2pt; padding: 0 0.25mm; letter-spacing: -0.04em; }
+  .t td.mk.sym { font-size: 8pt; font-weight: 800; letter-spacing: 0; }
+  .t td.mk.sym.un { color: #1f5fd0; } .t td.mk.sym.ng { color: #d8232a; } .t td.mk.sym.ok { color: #1c2024; }
   .t.tight th.mk { font-size: 4.8pt; padding: 0 0.25mm; }
   .t td.g { background: #fde4ed; vertical-align: top; padding: 0.9mm 0.8mm 0; border-bottom: 0.3mm solid #fff; white-space: normal; }
   .gbox { overflow: hidden; }
@@ -312,7 +323,7 @@ export function buildCheckSheetHtml(spec: SheetSpec): string {
   }
 </style></head>
 <body>
-  <div class="toolbar"><button onclick="window.print()">印刷 / PDF保存</button></div>
+  ${spec.noToolbar ? '' : '<div class="toolbar"><button onclick="window.print()">印刷 / PDF保存</button></div>'}
   <div class="pages">${pageHtml}</div>
   <script>
     // 画面が A4 より狭いとき（スマホ・アプリ内表示）は縮小して全体を見せる。印刷時は等倍

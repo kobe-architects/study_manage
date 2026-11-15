@@ -98,6 +98,8 @@ export const ICONS: Record<string, string[]> = {
   test: ['M6 3.5h9l4 4v13H6z', 'M15 3.5v4h4', 'M9 11h6', 'M9 14.5h6', 'M9 18h3'],
   task: ['M5 4.5h14v15H5z', 'M8.5 9.5l1.5 1.5 3-3', 'M15 10h1.5', 'M8.5 15l1.5 1.5 3-3', 'M15 15.5h1.5'],
   invoice: ['M6 3.5h12V20.5l-2.4-1.6-1.8 1.6-1.8-1.6-1.8 1.6-1.8-1.6L6 20.5z', 'M9.5 8l2.5 3.2L14.5 8', 'M12 11.2v4.3', 'M10 12.8h4', 'M10 14.8h4'],
+  files: ['M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M3 11h18'],
+  sheet: ['M5 3.5h14v17H5z', 'M8.5 8.5h7', 'M8.5 12h7', 'M8.5 15.5h4', 'M15 15l1.2 1.2 2.3-2.5'],
 }
 
 export interface NavDef {
@@ -115,6 +117,7 @@ export const NAV: NavDef[] = [
   { key: 'english', route: 'english', label: '英語学習', short: '英語' },
   { key: 'math', route: 'math', label: '数学学習', short: '数学' },
   { key: 'test', route: 'quizzes', label: '小テスト', short: '小テスト' },
+  { key: 'files', route: 'files', label: 'ファイル共有', short: 'ファイル' },
   { key: 'goal', route: 'goals', label: '目標設定', short: '目標' },
   { key: 'gantt', route: 'gantt', label: 'ガント', short: 'ガント' },
   { key: 'mistake', route: 'mistakes', label: '間違いノート', short: 'ノート' },

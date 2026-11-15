@@ -1,16 +1,21 @@
 import client from '@/api/client'
 import type { GrammarBook, GrammarBookKey, GrammarQuestion, GrammarStat } from '@/types'
 
-/** 英文法・語法 問題演習（スクランブル）の API。生徒専用 */
+/** API プレフィックス。講師ログイン時は /tutor 配下（担当生徒の結果を読むだけ: books / questions / checksheet） */
+function p(): string {
+  return localStorage.getItem('sm_role') === 'tutor' ? '/tutor' : ''
+}
+
+/** 英文法・語法 問題演習（スクランブル）の API。回答の記録は生徒専用、一覧とチェックシートは講師も読める */
 export const grammarApi = {
   async books(): Promise<GrammarBook[]> {
-    const { data } = await client.get('/grammar/books')
+    const { data } = await client.get(`${p()}/grammar/books`)
     return data.data
   },
 
   /** 1 冊分の問題を全件取得（絞り込みは画面側） */
   async questions(book: GrammarBookKey): Promise<GrammarQuestion[]> {
-    const { data } = await client.get('/grammar/questions', { params: { book } })
+    const { data } = await client.get(`${p()}/grammar/questions`, { params: { book } })
     return data.data
   },
 
@@ -36,9 +41,9 @@ export const grammarApi = {
     return data.data
   },
 
-  /** チェックシート用: 文法・語法 725 問（または book=first_step）の日ごとの結果（連番 → [[日付, 0=不正解|1=正解|2=あいまい], ...]） */
+  /** チェックシート用: 文法・語法 725 問（book 未指定・grammar・usage）または他の問題集（book=vocab / idiom / … / first_step）の日ごとの結果（連番 → [[日付, 0=不正解|1=正解|2=あいまい], ...]） */
   async checksheet(book?: GrammarBookKey): Promise<Record<string, [string, 0 | 1 | 2][]>> {
-    const { data } = await client.get('/grammar/checksheet', { params: { tz: -new Date().getTimezoneOffset(), ...(book ? { book } : {}) } })
+    const { data } = await client.get(`${p()}/grammar/checksheet`, { params: { tz: -new Date().getTimezoneOffset(), ...(book ? { book } : {}) } })
     return data.data.marks ?? {}
   },
 }

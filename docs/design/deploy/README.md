@@ -406,3 +406,24 @@ php artisan config:cache && php artisan route:cache
   解答編の「P.5 STEP 1」の見出しで演習ページを知り、問題編は左端の大問ラベルと「(2)」以降の小問番号で切る（「(1)」は OCR で落ちやすいので見出し直後の行とみなす）。
   答えは「(1) で始まる行」と大問ラベルで箱を分け、小問数と突き合わせる。合わない大問（約 35／300）は答えの文字を付けず「箱の画像を見て自己判定」になる。
   確認用に `<scratch>/out/fs/REPORT.txt`（ページごとの突き合わせ結果）と `answers.txt`（全問の答え）を出す。
+
+## 18. 講師のチェックシート表示・ファイル共有・自己出題・単語の画像（2026-11-16 追加）の運用メモ
+
+- マイグレーション `2026_11_16_000001_create_shared_file_tables`（`shared_folders`・`shared_files`）を `php artisan migrate --force` で適用する。追加の Composer 依存はない。
+- **講師のチェックシート表示**（`/tutor/scramble`・`views/TutorCheckSheetView.vue`）: 生徒側と同じ `lib/checkSheet.ts` で組んだ HTML を iframe に入れて表示。
+  回数欄は `markMode: 'symbol'`（○=正解・黒／△=あいまい・青／×=不正解・赤。日付はツールチップ）。API は講師用の
+  `GET /tutor/grammar/checksheet?book=`・`/tutor/grammar/questions?book=`（`GrammarController` は targetUserId で担当生徒のデータ）。
+  文法・語法は固定データ（`data/scrambleSheet.ts`）、語い・イディオム・会話表現・発音・アクセント・読解・作文の文法は問題データ（章・Theme・連番）から
+  `lib/grammarSheet.ts` の `buildBookSheetSpec` で組む。生徒側のチェックシートも、選んでいる問題集が語い以降ならこの体裁で出す（`checksheet?book=vocab` など）。
+- **ファイル共有**（生徒 `/files`・講師 `/tutor/files`。`views/SharedFilesView.vue`）: 階層フォルダにファイルを置き、両方から読み書きする。
+  本体は `storage/app/private/shared/{生徒ID}/`（Git 管理外）。アップロードは 4MB ずつの分割（`/shared/files/chunk` → `/shared/files`。上限 300MB）。
+  PDF は画面側（pdf.js）で文字を抜き出して `shared_files.search_text` に保存し、`GET /shared/search?q=` で名前・メモ・本文を検索する（文字の無いスキャン PDF は名前のみ）。
+  閲覧は `components/PdfBookViewer.vue`（ページをめくるアニメーション・ブックマーク（アウトライン）の目次・拡大・保存。`/shared/files/{id}/file` は Range 対応で必要な部分だけ読む）。
+  追加時は相手（生徒 ⇄ 講師）へ LINE 通知。
+- **小テストの自己出題**（生徒の「小テスト」→「自分で出題」。`components/SelfQuizDialog.vue`）: 講師と同じ `POST /quizzes`（created_by = 生徒）。
+  講師側の一覧にも「自己出題」バッジ付きで出る。提出後は講師の採点・添削に加え、生徒自身も `/quizzes/{id}/grade`（講師と同じ `TutorQuizGradeView`）で
+  採点・添削できる（生徒の `annotations`・`grade`・`score`・`finish`・`reopen`・`PUT/DELETE /quizzes/{id}` は自己出題したものだけ。`QuizController::authorizeManage`）。
+  生徒が完了したものは `self_graded = true`、講師が完了すると false。通知は 出題・提出・完了のたびに相手側（生徒 → 担当講師たち／講師 → 生徒）へ。
+  自己出題では生徒専用の単語帳（鉄壁）も英単語テストに使える。出題の組み立て（表紙・スタンプ・英単語用紙）は `lib/quizBuild.ts` に共通化した。
+- **英単語の画像**: 英単語クイズの解答表示に、単語帳管理と同じ画像（`vocabularies.image_path`・public ディスク）を表示し、その場で登録・差し替え・削除できる
+  （`QuizView.vue`。写真は長辺 1600px の JPEG に縮めて送る）。

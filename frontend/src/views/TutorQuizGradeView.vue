@@ -24,6 +24,9 @@ const router = useRouter()
 const ui = useUiStore()
 
 const quizId = Number(route.params.id)
+/** 講師か生徒か（生徒は自分で出題した小テストだけこの画面で採点・添削できる）。戻り先の一覧もロールで変わる */
+const isTutor = localStorage.getItem('sm_role') === 'tutor'
+const listRoute = isTutor ? 'tutor-quizzes' : 'quizzes'
 const quiz = ref<QuizDetail | null>(null)
 const pageIdx = ref(0)
 const page = computed<QuizPageDetail | null>(() => quiz.value?.pages[pageIdx.value] ?? null)
@@ -215,7 +218,7 @@ function syncForm() {
 onMounted(async () => {
   // 生徒側の設定で小テストメニューが非表示のときは直接アクセスも許可しない
   const auth = useAuthStore()
-  if (auth.user?.role === 'tutor' && auth.user.student?.tutorQuizEnabled !== true) {
+  if (isTutor && auth.user?.role === 'tutor' && auth.user.student?.tutorQuizEnabled !== true) {
     router.replace({ name: 'tutor-home' })
     return
   }
@@ -225,7 +228,7 @@ onMounted(async () => {
     syncForm()
   } catch {
     ui.notify('小テストの取得に失敗しました')
-    router.push({ name: 'tutor-quizzes' })
+    router.push({ name: listRoute })
   }
   mq?.addEventListener('change', onMq)
   window.addEventListener('keydown', onKey)
@@ -379,7 +382,7 @@ async function finish() {
     warnOpen.value = true
     return
   }
-  if (!(await appConfirm(`得点 ${scoreForm.score} / ${scoreForm.maxScore}点（${scoreRate.value}%）\n完了すると生徒に結果が表示されます。`, { title: '採点・添削を完了しますか？', okText: '完了する' }))) return
+  if (!(await appConfirm(`得点 ${scoreForm.score} / ${scoreForm.maxScore}点（${scoreRate.value}%）\n${isTutor ? '完了すると生徒に結果が表示されます。' : '完了すると結果・分析に反映されます（先生にも通知されます）。'}`, { title: '採点・添削を完了しますか？', okText: '完了する' }))) return
   try {
     await quizApi.finish(quiz.value.id)
     ui.notify('採点・添削を完了しました')
@@ -394,7 +397,7 @@ function goToScoreInput() {
   nextTick(() => scoreInput.value?.focus())
 }
 async function reopen() {
-  if (!quiz.value || !(await appConfirm('生徒側では「提出済み」に戻ります。', { title: '採点・添削をやり直しますか？', okText: 'やり直す' }))) return
+  if (!quiz.value || !(await appConfirm(isTutor ? '生徒側では「提出済み」に戻ります。' : '「提出済み」に戻り、採点・添削をやり直せます。', { title: '採点・添削をやり直しますか？', okText: 'やり直す' }))) return
   try {
     await quizApi.reopen(quiz.value.id)
     await load()
@@ -437,7 +440,7 @@ async function downloadResult() {
     <!-- 中央: 添削対象の画像 -->
     <div class="main">
       <div class="head-line">
-        <button class="back" @click="router.push({ name: 'tutor-quizzes' })">‹ 小テスト一覧</button>
+        <button class="back" @click="router.push({ name: listRoute })">‹ 小テスト一覧</button>
         <b class="ttl">{{ quiz.title }}</b>
         <span class="meta">
           {{ quiz.bookTitle ?? '英単語テスト' }}・{{ quiz.pageCount }}ページ

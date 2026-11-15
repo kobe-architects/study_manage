@@ -19,7 +19,7 @@ import { shuffle } from '@/lib/design'
 import { QuestionTimer } from '@/lib/quizTimer'
 import { CIRCLED, FORMATS, FORMAT_INFO, chapterParts, questionPreview, statusOf } from '@/lib/grammar'
 import { openFirstStepCheckSheet } from '@/lib/firstStepSheet'
-import { openGrammarCheckSheet } from '@/lib/grammarSheet'
+import { openBookCheckSheet, openGrammarCheckSheet } from '@/lib/grammarSheet'
 import { playResultSound } from '@/lib/sound'
 import { useAuthStore } from '@/stores/auth'
 import { useGrammarStore } from '@/stores/grammar'
@@ -206,10 +206,18 @@ async function openSheet() {
   if (sheetBusy.value) return
   sheetBusy.value = true
   try {
-    const marks = await grammarApi.checksheet(isFirstStep.value ? 'first_step' : undefined)
+    // 文法・語法は付属のチェックシートと同じ 1 枚（両方）。語い以降の問題集は、その問題集だけのシート（問題データから章・Theme・連番の並びで組む）
+    const bookKey = g.book
+    const otherBook = !isFirstStep.value && bookKey !== 'grammar' && bookKey !== 'usage'
+    const marks = await grammarApi.checksheet(isFirstStep.value ? 'first_step' : otherBook ? bookKey : undefined)
     const d = new Date()
     const date = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
-    const ok = isFirstStep.value ? openFirstStepCheckSheet(all.value, marks, auth.user?.name ?? '', date) : openGrammarCheckSheet(marks, auth.user?.name ?? '', date)
+    const name = auth.user?.name ?? ''
+    const ok = isFirstStep.value
+      ? openFirstStepCheckSheet(all.value, marks, name, date)
+      : otherBook
+        ? openBookCheckSheet(bookKey, g.currentBook?.name ?? '', all.value, marks, name, date)
+        : openGrammarCheckSheet(marks, name, date)
     if (!ok) ui.notify('ポップアップがブロックされました。ブラウザ設定で許可してください。')
   } catch {
     ui.notify('チェックシートの作成に失敗しました')
@@ -572,7 +580,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
             チェックシート
           </button>
-          <HelpTip :text="(isFirstStep ? 'STEP 1・STEP 2・まとめのテスト・総合問題の全問を、章 → 区分（ページ）→ 小問の並びで印刷用に出力します。' : '文法・語法 全725問を、教材付属のチェックシートと同じ並び（章・Theme・連番・形式・区分）で印刷用に出力します。') + '\n回数欄には解いた日付が入ります。黒=正解、赤=不正解、青=あいまい（正解だったが自信がないとき、解答後に「あいまい」を付けた問題）。\n同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら赤になります。'" />
+          <HelpTip :text="(isFirstStep ? 'STEP 1・STEP 2・まとめのテスト・総合問題の全問を、章 → 区分（ページ）→ 小問の並びで印刷用に出力します。' : '文法・語法は全725問を教材付属のチェックシートと同じ並び（章・Theme・連番・形式・区分）で、語い・イディオム・会話表現・発音・アクセント・読解・作文の文法は選んでいる問題集を同じ体裁（章・Theme・連番）で印刷用に出力します。') + '\n回数欄には解いた日付が入ります。黒=正解、赤=不正解、青=あいまい（正解だったが自信がないとき、解答後に「あいまい」を付けた問題）。\n同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら赤になります。'" />
         </div>
       </div>
 

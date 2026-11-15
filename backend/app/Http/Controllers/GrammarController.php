@@ -23,7 +23,7 @@ class GrammarController extends Controller
     /** 問題集（英文法・語法）の一覧と、自分の回答状況（最新の回答で正解・不正解・未回答を数える） */
     public function books(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $userId = $this->targetUserId($request);
         $totals = GrammarQuestion::query()->selectRaw('book, COUNT(*) AS total')->groupBy('book')->pluck('total', 'book');
 
         // 問題ごとの最新の回答を本ごとに集計
@@ -73,7 +73,7 @@ class GrammarController extends Controller
         $questions = GrammarQuestion::query()->where('book', $book)->orderBy('no')
             ->select(['*', DB::raw('explanation IS NOT NULL AND explanation <> "" AS has_explanation')])
             ->get();
-        $stats = $this->stats($request->user()->id, $questions->pluck('id')->all());
+        $stats = $this->stats($this->targetUserId($request), $questions->pluck('id')->all());
 
         return response()->json([
             'data' => $questions->map(fn (GrammarQuestion $q) => $this->format($q, $stats[$q->id] ?? null))->values(),
@@ -161,16 +161,18 @@ class GrammarController extends Controller
     }
 
     /**
-     * チェックシート用: 文法・語法（連番 1〜725）または ファーストステップ（book=first_step）の日ごとの結果。
+     * チェックシート用: 文法・語法（連番 1〜725。book 未指定・grammar・usage）、または他の問題集（book=vocab / idiom / … / first_step）の日ごとの結果。
+     * 講師（tutor）は担当生徒の結果。
      * 同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら不正解（0）、正解だけであいまいがあれば あいまい（2）、それ以外は正解（1）。
      * 日付は端末のタイムゾーン（tz = UTC からのずれ・分。既定は日本時間）で区切る。
      * 返り値: { marks: { 連番: [[YYYY-MM-DD, 0|1|2], ...] } }
      */
     public function checksheet(Request $request): JsonResponse
     {
-        $userId = $request->user()->id;
+        $userId = $this->targetUserId($request);
         $tz = max(-840, min(840, (int) $request->query('tz', 540)));
-        $books = $request->query('book') === 'first_step' ? ['first_step'] : ['grammar', 'usage'];
+        $book = (string) $request->query('book', '');
+        $books = $book !== '' && isset(GrammarQuestion::BOOKS[$book]) && ! in_array($book, ['grammar', 'usage'], true) ? [$book] : ['grammar', 'usage'];
         $rows = GrammarAttempt::query()
             ->join('grammar_questions', 'grammar_questions.id', '=', 'grammar_attempts.grammar_question_id')
             ->where('grammar_attempts.user_id', $userId)

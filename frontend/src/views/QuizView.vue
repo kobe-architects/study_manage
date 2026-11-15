@@ -22,7 +22,9 @@ import VocabResourceSwitch from '@/components/VocabResourceSwitch.vue'
 import TestSheetPrint from '@/components/TestSheetPrint.vue'
 import QuizFullscreen from '@/components/QuizFullscreen.vue'
 import SessionHistory from '@/components/SessionHistory.vue'
+import AuthImage from '@/components/AuthImage.vue'
 import VocabExplainModal from '@/components/VocabExplainModal.vue'
+import { appConfirm } from '@/lib/dialog'
 import { sessionsApi } from '@/api/sessions'
 import { QuestionTimer } from '@/lib/quizTimer'
 
@@ -328,6 +330,77 @@ function primeDisplay() {
   explainOpen.value = false
   if (!ans && displayed.value) speak(displayed.value.vocab.word)
   if (!ans) timer.start()
+}
+
+// ---- 単語の画像（解答表示で見る・登録する。単語帳管理の画像と同じもの） ----
+const imgInput = ref<HTMLInputElement | null>(null)
+const imgBusy = ref(false)
+const imgOpen = ref(false)
+function pickImage() {
+  imgInput.value?.click()
+}
+/** 大きい写真は長辺 1600px の JPEG に縮めてから送る（サーバーの上限 5MB・HEIC などの形式差を吸収） */
+async function shrinkImage(file: File): Promise<File> {
+  try {
+    const url = URL.createObjectURL(file)
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const im = new Image()
+      im.onload = () => res(im)
+      im.onerror = rej
+      im.src = url
+    })
+    const max = 1600
+    const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight))
+    if (scale >= 1 && file.size < 1.5 * 1024 * 1024 && /^image\/(jpeg|png|webp|gif)$/.test(file.type)) {
+      URL.revokeObjectURL(url)
+      return file
+    }
+    const c = document.createElement('canvas')
+    c.width = Math.round(img.naturalWidth * scale)
+    c.height = Math.round(img.naturalHeight * scale)
+    c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
+    URL.revokeObjectURL(url)
+    const blob = await new Promise<Blob | null>((r) => c.toBlob(r, 'image/jpeg', 0.86))
+    return blob ? new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }) : file
+  } catch {
+    return file
+  }
+}
+async function onImagePicked(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file || !displayed.value) return
+  const id = displayed.value.vocab.id
+  imgBusy.value = true
+  try {
+    const updated = await vocab.uploadImage(id, await shrinkImage(file))
+    // 同じ URL だとブラウザが古い画像を見せるので版を付ける
+    const url = updated.imageUrl ? `${updated.imageUrl}${updated.imageUrl.includes('?') ? '&' : '?'}v=${Date.now()}` : null
+    vocab.updateQuizVocabulary(id, { imageUrl: url })
+    if (displayed.value?.vocab.id === id) displayed.value.vocab.imageUrl = url
+    ui.notify('画像を登録しました')
+  } catch {
+    ui.notify('画像の登録に失敗しました')
+  } finally {
+    imgBusy.value = false
+  }
+}
+async function removeImage() {
+  if (!displayed.value) return
+  const id = displayed.value.vocab.id
+  if (!(await appConfirm('この単語の画像を削除しますか？', { danger: true, okText: '削除' }))) return
+  imgBusy.value = true
+  try {
+    await vocab.deleteImage(id)
+    vocab.updateQuizVocabulary(id, { imageUrl: null })
+    if (displayed.value?.vocab.id === id) displayed.value.vocab.imageUrl = null
+    imgOpen.value = false
+  } catch {
+    ui.notify('画像の削除に失敗しました')
+  } finally {
+    imgBusy.value = false
+  }
 }
 
 // ---- メモのその場編集 ----
@@ -869,6 +942,20 @@ function toggleSec(id: number) {
               <span v-if="displayed.vocab.meaningSupplement" style="font-size: 12.5px; color: #9aa1ab">{{ displayed.vocab.meaningSupplement }}</span>
             </div>
             <div v-if="examples.length" class="dm" style="margin-top: 8px; font-size: 13.5px; color: #4b5563; line-height: 1.6">{{ examples[0]?.sentence }}</div>
+            <!-- 単語の画像: 登録してあれば表示（タップで拡大）、ここから登録・差し替え・削除もできる -->
+            <div class="vimg-row">
+              <button v-if="displayed.vocab.imageUrl" class="vimg-btn" title="タップで拡大" @click="imgOpen = true">
+                <AuthImage :key="displayed.vocab.imageUrl" :src="displayed.vocab.imageUrl" class="vimg" alt="単語の画像" />
+              </button>
+              <div class="vimg-acts">
+                <button class="vimg-act" :disabled="imgBusy" @click="pickImage">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="10" r="2" /><path d="M21 15l-5-4-9 8" /></svg>
+                  {{ imgBusy ? '送信中…' : displayed.vocab.imageUrl ? '画像を差し替え' : '画像を登録' }}
+                </button>
+                <button v-if="displayed.vocab.imageUrl" class="vimg-act" :disabled="imgBusy" @click="removeImage">削除</button>
+              </div>
+              <input ref="imgInput" type="file" accept="image/*" style="display: none" @change="onImagePicked" />
+            </div>
             <div v-if="vocab.currentAnswer?.review || vocab.currentAnswer?.elapsedMs !== undefined" style="margin-top: 10px; font-size: 12px; color: var(--faint)">
               <span v-if="vocab.currentAnswer?.review">次の復習: {{ vocab.currentAnswer.review.intervalLabel }}後</span>
               <span v-if="vocab.currentAnswer?.elapsedMs !== undefined">　・　解答 {{ fmtSec(vocab.currentAnswer.elapsedMs) }}</span>
@@ -911,6 +998,19 @@ function toggleSec(id: number) {
         <template #modals>
           <Transition name="ui-modal">
             <VocabExplainModal v-if="explainOpen" :vocab="displayed.vocab" :matches="exampleMatches" @close="explainOpen = false" @prof="setProf" @memo="openMemo" />
+          </Transition>
+          <!-- 単語の画像の拡大表示 -->
+          <Transition name="ui-modal">
+            <div v-if="imgOpen && displayed.vocab.imageUrl" class="overlay ui-overlay">
+              <div class="vimg-modal ui-panel" @click.stop>
+                <AuthImage :key="displayed.vocab.imageUrl" :src="displayed.vocab.imageUrl" class="vimg-large" alt="単語の画像" />
+                <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px">
+                  <button class="prev-btn" :disabled="imgBusy" @click="pickImage">差し替え</button>
+                  <button class="prev-btn" style="color: #cf5563" :disabled="imgBusy" @click="removeImage">削除</button>
+                  <button class="answer-btn" @click="imgOpen = false">閉じる</button>
+                </div>
+              </div>
+            </div>
           </Transition>
           <!-- メモ編集モーダル -->
           <Transition name="ui-modal">
@@ -1557,5 +1657,63 @@ button.vstat.due:disabled .due-go {
   font-size: 10px;
   font-weight: 500;
   opacity: 0.7;
+}
+/* 解答表示の単語画像 */
+.vimg-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.vimg-btn {
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: zoom-in;
+  line-height: 0;
+}
+.vimg-row :deep(.vimg) {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e3e6ea;
+}
+.vimg-acts {
+  display: flex;
+  gap: 6px;
+}
+.vimg-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+  background: #fff;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.vimg-act:disabled {
+  opacity: 0.5;
+}
+.vimg-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px;
+  width: min(640px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+.vimg-modal :deep(.vimg-large) {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 10px;
+  margin: 0 auto;
 }
 </style>

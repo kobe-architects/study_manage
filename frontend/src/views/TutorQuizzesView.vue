@@ -7,10 +7,10 @@ import QuizStats from '@/components/QuizStats.vue'
 import QuizTable from '@/components/QuizTable.vue'
 import PdfPagePicker, { type SelectedPage } from '@/components/PdfPagePicker.vue'
 import VocabTestDialog from '@/components/VocabTestDialog.vue'
-import { renderQuizCover, renderTimeStamp } from '@/lib/pdfCover'
-import { renderVocabSheet, TEST_FORMAT_LABEL, TEST_TYPE_LABEL } from '@/lib/vocabTest'
+import { TEST_TYPE_LABEL } from '@/lib/vocabTest'
 import { quizApi } from '@/api/quiz'
-import { iso, pageGuideMinutes } from '@/lib/design'
+import { iso } from '@/lib/design'
+import { buildQuizCover, buildQuizRenders, buildQuizStamps, newGroupKey, splitQuizParts, toQuizPageSpec, type QuizPart } from '@/lib/quizBuild'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import type { BookPdf, QuizBook, QuizPageSpec, QuizRow, QuizStats as QuizStatsT, QuizSummary } from '@/types'
@@ -140,25 +140,7 @@ const filteredBooks = computed(() =>
 const showVocabCard = computed(() => (bookFilter.subject === '' || bookFilter.subject === '英語') && bookFilter.type === '')
 
 // ---------- パート（教材ごとの提出単位） ----------
-interface Part {
-  key: string
-  bookId: number | null
-  label: string
-  pages: SelectedPage[]
-}
-const parts = computed<Part[]>(() => {
-  const list: Part[] = []
-  for (const p of wiz.pages) {
-    const key = p.kind === 'vocab' ? 'vocab' : `b${p.bookId ?? 0}`
-    let part = list.find((x) => x.key === key)
-    if (!part) {
-      part = { key, bookId: p.kind === 'vocab' ? null : (p.bookId ?? null), label: p.kind === 'vocab' ? '英単語テスト' : p.bookTitle || '教材', pages: [] }
-      list.push(part)
-    }
-    part.pages.push(p)
-  }
-  return list
-})
+const parts = computed<QuizPart[]>(() => splitQuizParts(wiz.pages))
 
 async function loadBooks() {
   wiz.books = await quizApi.books()
@@ -290,14 +272,14 @@ async function save() {
         note: wiz.note.trim() || null,
         dueOn: wiz.dueOn || null,
         maxScore: Math.max(1, Number(wiz.maxScore) || 10),
-        pages: wiz.pages.map(toPageSpec),
+        pages: wiz.pages.map(toQuizPageSpec),
       }
       const part0 = parts.value[0]
-      await quizApi.update(wiz.id, payload, await buildRenders(wiz.pages, baseTitle), await buildCover(baseTitle, part0?.bookId ?? null, part0?.label ?? '', wiz.pages), await buildStamps(wiz.pages))
+      await quizApi.update(wiz.id, payload, await buildQuizRenders(wiz.pages, baseTitle), await buildQuizCover(wiz.books, baseTitle, part0?.bookId ?? null, part0?.label ?? '', wiz.pages), await buildQuizStamps(wiz.pages))
       ui.notify('小テストを更新しました')
     } else {
       // 新規: 教材ごとに別パート（別の小テスト行）として出題し、同じ groupKey でまとめる
-      const groupKey = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+      const groupKey = newGroupKey()
       const list = parts.value
       for (const part of list) {
         const printTitle = list.length > 1 ? `${baseTitle}（${part.label}）` : baseTitle
@@ -308,9 +290,9 @@ async function save() {
           maxScore: Math.max(1, Number(wiz.maxScore) || 10),
           bookId: part.bookId,
           groupKey,
-          pages: part.pages.map(toPageSpec),
+          pages: part.pages.map(toQuizPageSpec),
         }
-        await quizApi.create(payload, await buildRenders(part.pages, printTitle), await buildCover(printTitle, part.bookId, part.label, part.pages), await buildStamps(part.pages))
+        await quizApi.create(payload, await buildQuizRenders(part.pages, printTitle), await buildQuizCover(wiz.books, printTitle, part.bookId, part.label, part.pages), await buildQuizStamps(part.pages))
         created++
       }
       ui.notify(
@@ -329,67 +311,6 @@ async function save() {
   } finally {
     wiz.saving = false
   }
-}
-
-/** 小テストの表紙（科目バッジ・「小テスト」・小テスト名・教材名・氏名／解答日欄）。英単語テストは「英語」の科目色を使う */
-async function buildCover(quizTitle: string, bookId: number | null, bookTitle: string, pages: SelectedPage[]): Promise<Blob> {
-  const book = bookId !== null ? wiz.books.find((b) => b.id === bookId) : wiz.books.find((b) => b.subjectName === '英語')
-  const subject = bookId !== null ? (book?.subjectName ?? '') : '英語'
-  return renderQuizCover({ subject: subject || '－', color: book?.colorVivid ?? '#475569', quizTitle, bookTitle, totalMinutes: totalGuideMinutes(pages) })
-}
-
-/** 目安時間の合計（★のある行のみ。無ければ null） */
-function totalGuideMinutes(pages: SelectedPage[]): number | null {
-  let sum = 0
-  let any = false
-  for (const p of pages) {
-    const m = pageGuideMinutes(p)
-    if (m !== null) {
-      sum += m
-      any = true
-    }
-  }
-  return any ? sum : null
-}
-
-/** 選んだページに出てくる目安時間（分）ごとのスタンプ画像（サーバーが各ページの右上に置く） */
-async function buildStamps(pages: SelectedPage[]): Promise<Record<number, Blob>> {
-  const out: Record<number, Blob> = {}
-  for (const p of pages) {
-    const m = pageGuideMinutes(p)
-    if (m !== null && !out[m]) out[m] = await renderTimeStamp(m)
-  }
-  return out
-}
-
-function toPageSpec(p: SelectedPage): QuizPageSpec {
-  return p.kind === 'vocab'
-    ? { kind: 'vocab', label: p.label, vocab: p.vocab }
-    : { kind: 'pdf', pdfId: p.pdfId, page: p.page, itemId: p.itemId ?? null, label: p.label, refPdfId: p.refPdfId ?? null, refPage: p.refPage ?? null }
-}
-
-/** 英単語テストの問題用紙／解答用紙を画像として描画（サーバーで PDF に組み込む）。問題番号はページを跨いで連番 */
-async function buildRenders(pages: SelectedPage[], printTitle: string): Promise<Record<number, { question: Blob; answer: Blob }>> {
-  const renders: Record<number, { question: Blob; answer: Blob }> = {}
-  let no = 1
-  for (let i = 0; i < pages.length; i++) {
-    const p = pages[i]!
-    if (p.kind !== 'vocab' || !p.vocab) continue
-    const v = p.vocab
-    const names = v.sectionNames.slice(0, 3).join('、') + (v.sectionNames.length > 3 ? ' 他' : '')
-    const spec = {
-      title: `${v.resourceName} 英単語テスト`,
-      sub: `${TEST_TYPE_LABEL[v.testType]}・${TEST_FORMAT_LABEL[v.testFormat]}（${v.words.length}問）${names ? '　' + names : ''}`,
-      type: v.testType,
-      format: v.testFormat,
-      words: v.words,
-      startNo: no,
-      pageLabel: `${printTitle}　${i + 1} / ${pages.length}`,
-    }
-    no += v.words.length
-    renders[i] = { question: await renderVocabSheet(spec, false), answer: await renderVocabSheet(spec, true) }
-  }
-  return renders
 }
 
 function setDueIn(days: number) {

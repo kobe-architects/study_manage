@@ -274,21 +274,24 @@ class QuizController extends Controller
         $quiz->loadCount(['pages', 'pages as answered_count' => fn ($q) => $q->whereNotNull('answer_path')]);
 
         $data = $this->summary($quiz, $this->scoreSums([$quiz->id])->get($quiz->id), Carbon::today());
-        // 解答（英単語テスト）は講師、または添削済みの場合のみ返す
-        $withAnswers = $request->user()->isTutor() || $quiz->status === Quiz::STATUS_GRADED;
+        // 解答（英単語テスト）は講師・自己出題した生徒、または添削済みの場合のみ返す
+        $withAnswers = $request->user()->isTutor() || $this->isSelfCreated($request, $quiz) || $quiz->status === Quiz::STATUS_GRADED;
         $data['pages'] = $quiz->pages->map(fn (QuizPage $p) => $this->pagePayload($p, $quiz, $withAnswers))->values();
 
         return response()->json(['data' => $data]);
     }
 
-    /** 出題（tutor）: ページ指定から小テストを作成し、出題 PDF を生成する */
+    /**
+     * 出題: ページ指定から小テストを作成し、出題 PDF を生成する。
+     * 講師（tutor）の出題のほか、生徒（owner）が自分で出題する「自己出題」にも使う（created_by が生徒自身。講師側の一覧にも出る）。
+     */
     public function store(Request $request): JsonResponse
     {
         $userId = $this->targetUserId($request);
         $data = $this->validatePayload($request, true);
         // 教材は任意（英単語テストのみの小テストは教材なし）
         $book = ! empty($data['bookId']) ? ResourceBook::where('user_id', $userId)->findOrFail($data['bookId']) : null;
-        $pages = $this->normalizePages($data['pages'], $userId);
+        $pages = $this->normalizePages($data['pages'], $userId, $request->user()->isTutor());
         $this->requireRenders($request, $pages);
 
         $quiz = DB::transaction(function () use ($request, $userId, $data, $book, $pages) {
@@ -310,14 +313,18 @@ class QuizController extends Controller
         $this->saveStamps($quiz, $request);
         $this->generatePdf($quiz);
 
-        // 生徒へ LINE 通知（複数教材をまとめて出題した場合は最初のパートのみ）
+        // LINE 通知（複数教材をまとめて出題した場合は最初のパートのみ）。講師の出題は生徒へ、生徒の自己出題は講師へ
         $gk = $data['groupKey'] ?? null;
         if ($gk === null || ! Quiz::where('group_key', $gk)->where('id', '<', $quiz->id)->exists()) {
-            LineNotify::push(
-                $quiz->user,
-                "小テストが出題されました。\n「{$quiz->title}」"
-                .($quiz->due_on ? '（期限 '.$quiz->due_on->toDateString().'）' : ''),
-            );
+            if ($request->user()->isTutor()) {
+                LineNotify::push(
+                    $quiz->user,
+                    "小テストが出題されました。\n「{$quiz->title}」"
+                    .($quiz->due_on ? '（期限 '.$quiz->due_on->toDateString().'）' : ''),
+                );
+            } else {
+                $this->notifyTutors($quiz->user, "{$this->studentName($quiz->user_id)}さんが小テスト「{$quiz->title}」を自分で出題しました。\n提出されたら採点・添削できます（生徒自身でも採点・添削できます）。");
+            }
         }
 
         return response()->json(['data' => ['id' => $quiz->id]], 201);
@@ -325,7 +332,7 @@ class QuizController extends Controller
 
     public function update(Request $request, Quiz $quiz): JsonResponse
     {
-        $this->authorizeQuiz($request, $quiz);
+        $this->authorizeManage($request, $quiz);
         $data = $this->validatePayload($request, false);
 
         $payload = [];
@@ -347,7 +354,7 @@ class QuizController extends Controller
 
         if (array_key_exists('pages', $data)) {
             abort_unless($quiz->status === Quiz::STATUS_ASSIGNED, 422, '提出後は出題ページを変更できません。');
-            $pages = $this->normalizePages($data['pages'], $quiz->user_id);
+            $pages = $this->normalizePages($data['pages'], $quiz->user_id, $request->user()->isTutor());
             $this->requireRenders($request, $pages);
             DB::transaction(function () use ($quiz, $pages, $request) {
                 Storage::disk('local')->deleteDirectory($quiz->dir().'/vocab');
@@ -368,7 +375,7 @@ class QuizController extends Controller
 
     public function destroy(Request $request, Quiz $quiz): JsonResponse
     {
-        $this->authorizeQuiz($request, $quiz);
+        $this->authorizeManage($request, $quiz);
         $quiz->delete(); // booted() でファイル一式も削除
 
         return response()->json(['message' => 'deleted']);
@@ -382,7 +389,7 @@ class QuizController extends Controller
         $this->authorizeQuiz($request, $quiz);
         abort_if($quiz->file_path === null, 404);
 
-        if ($request->boolean('answers') && $request->user()->isTutor()) {
+        if ($request->boolean('answers') && ($request->user()->isTutor() || $this->isSelfCreated($request, $quiz))) {
             $withAnswers = $this->buildPdfWithAnswers($quiz);
             if ($withAnswers !== null) {
                 return response()->file($withAnswers, [
@@ -435,10 +442,10 @@ class QuizController extends Controller
         return $disk->path($rel);
     }
 
-    /** 英単語テストの解答 PDF（講師用） */
+    /** 英単語テストの解答 PDF（講師用。自己出題した生徒も） */
     public function answersPdf(Request $request, Quiz $quiz): BinaryFileResponse
     {
-        $this->authorizeQuiz($request, $quiz);
+        $this->authorizeManage($request, $quiz);
         $disk = Storage::disk('local');
         $images = [];
         foreach ($quiz->pages()->get() as $p) {
@@ -600,7 +607,12 @@ class QuizController extends Controller
         } else {
             $message = "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を提出しました。\n".$noteLine.'採点・添削をお願いします。';
         }
-        LineNotify::push($quiz->creator, $message);
+        if ($quiz->created_by === $quiz->user_id) {
+            // 自己出題: 出題者は生徒自身なので、担当の講師たちへ
+            $this->notifyTutors($quiz->user, $message);
+        } else {
+            LineNotify::push($quiz->creator, $message);
+        }
 
         return response()->json(['data' => ['id' => $quiz->id, 'status' => $quiz->status, 'selfGraded' => $quiz->self_graded]]);
     }
@@ -611,6 +623,7 @@ class QuizController extends Controller
     public function saveAnnotations(Request $request, Quiz $quiz, QuizPage $page): JsonResponse
     {
         $this->authorizePage($request, $quiz, $page);
+        $this->authorizeManage($request, $quiz);
         $data = $request->validate([
             'annotations' => ['nullable', 'string', 'max:4000000'],
             'image' => ['nullable', 'file', 'max:25600'],
@@ -643,6 +656,7 @@ class QuizController extends Controller
     public function grade(Request $request, Quiz $quiz, QuizPage $page): JsonResponse
     {
         $this->authorizePage($request, $quiz, $page);
+        $this->authorizeManage($request, $quiz);
         $data = $request->validate([
             'comment' => ['nullable', 'string', 'max:2000'],
         ]);
@@ -654,7 +668,7 @@ class QuizController extends Controller
     /** 小テスト全体の採点（得点＝分子・満点＝分母）。null で未入力に戻せる */
     public function score(Request $request, Quiz $quiz): JsonResponse
     {
-        $this->authorizeQuiz($request, $quiz);
+        $this->authorizeManage($request, $quiz);
         $data = $request->validate([
             'score' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'maxScore' => ['nullable', 'integer', 'min:1', 'max:100000'],
@@ -675,18 +689,22 @@ class QuizController extends Controller
     /** 添削完了（得点・満点が入力済みで status: graded） */
     public function finish(Request $request, Quiz $quiz): JsonResponse
     {
-        $this->authorizeQuiz($request, $quiz);
+        $this->authorizeManage($request, $quiz);
         abort_if($quiz->score === null || $quiz->max_score === null, 422, '採点（得点・満点）が未入力です。');
 
-        // 講師が完了した採点で自己採点を上書きする
-        $quiz->update(['status' => Quiz::STATUS_GRADED, 'graded_at' => now(), 'self_graded' => false]);
+        // 講師が完了した採点で自己採点を上書きする（生徒が自分で添削して完了したときは「自己採点」のまま）
+        $quiz->update(['status' => Quiz::STATUS_GRADED, 'graded_at' => now(), 'self_graded' => ! $request->user()->isTutor()]);
 
-        // 生徒へ LINE 通知（連携時のみ）
+        // LINE 通知（連携時のみ）。講師が完了すれば生徒へ、生徒が自分で完了すれば講師たちへ
         $scoreText = "（{$quiz->score} / {$quiz->max_score}点）";
-        LineNotify::push(
-            $quiz->user,
-            "小テスト「{$quiz->title}」の採点・添削が完了しました{$scoreText}。\n結果を確認しましょう。",
-        );
+        if ($request->user()->isTutor()) {
+            LineNotify::push(
+                $quiz->user,
+                "小テスト「{$quiz->title}」の採点・添削が完了しました{$scoreText}。\n結果を確認しましょう。",
+            );
+        } else {
+            $this->notifyTutors($quiz->user, "{$this->studentName($quiz->user_id)}さんが小テスト「{$quiz->title}」を自分で採点・添削して完了しました{$scoreText}。");
+        }
 
         return response()->json(['data' => ['id' => $quiz->id, 'status' => $quiz->status]]);
     }
@@ -694,7 +712,7 @@ class QuizController extends Controller
     /** 添削のやり直し（graded → submitted） */
     public function reopen(Request $request, Quiz $quiz): JsonResponse
     {
-        $this->authorizeQuiz($request, $quiz);
+        $this->authorizeManage($request, $quiz);
         abort_unless($quiz->status === Quiz::STATUS_GRADED, 422, '採点・添削済みの小テストではありません。');
         $quiz->update(['status' => Quiz::STATUS_SUBMITTED, 'graded_at' => null]);
 
@@ -967,16 +985,16 @@ class QuizController extends Controller
     }
 
     /** ページ指定を検証（生徒の教材に属する PDF / 行 / 単語帳のみ許可し、ページ範囲を確認） */
-    private function normalizePages(array $pages, int $userId): array
+    private function normalizePages(array $pages, int $userId, bool $isTutor = true): array
     {
         $pdfs = ResourceBookPdf::whereHas('book', fn ($q) => $q->where('user_id', $userId))->get()->keyBy('id');
         $itemIds = array_values(array_filter(array_map(fn ($p) => $p['itemId'] ?? null, $pages)));
         $items = $itemIds === []
             ? collect()
             : ResourceBookItem::whereIn('id', $itemIds)->whereHas('book', fn ($q) => $q->where('user_id', $userId))->get()->keyBy('id');
-        // 出題は講師のみのため、生徒専用の単語帳（鉄壁）は選択不可
+        // 講師の出題では生徒専用の単語帳（鉄壁）は選択不可（生徒の自己出題では使える）
         $resources = StudyResource::where('user_id', $userId)
-            ->whereNotIn('name', StudyResourceController::TUTOR_HIDDEN_NAMES)
+            ->when($isTutor, fn ($q) => $q->whereNotIn('name', StudyResourceController::TUTOR_HIDDEN_NAMES))
             ->get()
             ->keyBy('id');
 
@@ -1225,6 +1243,8 @@ class QuizController extends Controller
             'subjectColor' => ($q->book ? $q->book->subject?->color_vivid : $this->englishSubject($q->user_id)?->color_vivid) ?? '#475569',
             'studentName' => $this->studentName($q->user_id),
             'createdByName' => $q->creator?->name,
+            // 生徒が自分で出題した小テスト（講師の採点・添削のほか、生徒自身でも採点・添削できる）
+            'selfCreated' => $q->created_by !== null && $q->created_by === $q->user_id,
             'overdue' => $q->status === Quiz::STATUS_ASSIGNED && $q->due_on !== null && $q->due_on->lt($today),
         ];
     }
@@ -1325,5 +1345,26 @@ class QuizController extends Controller
     {
         $this->authorizeQuiz($request, $quiz);
         abort_unless($page->quiz_id === $quiz->id, 404);
+    }
+
+    /** 生徒が自分で出題した小テストか（created_by が生徒自身） */
+    private function isSelfCreated(Request $request, Quiz $quiz): bool
+    {
+        return ! $request->user()->isTutor() && $quiz->created_by === $request->user()->id;
+    }
+
+    /** 出題内容の変更・削除・採点・添削: 講師はすべて、生徒は自分で出題したものだけ */
+    private function authorizeManage(Request $request, Quiz $quiz): void
+    {
+        $this->authorizeQuiz($request, $quiz);
+        abort_unless($request->user()->isTutor() || $this->isSelfCreated($request, $quiz), 403, 'この小テストは先生が出題したものです。');
+    }
+
+    /** 生徒の担当講師たちへ LINE 通知（連携している講師のみ） */
+    private function notifyTutors(User $student, string $message): void
+    {
+        foreach ($student->tutors()->get() as $tutor) {
+            LineNotify::push($tutor, $message);
+        }
     }
 }

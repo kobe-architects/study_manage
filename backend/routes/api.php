@@ -16,6 +16,7 @@ use App\Http\Controllers\RecordController;
 use App\Http\Controllers\ResourceBookController;
 use App\Http\Controllers\ResourceBookPdfController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\SharedFileController;
 use App\Http\Controllers\StudyItemController;
 use App\Http\Controllers\StudyResourceController;
 use App\Http\Controllers\StudyTaskController;
@@ -190,6 +191,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/quizzes/{quiz}/pages/{page}/render-image', [QuizController::class, 'renderImage']);
         Route::post('/quizzes/{quiz}/pages/{page}/answer', [QuizController::class, 'uploadAnswer']);
         Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit']);
+        // 自己出題（生徒が自分で小テストを登録。講師側の一覧にも出る）と、自己出題した小テストの編集・削除・採点・添削（講師の採点と両方できる）
+        Route::post('/quizzes', [QuizController::class, 'store']);
+        Route::put('/quizzes/{quiz}', [QuizController::class, 'update']);
+        Route::delete('/quizzes/{quiz}', [QuizController::class, 'destroy']);
+        Route::get('/quizzes/{quiz}/answers-pdf', [QuizController::class, 'answersPdf']);
+        Route::post('/quizzes/{quiz}/pages/{page}/annotations', [QuizController::class, 'saveAnnotations']);
+        Route::put('/quizzes/{quiz}/pages/{page}/grade', [QuizController::class, 'grade']);
+        Route::put('/quizzes/{quiz}/score', [QuizController::class, 'score']);
+        Route::post('/quizzes/{quiz}/finish', [QuizController::class, 'finish']);
+        Route::post('/quizzes/{quiz}/reopen', [QuizController::class, 'reopen']);
 
         // ===== 英文法・語法 問題演習（スクランブル。問題は共通データ・回答履歴は生徒ごと。採点は画面側） =====
         Route::get('/grammar/books', [GrammarController::class, 'books']);
@@ -242,6 +253,19 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // トップページ用: 英単語の習得進捗（全体 + セクション別）
         Route::get('/vocabulary-progress', [VocabularyQuizController::class, 'homeProgress']);
+
+        // ===== ファイル共有（生徒と講師で学習データの PDF などを階層フォルダで共有。検索・閲覧） =====
+        Route::get('/shared/browse', [SharedFileController::class, 'browse']);
+        Route::get('/shared/folders', [SharedFileController::class, 'folders']);
+        Route::get('/shared/search', [SharedFileController::class, 'search']);
+        Route::post('/shared/folders', [SharedFileController::class, 'storeFolder']);
+        Route::put('/shared/folders/{folder}', [SharedFileController::class, 'updateFolder']);
+        Route::delete('/shared/folders/{folder}', [SharedFileController::class, 'destroyFolder']);
+        Route::post('/shared/files/chunk', [SharedFileController::class, 'uploadChunk']);
+        Route::post('/shared/files', [SharedFileController::class, 'storeFile']);
+        Route::put('/shared/files/{file}', [SharedFileController::class, 'updateFile']);
+        Route::delete('/shared/files/{file}', [SharedFileController::class, 'destroyFile']);
+        Route::get('/shared/files/{file}/file', [SharedFileController::class, 'file']);
     });
 
     // ================================================================
@@ -317,5 +341,23 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/quizzes/{quiz}/score', [QuizController::class, 'score']);
         Route::post('/quizzes/{quiz}/finish', [QuizController::class, 'finish']);
         Route::post('/quizzes/{quiz}/reopen', [QuizController::class, 'reopen']);
+
+        // スクランブル英文法・語法のチェックシート（担当生徒の解答結果を ○△× で画面表示）
+        Route::get('/grammar/books', [GrammarController::class, 'books']);
+        Route::get('/grammar/questions', [GrammarController::class, 'questions']);
+        Route::get('/grammar/checksheet', [GrammarController::class, 'checksheet']);
+
+        // ===== ファイル共有（生徒と講師で学習データの PDF などを階層フォルダで共有。検索・閲覧） =====
+        Route::get('/shared/browse', [SharedFileController::class, 'browse']);
+        Route::get('/shared/folders', [SharedFileController::class, 'folders']);
+        Route::get('/shared/search', [SharedFileController::class, 'search']);
+        Route::post('/shared/folders', [SharedFileController::class, 'storeFolder']);
+        Route::put('/shared/folders/{folder}', [SharedFileController::class, 'updateFolder']);
+        Route::delete('/shared/folders/{folder}', [SharedFileController::class, 'destroyFolder']);
+        Route::post('/shared/files/chunk', [SharedFileController::class, 'uploadChunk']);
+        Route::post('/shared/files', [SharedFileController::class, 'storeFile']);
+        Route::put('/shared/files/{file}', [SharedFileController::class, 'updateFile']);
+        Route::delete('/shared/files/{file}', [SharedFileController::class, 'destroyFile']);
+        Route::get('/shared/files/{file}/file', [SharedFileController::class, 'file']);
     });
 });

@@ -1,21 +1,27 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import CameraCapture from '@/components/CameraCapture.vue'
+import SelfQuizDialog from '@/components/SelfQuizDialog.vue'
 import HelpTip from '@/components/HelpTip.vue'
 import QuizTable from '@/components/QuizTable.vue'
 import QuizPrintDialog from '@/components/QuizPrintDialog.vue'
 import QuizResultModal from '@/components/QuizResultModal.vue'
 import QuizStats from '@/components/QuizStats.vue'
 import { quizApi } from '@/api/quiz'
+import { appConfirm } from '@/lib/dialog'
 import { useQuizActions } from '@/lib/quizActions'
 import { useUiStore } from '@/stores/ui'
 import type { QuizStats as QuizStatsT, QuizSummary } from '@/types'
 
 /** 生徒用: 小テスト一覧（ダウンロード・撮影して提出・結果閲覧）と分析 */
 const ui = useUiStore()
+const router = useRouter()
 const tab = ref<'list' | 'stats'>('list')
 /** 自分で問題 PDF を作って出力するダイアログ（小テストとしては登録しない） */
 const printOpen = ref(false)
+/** 自分で小テストを出題するダイアログ（自己出題。先生にも共有され、提出後は自分でも採点・添削できる） */
+const selfOpen = ref(false)
 const quizzes = ref<QuizSummary[]>([])
 const loading = ref(true)
 const stats = ref<QuizStatsT | null>(null)
@@ -46,6 +52,23 @@ const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(
   if (tab.value === 'stats') await loadStats()
 })
 
+/** 自己出題した小テストの採点・添削（講師と同じ画面） */
+function grade(q: QuizSummary) {
+  router.push({ name: 'quiz-grade', params: { id: q.id } })
+}
+/** 自己出題した小テストの削除 */
+async function remove(q: QuizSummary) {
+  if (!(await appConfirm(`小テスト「${q.title}」を削除しますか？\n提出した回答・採点・添削も削除されます。`, { danger: true, okText: '削除' }))) return
+  try {
+    await quizApi.remove(q.id)
+    ui.notify('削除しました')
+    await load()
+  } catch (e: unknown) {
+    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+    ui.notify(msg || '削除に失敗しました')
+  }
+}
+
 </script>
 
 <template>
@@ -54,10 +77,14 @@ const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(
       <div style="display: flex; align-items: center; gap: 8px">
         <div style="font-size: 17px; font-weight: 700">小テスト</div>
         <HelpTip
-          text="先生が出題した小テストに回答して提出します。複数の教材から出題されている場合、問題PDFや提出は教材ごとに行います。&#10;流れ: 問題PDFを開いて印刷 → 用紙に回答 → 「撮影して提出」でページごとに撮影 → 先生が採点・添削 → 結果と分析を確認"
+          text="先生が出題した小テストに回答して提出します。複数の教材から出題されている場合、問題PDFや提出は教材ごとに行います。&#10;流れ: 問題PDFを開いて印刷 → 用紙に回答 → 「撮影して提出」でページごとに撮影 → 先生が採点・添削 → 結果と分析を確認&#10;「自分で出題」で自分用の小テストを登録することもできます（先生にも共有され、提出後は先生の採点・添削のほか、自分で採点・添削もできます）"
         />
       </div>
       <div style="display: flex; align-items: center; gap: 8px">
+        <button class="btn-print dark" @click="selfOpen = true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+          自分で出題
+        </button>
         <button class="btn-print" @click="printOpen = true">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6" /><rect x="4" y="9" width="16" height="8" rx="2" /><path d="M6 14h12v7H6z" /></svg>
           問題PDFを作る
@@ -74,7 +101,7 @@ const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(
       <div v-else-if="!quizzes.length" class="hint">
         小テストはまだありません。先生が出題すると、ここに問題 PDF のプレビューと回答の提出ボタンが表示されます。
       </div>
-      <QuizTable v-else :quizzes="quizzes" role="owner" @pdf="openPdf($event)" @capture="openCapture($event)" @result="openResult($event)" />
+      <QuizTable v-else :quizzes="quizzes" role="owner" @pdf="openPdf($event)" @capture="openCapture($event)" @result="openResult($event)" @grade="grade($event)" @remove="remove($event)" />
     </template>
 
     <template v-else>
@@ -90,6 +117,9 @@ const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(
     </Transition>
     <Transition name="ui-modal">
       <QuizPrintDialog v-if="printOpen" @close="printOpen = false" />
+    </Transition>
+    <Transition name="ui-modal">
+      <SelfQuizDialog v-if="selfOpen" @close="selfOpen = false" @created="load" />
     </Transition>
   </div>
 </template>
@@ -107,6 +137,11 @@ const { state, openPdf, openCapture, openResult, onSubmitted } = useQuizActions(
   font-weight: 700;
   color: var(--ink);
   cursor: pointer;
+}
+.btn-print.dark {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
 }
 .seg {
   display: inline-flex;

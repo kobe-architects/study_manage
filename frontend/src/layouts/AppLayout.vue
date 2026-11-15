@@ -96,6 +96,8 @@ const activeKey = computed(() => {
     'mistake-new': 'mistake',
     'mistake-edit': 'mistake',
     quizzes: 'test',
+    'quiz-grade': 'test',
+    files: 'files',
     invoices: 'invoice',
     settings: 'settings',
   }

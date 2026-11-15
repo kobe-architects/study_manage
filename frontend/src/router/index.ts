@@ -33,6 +33,10 @@ const router = createRouter({
         { path: 'review', name: 'review', component: () => import('@/views/ReviewView.vue'), meta: { depth: 2, parent: 'english', title: '間違えた単語の復習' } },
         { path: 'flashcard', name: 'flashcard', component: () => import('@/views/FlashcardView.vue'), meta: { depth: 2, parent: 'english', title: 'フラッシュカード' } },
         { path: 'quizzes', name: 'quizzes', component: () => import('@/views/QuizzesView.vue') },
+        // 自分で出題した小テストの採点・添削（講師と同じ画面）
+        { path: 'quizzes/:id/grade', name: 'quiz-grade', component: () => import('@/views/TutorQuizGradeView.vue'), meta: { depth: 2, parent: 'quizzes', title: '採点・添削' } },
+        // ファイル共有（講師と同じ階層フォルダ）
+        { path: 'files', name: 'files', component: () => import('@/views/SharedFilesView.vue') },
         { path: 'invoices', name: 'invoices', component: () => import('@/views/InvoicesView.vue') },
       ],
     },
@@ -71,6 +75,20 @@ const router = createRouter({
           path: 'invoices',
           name: 'tutor-invoices',
           component: () => import('@/views/TutorInvoicesView.vue'),
+          meta: { tutor: true },
+        },
+        // スクランブル英文法・語法のチェックシート（担当生徒の結果を ○△× で表示）
+        {
+          path: 'scramble',
+          name: 'tutor-scramble',
+          component: () => import('@/views/TutorCheckSheetView.vue'),
+          meta: { tutor: true },
+        },
+        // ファイル共有（生徒と同じ階層フォルダ）
+        {
+          path: 'files',
+          name: 'tutor-files',
+          component: () => import('@/views/SharedFilesView.vue'),
           meta: { tutor: true },
         },
       ],
