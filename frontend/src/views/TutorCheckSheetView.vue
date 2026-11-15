@@ -1,12 +1,11 @@
 <script setup lang="ts">
 /**
  * 講師用: スクランブル英文法・語法のチェックシートを画面上で表示する。
- * 生徒側の出力（解いた日付）と違い、回数欄は ○（正解・黒）△（あいまい・青）×（不正解・赤）で表す（日付はツールチップ）。
+ * 生徒側の出力（解いた日付）と違い、回数欄は ○（正解・黒）△（あいまい・青）×（不正解・赤）で表す（日付は出さない）。
  * 文法／語法／語い／イディオム／会話表現／発音・アクセント／読解・作文の文法 を上のタブで切り替える。
  * シートの HTML は生徒側と同じ部品（lib/checkSheet.ts）で組み、iframe に入れて表示する（印刷は iframe の内容を印刷）。
  */
 import { computed, onMounted, ref, watch } from 'vue'
-import HelpTip from '@/components/HelpTip.vue'
 import { grammarApi } from '@/api/grammar'
 import { buildCheckSheetHtml } from '@/lib/checkSheet'
 import { buildBookSheetSpec, buildGrammarSheetSpec, type GrammarMarks } from '@/lib/grammarSheet'
@@ -111,7 +110,6 @@ const stat = computed(() => totals.value[book.value])
     <div class="head-row">
       <div style="display: flex; align-items: center; gap: 8px; min-width: 0">
         <div style="font-size: 17px; font-weight: 700; white-space: nowrap">スクランブル チェックシート</div>
-        <HelpTip text="担当生徒のスクランブル英文法・語法の解答結果を、教材付属のチェックシートと同じ並び（章・Theme・連番）で表示します。&#10;回数欄は解いた日ごとに ○（正解・黒）△（あいまい・青。正解だったが自信がない）×（不正解・赤）。同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら × になります。日付はマークにカーソルを合わせると表示されます。&#10;上のタブで 文法／語法／語い／イディオム／会話表現／発音・アクセント／読解・作文の文法 を切り替えます。" />
       </div>
       <div style="display: flex; align-items: center; gap: 8px">
         <button class="btn-outline" :disabled="loading" @click="reload">更新</button>

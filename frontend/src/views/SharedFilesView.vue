@@ -3,6 +3,8 @@
  * ファイル共有（Google Drive 風）。生徒と講師が同じ階層フォルダを見て、学習データの PDF などを置く・見る・探す。
  * - フォルダは階層（道しるべで上へ）。URL の ?f= に今のフォルダを持つ（戻る・共有できる）
  * - アップロードは 4MB ずつの分割。PDF は画面側で文字を抜き出してサーバーに送り、本文でも検索できるようにする
+ * - フォルダごとまとめてアップロードできる（「フォルダをアップロード」か、フォルダをドラッグ）。中の階層もそのまま作る。
+ *   容量は 1 ファイル 300MB・生徒 1 人の合計（既定 3GB）。始める前に合計を見て、入らなければ受け付けない
  * - PDF は本のようにめくるビューア（ブックマーク対応）で閲覧、画像はそのまま表示、その他は保存
  * - 名前の変更・移動・削除。検索は名前と PDF の本文
  * 生徒・講師の両方で同じ画面（API のプレフィックスだけ違う）。
@@ -31,6 +33,13 @@ const data = ref<SharedBrowse | null>(null)
 const loading = ref(true)
 const dragOver = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
+const folderInput = ref<HTMLInputElement | null>(null)
+/** フォルダ選択（webkitdirectory）が使える端末か。iPhone・iPad の Safari は選べないので出さない */
+const canPickFolder = (() => {
+  const ua = navigator.userAgent
+  const iosLike = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  return !iosLike && 'webkitdirectory' in document.createElement('input')
+})()
 
 async function load() {
   loading.value = true
@@ -277,21 +286,97 @@ interface UploadJob {
   status: 'reading' | 'uploading' | 'done' | 'error'
   message?: string
 }
+/** 選んだ・落とされたファイル 1 つ。rel は落とした場所からのフォルダの道（ファイル名は含まない） */
+interface PickedFile {
+  file: File
+  rel: string[]
+}
 const jobs = ref<UploadJob[]>([])
+/** まとめてアップロード（複数ファイル・フォルダ）の進み具合 */
+const batch = reactive<{ active: boolean; label: string; total: number; done: number; failed: number; bytesTotal: number; bytesDone: number; ctrl: AbortController | null }>({
+  active: false,
+  label: '',
+  total: 0,
+  done: 0,
+  failed: 0,
+  bytesTotal: 0,
+  bytesDone: 0,
+  ctrl: null,
+})
+const batchRatio = computed(() => (batch.bytesTotal ? Math.min(1, batch.bytesDone / batch.bytesTotal) : 0))
+const usage = computed(() => data.value?.usage ?? null)
+const usageRatio = computed(() => (usage.value && usage.value.quotaBytes ? Math.min(1, usage.value.usedBytes / usage.value.quotaBytes) : 0))
+
 function pickFiles() {
   fileInput.value?.click()
+}
+function pickFolder() {
+  folderInput.value?.click()
+}
+/** 隠しファイル・OS の管理ファイルは入れない */
+function isJunk(name: string): boolean {
+  return name.startsWith('.') || /^(Thumbs\.db|desktop\.ini|\.DS_Store)$/i.test(name)
 }
 function onFilesPicked(e: Event) {
   const input = e.target as HTMLInputElement
   const files = Array.from(input.files ?? [])
   input.value = ''
-  uploadFiles(files)
+  startUpload(files.filter((f) => !isJunk(f.name)).map((file) => ({ file, rel: [] })))
 }
-function onDrop(e: DragEvent) {
+/** フォルダ選択: webkitRelativePath（"フォルダ/サブ/ファイル.pdf"）から階層を組む */
+function onFolderPicked(e: Event) {
+  const input = e.target as HTMLInputElement
+  const files = Array.from(input.files ?? [])
+  input.value = ''
+  const items: PickedFile[] = []
+  for (const file of files) {
+    const segs = ((file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name).split('/').filter(Boolean)
+    const name = segs.pop() ?? file.name
+    if (isJunk(name) || segs.some(isJunk)) continue
+    items.push({ file, rel: segs })
+  }
+  startUpload(items)
+}
+async function onDrop(e: DragEvent) {
   dragOver.value = false
-  const files = Array.from(e.dataTransfer?.files ?? [])
-  if (files.length) uploadFiles(files)
+  const dt = e.dataTransfer
+  if (!dt) return
+  const items = await collectDropped(dt)
+  if (items.length) startUpload(items)
 }
+/** ドロップされたもの（ファイル・フォルダ）を階層ごと集める。フォルダが読めないブラウザはファイルだけ */
+async function collectDropped(dt: DataTransfer): Promise<PickedFile[]> {
+  type Entry = { isFile: boolean; isDirectory: boolean; name: string; file: (ok: (f: File) => void, ng: (e: unknown) => void) => void; createReader: () => { readEntries: (ok: (es: Entry[]) => void, ng: (e: unknown) => void) => void } }
+  const entries: Entry[] = []
+  for (const it of Array.from(dt.items ?? [])) {
+    const getEntry = (it as DataTransferItem & { webkitGetAsEntry?: () => Entry | null }).webkitGetAsEntry
+    const en = typeof getEntry === 'function' ? getEntry.call(it) : null
+    if (en) entries.push(en)
+  }
+  if (!entries.length) return Array.from(dt.files ?? []).filter((f) => !isJunk(f.name)).map((file) => ({ file, rel: [] }))
+  const out: PickedFile[] = []
+  const walk = async (en: Entry, rel: string[]) => {
+    if (isJunk(en.name)) return
+    if (en.isFile) {
+      const f = await new Promise<File>((ok, ng) => en.file(ok, ng)).catch(() => null)
+      if (f) out.push({ file: f, rel })
+      return
+    }
+    if (!en.isDirectory) return
+    const reader = en.createReader()
+    // readEntries は 100 件ずつしか返さないので空になるまで繰り返す
+    for (;;) {
+      const chunk = await new Promise<Entry[]>((ok, ng) => reader.readEntries(ok, ng)).catch(() => [] as Entry[])
+      if (!chunk.length) break
+      for (const c of chunk) await walk(c, [...rel, en.name])
+      if (out.length > MAX_FILES + 1) return
+    }
+  }
+  for (const en of entries) await walk(en, [])
+  return out
+}
+/** 1 回にまとめて送れるファイル数 */
+const MAX_FILES = 1000
 /** PDF の文字を抜き出す（本文検索用）。大きすぎる・読めない PDF は本文なしで登録する */
 async function extractPdf(file: File): Promise<{ text: string | null; pageCount: number | null }> {
   if (file.size > 80 * 1024 * 1024) return { text: null, pageCount: null }
@@ -321,27 +406,129 @@ async function extractPdf(file: File): Promise<{ text: string | null; pageCount:
     return { text: null, pageCount: null }
   }
 }
-async function uploadFiles(files: File[]) {
+/**
+ * アップロードの入口。容量（1 ファイルの上限・合計の上限・件数）を先に確かめ、
+ * 複数ファイルやフォルダなら中身の数と合計を見せて確認してから始める。
+ */
+async function startUpload(items: PickedFile[]) {
+  if (!items.length) return
+  if (batch.active) {
+    ui.notify('アップロード中です。終わってからもう一度お試しください。')
+    return
+  }
+  if (items.length > MAX_FILES) {
+    ui.notify(`一度に送れるのは ${MAX_FILES} ファイルまでです（${items.length} ファイル選ばれています）。フォルダを分けてアップロードしてください。`)
+    return
+  }
+  const u = usage.value ?? { usedBytes: 0, quotaBytes: 3 * 1024 * 1024 * 1024, maxFileBytes: 300 * 1024 * 1024 }
+  const tooBig = items.filter((it) => it.file.size > u.maxFileBytes)
+  const okItems = items.filter((it) => it.file.size <= u.maxFileBytes)
+  const total = okItems.reduce((a, it) => a + it.file.size, 0)
+  const remain = Math.max(0, u.quotaBytes - u.usedBytes)
+  if (total > remain) {
+    ui.notify(`容量が足りません。追加する合計 ${fmtBytes(total)} に対して残りは ${fmtBytes(remain)} です（上限 ${fmtBytes(u.quotaBytes)}）。不要なファイルを削除してから追加してください。`)
+    return
+  }
+  const dirs = new Set(okItems.filter((it) => it.rel.length).map((it) => it.rel.join('/')))
+  const isBatch = okItems.length > 1 || dirs.size > 0 || tooBig.length > 0
+  const tops = Array.from(new Set(items.map((it) => it.rel[0]).filter((x): x is string => !!x)))
+  const label = tops.length === 1 ? `フォルダ「${tops[0]}」` : tops.length > 1 ? `${tops.length} フォルダ` : `${okItems.length} ファイル`
+  if (isBatch) {
+    const lines = [`${label}をアップロードします。`, `${okItems.length} ファイル${dirs.size ? `・${dirs.size} フォルダ` : ''}・合計 ${fmtBytes(total)}`, `（アップロード後の使用量 ${fmtBytes(u.usedBytes + total)} / ${fmtBytes(u.quotaBytes)}）`]
+    if (tooBig.length) lines.push('', `次の ${tooBig.length} ファイルは 1 ファイルの上限（${fmtBytes(u.maxFileBytes)}）を超えるため送りません:`, ...tooBig.slice(0, 5).map((it) => `・${it.file.name}（${fmtBytes(it.file.size)}）`), ...(tooBig.length > 5 ? [`・ほか ${tooBig.length - 5} ファイル`] : []))
+    if (!okItems.length) {
+      ui.notify(lines.slice(3).join('\n'))
+      return
+    }
+    if (!(await appConfirm(lines.join('\n'), { okText: 'アップロード' }))) return
+  }
+  await runUpload(okItems, { isBatch, label, topName: tops.length === 1 ? tops[0] : null })
+}
+async function runUpload(items: PickedFile[], opt: { isBatch: boolean; label: string; topName: string | null }) {
   const target = folderId.value
-  for (const file of files) {
-    const job: UploadJob = { name: file.name, size: file.size, ratio: 0, status: 'reading' }
+  const ctrl = new AbortController()
+  Object.assign(batch, { active: true, label: opt.label, total: items.length, done: 0, failed: 0, bytesTotal: items.reduce((a, it) => a + it.file.size, 0), bytesDone: 0, ctrl })
+  /** 作ったフォルダの ID（道 → ID）。同じ道は 1 回だけ作る */
+  const folderIds = new Map<string, number | null>([['', target]])
+  const folderIdFor = async (rel: string[]): Promise<number | null> => {
+    const key = rel.join('/')
+    const hit = folderIds.get(key)
+    if (hit !== undefined) return hit
+    const id = await sharedApi.ensureFolders(target, rel)
+    folderIds.set(key, id)
+    return id
+  }
+  // 浅いフォルダから順に作る（深い道は親まで一緒に作られる）
+  const sorted = [...items].sort((a, b) => a.rel.length - b.rel.length || a.rel.join('/').localeCompare(b.rel.join('/')) || a.file.name.localeCompare(b.file.name))
+  let aborted = false
+  for (const it of sorted) {
+    if (ctrl.signal.aborted) {
+      aborted = true
+      break
+    }
+    const file = it.file
+    const job: UploadJob = { name: it.rel.length ? `${it.rel.join('/')}/${file.name}` : file.name, size: file.size, ratio: 0, status: 'reading' }
     jobs.value = [...jobs.value, job]
+    const before = batch.bytesDone
     try {
-      if (file.size > 300 * 1024 * 1024) throw new Error('ファイルが大きすぎます（上限 300MB）')
+      const fid = await folderIdFor(it.rel)
       const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf'
       const extra = isPdf ? await extractPdf(file) : { text: null, pageCount: null }
+      if (ctrl.signal.aborted) throw new DOMException('aborted', 'AbortError')
       job.status = 'uploading'
-      await sharedApi.upload(target, file, { searchText: extra.text, pageCount: extra.pageCount }, (r) => (job.ratio = r))
+      await sharedApi.upload(
+        fid,
+        file,
+        { searchText: extra.text, pageCount: extra.pageCount, silent: opt.isBatch },
+        (r) => {
+          job.ratio = r
+          batch.bytesDone = before + Math.round(file.size * r)
+        },
+        ctrl.signal,
+      )
       job.status = 'done'
       job.ratio = 1
+      batch.done++
+      batch.bytesDone = before + file.size
+      if (opt.isBatch) jobs.value = jobs.value.filter((j) => j !== job)
     } catch (e: unknown) {
+      if (ctrl.signal.aborted || (e as { name?: string })?.name === 'AbortError' || (e as { code?: string })?.code === 'ERR_CANCELED') {
+        jobs.value = jobs.value.filter((j) => j !== job)
+        aborted = true
+        break
+      }
       job.status = 'error'
       job.message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message || (e as Error)?.message || 'アップロードに失敗しました'
+      batch.failed++
+      batch.bytesDone = before + file.size
+      // 容量の上限に当たったら残りは送っても入らないので止める
+      if (/容量/.test(job.message)) {
+        aborted = true
+        break
+      }
     }
   }
+  if (opt.isBatch && batch.done > 0) {
+    try {
+      await sharedApi.notifyUploaded(target, opt.topName ?? opt.label, batch.done)
+    } catch {
+      /* 通知は無くても登録は済んでいる */
+    }
+  }
+  batch.active = false
+  batch.ctrl = null
+  if (aborted) ui.notify(ctrl.signal.aborted ? `アップロードを中止しました（${batch.done} ファイルは追加済み）` : `${batch.done} ファイルを追加し、途中で止まりました`)
+  else if (opt.isBatch) ui.notify(batch.failed ? `${batch.done} ファイルを追加しました（${batch.failed} ファイルは失敗）` : `${batch.done} ファイルを追加しました`)
   if (folderId.value === target) await load()
+  else if (search.results) await runSearch()
   // 成功したものは少し後に消す
   window.setTimeout(() => (jobs.value = jobs.value.filter((j) => j.status !== 'done')), 4000)
+}
+function cancelUpload() {
+  batch.ctrl?.abort()
+}
+function clearErrors() {
+  jobs.value = jobs.value.filter((j) => j.status !== 'error')
 }
 
 function fmtDate(s: string | null): string {
@@ -362,7 +549,7 @@ function fileKind(f: SharedFile): string {
     <div class="head-row">
       <div style="display: flex; align-items: center; gap: 8px; min-width: 0">
         <div style="font-size: 17px; font-weight: 700; white-space: nowrap">ファイル共有</div>
-        <HelpTip text="生徒と先生で同じフォルダを共有します。学習データの PDF などをフォルダに分けて置き、先生が確認できます。&#10;「アップロード」またはここにファイルをドラッグして追加。PDF は本のようにめくって読め、PDF にブックマーク（目次）があれば左に表示されます。&#10;検索はファイル名・フォルダ名のほか、PDF の本文（文字が入っている PDF）も対象です。&#10;「⋯」から名前の変更・移動・削除ができます。" />
+        <HelpTip text="生徒と先生で同じフォルダを共有します。学習データの PDF などをフォルダに分けて置き、先生が確認できます。&#10;「アップロード」またはここにファイル・フォルダをドラッグして追加。「フォルダをアップロード」でフォルダの中身を階層ごとまとめて追加できます（パソコンから）。&#10;容量は 1 ファイル 300MB まで、全体で右上に表示の上限まで。足りないときは不要なファイルを削除してください。&#10;PDF は本のようにめくって読め、PDF にブックマーク（目次）があれば左に表示されます。&#10;検索はファイル名・フォルダ名のほか、PDF の本文（文字が入っている PDF）も対象です。&#10;「⋯」から名前の変更・移動・削除ができます。" />
       </div>
       <div class="tools">
         <div class="search">
@@ -374,16 +561,31 @@ function fileKind(f: SharedFile): string {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M12 11v6M9 14h6" /></svg>
           新しいフォルダ
         </button>
-        <button class="btn-dark" @click="pickFiles">
+        <button v-if="canPickFolder" class="btn-outline" :disabled="batch.active" @click="pickFolder">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M12 17v-6" /><path d="M9.5 13.5 12 11l2.5 2.5" /></svg>
+          フォルダをアップロード
+        </button>
+        <button class="btn-dark" :disabled="batch.active" @click="pickFiles">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4" /><path d="M7 9l5-5 5 5" /><path d="M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4" /></svg>
           アップロード
         </button>
         <input ref="fileInput" type="file" multiple style="display: none" @change="onFilesPicked" />
+        <input ref="folderInput" type="file" multiple webkitdirectory style="display: none" @change="onFolderPicked" />
       </div>
     </div>
 
     <!-- 進行中のアップロード -->
-    <div v-if="jobs.length" class="jobs">
+    <div v-if="jobs.length || batch.active" class="jobs">
+      <div v-if="batch.active" class="job batch">
+        <span class="job-name">{{ batch.label }}をアップロード中… {{ batch.done + batch.failed }} / {{ batch.total }} ファイル</span>
+        <span class="job-size">{{ fmtBytes(batch.bytesDone) }} / {{ fmtBytes(batch.bytesTotal) }}</span>
+        <button type="button" class="job-cancel" @click="cancelUpload">中止</button>
+        <span class="job-bar"><span :style="{ width: `${Math.round(batchRatio * 100)}%` }"></span></span>
+      </div>
+      <div v-if="!batch.active && jobs.some((j) => j.status === 'error')" class="job-errhead">
+        <span>失敗したファイル</span>
+        <button type="button" class="job-cancel" @click="clearErrors">閉じる</button>
+      </div>
       <div v-for="(j, i) in jobs" :key="i" class="job" :class="j.status">
         <span class="job-name">{{ j.name }}</span>
         <span class="job-size">{{ fmtBytes(j.size) }}</span>
@@ -439,13 +641,17 @@ function fileKind(f: SharedFile): string {
           <span class="sep">›</span>
           <button class="crumb" :class="{ cur: c.id === folderId }" @click="openFolder(c.id)">{{ c.name }}</button>
         </template>
+        <div v-if="usage" class="usage" :class="{ warn: usageRatio > 0.9 }" :title="`1 ファイル ${fmtBytes(usage.maxFileBytes)} まで`">
+          <span class="usage-bar"><span :style="{ width: `${Math.round(usageRatio * 100)}%` }"></span></span>
+          <span class="usage-txt">{{ fmtBytes(usage.usedBytes) }} / {{ fmtBytes(usage.quotaBytes) }}</span>
+        </div>
       </div>
 
       <div v-if="loading && !data" class="hint">読み込み中…</div>
       <template v-else-if="data">
         <div v-if="!data.folders.length && !data.files.length" class="hint drop-hint">
           <div>このフォルダは空です。</div>
-          <div style="margin-top: 6px">「アップロード」からファイルを追加するか、ここにファイルをドラッグしてください。</div>
+          <div style="margin-top: 6px">「アップロード」からファイルを追加するか、ここにファイルやフォルダをドラッグしてください。</div>
         </div>
 
         <div v-if="data.folders.length" class="sec-title">フォルダ</div>
@@ -660,6 +866,56 @@ function fileKind(f: SharedFile): string {
 }
 .job.error .job-bar span {
   background: #c0444f;
+}
+.job.batch .job-name {
+  color: var(--ink);
+}
+.job-cancel {
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+  background: #fff;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--mut);
+  cursor: pointer;
+}
+.job-errhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0 2px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #c0444f;
+}
+.usage {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--faint);
+  white-space: nowrap;
+}
+.usage-bar {
+  width: 90px;
+  height: 5px;
+  background: #e9ecf0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.usage-bar span {
+  display: block;
+  height: 100%;
+  background: #3b50cc;
+}
+.usage.warn .usage-bar span {
+  background: #c0444f;
+}
+.usage.warn .usage-txt {
+  color: #c0444f;
+  font-weight: 700;
 }
 .crumbs {
   display: flex;

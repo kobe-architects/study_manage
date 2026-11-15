@@ -33,6 +33,17 @@ export const sharedApi = {
     return data.data
   },
 
+  /** フォルダ階層をまとめて用意（無い階層だけ作る）。末端のフォルダ ID を返す。フォルダごとアップロード用 */
+  async ensureFolders(parentId: number | null, path: string[]): Promise<number> {
+    const { data } = await client.post(`${p()}/shared/folders/ensure`, { parentId, path })
+    return data.data.folderId as number
+  },
+
+  /** フォルダごとアップロードの完了をまとめて相手に通知（ファイルごとの通知は silent で止めている） */
+  async notifyUploaded(folderId: number | null, folderName: string, fileCount: number): Promise<void> {
+    await client.post(`${p()}/shared/notify-uploaded`, { folderId, folderName, fileCount })
+  },
+
   async updateFolder(id: number, patch: { name?: string; parentId?: number | null }): Promise<SharedFolder> {
     const { data } = await client.put(`${p()}/shared/folders/${id}`, patch)
     return data.data
@@ -45,24 +56,29 @@ export const sharedApi = {
   /**
    * 分割アップロード → 確定。onProgress は 0..1。
    * searchText は画面側（pdf.js）で抜き出した PDF の文字（本文検索用。任意）。
+   * silent なら相手への LINE 通知をしない（フォルダごとのアップロードで最後にまとめて知らせるとき）。
+   * signal で途中で止められる（止めたら AbortError）。
    */
   async upload(
     folderId: number | null,
     file: File,
-    extra: { searchText?: string | null; pageCount?: number | null } = {},
+    extra: { searchText?: string | null; pageCount?: number | null; silent?: boolean } = {},
     onProgress?: (ratio: number) => void,
+    signal?: AbortSignal,
   ): Promise<SharedFile> {
     const uploadId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`
     const total = Math.max(1, Math.ceil(file.size / CHUNK_SIZE))
     for (let i = 0; i < total; i++) {
+      signal?.throwIfAborted()
       const fd = new FormData()
       fd.append('uploadId', uploadId)
       fd.append('index', String(i))
       fd.append('total', String(total))
       fd.append('chunk', file.slice(i * CHUNK_SIZE, Math.min(file.size, (i + 1) * CHUNK_SIZE)), 'chunk.bin')
-      await client.post(`${p()}/shared/files/chunk`, fd)
+      await client.post(`${p()}/shared/files/chunk`, fd, { signal })
       onProgress?.((i + 1) / total)
     }
+    signal?.throwIfAborted()
     const { data } = await client.post(`${p()}/shared/files`, {
       uploadId,
       folderId,
@@ -70,6 +86,7 @@ export const sharedApi = {
       mime: file.type || null,
       searchText: extra.searchText ?? null,
       pageCount: extra.pageCount ?? null,
+      silent: extra.silent ? 1 : 0,
     })
     return data.data
   },

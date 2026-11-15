@@ -61,7 +61,7 @@ export interface SheetSpec {
   accent?: string
   /** 用紙: portrait2 = A4 縦 2 段（既定）/ landscape1 = A4 横 1 段（回数欄を 30 回ぶん並べる英単語用） */
   layout?: 'portrait2' | 'landscape1'
-  /** 回数欄の表し方: date = 解いた日付（既定。生徒用）/ symbol = ○（正解・黒）△（あいまい・青）×（不正解・赤）（講師の画面表示用。日付はツールチップ） */
+  /** 回数欄の表し方: date = 解いた日付（既定。生徒用）/ symbol = ○（正解・黒）△（あいまい・青）×（不正解・赤）（講師の画面表示用。日付は出さない） */
   markMode?: 'date' | 'symbol'
   /** 印刷ボタンを出さない（画面に埋め込んで表示するとき） */
   noToolbar?: boolean
@@ -216,7 +216,7 @@ function renderColumn(spec: SheetSpec, blocks: Block[], markCount: number, markW
     for (let k = 0; k < markCount; k++) {
       const m = marks[k]
       if (!m) tds.push('<td class="mk"></td>')
-      else if (spec.markMode === 'symbol') tds.push(`<td class="mk sym ${m.status === 0 ? 'ng' : m.status === 2 ? 'un' : 'ok'}" title="${esc(m.date)}">${m.status === 0 ? '×' : m.status === 2 ? '△' : '○'}</td>`)
+      else if (spec.markMode === 'symbol') tds.push(`<td class="mk sym ${m.status === 0 ? 'ng' : m.status === 2 ? 'un' : 'ok'}">${m.status === 0 ? '×' : m.status === 2 ? '△' : '○'}</td>`)
       else tds.push(`<td class="mk ${m.status === 0 ? 'ng' : m.status === 2 ? 'un' : 'ok'}" title="${esc(m.date)}">${esc(markLabel(m.date))}</td>`)
     }
     body.push(`<tr>${tds.join('')}</tr>`)

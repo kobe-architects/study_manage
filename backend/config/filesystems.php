@@ -28,6 +28,11 @@ return [
     |
     */
 
+    /*
+    | ファイル共有（shared_files）: 生徒 1 人あたりの合計容量（MB）。.env の SHARED_QUOTA_MB で変更
+    */
+    'shared_quota_mb' => (int) env('SHARED_QUOTA_MB', 3072),
+
     'disks' => [
 
         'local' => [

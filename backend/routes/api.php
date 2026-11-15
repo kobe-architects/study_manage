@@ -259,6 +259,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/shared/folders', [SharedFileController::class, 'folders']);
         Route::get('/shared/search', [SharedFileController::class, 'search']);
         Route::post('/shared/folders', [SharedFileController::class, 'storeFolder']);
+        Route::post('/shared/folders/ensure', [SharedFileController::class, 'ensureFolders']);
+        Route::post('/shared/notify-uploaded', [SharedFileController::class, 'notifyUploaded']);
         Route::put('/shared/folders/{folder}', [SharedFileController::class, 'updateFolder']);
         Route::delete('/shared/folders/{folder}', [SharedFileController::class, 'destroyFolder']);
         Route::post('/shared/files/chunk', [SharedFileController::class, 'uploadChunk']);
@@ -352,6 +354,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/shared/folders', [SharedFileController::class, 'folders']);
         Route::get('/shared/search', [SharedFileController::class, 'search']);
         Route::post('/shared/folders', [SharedFileController::class, 'storeFolder']);
+        Route::post('/shared/folders/ensure', [SharedFileController::class, 'ensureFolders']);
+        Route::post('/shared/notify-uploaded', [SharedFileController::class, 'notifyUploaded']);
         Route::put('/shared/folders/{folder}', [SharedFileController::class, 'updateFolder']);
         Route::delete('/shared/folders/{folder}', [SharedFileController::class, 'destroyFolder']);
         Route::post('/shared/files/chunk', [SharedFileController::class, 'uploadChunk']);

@@ -24,6 +24,23 @@ class SharedFileController extends Controller
     /** 1 ファイルの上限（バイト）。共有サーバーのディスクを考えて 300MB */
     private const MAX_BYTES = 300 * 1024 * 1024;
 
+    /** 生徒 1 人あたりの合計容量（バイト）。.env の SHARED_QUOTA_MB で変更可（既定 3GB） */
+    private static function quotaBytes(): int
+    {
+        return max(1, (int) config('filesystems.shared_quota_mb', 3072)) * 1024 * 1024;
+    }
+
+    /** 生徒の使用量（登録済みファイルの合計） */
+    private static function usedBytes(int $userId): int
+    {
+        return (int) SharedFile::query()->where('user_id', $userId)->sum('size_bytes');
+    }
+
+    private function usagePayload(int $userId): array
+    {
+        return ['usedBytes' => self::usedBytes($userId), 'quotaBytes' => self::quotaBytes(), 'maxFileBytes' => self::MAX_BYTES];
+    }
+
     /** フォルダの中身（フォルダ・ファイル）と道しるべ。folder 未指定ならルート */
     public function browse(Request $request): JsonResponse
     {
@@ -42,6 +59,7 @@ class SharedFileController extends Controller
             'breadcrumbs' => $folder ? $folder->breadcrumbs() : [],
             'folders' => $folders->map(fn (SharedFolder $f) => $this->folderPayload($f))->values(),
             'files' => $files->map(fn (SharedFile $f) => $this->filePayload($f))->values(),
+            'usage' => $this->usagePayload($userId),
         ]]);
     }
 
@@ -107,6 +125,50 @@ class SharedFileController extends Controller
         return response()->json(['data' => $this->folderPayload($folder)], 201);
     }
 
+    /**
+     * フォルダ階層をまとめて用意する（フォルダごとアップロード用）。
+     * parentId の下に path（["2026", "英語", "長文"] のような名前の並び）をたどり、無い階層だけ作って末端の ID を返す。
+     * 同じ名前のフォルダがあればそれを使う（同名の重複を作らない）。
+     */
+    public function ensureFolders(Request $request): JsonResponse
+    {
+        $userId = $this->targetUserId($request);
+        $data = $request->validate([
+            'parentId' => ['nullable', 'integer'],
+            'path' => ['required', 'array', 'min:1', 'max:20'],
+            'path.*' => ['required', 'string', 'max:255'],
+        ]);
+        $parentId = ! empty($data['parentId']) ? SharedFolder::where('user_id', $userId)->findOrFail($data['parentId'])->id : null;
+        $created = 0;
+        foreach ($data['path'] as $seg) {
+            $name = $this->cleanName($seg);
+            $f = SharedFolder::query()->where('user_id', $userId)->where('parent_id', $parentId)->where('name', $name)->first();
+            if ($f === null) {
+                $f = SharedFolder::create(['user_id' => $userId, 'parent_id' => $parentId, 'name' => $name, 'created_by' => $request->user()->id]);
+                $created++;
+            }
+            $parentId = $f->id;
+        }
+
+        return response()->json(['data' => ['folderId' => $parentId, 'created' => $created]]);
+    }
+
+    /** フォルダごとアップロードが終わったときのまとめ通知（ファイルごとの通知は silent で止めておき、最後に 1 回だけ） */
+    public function notifyUploaded(Request $request): JsonResponse
+    {
+        $userId = $this->targetUserId($request);
+        $data = $request->validate([
+            'folderId' => ['nullable', 'integer'],
+            'folderName' => ['required', 'string', 'max:255'],
+            'fileCount' => ['required', 'integer', 'min:1', 'max:100000'],
+        ]);
+        $folder = ! empty($data['folderId']) ? SharedFolder::where('user_id', $userId)->findOrFail($data['folderId']) : null;
+        $where = $folder ? "「{$folder->name}」" : 'ホーム';
+        $this->notifyOthers($request, $userId, "ファイル共有の{$where}にフォルダ「{$this->cleanName($data['folderName'])}」（{$data['fileCount']} ファイル）が追加されました。");
+
+        return response()->json(['message' => 'ok']);
+    }
+
     /** 名前の変更・移動 */
     public function updateFolder(Request $request, SharedFolder $folder): JsonResponse
     {
@@ -145,7 +207,7 @@ class SharedFileController extends Controller
     /** 分割アップロード: index 順に受け取って一時ファイルへ追記する */
     public function uploadChunk(Request $request): JsonResponse
     {
-        $this->targetUserId($request);
+        $userId = $this->targetUserId($request);
         $data = $request->validate([
             'uploadId' => ['required', 'regex:/^[A-Za-z0-9_-]{8,64}$/'],
             'index' => ['required', 'integer', 'min:0'],
@@ -158,14 +220,26 @@ class SharedFileController extends Controller
         if ((int) $data['index'] === 0 && is_file($abs)) {
             unlink($abs);
         }
+        if ((int) $data['index'] === 0) {
+            // 最初の片を受ける前に合計容量を見る（残りが無ければ受け取らない）
+            abort_if(self::usedBytes($userId) >= self::quotaBytes(), 422, '共有の容量が上限（'.self::fmtMb(self::quotaBytes()).'）に達しています。不要なファイルを削除してください。');
+        }
         $in = fopen($request->file('chunk')->getRealPath(), 'rb');
         $out = fopen($abs, 'ab');
         stream_copy_to_stream($in, $out);
         fclose($in);
         fclose($out);
-        abort_if(filesize($abs) > self::MAX_BYTES, 422, 'ファイルが大きすぎます（上限 300MB）。');
+        $size = filesize($abs);
+        if ($size > self::MAX_BYTES) {
+            unlink($abs);
+            abort(422, 'ファイルが大きすぎます（1 ファイルの上限 '.self::fmtMb(self::MAX_BYTES).'）。');
+        }
+        if (self::usedBytes($userId) + $size > self::quotaBytes()) {
+            unlink($abs);
+            abort(422, '共有の容量の上限（'.self::fmtMb(self::quotaBytes()).'）を超えるため追加できません。不要なファイルを削除してください。');
+        }
 
-        return response()->json(['data' => ['received' => (int) $data['index'], 'size' => filesize($abs)]]);
+        return response()->json(['data' => ['received' => (int) $data['index'], 'size' => $size]]);
     }
 
     /** アップロード確定: 一時ファイルをフォルダに登録する。searchText は画面側で抜き出した PDF の本文（任意） */
@@ -180,12 +254,17 @@ class SharedFileController extends Controller
             'searchText' => ['nullable', 'string', 'max:2000000'],
             'pageCount' => ['nullable', 'integer', 'min:0'],
             'note' => ['nullable', 'string', 'max:2000'],
+            'silent' => ['nullable', 'boolean'],
         ]);
         $folder = ! empty($data['folderId']) ? SharedFolder::where('user_id', $userId)->findOrFail($data['folderId']) : null;
         $disk = Storage::disk('local');
         $tmpRel = 'tmp-uploads/'.$data['uploadId'].'.part';
         abort_unless($disk->exists($tmpRel), 422, 'アップロードデータが見つかりません。もう一度アップロードしてください。');
         $tmpAbs = $disk->path($tmpRel);
+        if (self::usedBytes($userId) + filesize($tmpAbs) > self::quotaBytes()) {
+            $disk->delete($tmpRel);
+            abort(422, '共有の容量の上限（'.self::fmtMb(self::quotaBytes()).'）を超えるため追加できません。');
+        }
 
         $name = $this->cleanName($data['name']);
         $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
@@ -224,8 +303,10 @@ class SharedFileController extends Controller
         ]);
         $file->load('creator:id,name');
 
-        // 相手（生徒が置けば講師たち、講師が置けば生徒）へ LINE で知らせる
-        $this->notifyOthers($request, $userId, "ファイル共有に「{$file->name}」が追加されました".($folder ? "（{$folder->name}）" : '').'。');
+        // 相手（生徒が置けば講師たち、講師が置けば生徒）へ LINE で知らせる（フォルダごとのアップロードは最後にまとめて）
+        if (! ($data['silent'] ?? false)) {
+            $this->notifyOthers($request, $userId, "ファイル共有に「{$file->name}」が追加されました".($folder ? "（{$folder->name}）" : '').'。');
+        }
 
         return response()->json(['data' => $this->filePayload($file)], 201);
     }
@@ -356,6 +437,14 @@ class SharedFileController extends Controller
     private function like(string $s): string
     {
         return addcslashes($s, '%_\\');
+    }
+
+    /** 表示用: バイト → 「300MB」「3GB」 */
+    private static function fmtMb(int $bytes): string
+    {
+        $mb = $bytes / 1024 / 1024;
+
+        return $mb >= 1024 ? rtrim(rtrim(number_format($mb / 1024, 1, '.', ''), '0'), '.').'GB' : round($mb).'MB';
     }
 
     private function cleanName(string $name): string

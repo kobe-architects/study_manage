@@ -1192,4 +1192,6 @@ export interface SharedBrowse {
   breadcrumbs: { id: number; name: string }[]
   folders: SharedFolder[]
   files: SharedFile[]
+  /** 容量: 使用量・生徒ごとの上限・1 ファイルの上限 */
+  usage: { usedBytes: number; quotaBytes: number; maxFileBytes: number }
 }
