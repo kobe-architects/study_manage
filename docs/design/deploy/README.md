@@ -466,3 +466,6 @@ php artisan config:cache && php artisan route:cache
   - フロント: 頭文字つき空所「(c- )」は `lib/grammar.ts` の BLANK_RE で空所扱い（入力欄の placeholder にヒント）、発音の下線は `an⟨c⟩ient` の印（`ulSegments` で下線表示）、
     文字に起こした問題でも「詳細解説」に教材の問題・解答欄の切り抜きを出す（読み取りの確認用）。
   - 本番への反映は `git pull` 後に `php artisan grammar:import`（(book, no) で upsert。回答履歴は残る。画像は従来のまま）。
+  - 2026-11-17 時点の結果: 語い 146/162・イディオム 348/385・会話表現 54/55・発音 78/184（発音の第30章の下線つき 4 択と第31章のアクセント）を文字の問題に置き換え、
+    残り（特別編 34 問を含む）は従来どおり画像で出題。読めなかった問題と理由は `REPORT_<book>.txt`、手直しは `docs/design/deploy/ocr/scr_fixes.json`（語い 800 の正解）。
+    英文法・語法（Excel 由来）は OCR と突き合わせて CHECK = 英文法 36 問・語法 20 問（多くは整序の表記ゆれ）で、データは変えていない。

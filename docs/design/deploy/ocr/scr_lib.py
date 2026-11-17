@@ -306,7 +306,7 @@ def answer_start_by_rows(d, img, y_min):
         first = its[0]
         if first[0] > w * 0.25:
             continue
-        t = first[4].strip()
+        t = first[4].strip().replace('（', '(').replace('）', ')')
         if ANS_HEAD_RE.match(t):
             return int(first[1]) - 24
         if re.fullmatch(r'\(?\s*\d{1,4}\s*\)?', t) and len(its) > 1 and its[1][0] - first[2] < 150 and its[1][4].strip()[:1] in '(（':
@@ -647,6 +647,47 @@ class CircledGlyphs:
 
     def ready(self):
         return len(self.tpl) >= 4 and all(len(self.tpl.get(i, [])) >= 3 for i in range(4))
+
+    def classify_all(self, img, x0, x1, y0, y1):
+        """行の帯の中の「( ② )」をすべて左から順に照合 → [(x, idx, score, margin)]（1 行に 3 問並ぶ解答欄用）"""
+        reg = img[max(0, y0):y1, max(0, x0):x1]
+        if reg.size == 0 or reg.shape[0] < 4:
+            return []
+        b = self.binarize(reg)
+        n, lab, stats, _ = cv2.connectedComponentsWithStats(b, 8)
+        comps = sorted((int(st[0]), int(st[1]), int(st[2]), int(st[3])) for st in stats[1:] if st[4] >= 6)
+        parens = [c for c in comps if c[2] <= 16 and c[3] >= 24]
+        out = []
+        i = 0
+        while i < len(parens) - 1:
+            a = parens[i]
+            bpar = parens[i + 1]
+            dist = bpar[0] - (a[0] + a[2])
+            if 18 <= dist <= 90:
+                inner = [c for c in comps if c[0] >= a[0] + a[2] - 2 and c[0] + c[2] <= bpar[0] + 2 and c[3] >= 6 and c is not a and c is not bpar]
+                if not inner:
+                    i += 1
+                    continue
+                if inner:
+                    x = min(c[0] for c in inner)
+                    y = min(c[1] for c in inner)
+                    xx = max(c[0] + c[2] for c in inner)
+                    yy = max(c[1] + c[3] for c in inner)
+                    # 丸数字はほぼ正方形（発音記号の [æ] [eɪ] は横長なので除く）
+                    if 22 <= xx - x <= 50 and 22 <= yy - y <= 50 and 0.75 <= (xx - x) / (yy - y) <= 1.3:
+                        gl = self.glyph(reg, (x, y, xx - x, yy - y))
+                        if gl is not None:
+                            scores = {}
+                            for idx, tpls in self.tpl.items():
+                                vals = sorted((float(cv2.matchTemplate(gl, t, cv2.TM_CCOEFF_NORMED).max()) for t in tpls), reverse=True)
+                                scores[idx] = sum(vals[:3]) / min(3, len(vals))
+                            ranked = sorted(scores.items(), key=lambda kv: -kv[1])
+                            second = ranked[1][1] if len(ranked) > 1 else 0.0
+                            out.append((x0 + a[0], ranked[0][0], ranked[0][1], ranked[0][1] - second))
+                i += 2
+                continue
+            i += 1
+        return out
 
     def classify(self, img, x0, x1, y0, y1):
         """領域の中の最初の丸数字を照合。戻り値 (idx, best_score, margin)。丸が見つからなければ (None, 0, 0)"""

@@ -58,7 +58,7 @@ def merge_spacing(rapid_text, win_text):
         k = ops[0][4]
         if k < len(w_space) and w_space[k - 1]:
             prefix = Wn[:k]
-            if re.fullmatch(r'I|It|A|a|An|We|He|If|In|Is|Do|Go|No|So|To|Up|Or|Of', prefix):
+            if re.fullmatch(r'I|It|A|a|An|We|He|If|In|Is|Do|Go|No|So|To|Up|Or|Of', prefix) and not R.lower().startswith(prefix.lower()):
                 prefix += ' '
             else:
                 prefix = ''
@@ -459,5 +459,12 @@ def answer_rows(img, d, split, x0=150, cache_key=None):
                 t = merge_spacing(t, ' '.join(w['text'] for w in wp))
             parts.append((it['ax'], t))
         ja = ' '.join(L.ja_text(w['text']) for w in _win_pieces(win_ja, ry0 - 4, ry1 + 4, 0, 10**6))
-        out.append({'y': ry0, 'y1': ry1, 'x': min(i['ax'] for i in its), 'text': ' '.join(t for _, t in parts), 'parts': parts, 'ja': ja, 'items': its})
+        # 番号（数字だけの単語）の位置: 1 行に 3 問並ぶ解答欄で丸数字を探す起点にする
+        nums = []
+        for src in (win_en, win_ja):
+            for w in _win_pieces(src, ry0 - 6, ry1 + 6, 0, 10**6):
+                for wd in w['words']:
+                    if re.fullmatch(r'\d{1,4}', wd[0].strip()):
+                        nums.append((wd[1], wd[1] + wd[3], wd[0].strip()))
+        out.append({'y': ry0, 'y1': ry1, 'x': min(i['ax'] for i in its), 'text': ' '.join(t for _, t in parts), 'parts': parts, 'ja': ja, 'items': its, 'nums': sorted(set(nums))})
     return out

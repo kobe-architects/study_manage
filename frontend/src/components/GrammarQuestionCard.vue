@@ -312,6 +312,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <div v-else-if="q.format === 'error'">誤りを含む下線部を選べ</div>
     </div>
 
+    <!-- 発音・アクセント: 文字に起こした選択肢に加えて教材の切り抜き（下線の位置がわかる）も見せる -->
+    <AuthImage v-if="q.format === 'choice' && q.book === 'pronunciation' && q.hasProblemImage" :src="grammarApi.imageUrl(q.id, 'problem')" class="gq-img" alt="問題" />
     <!-- ============ 選択: 文（空所は正解後に埋まる）。発音問題のように文が無いときは出さない ============ -->
     <p v-if="q.format === 'choice' && sentenceText" class="gq-sent dm">
       <template v-for="(piece, i) in sentencePieces" :key="i"><template v-for="(s, k) in ulSegments(piece)" :key="k"><u v-if="s.u">{{ s.t }}</u><template v-else>{{ s.t }}</template></template><span v-if="i < sentencePieces.length - 1" class="blank" :class="{ filled: !!choiceParts }">{{ choiceParts ? choiceParts[i] : (hints[i] ?? '') }}</span></template>

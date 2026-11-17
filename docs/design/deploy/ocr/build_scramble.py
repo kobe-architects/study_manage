@@ -57,23 +57,34 @@ def _pick_group(rapid_t, win_t):
     return a
 
 
-def _num_end_x(row, numstr):
-    """行の中で番号 numstr を含む枠の、番号の右端の x（丸数字を探す範囲の始まり）"""
-    for it in row.get('items', []):
-        t = it['text'].replace(' ', '')
-        if t.startswith(numstr) or t.lstrip('(（').startswith(numstr):
-            chars = it.get('chars') or []
-            if chars:
-                k = 0
-                digits = 0
-                for ch, x0, x1 in chars:
-                    k += 1
-                    if ch.isdigit():
-                        digits += 1
-                    if digits >= len(numstr):
-                        return it['ax'] + x1
-            return it['ax'] + 20 * len(numstr) + 8
-    return row['x'] + 20 * len(numstr) + 8
+def _num_end_x(row, numstr, after_x=0):
+    """行の中で番号 numstr の右端の x（丸数字を探す範囲の始まり）。after_x より右で最初に見つかるもの（1 行に 3 つ並ぶ発音の解答欄など）。
+    RapidOCR の文字枠を順に見て、数字の並びが numstr と一致する所を探す"""
+    digits = numstr
+    # Windows OCR が数字だけの単語として読んだ位置があればそれ（RapidOCR は 1 行に並ぶ 3 問を 1 枠に読むことがある）
+    for x, x1, t in row.get('nums', []):
+        if t == digits and x1 > after_x:
+            return x1
+    for it in sorted(row.get('items', []), key=lambda i: i['ax']):
+        chars = it.get('chars') or []
+        if chars:
+            seq = ''.join(c[0] if c[0].isdigit() else ' ' for c in chars)
+            start = 0
+            while True:
+                k = seq.find(digits, start)
+                if k < 0:
+                    break
+                before_ok = k == 0 or not seq[k - 1].isdigit()
+                after_ok = k + len(digits) >= len(seq) or not seq[k + len(digits)].isdigit()
+                x_end = it['ax'] + chars[k + len(digits) - 1][2]
+                if before_ok and after_ok and x_end > after_x:
+                    return x_end
+                start = k + 1
+        else:
+            t = it['text'].replace(' ', '')
+            if (t.startswith(digits) or t.lstrip('(（').startswith(digits)) and it['ax'] + 20 * len(digits) + 8 > after_x:
+                return it['ax'] + 20 * len(digits) + 8
+    return max(after_x + 60, row['x'] + 20 * len(digits) + 8)
 
 
 def parse_answer_rows(rows, nos, img=None, reader=None):
@@ -122,6 +133,13 @@ def parse_answer_rows(rows, nos, img=None, reader=None):
         ja_body = re.sub(r'^[^)）(（「]{1,3}[)）]\s*', '', ja_body).strip()  # 丸数字の読みかす「いに)」
         ja_groups = re.findall(r'\(([^()]*)\)', ja)
         gi = 0
+        prev_x = 0
+        # 1 行に複数の問題（発音の解答欄「1 (④)… 2 (④)… 3 (①)…」）: 行全体の丸数字を左から順に読んで番号に対応づける
+        row_all = []
+        if len(fixed) >= 2 and img is not None and GLYPHS.ready():
+            row_all = GLYPHS.classify_all(img, r['x'], P.X_RIGHT, r['y'] - 6, r['y1'] + 6)
+            if len(row_all) != len(fixed):
+                row_all = []
         for k, (n, seg) in enumerate(fixed):
             groups = re.findall(r'\(([^()]*)\)', seg)
             labels = re.findall(r'([AB])\s*[.．]\s*\(', seg)
@@ -142,8 +160,13 @@ def parse_answer_rows(rows, nos, img=None, reader=None):
             is_word = bool(picked) and bool(re.search(r'[A-Za-z]{2,}', picked[0]))
             low = {}
             if not is_word and img is not None and GLYPHS.ready():
-                xs = _num_end_x(r, str(n))
-                idx, sc, mg = GLYPHS.classify(img, xs - 2, xs + 130, r['y'] - 6, r['y1'] + 6)
+                if row_all:
+                    _, idx, sc, mg = row_all[k]
+                    xs = row_all[k][0]
+                else:
+                    xs = _num_end_x(r, str(n), prev_x)
+                    idx, sc, mg = GLYPHS.classify(img, xs - 2, xs + 130, r['y'] - 6, r['y1'] + 6)
+                prev_x = xs + 40
                 rapid_idx = circ_index(picked[0]) if picked else None
                 if idx is not None and sc >= 0.6:
                     tag = 'tpl'
@@ -182,6 +205,17 @@ def is_word(w):
     if not toks:
         return False
     return all((len(t) >= 2 or t in ('a', 'I')) and (t.lower().strip("'") in _WORDS or t.lower().strip("'").rstrip('s') in _WORDS or t.lower().endswith("'s")) for t in toks)
+
+
+def _fix_il(t):
+    """OCR の I と l の取り違え（「Iine」→「line」）: 辞書にある方へ"""
+    if is_word(t):
+        return t
+    cands = [t.replace('I', 'l'), t.replace('l', 'I'), t[:1] + t[1:].replace('I', 'l')]
+    for c in cands:
+        if c != t and is_word(c):
+            return c
+    return t
 
 
 def _collapse(t):
@@ -231,7 +265,7 @@ def answers_from_groups(groups, n_blanks):
                     alts = [g1.strip(), g2.strip()]
             else:
                 alts = [x.strip() for x in p.split('/') if x.strip()]
-            alts = [_collapse(re.sub(r'[\s]+', ' ', a)) for a in alts if re.search(r'[A-Za-z]', a)]
+            alts = [_fix_il(_collapse(re.sub(r'[\s]+', ' ', a))) for a in alts if re.search(r'[A-Za-z]', a)]
             if alts:
                 parts.append(alts)
     if not parts:
@@ -244,8 +278,9 @@ def underline_marks(img, item, x0):
     """選択肢の単語（RapidOCR の枠。chars は crop 内の x）の下線を探し、下線のある文字を ⟨ ⟩ で囲んだ文字列を返す。無ければ素の文字列"""
     chars = item.get('chars') or []
     word = ''.join(c[0] for c in chars) if chars else item['text']
-    if not chars:
-        return word, False
+    # 文字枠が文字列と合わない（枠が欠けている）ときは印を付けずに文字列をそのまま
+    if not chars or word.replace(' ', '') != item['text'].replace(' ', ''):
+        return item['text'], False
     g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     ax, ax1 = item['ax'], item['ax1']
     band = g[item['ay1'] - 3:item['ay1'] + 16, max(0, ax - 4):ax1 + 4] < 160
@@ -316,8 +351,6 @@ def parse_block(book, rows, img):
         res['question'] = ' '.join(f'{lb}: {t}' if lb else t for lb, t, _ in segs)
     else:
         res['instruction'] = '　'.join(r['text'] for r in ja) if ja else None
-    if res['instruction']:
-        res['instruction'] = re.sub(r'^\d{1,4}\s*[、,.．・:：]?\s*', '', res['instruction']).strip() or None  # 行頭に残った問題番号
         res['question'] = ' '.join(r['text'] for r in sent)
         if choice_rows:
             if book == 'pronunciation':
@@ -345,6 +378,22 @@ def parse_block(book, rows, img):
                 res['choices'] = ch
                 res['choices_ok'] = ok
     res['question'] = re.sub(r'\s+', ' ', res['question']).strip()
+    # 下線部の同意語を選ぶ問題（空所が無く選択肢がある）: 下線の語に印を付ける（発音と同じ ⟨ ⟩）
+    if book in ('vocab', 'idiom', 'conversation') and res['choices_ok'] and not BLANK_RE.search(res['question']):
+        for r in sent:
+            for it in r.get('items', []):
+                if not it.get('chars'):
+                    continue
+                w, ul = underline_marks(img, it, P.X_LEFT)
+                if not ul:
+                    continue
+                for m in re.finditer(r'⟨([^⟩]+)⟩', w):
+                    word = m.group(1)
+                    if len(word) >= 3 and word in res['question'] and '⟨' + word not in res['question']:
+                        res['question'] = res['question'].replace(word, '⟨' + word + '⟩', 1)
+                        break
+    if res['instruction']:
+        res['instruction'] = re.sub(r'^\d{1,4}\s*[、,.．・:：]?\s*', '', res['instruction']).strip() or None  # 行頭に残った問題番号
     res['blanks'] = len(BLANK_RE.findall(res['question']))
     return res
 
@@ -484,7 +533,8 @@ def run(book, old_by, write_report):
             continue
         dL = d['L']
         dR = d.get('R', {})
-        is_accent = book == 'pronunciation' and expected in accent_nos
+        # アクセントのページは「Rule N」の見出し（2 列の単語と音節番号）
+        is_accent = book == 'pronunciation' and (expected in accent_nos or any(r[4].strip().startswith('Rule') and r[1] < 400 for r in dL.get('rapid', [])))
         if is_accent:
             split = L.page_split(dL, img, int(img.shape[0] * 0.4))
             items = parse_accent_page(dL, img, expected, n1, split)
@@ -590,6 +640,7 @@ def compare_book(book, old_by):
     report = []
     expected = n0
     norm = lambda t: re.sub(r'[^a-z0-9]', '', (t or '').lower().replace('①', '').replace('②', '').replace('③', '').replace('④', '').replace('⑤', ''))
+    plain = lambda t: (t or '').replace('⟨', '').replace('⟩', '')
     for s in range(s0, s1 + 1):
         d = L.load_spread(s)
         img = L.page_img(s)
@@ -604,11 +655,16 @@ def compare_book(book, old_by):
             old = old_by.get((book, n))
             if not old:
                 continue
-            ocr_txt = blk['question'] + ' ' + ' '.join(blk['choices'] or [])
-            old_txt = (old.get('question') or '') + ' ' + ' '.join(old.get('choices') or [])
-            ratio = difflib.SequenceMatcher(None, norm(ocr_txt), norm(old_txt), autojunk=False).ratio()
-            flag = 'OK ' if ratio >= 0.93 else 'CHECK'
-            report.append(f'{flag} {ratio:.3f} {book} {n} s{s} y{y}\n   OLD: {old_txt}\n   OCR: {ocr_txt}')
+            # 問題文は問題文どうし、選択肢（整序は語句が問題文の中にあるので除く）は選択肢どうしで比べる
+            q_ratio = difflib.SequenceMatcher(None, norm(plain(blk['question'])), norm(old.get('question') or ''), autojunk=False).ratio()
+            c_ratio = 1.0
+            if old.get('format') in ('choice', 'error') and old.get('choices'):
+                c_ratio = difflib.SequenceMatcher(None, norm(' '.join(blk['choices'] or [])), norm(' '.join(old.get('choices') or [])), autojunk=False).ratio()
+            ratio = min(q_ratio, c_ratio)
+            flag = 'OK ' if ratio >= 0.9 else 'CHECK'
+            ocr_txt = blk['question'] + ' | ' + ' / '.join(blk['choices'] or [])
+            old_txt = (old.get('question') or '') + ' | ' + ' / '.join(old.get('choices') or [])
+            report.append(f'{flag} q={q_ratio:.3f} c={c_ratio:.3f} {book} {n} s{s} y{y}\n   OLD: {old_txt}\n   OCR: {ocr_txt}')
         expected = qs[-1][0] + 1
     return report
 
@@ -653,7 +709,7 @@ def merge_from_out(data, books):
 def main():
     L.SCRATCH = sys.argv[1]
     args = sys.argv[2:]
-    books = ['vocab', 'idiom', 'conversation', 'pronunciation', 'special']
+    books = ['vocab', 'idiom', 'conversation', 'pronunciation']  # special（特別編）は ⑤ の丸数字の照合が弱く、今は画像出題のまま（--books special で試せる）
     if '--books' in args:
         books = args[args.index('--books') + 1].split(',')
     with open(DATA, encoding='utf-8') as f:
