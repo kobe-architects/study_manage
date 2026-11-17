@@ -422,7 +422,9 @@ php artisan config:cache && php artisan route:cache
   本体は `storage/app/private/shared/{生徒ID}/`（Git 管理外）。アップロードは 4MB ずつの分割（`/shared/files/chunk` → `/shared/files`。上限 300MB）。
   PDF は画面側（pdf.js）で文字を抜き出して `shared_files.search_text` に保存し、`GET /shared/search?q=` で名前・メモ・本文を検索する（文字の無いスキャン PDF は名前のみ）。
   閲覧は `components/PdfBookViewer.vue`（ページをめくるアニメーション・ブックマーク（アウトライン）の目次・拡大・保存。`/shared/files/{id}/file` は Range 対応で必要な部分だけ読む）。
-  1 ページ表示と見開き表示を右上のボタンで切り替え（localStorage `sm_pdf_spread` に記憶）。見開きは左=偶数・右=奇数ページ（1 ページ目は右側だけ）で、
+  1 ページ表示と見開き表示を右上のボタンで切り替え（localStorage `sm_pdf_spread` に記憶）。見開きの組み方は「ハードカバー」（既定。表紙=1 ページ目は単独、
+  2 ページ目は左が見返しで右だけ、以降は 左=奇数・右=偶数）と「通常」（左=偶数・右=奇数、1 ページ目は右だけ）を見開き中のボタンで切り替え（`sm_pdf_spread_kind`）。
+  組み方は `spreadOf(n)` 1 か所で決め、next/prev・めくりは `nextSpread`/`prevSpread` で隣の見開きを求める。
   めくりは中央の綴じ目を軸に表裏 2 面の紙（front=今の右ページ・back=次の左ページ）を回す。
   追加時の LINE 通知は **しない**（2026-11-17 ユーザー指示で撤去。`notify-uploaded` も削除）。
   - **フォルダごとのアップロード**（2026-11-16 追加）: 「フォルダをアップロード」（`<input webkitdirectory>`。iPhone・iPad では出さない）か、

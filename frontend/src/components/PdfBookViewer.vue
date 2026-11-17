@@ -2,8 +2,10 @@
 /**
  * 本のように読む PDF ビューア（ファイル共有の閲覧用）。全画面。
  * - ページは pdf.js で画像にして 1 ページずつ表示し、次へ／前へで紙をめくるアニメーション（左端を軸に 3D 回転）
- * - 見開き表示に切り替えられる（左=偶数・右=奇数ページ。1 ページ目は右だけ）。見開きのめくりは中央の綴じ目を軸に
- *   表裏 2 面の紙（表=今の右ページ・裏=次の左ページ）を回す。選択は localStorage に記憶
+ * - 見開き表示に切り替えられる。組み方は 2 つ（記憶。既定はハードカバー）:
+ *     ハードカバー: 1 ページ目（表紙）は単独、2 ページ目も右だけ（左は見返し）、以降は 左=奇数・右=偶数（スキャンした本の並び）
+ *     通常: 左=偶数・右=奇数（1 ページ目は右だけ）
+ *   見開きのめくりは中央の綴じ目を軸に表裏 2 面の紙（表=今の右ページ・裏=次の左ページ）を回す
  * - PDF のブックマーク（アウトライン）を左の目次に出し、タップでそのページへ
  * - 画面の右半分タップ・→ キー・左スワイプで次へ、左半分・← キー・右スワイプで前へ。ページ番号の直接入力、拡大縮小、保存
  * 大きい PDF は Range リクエストで必要な部分だけ読む（サーバーは Accept-Ranges を返す）。
@@ -42,16 +44,35 @@ const flip = ref<{ dir: 'next' | 'prev'; page: number } | null>(null)
 const spread = ref(localStorage.getItem('sm_pdf_spread') === '1')
 /** 見開きのめくり中: 下に見せる左右と、回る紙の表（front）・裏（back） */
 const sflip = ref<{ dir: 'next' | 'prev'; baseLeft: number; baseRight: number; front: number; back: number } | null>(null)
-/** 見開きの左ページ（偶数）。1 ページ目は左が 0（空白） */
-function leftOf(n: number): number {
-  return n % 2 === 0 ? n : n - 1
+/** 見開きの組み方: hard = ハードカバー（表紙は単独・以降 左=奇数）/ normal = 左=偶数・右=奇数 */
+type SpreadKind = 'hard' | 'normal'
+const spreadKind = ref<SpreadKind>(localStorage.getItem('sm_pdf_spread_kind') === 'normal' ? 'normal' : 'hard')
+/** ページ n を含む見開き {l, r}。l=0 は空白（表紙の左・見返し）。r は常にそのページ自身か右隣（見開きの識別にも使う） */
+function spreadOf(n: number): { l: number; r: number } {
+  if (spreadKind.value === 'hard') {
+    if (n <= 2) return { l: 0, r: n } // 表紙は単独、2 ページ目は左が見返し
+    const l = n % 2 === 1 ? n : n - 1
+    return { l, r: l + 1 }
+  }
+  const l = n % 2 === 0 ? n : n - 1
+  return { l, r: l + 1 }
+}
+/** 次の見開き（無ければ null） */
+function nextSpread(sp: { l: number; r: number }): { l: number; r: number } | null {
+  return sp.r + 1 <= numPages.value ? spreadOf(sp.r + 1) : null
+}
+/** 前の見開き（無ければ null） */
+function prevSpread(sp: { l: number; r: number }): { l: number; r: number } | null {
+  const n = sp.l >= 1 ? sp.l - 1 : sp.r - 1
+  return n >= 1 ? spreadOf(n) : null
 }
 /** 今見せている見開きの左右（めくり中は下の紙） */
 const pair = computed(() => {
   if (sflip.value) return { l: sflip.value.baseLeft, r: sflip.value.baseRight }
-  const l = leftOf(page.value)
-  return { l, r: l + 1 }
+  return spreadOf(page.value)
 })
+const canNext = computed(() => (spread.value ? nextSpread(spreadOf(page.value)) !== null : page.value < numPages.value))
+const canPrev = computed(() => (spread.value ? prevSpread(spreadOf(page.value)) !== null : page.value > 1))
 function inRange(n: number): boolean {
   return n >= 1 && n <= numPages.value
 }
@@ -189,14 +210,11 @@ function trim() {
 }
 function prefetch() {
   if (spread.value) {
-    const l = leftOf(page.value)
-    ensure(l)
-      .then(() => ensure(l + 1))
-      .then(() => ensure(l + 2))
-      .then(() => ensure(l + 3))
-      .then(() => ensure(l - 1))
-      .then(() => ensure(l - 2))
-      .catch(() => {})
+    const sp = spreadOf(page.value)
+    const nx = nextSpread(sp)
+    const pv = prevSpread(sp)
+    const order = [sp.l, sp.r, nx?.l, nx?.r, pv?.l, pv?.r].filter((n): n is number => typeof n === 'number' && n >= 1)
+    order.reduce((t, n) => t.then(() => ensure(n)), Promise.resolve()).catch(() => {})
     return
   }
   ensure(page.value + 1).then(() => ensure(page.value - 1)).then(() => ensure(page.value + 2)).catch(() => {})
@@ -270,28 +288,32 @@ function endFlip() {
 }
 /** 見開きでの移動。同じ見開きの中なら切り替えだけ、隣の見開きなら綴じ目を軸にめくる、遠ければ切り替え */
 async function goSpread(n: number) {
-  const from = leftOf(page.value)
-  const to = leftOf(n)
-  if (to === from) {
+  const from = spreadOf(page.value)
+  const to = spreadOf(n)
+  if (to.r === from.r) {
     page.value = n
     return
   }
   busy = true
   try {
-    await Promise.all([ensure(to), ensure(to + 1)])
-    if (reduceMotion || Math.abs(to - from) > 2) {
+    await Promise.all([ensure(to.l), ensure(to.r)])
+    const nx = nextSpread(from)
+    const pv = prevSpread(from)
+    const adjacentNext = nx !== null && nx.r === to.r
+    const adjacentPrev = pv !== null && pv.r === to.r
+    if (reduceMotion || (!adjacentNext && !adjacentPrev)) {
       page.value = n
       sflip.value = null
       busy = false
       prefetch()
       return
     }
-    if (to > from) {
+    if (adjacentNext) {
       // 右ページ（表）が左へ倒れ、裏に次の左ページが現れる。下は 左=今の左・右=次の右
-      sflip.value = { dir: 'next', baseLeft: from, baseRight: to + 1, front: from + 1, back: to }
+      sflip.value = { dir: 'next', baseLeft: from.l, baseRight: to.r, front: from.r, back: to.l }
     } else {
       // 左に伏せていた紙（裏=今の左ページ）が起き上がって右に戻る（表=前の右ページ）。下は 左=前の左・右=今の右
-      sflip.value = { dir: 'prev', baseLeft: to, baseRight: from + 1, front: to + 1, back: from }
+      sflip.value = { dir: 'prev', baseLeft: to.l, baseRight: from.r, front: to.r, back: from.l }
     }
     page.value = n
     window.setTimeout(() => sflip.value && endSpreadFlip(), 900)
@@ -307,33 +329,46 @@ function endSpreadFlip() {
 }
 function next() {
   if (spread.value) {
-    const l = leftOf(page.value) + 2
-    if (l <= numPages.value) go(l)
+    const nx = nextSpread(spreadOf(page.value))
+    if (nx) go(nx.l >= 1 ? nx.l : nx.r)
     return
   }
   go(page.value + 1)
 }
 function prev() {
   if (spread.value) {
-    const l = leftOf(page.value) - 2
-    go(Math.max(1, l + 1))
+    const pv = prevSpread(spreadOf(page.value))
+    if (pv) go(pv.r <= numPages.value ? pv.r : pv.l)
     return
   }
   go(page.value - 1)
 }
-/** 1 ページ／見開きの切り替え。描き直し（解像度が変わる）て記憶する */
-function toggleSpread() {
-  if (busy) return
-  spread.value = !spread.value
-  localStorage.setItem('sm_pdf_spread', spread.value ? '1' : '0')
+/** 今の見開き（または 1 ページ）を描き直す（解像度や組み方が変わったとき） */
+function rerender() {
   flip.value = null
   sflip.value = null
   for (const [n, u] of imgs) {
     URL.revokeObjectURL(u)
     imgs.delete(n)
   }
-  const l = leftOf(page.value)
-  Promise.all(spread.value ? [ensure(l), ensure(l + 1)] : [ensure(page.value)]).then(prefetch)
+  const sp = spreadOf(page.value)
+  Promise.all(spread.value ? [ensure(sp.l), ensure(sp.r)] : [ensure(page.value)]).then(prefetch)
+}
+/** 1 ページ／見開きの切り替え（記憶する） */
+function toggleSpread() {
+  if (busy) return
+  spread.value = !spread.value
+  localStorage.setItem('sm_pdf_spread', spread.value ? '1' : '0')
+  rerender()
+}
+/** 見開きの組み方（ハードカバー／通常）の切り替え（記憶する） */
+function setSpreadKind(k: SpreadKind) {
+  if (busy || spreadKind.value === k) return
+  spreadKind.value = k
+  localStorage.setItem('sm_pdf_spread_kind', k)
+  flip.value = null
+  sflip.value = null
+  prefetch()
 }
 function onStageClick(e: MouseEvent) {
   if (zoom.value > 1) return
@@ -386,14 +421,7 @@ function zoomBy(f: number) {
   if (zoom.value === 1) nextTick(() => stage.value?.scrollTo({ top: 0, left: 0 }))
 }
 /** 拡大率を変えたら、今のページを新しい解像度で描き直す */
-watch(zoom, () => {
-  for (const [n, u] of imgs) {
-    URL.revokeObjectURL(u)
-    imgs.delete(n)
-  }
-  const l = leftOf(page.value)
-  Promise.all(spread.value ? [ensure(l), ensure(l + 1)] : [ensure(page.value)]).then(prefetch)
-})
+watch(zoom, rerender)
 
 const downloading = ref(false)
 async function download() {
@@ -419,6 +447,10 @@ async function download() {
         <button class="bv-icon" :class="{ on: spread }" :title="spread ? '1 ページ表示にする' : '見開き表示にする'" :aria-label="spread ? '1 ページ表示' : '見開き表示'" @click="toggleSpread">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h8v14H3z" /><path d="M13 5h8v14h-8z" /></svg>
         </button>
+        <div v-if="spread" class="bv-kind" role="radiogroup" aria-label="見開きの組み方">
+          <button :class="{ on: spreadKind === 'hard' }" role="radio" :aria-checked="spreadKind === 'hard'" title="表紙を 1 枚目として単独、以降は左が奇数ページ" @click="setSpreadKind('hard')">ハードカバー</button>
+          <button :class="{ on: spreadKind === 'normal' }" role="radio" :aria-checked="spreadKind === 'normal'" title="左が偶数・右が奇数ページ" @click="setSpreadKind('normal')">通常</button>
+        </div>
         <button class="bv-icon" title="縮小" :disabled="zoom <= 1" @click="zoomBy(1 / 1.25)">−</button>
         <span class="bv-zoom">{{ Math.round(zoom * 100) }}%</span>
         <button class="bv-icon" title="拡大" :disabled="zoom >= 3" @click="zoomBy(1.25)">＋</button>
@@ -478,23 +510,23 @@ async function download() {
           </div>
           <div class="spine"></div>
         </div>
-        <button v-if="!loading && !error" class="edge left" :disabled="spread ? leftOf(page) < 2 : page <= 1" aria-label="前のページ" @click.stop="prev">
+        <button v-if="!loading && !error" class="edge left" :disabled="!canPrev" aria-label="前のページ" @click.stop="prev">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
         </button>
-        <button v-if="!loading && !error" class="edge right" :disabled="spread ? leftOf(page) + 2 > numPages : page >= numPages" aria-label="次のページ" @click.stop="next">
+        <button v-if="!loading && !error" class="edge right" :disabled="!canNext" aria-label="次のページ" @click.stop="next">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
     </div>
 
     <div class="bv-foot">
-      <button class="bv-btn" :disabled="spread ? leftOf(page) < 2 : page <= 1" @click="prev">‹ 前へ</button>
+      <button class="bv-btn" :disabled="!canPrev" @click="prev">‹ 前へ</button>
       <form class="bv-page" @submit.prevent="jump">
         <input v-model="pageInput" type="number" inputmode="numeric" min="1" :max="numPages" :placeholder="String(page)" aria-label="ページ番号" />
         <span>/ {{ numPages }}</span>
       </form>
       <input class="bv-slider" type="range" min="1" :max="Math.max(1, numPages)" :value="page" aria-label="ページ" @change="go(Number(($event.target as HTMLInputElement).value))" />
-      <button class="bv-btn" :disabled="spread ? leftOf(page) + 2 > numPages : page >= numPages" @click="next">次へ ›</button>
+      <button class="bv-btn" :disabled="!canNext" @click="next">次へ ›</button>
     </div>
   </div>
 </template>
@@ -568,6 +600,28 @@ async function download() {
 }
 .bv-icon:disabled {
   opacity: 0.3;
+}
+.bv-kind {
+  display: inline-flex;
+  margin: 0 4px;
+  border: 1px solid #3a3f47;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.bv-kind button {
+  min-height: 28px;
+  padding: 0 9px;
+  border: none;
+  background: transparent;
+  color: #b6bdc7;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.bv-kind button.on {
+  background: #3b50cc;
+  color: #fff;
 }
 .bv-zoom {
   font-size: 11.5px;
