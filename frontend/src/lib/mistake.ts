@@ -1,6 +1,6 @@
 // 間違いノート共通: ページの寸法・既定の配置・画像の読み込み・並び
 import { mistakeApi } from '@/api/mistake'
-import type { MistakeLayout, MistakeLayoutItem, MistakeNoteSummary } from '@/types'
+import type { MistakeLayout, MistakeLayoutItem, MistakeMastery, MistakeNoteSummary } from '@/types'
 
 /**
  * ページの寸法（px、6px = 1mm）。
@@ -21,6 +21,23 @@ export const HEADER_GAP = 12
 /** 科目「その他」の subjectId（API と共通。分類を持たず、本棚ではデッキ別の参照のみ） */
 export const OTHER_SUBJECT = -1
 export const OTHER_SUBJECT_COLOR = '#6b7280'
+
+/** 定着度（手動で付ける。閲覧・出題の絞り込みに使う） */
+export const MASTERIES: { key: MistakeMastery; label: string; color: string; bg: string }[] = [
+  { key: 'mastered', label: '定着', color: '#1f7a45', bg: '#e6f5ec' },
+  { key: 'unsure', label: 'あいまい', color: '#2f5fc4', bg: '#e8effb' },
+  { key: 'unmastered', label: '未定着', color: '#c0444f', bg: '#fdeef0' },
+]
+export function masteryInfo(m: MistakeMastery | null | undefined): { key: MistakeMastery | 'none'; label: string; color: string; bg: string } {
+  return MASTERIES.find((x) => x.key === m) ?? { key: 'none', label: '未設定', color: '#6b7280', bg: '#f1f2f4' }
+}
+/** 定着度の絞り込み（'all' = 絞らない、'none' = 未設定だけ） */
+export type MasteryFilter = 'all' | MistakeMastery | 'none'
+export function matchMastery(n: { mastery: MistakeMastery | null }, f: MasteryFilter): boolean {
+  if (f === 'all') return true
+  if (f === 'none') return !n.mastery
+  return n.mastery === f
+}
 
 /** デッキ（本）の色の候補 */
 export const DECK_COLORS = ['#3b50cc', '#e0533d', '#2e9d62', '#d98a2b', '#8b5cf6', '#0ea5a4', '#be185d', '#6b7280', '#92400e', '#1c2024']

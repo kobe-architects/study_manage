@@ -5,18 +5,19 @@
  * もう一度 ／ 難しい ／ 正解 ／ 簡単 の 4 段階で評価する（左ほど定着していない）。
  * 評価はサーバーに保存され、忘却曲線（間隔反復）に合わせて次に出題される日が決まる。ボタンの下にその間隔を表示する。
  * 「もう一度」にした問題は同じ回の最後にもう一度出る。
+ * 解答を表示した後は、定着度（定着 / あいまい / 未定着。手動）も付けられる（閲覧・出題の絞り込みに使う）。
  * キー: Space / Enter = 解答を表示、1〜4 = 評価、← → = 問題と解答の切替、Esc = 閉じる。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { mistakeApi } from '@/api/mistake'
-import { contentBox, imageObjectUrl, loadImageEl } from '@/lib/mistake'
+import { MASTERIES, contentBox, imageObjectUrl, loadImageEl } from '@/lib/mistake'
 import { drawNoteContent } from '@/lib/mistakeRender'
 import { blockDoubleTapZoom, blockUiTextSelection, haptic, isTouch } from '@/lib/native'
 import { useUiStore } from '@/stores/ui'
-import type { ImageCrop, MistakeGrade, MistakeLayout, MistakeNoteDetail, MistakeNoteSummary, MistakeReviewState } from '@/types'
+import type { ImageCrop, MistakeGrade, MistakeLayout, MistakeMastery, MistakeNoteDetail, MistakeNoteSummary, MistakeReviewState } from '@/types'
 
 const props = defineProps<{ notes: MistakeNoteSummary[]; title: string }>()
-const emit = defineEmits<{ close: []; graded: [noteId: number, review: MistakeReviewState] }>()
+const emit = defineEmits<{ close: []; graded: [noteId: number, review: MistakeReviewState]; mastery: [noteId: number, mastery: MistakeMastery | null] }>()
 const ui = useUiStore()
 
 const GRADES: { key: MistakeGrade; label: string; color: string; bg: string; bd: string; hint: string }[] = [
@@ -179,6 +180,27 @@ async function grade(g: MistakeGrade) {
     busy.value = false
   }
 }
+/** 定着度を手動で付ける（もう一度押すと外す） */
+const masteryBusy = ref(false)
+async function setMastery(m: MistakeMastery) {
+  const n = current.value
+  if (!n || masteryBusy.value) return
+  const next = n.mastery === m ? null : m
+  const prev = n.mastery
+  n.mastery = next
+  masteryBusy.value = true
+  try {
+    await mistakeApi.update(n.id, { mastery: next })
+    emit('mastery', n.id, next)
+    haptic()
+  } catch {
+    n.mastery = prev
+    ui.notify('定着度の保存に失敗しました')
+  } finally {
+    masteryBusy.value = false
+  }
+}
+
 /** 終わった後: もう一度（全部 or 難しかったもの） */
 function restart(which: 'all' | 'hard') {
   const list = which === 'all' ? props.notes.slice() : props.notes.filter((n) => ['again', 'hard'].includes(lastGrade.get(n.id) ?? ''))
@@ -294,7 +316,11 @@ onBeforeUnmount(() => {
         <button v-if="!revealed" class="reveal" :disabled="!problemUrl && loadingImg" @click="reveal">
           解答を表示<span class="kbd">Space</span>
         </button>
-        <div v-else class="grades">
+        <div v-else class="mastery" @click.stop>
+          <span class="m-lab">定着度</span>
+          <button v-for="m in MASTERIES" :key="m.key" class="m-btn" :class="{ on: current?.mastery === m.key }" :style="{ '--c': m.color }" :disabled="masteryBusy" :aria-pressed="current?.mastery === m.key" @click="setMastery(m.key)">{{ m.label }}</button>
+        </div>
+        <div v-if="revealed" class="grades">
           <button v-for="(g, i) in GRADES" :key="g.key" class="grade" :style="{ '--c': g.color }" :disabled="busy" :title="g.hint" @click="grade(g.key)">
             <span class="g-label">{{ g.label }}</span>
             <span class="g-iv">{{ current?.review.preview[g.key] }}</span>
@@ -473,6 +499,38 @@ onBeforeUnmount(() => {
   border-radius: 5px;
   padding: 1px 5px;
   font-family: ui-monospace, monospace;
+}
+.mastery {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: 760px;
+  margin: 0 auto 8px;
+}
+.m-lab {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9aa1ab;
+  margin-right: 4px;
+}
+.m-btn {
+  padding: 6px 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  background: transparent;
+  color: #d7dbe2;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.m-btn.on {
+  background: var(--c);
+  border-color: var(--c);
+  color: #fff;
+}
+.m-btn:disabled {
+  opacity: 0.6;
 }
 .grades {
   display: grid;

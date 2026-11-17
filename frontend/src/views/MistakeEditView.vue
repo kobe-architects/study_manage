@@ -11,12 +11,12 @@ import { useRoute, useRouter } from 'vue-router'
 import MistakeCanvas from '@/components/MistakeCanvas.vue'
 import { mistakeApi } from '@/api/mistake'
 import { iso } from '@/lib/design'
-import { OTHER_SUBJECT, OTHER_SUBJECT_COLOR, bottomOf, ensureLayout, fileToJpeg, fitExtra, fitProblem, forgetImageUrl, imageObjectUrl, newItemId, registerImageUrl } from '@/lib/mistake'
+import { MASTERIES, OTHER_SUBJECT, OTHER_SUBJECT_COLOR, bottomOf, ensureLayout, fileToJpeg, fitExtra, fitProblem, forgetImageUrl, imageObjectUrl, masteryInfo, newItemId, registerImageUrl } from '@/lib/mistake'
 import { blockDoubleTapZoom, blockUiTextSelection, installInkTouchGuard, isTouch } from '@/lib/native'
 import { useResourceStore } from '@/stores/resource'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
-import type { MistakeDeck, MistakeLayout, MistakeLayoutItem, MistakeNoteDetail } from '@/types'
+import type { MistakeDeck, MistakeLayout, MistakeLayoutItem, MistakeMastery, MistakeNoteDetail } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,7 +28,7 @@ const noteId = computed(() => (route.name === 'mistake-edit' ? Number(route.para
 const note = ref<MistakeNoteDetail | null>(null)
 const layout = ref<MistakeLayout>(ensureLayout())
 const urls = reactive<Record<number, string>>({})
-const meta = reactive({ subjectId: 0, majorId: 0, midId: 0, studyItemId: 0, resourceBookId: 0, deckId: 0, title: '', notedOn: iso(new Date()) })
+const meta = reactive({ subjectId: 0, majorId: 0, midId: 0, studyItemId: 0, resourceBookId: 0, deckId: 0, title: '', notedOn: iso(new Date()), mastery: '' as '' | MistakeMastery })
 /** 科目「その他」（分類なし。デッキ別の参照のみ） */
 const isOther = computed(() => meta.subjectId === OTHER_SUBJECT)
 /** 科目・大分類・中分類が選ばれている（登録・保存の条件）。「その他」は科目だけでよい */
@@ -140,6 +140,7 @@ async function load() {
       meta.deckId = d.deckId ?? 0
       meta.title = d.title ?? ''
       meta.notedOn = d.notedOn
+      meta.mastery = d.mastery ?? ''
       await Promise.all(d.images.map((im) => imageObjectUrl(im.id).then((u) => (urls[im.id] = u)).catch(() => {})))
       saveState.value = 'saved'
       showMeta.value = false
@@ -207,6 +208,7 @@ function metaPayload() {
     deckId: meta.deckId || null,
     title: meta.title.trim() || null,
     notedOn: meta.notedOn,
+    mastery: meta.mastery || null,
   }
 }
 
@@ -588,6 +590,13 @@ onBeforeUnmount(() => unblock.forEach((f) => f()))
         <label class="fld">
           <span>日付</span>
           <input v-model="meta.notedOn" type="date" />
+        </label>
+        <label class="fld">
+          <span>定着度</span>
+          <select v-model="meta.mastery" :style="{ color: masteryInfo(meta.mastery || null).color, fontWeight: meta.mastery ? 700 : undefined }">
+            <option value="">未設定</option>
+            <option v-for="m in MASTERIES" :key="m.key" :value="m.key">{{ m.label }}</option>
+          </select>
         </label>
       </div>
 

@@ -13,8 +13,36 @@ export const FORMAT_INFO: Record<GrammarFormat, { label: string; short: string; 
 }
 export const FORMATS: GrammarFormat[] = ['choice', 'order', 'fill', 'error', 'image']
 
-/** 空所「( )」 */
-const BLANK_RE = /\(\s*\)/g
+/** 空所「( )」。語い・イディオムの「(c- )」のように頭文字のヒントつきの空所も 1 つの空所として扱う */
+const BLANK_RE = /\(\s*(?:[A-Za-z]{1,2}-)?\s*\)/g
+
+/** 空所ごとの頭文字のヒント（「(c- )」→ 'c-'。無ければ null） */
+export function blankHints(text: string): (string | null)[] {
+  return (text.match(BLANK_RE) ?? []).map((b) => {
+    const m = b.match(/([A-Za-z]{1,2}-)/)
+    return m ? m[1]! : null
+  })
+}
+
+/** 発音問題の下線「an⟨c⟩ient」を下線あり／なしの区切りに分ける（表示用） */
+export function ulSegments(text: string): { t: string; u: boolean }[] {
+  const out: { t: string; u: boolean }[] = []
+  const re = /⟨([^⟩]*)⟩/g
+  let last = 0
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push({ t: text.slice(last, m.index), u: false })
+    out.push({ t: m[1] ?? '', u: true })
+    last = m.index + m[0].length
+  }
+  if (last < text.length) out.push({ t: text.slice(last), u: false })
+  return out
+}
+
+/** 下線の印を除いた素の文字 */
+export function plainText(text: string | null | undefined): string {
+  return (text ?? '').replace(/[⟨⟩]/g, '')
+}
 
 /** 採点用の正規化（小文字・引用符の統一・句読点を除去・空白を 1 つに） */
 export function normalizeAnswer(s: string): string {
@@ -187,9 +215,10 @@ export function completedSentence(q: GrammarQuestion): string {
     .trim()
 }
 
-/** 一覧用: 問題文の先頭（指示の〔 〕を除く） */
+/** 一覧用: 問題文の先頭（指示の〔 〕を除く）。問題文が無い（発音）ときは選択肢を並べる */
 export function questionPreview(q: GrammarQuestion): string {
-  return q.question.replace(/〔.*?〕\s*/g, '').trim()
+  const t = plainText(q.question).replace(/〔.*?〕\s*/g, '').trim()
+  return t || plainText((q.choices ?? []).join(' / '))
 }
 
 /** 「第1章 時制」→ { no: 1, name: '時制' } */

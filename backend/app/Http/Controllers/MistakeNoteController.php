@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GrammarQuestion;
 use App\Models\MajorCategory;
 use App\Models\MidCategory;
 use App\Models\MistakeDeck;
@@ -11,6 +12,7 @@ use App\Models\MistakeReview;
 use App\Models\ResourceBook;
 use App\Models\StudyItem;
 use App\Models\Subject;
+use App\Support\GrammarNoteClassifier;
 use App\Support\ImageTools;
 use App\Support\MistakeReviewScheduler;
 use Illuminate\Http\JsonResponse;
@@ -37,6 +39,12 @@ class MistakeNoteController extends Controller
 
     private const IMAGE_ROLES = 'in:problem,extra,answer';
 
+    /** 定着度（手動）: mastered=定着 / unsure=あいまい / unmastered=未定着。未設定は null */
+    private const MASTERY_RULE = 'in:mastered,unsure,unmastered';
+
+    /** ページ座標の幅（frontend/src/lib/mistake.ts の NOTE_W と同じ） */
+    private const NOTE_W = 1050;
+
     public function index(Request $request): JsonResponse
     {
         $userId = $this->targetUserId($request);
@@ -62,6 +70,7 @@ class MistakeNoteController extends Controller
             'title' => ['nullable', 'string', 'max:255'],
             'source' => ['nullable', 'string', 'max:255'],
             'notedOn' => ['nullable', 'date'],
+            'mastery' => ['nullable', 'string', self::MASTERY_RULE],
             'layout' => ['nullable', 'string'],
         ]);
         $cats = $this->categoriesOf($userId, $data);
@@ -76,6 +85,7 @@ class MistakeNoteController extends Controller
                 'title' => $this->nullable($data['title'] ?? null),
                 'source' => $this->nullable($data['source'] ?? null),
                 'noted_on' => $data['notedOn'] ?? now()->toDateString(),
+                'mastery' => $data['mastery'] ?? null,
                 'layout' => $this->parseLayout($data['layout'] ?? null),
                 'sort_order' => ((int) MistakeNote::where('user_id', $userId)->max('sort_order')) + 1,
             ]);
@@ -109,6 +119,7 @@ class MistakeNoteController extends Controller
             'notedOn' => ['sometimes', 'required', 'date'],
             'layout' => ['sometimes', 'nullable', 'array'],
             'hidden' => ['sometimes', 'boolean'],
+            'mastery' => ['sometimes', 'nullable', 'string', self::MASTERY_RULE],
         ]);
 
         $attrs = [];
@@ -142,6 +153,9 @@ class MistakeNoteController extends Controller
         if (array_key_exists('hidden', $data)) {
             $attrs['hidden'] = (bool) $data['hidden'];
         }
+        if (array_key_exists('mastery', $data)) {
+            $attrs['mastery'] = $data['mastery'] ?: null;
+        }
         $note->update($attrs);
 
         return response()->json(['data' => $this->detail($note->fresh(self::WITH))]);
@@ -172,6 +186,66 @@ class MistakeNoteController extends Controller
         });
 
         return $this->index($request);
+    }
+
+    // ================================================================
+    // スクランブル（英文法・語法）の問題から自動で作る
+    // ================================================================
+
+    /**
+     * 解答後の「間違いノートを作成」。画面側で組み立てた 問題の画像（problem・必須）・解答の画像（answer・任意）・
+     * 詳細解説の画像（explanation・任意）を受け取り、上から順に幅いっぱいに置いたページを作る。
+     * 分類（科目・大分類・中分類）・デッキ「スクランブル」・出典は GrammarNoteClassifier で自動的に決める。
+     * 同じ問題のページがすでにあれば作らず、そのページを返す（created=false）。
+     */
+    public function storeFromGrammar(Request $request, GrammarQuestion $question): JsonResponse
+    {
+        $userId = $this->targetUserId($request);
+        $existing = MistakeNote::with(self::WITH)->where('user_id', $userId)->where('grammar_question_id', $question->id)->first();
+        if ($existing) {
+            return response()->json(['data' => $this->detail($existing), 'created' => false]);
+        }
+        $request->validate([
+            'problem' => ['required', 'image', 'mimes:jpeg,png,gif,webp', 'max:12288'],
+            'answer' => ['nullable', 'image', 'mimes:jpeg,png,gif,webp', 'max:12288'],
+            'explanation' => ['nullable', 'image', 'mimes:jpeg,png,gif,webp', 'max:12288'],
+            'mastery' => ['nullable', 'string', self::MASTERY_RULE],
+        ]);
+        $meta = GrammarNoteClassifier::resolve($userId, $question);
+
+        $note = DB::transaction(function () use ($request, $userId, $question, $meta) {
+            $note = MistakeNote::create($meta + [
+                'user_id' => $userId,
+                'grammar_question_id' => $question->id,
+                'noted_on' => now()->toDateString(),
+                'mastery' => $request->input('mastery') ?: 'unmastered',
+                'layout' => ['items' => [], 'ink' => []],
+                'sort_order' => ((int) MistakeNote::where('user_id', $userId)->max('sort_order')) + 1,
+            ]);
+            // 画像を上から順に幅いっぱいで並べる（問題 → 解答 → 詳細解説）
+            $items = [];
+            $y = 0;
+            foreach ([['problem', 'problem', 'p'], ['answer', 'answer', 'a'], ['explanation', 'extra', 'i']] as [$field, $role, $prefix]) {
+                $file = $request->file($field);
+                if (! $file) {
+                    continue;
+                }
+                $image = $this->saveImage($note, $file, $role);
+                $w = self::NOTE_W;
+                $h = $image->width > 0 ? (int) round($w * $image->height / $image->width) : 400;
+                $item = ['id' => $prefix.$image->id, 'type' => 'image', 'imageId' => $image->id, 'x' => 0, 'y' => $y, 'w' => $w, 'h' => $h];
+                if ($role !== 'extra') {
+                    $item['role'] = $role;
+                }
+                $items[] = $item;
+                $y += $h + 24;
+            }
+            $note->update(['layout' => ['items' => $items, 'ink' => []]]);
+
+            return $note;
+        });
+
+        return response()->json(['data' => $this->detail($note->fresh(self::WITH)), 'created' => true], 201);
     }
 
     // ================================================================
@@ -521,6 +595,8 @@ class MistakeNoteController extends Controller
             'source' => $n->book?->title ?? $n->source,
             'notedOn' => $n->noted_on->toDateString(),
             'hidden' => (bool) $n->hidden,
+            'mastery' => $n->mastery,
+            'grammarQuestionId' => $n->grammar_question_id,
             'sortOrder' => (int) $n->sort_order,
             'problemImageId' => $problem?->id,
             'problemThumbUrl' => $problem ? '/api/mistake-note-images/'.$problem->id.'?v=thumb' : null,

@@ -443,3 +443,26 @@ php artisan config:cache && php artisan route:cache
   自己出題では生徒専用の単語帳（鉄壁）も英単語テストに使える。出題の組み立て（表紙・スタンプ・英単語用紙）は `lib/quizBuild.ts` に共通化した。
 - **英単語の画像**: 英単語クイズの解答表示に、単語帳管理と同じ画像（`vocabularies.image_path`・public ディスク）を表示し、その場で登録・差し替え・削除できる
   （`QuizView.vue`。写真は長辺 1600px の JPEG に縮めて送る）。
+
+## 19. 間違いノートの定着度・スクランブルからの自動作成・スクランブル OCR の作り直し（2026-11-17 追加）の運用メモ
+
+- マイグレーション `2026_11_17_000001_add_mastery_and_grammar_link_to_mistake_notes`（`mistake_notes.mastery`・`grammar_question_id`）を `php artisan migrate --force` で適用。追加の Composer 依存はない。
+- **定着度**（手動。mastered=定着／unsure=あいまい／unmastered=未定着／NULL=未設定）: 本棚で本を開いた一覧の「定着度」列の選択、問題解答モードの「解答を表示」後のボタン、編集画面の欄で付ける。
+  絞り込みは一覧のチップ（ノートを開く・PDF 出力にも効く）、「問題を解く」のダイアログのチップ、閲覧（`MistakeBinder`）のバーの選択・≡ メニューのチップ。
+- **スクランブルの解答後「間違いノートを作成」**（`GrammarView`。結果画面の不正解・あいまいの行にも）: 画面側 `lib/grammarNote.ts` が canvas で「問題の画像」（番号・章・問題文・選択肢）と
+  「解答の画像」（正解・完成文・和訳・あなたの答え・出典）を描き、画像出題の問題集は教材の切り抜きをそのまま使い、詳細解説の画像と一緒に
+  `POST /mistake-notes/from-grammar/{question}`（multipart: problem / answer / explanation）へ送る。サーバー（`MistakeNoteController::storeFromGrammar`）は
+  上から順に幅いっぱいに置いたページを作り、分類は `App\Support\GrammarNoteClassifier`（科目=名前に「英語」を含む科目、中分類=章名に合うもの。無ければ
+  大分類「スクランブル英文法・語法」の下に章名／問題集名の中分類を作る）、デッキ「スクランブル」（無ければ作る）、出典は名前に「スクランブル」を含む教材が
+  あればそれ。同じ問題からは 2 度作らず、問題一覧 API の `noteId` でボタンが「間違いノートを開く」に変わる。定着度の初期値は「未定着」。
+- **スクランブル OCR の作り直し**（語い・イディオム・会話表現・発音・アクセント・読解作文を画像出題から文字の choice / fill に）。スクリプトは `docs/design/deploy/ocr/`:
+  1. `python -I ocr_scramble.py <scratch> 24 250` … 元 PDF（`docs/other/Scramble_英文法・語法_origin.pdf`）の見開きを左右に分け、300dpi JPEG と OCR JSON（Windows OCR ja/en-US + RapidOCR）を `<scratch>/scr/` に作る（約 35 分）。
+  2. `python -I build_scramble.py <scratch> [--books vocab,idiom,...] [--write]` … `scr_lib.py`（番号アンカー・点線・丸数字の字形照合）と `scr_parse.py`（ブロック→行。英文は RapidOCR の文字に Windows OCR の単語の切れ目を合わせる、
+     和文は Windows OCR ja、空所「( )」は枠の間の空きから補う）で問題を組み立て、`<scratch>/out/scr/<book>.json` と `REPORT_<book>.txt`（1 問ずつの結果・旧データのまま残した理由）を出す。
+     `--books grammar,usage` は既存データ（Excel 由来）と OCR の突き合わせ `COMPARE_<book>.txt`（CHECK = 似ていない）。`--write` で `backend/database/data/scramble_grammar.json` を更新（文字に起こせた問題だけ置き換え、旧データの画像の列は残す）。
+  3. `python -I scr_sheet.py <scratch> <book> [件数]` … 教材の切り抜きと読み取り結果を並べた目視確認用の画像。
+  - 解答の丸数字は RapidOCR の認識モデルが ④ を ① と読み違えるため、問題の選択肢の丸数字（黒）から字形テンプレートを集めて解答欄の丸数字（薄い赤。括弧の対の間の成分）を照合する（`CircledGlyphs`）。
+  - 解答欄は左ページの点線の下だが、イディオム・会話表現では右ページの下に続くことがある。
+  - フロント: 頭文字つき空所「(c- )」は `lib/grammar.ts` の BLANK_RE で空所扱い（入力欄の placeholder にヒント）、発音の下線は `an⟨c⟩ient` の印（`ulSegments` で下線表示）、
+    文字に起こした問題でも「詳細解説」に教材の問題・解答欄の切り抜きを出す（読み取りの確認用）。
+  - 本番への反映は `git pull` 後に `php artisan grammar:import`（(book, no) で upsert。回答履歴は残る。画像は従来のまま）。

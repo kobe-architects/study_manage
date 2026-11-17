@@ -1,7 +1,9 @@
 import client from '@/api/client'
-import type { MistakeDeck, MistakeGrade, MistakeImage, MistakeImageRole, MistakeLayout, MistakeNoteDetail, MistakeNoteSummary, MistakeReviewState } from '@/types'
+import type { MistakeDeck, MistakeGrade, MistakeImage, MistakeImageRole, MistakeLayout, MistakeMastery, MistakeNoteDetail, MistakeNoteSummary, MistakeReviewState } from '@/types'
 
 export interface MistakeMetaInput {
+  /** 定着度（null で未設定に戻す） */
+  mastery?: MistakeMastery | null
   /** 科目。「その他」は OTHER_SUBJECT（-1） */
   subjectId?: number | null
   majorId?: number | null
@@ -35,9 +37,23 @@ export const mistakeApi = {
     if (meta.title) fd.append('title', meta.title)
     if (meta.source) fd.append('source', meta.source)
     if (meta.notedOn) fd.append('notedOn', meta.notedOn)
+    if (meta.mastery) fd.append('mastery', meta.mastery)
     fd.append('layout', JSON.stringify(layout))
     const { data } = await client.post('/mistake-notes', fd)
     return data.data
+  },
+
+  /**
+   * スクランブル（英文法・語法）の問題から自動で作る。画面側で描いた問題・解答の画像と、教材の詳細解説の画像を渡す。
+   * 分類・デッキ・出典はサーバーが決める。同じ問題のページがすでにあればそれを返す（created=false）
+   */
+  async createFromGrammar(questionId: number, images: { problem: Blob; answer?: Blob | null; explanation?: Blob | null }): Promise<{ note: MistakeNoteDetail; created: boolean }> {
+    const fd = new FormData()
+    fd.append('problem', images.problem, 'problem.jpg')
+    if (images.answer) fd.append('answer', images.answer, 'answer.jpg')
+    if (images.explanation) fd.append('explanation', images.explanation, 'explanation.jpg')
+    const { data } = await client.post(`/mistake-notes/from-grammar/${questionId}`, fd)
+    return { note: data.data, created: !!data.created }
   },
 
   async show(id: number): Promise<MistakeNoteDetail> {

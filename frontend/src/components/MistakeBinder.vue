@@ -11,10 +11,11 @@
  * +/− キー・0 キーでも。ページをめくると等倍に戻る。拡大中は左右タップ・スワイプでのめくりは止まる（矢印ボタン・キーは使える）。
  * ページ上の画像をタップ（クリック）するとその画像が画面に収まる大きさに拡大され、同じ画像をもう一度タップすると等倍に戻る
  * （ページは 1 枚の絵なので、配置データ（layout）とページ割りから各画像の位置を計算して当たりを取る）。
+ * 定着度（手動）で絞り込める（バーの選択、または ≡ メニューのチップ）。絞ると該当するページだけでページ割りし直す。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { mistakeApi } from '@/api/mistake'
-import { ENTRY_HEAD, GUTTER, HEADER_GAP, HEADER_H, NOTE_W, OUTER, PAGE_H, PAGE_TOP, PAGE_W, contentBox, groupKeyOf, groupNotes, pageIndexOf, paginate } from '@/lib/mistake'
+import { ENTRY_HEAD, GUTTER, HEADER_GAP, HEADER_H, MASTERIES, NOTE_W, OUTER, PAGE_H, PAGE_TOP, PAGE_W, contentBox, groupKeyOf, groupNotes, matchMastery, pageIndexOf, paginate, type MasteryFilter } from '@/lib/mistake'
 import { gutterLeft, renderBinderPage } from '@/lib/mistakeRender'
 import { blockDoubleTapZoom, blockUiTextSelection, isTouch, viewportWidth } from '@/lib/native'
 import type { MistakeNoteDetail, MistakeNoteSummary } from '@/types'
@@ -33,8 +34,23 @@ const immersive = isTouch
 const idxOpen = ref(false)
 const root = ref<HTMLElement | null>(null)
 const unblock: (() => void)[] = []
+/** 定着度の絞り込み（'all' = 絞らない） */
+const mastery = ref<MasteryFilter>('all')
+const shownNotes = computed(() => props.notes.filter((n) => matchMastery(n, mastery.value)))
+const masteryCounts = computed(() => {
+  const c: Record<string, number> = { all: props.notes.length, mastered: 0, unsure: 0, unmastered: 0, none: 0 }
+  for (const n of props.notes) c[n.mastery ?? 'none'] = (c[n.mastery ?? 'none'] ?? 0) + 1
+  return c
+})
+function setMastery(f: MasteryFilter) {
+  if (mastery.value === f) return
+  mastery.value = f
+  pos.value = 0
+  pageCache.clear()
+  urls.value = {}
+}
 /** ページ割り（1 ページに複数の問題） */
-const pages = computed(() => paginate(props.notes))
+const pages = computed(() => paginate(shownNotes.value))
 const total = computed(() => pages.value.length)
 
 /** 右ページ（見開き）または表示ページ（1 ページ表示）の 0 始まりの番号 */
@@ -180,7 +196,7 @@ const pageUrl = (i: number) => (i >= 0 && i < total.value ? urls.value[i] : unde
 const pageAt = (i: number) => (i >= 0 && i < total.value ? pages.value[i] : undefined)
 
 // ---- インデックス（科目 → 分野） ----
-const groups = computed(() => groupNotes(props.notes))
+const groups = computed(() => groupNotes(shownNotes.value))
 const subjects = computed(() => {
   const out: { key: string; name: string; color: string | null; first: number }[] = []
   pages.value.forEach((p, i) => {
@@ -523,6 +539,11 @@ const ratio = PAGE_H / PAGE_W
         <span v-if="currentLabel" class="bar-sub">{{ currentLabel }}</span>
       </div>
       <div class="bar-pos dm">{{ Math.min(total, pos + 1) }} / {{ total }}</div>
+      <select class="mast-sel" :value="mastery" title="定着度で絞る" @change="setMastery(($event.target as HTMLSelectElement).value as MasteryFilter)">
+        <option value="all">定着度: すべて（{{ masteryCounts.all }}）</option>
+        <option v-for="m in MASTERIES" :key="m.key" :value="m.key">{{ m.label }}（{{ masteryCounts[m.key] }}）</option>
+        <option value="none">未設定（{{ masteryCounts.none }}）</option>
+      </select>
       <button class="x" :class="{ on: problemOnly }" :aria-pressed="problemOnly" :title="problemOnly ? 'すべて表示（説明・手書きも見せる）' : '問題だけ表示（説明・手書きを隠す）'" :aria-label="problemOnly ? 'すべて表示' : '問題だけ表示'" @click="problemOnly = !problemOnly">
         <svg v-if="problemOnly" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" /><circle cx="12" cy="12" r="3" /><path d="M3 3l18 18" /></svg>
         <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
@@ -537,7 +558,8 @@ const ratio = PAGE_H / PAGE_W
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
       </button>
 
-      <div ref="spreadEl" class="spread" :class="{ single }" :style="spreadStyle">
+      <div v-if="!total" class="empty-msg">この定着度のページはありません</div>
+      <div v-else ref="spreadEl" class="spread" :class="{ single }" :style="spreadStyle">
         <div v-if="!single" class="page left" :class="{ blank: leftIdx < 0 }" :data-idx="leftIdx >= 0 ? leftIdx : undefined">
           <img v-if="pageUrl(leftIdx)" :src="pageUrl(leftIdx)" alt="" draggable="false" />
           <div v-else-if="leftIdx >= 0" class="loading">読み込み中…</div>
@@ -594,6 +616,12 @@ const ratio = PAGE_H / PAGE_W
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
             </button>
           </div>
+          <div class="idx-mast">
+            <span class="idx-mast-lab">定着度</span>
+            <button class="mchip" :class="{ on: mastery === 'all' }" @click="setMastery('all')">すべて {{ masteryCounts.all }}</button>
+            <button v-for="m in MASTERIES" :key="m.key" class="mchip" :class="{ on: mastery === m.key }" :style="{ '--c': m.color }" @click="setMastery(m.key)">{{ m.label }} {{ masteryCounts[m.key] }}</button>
+            <button class="mchip" :class="{ on: mastery === 'none' }" @click="setMastery('none')">未設定 {{ masteryCounts.none }}</button>
+          </div>
           <div class="idx-list">
             <template v-for="sb in index" :key="sb.key">
               <button class="tab subj" :class="{ on: sb.key === activeSubjectKey }" :style="{ '--c': sb.color ?? '#5b6b8c' }" @click="pick(sb.first)">{{ sb.name }}</button>
@@ -644,6 +672,52 @@ const ratio = PAGE_H / PAGE_W
   font-size: 12.5px;
   font-weight: 500;
   color: #b7bcc5;
+}
+.mast-sel {
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+.mast-sel option {
+  color: #1c2024;
+}
+.empty-msg {
+  color: #b7bcc5;
+  font-size: 14px;
+}
+.idx-mast {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.idx-mast-lab {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9aa1ab;
+  margin-right: 2px;
+}
+.mchip {
+  padding: 5px 11px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  background: transparent;
+  color: #d7dbe2;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  --c: #e9ecf1;
+}
+.mchip.on {
+  background: var(--c);
+  border-color: var(--c);
+  color: #1c2024;
 }
 .bar-pos {
   font-size: 13px;

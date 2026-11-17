@@ -20,6 +20,7 @@ import {
   FORMAT_INFO,
   answerSegments,
   blankCount,
+  blankHints,
   choiceFillParts,
   errorTokens,
   fillAnswerParts,
@@ -31,6 +32,7 @@ import {
   splitBlanks,
   splitCorrection,
   splitLeadingNote,
+  ulSegments,
 } from '@/lib/grammar'
 import { haptic } from '@/lib/native'
 import type { GrammarQuestion } from '@/types'
@@ -126,6 +128,8 @@ function choiceClass(i: number) {
 
 // 選択: 文中の空所（正解後は答えを埋める）
 const sentencePieces = computed(() => splitBlanks(sentenceText.value))
+/** 空所ごとの頭文字のヒント（語い・イディオムの「(c- )」） */
+const hints = computed(() => blankHints(sentenceText.value))
 const choiceParts = computed(() => (revealed.value ? choiceFillParts(q.value) : null))
 
 // 誤り指摘: 文のトークン
@@ -308,9 +312,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <div v-else-if="q.format === 'error'">誤りを含む下線部を選べ</div>
     </div>
 
-    <!-- ============ 選択: 文（空所は正解後に埋まる） ============ -->
-    <p v-if="q.format === 'choice'" class="gq-sent dm">
-      <template v-for="(piece, i) in sentencePieces" :key="i">{{ piece }}<span v-if="i < sentencePieces.length - 1" class="blank" :class="{ filled: !!choiceParts }">{{ choiceParts ? choiceParts[i] : '' }}</span></template>
+    <!-- ============ 選択: 文（空所は正解後に埋まる）。発音問題のように文が無いときは出さない ============ -->
+    <p v-if="q.format === 'choice' && sentenceText" class="gq-sent dm">
+      <template v-for="(piece, i) in sentencePieces" :key="i"><template v-for="(s, k) in ulSegments(piece)" :key="k"><u v-if="s.u">{{ s.t }}</u><template v-else>{{ s.t }}</template></template><span v-if="i < sentencePieces.length - 1" class="blank" :class="{ filled: !!choiceParts }">{{ choiceParts ? choiceParts[i] : (hints[i] ?? '') }}</span></template>
     </p>
 
     <!-- ============ 誤り指摘: 文中の下線部をタップ ============ -->
@@ -362,7 +366,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <template v-if="inline">
           <template v-for="(piece, i) in sentencePieces" :key="i">{{ piece }}<template v-if="i < sentencePieces.length - 1">
             <span v-if="revealed" class="blank filled" :class="{ ng: !result?.isCorrect }">{{ fillParts ? fillParts[i] : '' }}</span>
-            <input v-else :ref="(el) => { if (el) blankEls[i] = el as HTMLInputElement }" v-model="inputs[i]" class="gq-blank dm" :placeholder="fillCount > 1 ? `(${i + 1})` : ''" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" :enterkeyhint="i === fillCount - 1 ? 'done' : 'next'" @keydown.enter.prevent="onBlankEnter(i)" />
+            <input v-else :ref="(el) => { if (el) blankEls[i] = el as HTMLInputElement }" v-model="inputs[i]" class="gq-blank dm" :placeholder="hints[i] ?? (fillCount > 1 ? `(${i + 1})` : '')" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" :enterkeyhint="i === fillCount - 1 ? 'done' : 'next'" @keydown.enter.prevent="onBlankEnter(i)" />
           </template></template>
         </template>
         <template v-else>{{ sentenceText }}</template>
@@ -387,7 +391,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       </div>
       <div class="rv-ans">
         <span class="rv-lab">正解</span>
-        <template v-if="q.format === 'choice'"><span class="dm rv-strong">{{ CIRCLED[q.answerIndex ?? 0] }} {{ q.answerText }}</span></template>
+        <template v-if="q.format === 'choice'"><span class="dm rv-strong">{{ CIRCLED[q.answerIndex ?? 0] }} <template v-for="(s, k) in ulSegments(q.answerText ?? '')" :key="k"><u v-if="s.u" class="ul">{{ s.t }}</u><template v-else>{{ s.t }}</template></template></span></template>
         <template v-else-if="q.format === 'error'">
           <span class="dm rv-strong">{{ CIRCLED[q.answerIndex ?? 0] }} {{ correction ? correction.from : q.answerText }}</span>
           <span v-if="correction" class="dm rv-fix">→ {{ correction.to }}</span>
@@ -422,7 +426,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <div v-else-if="q.format === 'choice'" class="gq-choices">
           <button v-for="(c, i) in choices" :key="i" class="gq-choice" :class="choiceClass(i)" :disabled="revealed" @click="pick(i)">
             <span class="n dm">{{ CIRCLED[i] }}</span>
-            <span class="t dm">{{ c }}</span>
+            <span class="t dm"><template v-for="(s, k) in ulSegments(c)" :key="k"><u v-if="s.u" class="ul">{{ s.t }}</u><template v-else>{{ s.t }}</template></template></span>
             <span class="mk">{{ revealed ? (i === q.answerIndex ? '○' : selected === i ? '×' : '') : '' }}</span>
           </button>
         </div>
@@ -552,6 +556,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 }
 
 /* 下部固定: 選択肢 */
+.ul {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  color: #cf5563;
+}
 .gq-choices {
   display: flex;
   flex-direction: column;

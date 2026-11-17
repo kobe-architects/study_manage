@@ -11,7 +11,7 @@ import AuthImage from '@/components/AuthImage.vue'
 import type { GrammarAnswerResult } from '@/components/GrammarQuestionCard.vue'
 import { grammarApi } from '@/api/grammar'
 import { speak } from '@/lib/design'
-import { CIRCLED, answerSegments, completedSentence, splitCorrection } from '@/lib/grammar'
+import { CIRCLED, answerSegments, completedSentence, plainText, splitCorrection, ulSegments } from '@/lib/grammar'
 import type { GrammarQuestion } from '@/types'
 
 /** simple: 大問まとめ出題（ファーストステップ）用。解答編の答えの画像と詳細解説だけを出す（正解・判定の行は大問カード側） */
@@ -19,7 +19,7 @@ const props = defineProps<{ question: GrammarQuestion; result: GrammarAnswerResu
 const emit = defineEmits<{ close: []; override: [isCorrect: boolean]; unsure: [unsure: boolean] }>()
 
 const q = computed(() => props.question)
-const sentence = computed(() => completedSentence(q.value))
+const sentence = computed(() => plainText(completedSentence(q.value)))
 const correction = computed(() => splitCorrection(q.value.answerText))
 const orderAnswer = computed(() => answerSegments(q.value.answerText ?? ''))
 const fillAnswerLabel = computed(() => (q.value.answers ?? []).map((alts) => alts.join(' / ')).join('，'))
@@ -58,8 +58,8 @@ watch(() => q.value.id, () => {
           <div class="ex-imglab">{{ q.book === 'first_step' ? `解答欄（${(q.source ?? '').split('・')[1] ?? ''} の答え）` : `解答欄（No.${q.no} の行）` }}</div>
           <AuthImage :src="grammarApi.imageUrl(q.id, 'answer')" class="ex-img" alt="解答" />
         </div>
-        <!-- 完成文（タップで読み上げ） -->
-        <div v-if="q.format !== 'image'" class="ex-sent dm" title="タップで読み上げ" @click="speak(sentence)">
+        <!-- 完成文（タップで読み上げ）。発音問題のように文が無いときは出さない -->
+        <div v-if="q.format !== 'image' && sentence" class="ex-sent dm" title="タップで読み上げ" @click="speak(sentence)">
           {{ sentence }}
           <button class="bare ex-spk" aria-label="読み上げ" @click.stop="speak(sentence)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></svg>
@@ -71,7 +71,7 @@ watch(() => q.value.id, () => {
         <!-- 正解 -->
         <div v-if="!simple && (q.format !== 'image' || q.answerText || (q.choiceCount && q.answerIndex !== null))" class="ex-row">
           <span class="ex-lab">正解</span>
-          <template v-if="q.format === 'choice'"><span class="dm ex-strong">{{ CIRCLED[q.answerIndex ?? 0] }} {{ q.answerText }}</span></template>
+          <template v-if="q.format === 'choice'"><span class="dm ex-strong">{{ CIRCLED[q.answerIndex ?? 0] }} <template v-for="(s, k) in ulSegments(q.answerText ?? '')" :key="k"><u v-if="s.u" class="ul">{{ s.t }}</u><template v-else>{{ s.t }}</template></template></span></template>
           <template v-else-if="q.format === 'error'">
             <span class="dm ex-strong">{{ CIRCLED[q.answerIndex ?? 0] }} {{ correction ? correction.from : q.answerText }}</span>
             <span v-if="correction" class="dm ex-fix">→ {{ correction.to }}</span>
@@ -125,6 +125,15 @@ watch(() => q.value.id, () => {
             </button>
           </div>
           <div class="ex-body">
+            <!-- 文字に起こした問題（語い以降）: 教材の問題と解答欄の切り抜きも見られるようにする（読み取りの確認用） -->
+            <div v-if="q.format !== 'image' && q.hasProblemImage" class="ex-imgbox">
+              <div class="ex-imglab">教材の問題（No.{{ q.no }}）</div>
+              <AuthImage :src="grammarApi.imageUrl(q.id, 'problem')" class="ex-img" alt="教材の問題" />
+            </div>
+            <div v-if="q.format !== 'image' && q.hasAnswerImage" class="ex-imgbox">
+              <div class="ex-imglab">教材の解答欄（No.{{ q.no }} の行）</div>
+              <AuthImage :src="grammarApi.imageUrl(q.id, 'answer')" class="ex-img" alt="教材の解答欄" />
+            </div>
             <!-- 教材の解説ページの該当部分（画像） -->
             <div v-if="q.hasExplanationImage" class="ex-imgbox big">
               <AuthImage :src="grammarApi.imageUrl(q.id, 'explanation')" class="ex-img" alt="解説" />
@@ -177,6 +186,12 @@ watch(() => q.value.id, () => {
 }
 .ex-imgbox.big {
   margin-bottom: 0;
+}
+.ul {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  color: #cf5563;
 }
 .ex-imgbox.big .ex-img {
   border-radius: 6px;

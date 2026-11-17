@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\GrammarAttempt;
 use App\Models\GrammarQuestion;
+use App\Models\MistakeNote;
 use App\Models\QuizSession;
 use App\Models\ReviewState;
 use App\Services\ReviewService;
@@ -73,10 +74,13 @@ class GrammarController extends Controller
         $questions = GrammarQuestion::query()->where('book', $book)->orderBy('no')
             ->select(['*', DB::raw('explanation IS NOT NULL AND explanation <> "" AS has_explanation')])
             ->get();
-        $stats = $this->stats($this->targetUserId($request), $questions->pluck('id')->all());
+        $userId = $this->targetUserId($request);
+        $stats = $this->stats($userId, $questions->pluck('id')->all());
+        // この問題から作った間違いノートのページ（解答後の「間違いノートを作成」→「開く」の切替に使う）
+        $notes = MistakeNote::where('user_id', $userId)->whereIn('grammar_question_id', $questions->pluck('id'))->pluck('id', 'grammar_question_id');
 
         return response()->json([
-            'data' => $questions->map(fn (GrammarQuestion $q) => $this->format($q, $stats[$q->id] ?? null))->values(),
+            'data' => $questions->map(fn (GrammarQuestion $q) => $this->format($q, $stats[$q->id] ?? null, isset($notes[$q->id]) ? (int) $notes[$q->id] : null))->values(),
         ]);
     }
 
@@ -241,9 +245,10 @@ class GrammarController extends Controller
         return $out;
     }
 
-    private function format(GrammarQuestion $q, ?array $stat): array
+    private function format(GrammarQuestion $q, ?array $stat, ?int $noteId = null): array
     {
         return [
+            'noteId' => $noteId, // この問題から作った間違いノートのページ（無ければ null）
             'id' => $q->id,
             'book' => $q->book,
             'no' => $q->no,

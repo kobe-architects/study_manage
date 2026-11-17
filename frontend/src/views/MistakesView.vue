@@ -18,11 +18,11 @@ import MistakeQuiz from '@/components/MistakeQuiz.vue'
 import { mistakeApi } from '@/api/mistake'
 import { appConfirm } from '@/lib/dialog'
 import { showPdf, useInAppViewer } from '@/lib/docViewer'
-import { DECK_COLORS, OTHER_SUBJECT, fmtDate, groupNotes, pageIndexOf, paginate, type MistakeGroup } from '@/lib/mistake'
+import { DECK_COLORS, MASTERIES, OTHER_SUBJECT, fmtDate, groupNotes, masteryInfo, matchMastery, pageIndexOf, paginate, type MasteryFilter, type MistakeGroup } from '@/lib/mistake'
 import { canvasToJpeg, renderBinderPage, renderIndexPages, type IndexEntry } from '@/lib/mistakeRender'
 import { haptic, viewportWidth } from '@/lib/native'
 import { useUiStore } from '@/stores/ui'
-import type { MistakeDeck, MistakeNoteDetail, MistakeNoteSummary, MistakeReviewState } from '@/types'
+import type { MistakeDeck, MistakeMastery, MistakeNoteDetail, MistakeNoteSummary, MistakeReviewState } from '@/types'
 
 const router = useRouter()
 const ui = useUiStore()
@@ -139,6 +139,7 @@ function open(b: Book) {
   filter.midId = 0
   filter.studyItemId = 0
   filter.subject = 'all'
+  filter.mastery = 'all'
   if (b.kind === 'deck') localStorage.setItem('sm_mn_cat', JSON.stringify({ ...(safeJson(localStorage.getItem('sm_mn_cat')) as object), deckId: b.deckId ?? 0 }))
 }
 function safeJson(s: string | null): unknown {
@@ -249,7 +250,32 @@ function onDeckMenu(b: Book, key: string) {
 // ================================================================
 // 本の中（ページの一覧）
 // ================================================================
-const filter = reactive({ subject: 'all' as string, midId: 0, studyItemId: 0 })
+const filter = reactive({ subject: 'all' as string, midId: 0, studyItemId: 0, mastery: 'all' as MasteryFilter })
+/** 定着度ごとの件数（開いている本の中） */
+const masteryCounts = computed(() => {
+  const c: Record<string, number> = { all: 0, mastered: 0, unsure: 0, unmastered: 0, none: 0 }
+  for (const n of openBook.value?.notes ?? []) {
+    c.all!++
+    c[n.mastery ?? 'none'] = (c[n.mastery ?? 'none'] ?? 0) + 1
+  }
+  return c
+})
+/** 定着度を手動で付ける（表の選択・問題解答モードから） */
+async function setMastery(n: MistakeNoteSummary, m: MistakeMastery | null) {
+  const prev = n.mastery
+  n.mastery = m
+  try {
+    await mistakeApi.update(n.id, { mastery: m })
+    haptic()
+  } catch {
+    n.mastery = prev
+    ui.notify('定着度の保存に失敗しました')
+  }
+}
+function onMasterySelect(n: MistakeNoteSummary, e: Event) {
+  const v = (e.target as HTMLSelectElement).value
+  setMastery(n, (v || null) as MistakeMastery | null)
+}
 /** デッキの本の中: 科目で絞る */
 const subjectTabs = computed(() => {
   const out: { key: string; name: string; color: string | null; count: number }[] = []
@@ -294,7 +320,8 @@ const visible = computed(() =>
     (n) =>
       (filter.subject === 'all' || String(n.subjectId ?? 0) === filter.subject) &&
       (filter.midId === 0 || (n.midId ?? 0) === filter.midId) &&
-      (filter.studyItemId === 0 || (n.studyItemId ?? 0) === filter.studyItemId),
+      (filter.studyItemId === 0 || (n.studyItemId ?? 0) === filter.studyItemId) &&
+      matchMastery(n, filter.mastery),
   ),
 )
 const groups = computed(() => groupNotes(visible.value))
@@ -482,6 +509,20 @@ function openAllBinder() {
 // ================================================================
 const quiz = ref<{ notes: MistakeNoteSummary[]; title: string } | null>(null)
 const quizDlg = ref<{ title: string; all: MistakeNoteSummary[]; due: MistakeNoteSummary[]; fresh: MistakeNoteSummary[] } | null>(null)
+/** 問題を解くときの定着度の絞り込み（複数選択。空 = 絞らない） */
+const quizMastery = ref<Set<MasteryFilter>>(new Set())
+function toggleQuizMastery(k: MasteryFilter) {
+  const s = new Set(quizMastery.value)
+  if (s.has(k)) s.delete(k)
+  else s.add(k)
+  quizMastery.value = s
+}
+const quizPool = computed(() => {
+  const d = quizDlg.value
+  if (!d) return { all: [] as MistakeNoteSummary[], due: [] as MistakeNoteSummary[], fresh: [] as MistakeNoteSummary[] }
+  const f = (list: MistakeNoteSummary[]) => (quizMastery.value.size ? list.filter((n) => Array.from(quizMastery.value).some((k) => matchMastery(n, k))) : list)
+  return { all: f(d.all), due: f(d.due), fresh: f(d.fresh) }
+})
 /** 出題の順: 期限が来たもの（期限の古い順）→ 未学習（ノートの順）→ まだ期限ではないもの（期限の近い順） */
 function orderForQuiz(list: MistakeNoteSummary[]): MistakeNoteSummary[] {
   const t = (n: MistakeNoteSummary) => (n.review.dueAt ? new Date(n.review.dueAt).getTime() : 0)
@@ -501,7 +542,8 @@ function askQuiz(list: MistakeNoteSummary[], title: string) {
 function startQuiz(which: 'review' | 'all') {
   const d = quizDlg.value
   if (!d) return
-  const list = which === 'all' ? d.all : [...d.due, ...d.fresh]
+  const pool = quizPool.value
+  const list = which === 'all' ? pool.all : [...pool.due, ...pool.fresh]
   quizDlg.value = null
   if (!list.length) return
   quiz.value = { notes: orderForQuiz(list), title: d.title }
@@ -514,6 +556,10 @@ function startDue() {
 function onGraded(noteId: number, review: MistakeReviewState) {
   const n = notes.value.find((x) => x.id === noteId)
   if (n) n.review = review
+}
+function onMastery(noteId: number, m: MistakeMastery | null) {
+  const n = notes.value.find((x) => x.id === noteId)
+  if (n) n.mastery = m
 }
 
 // ================================================================
@@ -690,7 +736,13 @@ async function exportPdf() {
       </div>
 
       <!-- 絞り込み -->
-      <div v-if="subjectTabs.length > 1 || midChips.length" class="filters">
+      <div v-if="subjectTabs.length > 1 || midChips.length || openBook.notes.length" class="filters">
+        <div v-if="openBook.notes.length" class="chips">
+          <span class="chips-label">定着度</span>
+          <button class="chip" :class="{ on: filter.mastery === 'all' }" @click="filter.mastery = 'all'">すべて<span class="cnt">{{ masteryCounts.all }}</span></button>
+          <button v-for="m in MASTERIES" :key="m.key" class="chip mchip" :class="{ on: filter.mastery === m.key }" :style="{ '--mc': m.color, '--mb': m.bg }" @click="filter.mastery = m.key">{{ m.label }}<span class="cnt">{{ masteryCounts[m.key] }}</span></button>
+          <button class="chip" :class="{ on: filter.mastery === 'none' }" @click="filter.mastery = 'none'">未設定<span class="cnt">{{ masteryCounts.none }}</span></button>
+        </div>
         <div v-if="openBook.kind === 'deck' && subjectTabs.length > 1" class="tabs">
           <button class="tab" :class="{ on: filter.subject === 'all' }" @click="filter.subject = 'all'">すべて<span class="cnt">{{ openBook.count }}</span></button>
           <button v-for="t in subjectTabs" :key="t.key" class="tab" :class="{ on: filter.subject === t.key }" :style="{ '--c': t.color ?? '#5b6b8c' }" @click="filter.subject = t.key">
@@ -730,6 +782,7 @@ async function exportPdf() {
                 <th class="c-date">日付</th>
                 <th class="c-deck">デッキ</th>
                 <th class="c-rev">復習</th>
+                <th class="c-mast">定着度</th>
                 <th class="c-state">状態</th>
                 <th class="c-actions"></th>
               </tr>
@@ -760,6 +813,12 @@ async function exportPdf() {
                   </select>
                 </td>
                 <td class="c-rev"><span class="badge" :class="reviewLabel(r.n.review).cls">{{ reviewLabel(r.n.review).text }}</span></td>
+                <td class="c-mast">
+                  <select class="deck-sel mast-sel" :value="r.n.mastery ?? ''" :style="{ color: masteryInfo(r.n.mastery).color, background: masteryInfo(r.n.mastery).bg, borderColor: 'transparent', fontWeight: 700 }" title="定着度（手動）" @change="onMasterySelect(r.n, $event)">
+                    <option value="">未設定</option>
+                    <option v-for="m in MASTERIES" :key="m.key" :value="m.key">{{ m.label }}</option>
+                  </select>
+                </td>
                 <td class="c-state"><span class="badge" :class="r.n.hidden ? 'off' : 'on'">{{ r.n.hidden ? '非表示' : '表示' }}</span></td>
                 <td class="c-actions">
                   <div class="acts">
@@ -805,13 +864,18 @@ async function exportPdf() {
       <div v-if="quizDlg" class="overlay ui-overlay ui-sheet">
         <div class="modal ui-panel" @click.stop>
           <div class="m-title">問題を解く<span class="m-sub">{{ quizDlg.title }}</span></div>
-          <button class="q-opt" :disabled="!quizDlg.due.length && !quizDlg.fresh.length" @click="startQuiz('review')">
+          <div class="chips" style="margin-bottom: 10px">
+            <span class="chips-label">定着度で絞る</span>
+            <button v-for="m in MASTERIES" :key="m.key" class="chip mchip" :class="{ on: quizMastery.has(m.key) }" :style="{ '--mc': m.color, '--mb': m.bg }" @click="toggleQuizMastery(m.key)">{{ m.label }}<span class="cnt">{{ quizDlg.all.filter((n) => n.mastery === m.key).length }}</span></button>
+            <button class="chip" :class="{ on: quizMastery.has('none') }" @click="toggleQuizMastery('none')">未設定<span class="cnt">{{ quizDlg.all.filter((n) => !n.mastery).length }}</span></button>
+          </div>
+          <button class="q-opt" :disabled="!quizPool.due.length && !quizPool.fresh.length" @click="startQuiz('review')">
             <span class="q-opt-t">復習する</span>
-            <span class="q-opt-d">期限が来た {{ quizDlg.due.length }} 問 ＋ 未学習 {{ quizDlg.fresh.length }} 問（忘却曲線に合わせた順）</span>
+            <span class="q-opt-d">期限が来た {{ quizPool.due.length }} 問 ＋ 未学習 {{ quizPool.fresh.length }} 問（忘却曲線に合わせた順）</span>
           </button>
-          <button class="q-opt" @click="startQuiz('all')">
+          <button class="q-opt" :disabled="!quizPool.all.length" @click="startQuiz('all')">
             <span class="q-opt-t">すべて解く</span>
-            <span class="q-opt-d">{{ quizDlg.all.length }} 問（期限が来たもの → 未学習 → それ以外）</span>
+            <span class="q-opt-d">{{ quizPool.all.length }} 問（期限が来たもの → 未学習 → それ以外）</span>
           </button>
           <div class="m-actions">
             <button class="btn-ghost" @click="quizDlg = null">キャンセル</button>
@@ -824,7 +888,7 @@ async function exportPdf() {
       <MistakeBinder v-if="binderOpen" :notes="binderList" :start-id="binderStart" @close="binderOpen = false" />
     </Transition>
     <Transition name="ui-modal">
-      <MistakeQuiz v-if="quiz" :notes="quiz.notes" :title="quiz.title" @graded="onGraded" @close="quiz = null" />
+      <MistakeQuiz v-if="quiz" :notes="quiz.notes" :title="quiz.title" @graded="onGraded" @mastery="onMastery" @close="quiz = null" />
     </Transition>
   </div>
 </template>
@@ -1194,6 +1258,11 @@ async function exportPdf() {
   border-color: #c1c8f0;
   color: #3b50cc;
 }
+.chip.mchip.on {
+  background: var(--mb);
+  border-color: var(--mc);
+  color: var(--mc);
+}
 .group {
   display: flex;
   flex-direction: column;
@@ -1336,6 +1405,15 @@ async function exportPdf() {
   background: #fff;
   font-size: 11.5px;
   color: var(--mut);
+}
+.c-mast {
+  width: 1%;
+  white-space: nowrap;
+}
+.mast-sel {
+  max-width: 110px;
+  border-radius: 999px;
+  padding: 3px 8px;
 }
 .c-rev {
   width: 84px;

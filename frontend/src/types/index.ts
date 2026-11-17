@@ -847,6 +847,9 @@ export interface GanttChart {
 /** problem=対象の問題の写真（必ず 1 枚）/ answer=解答の画像（任意・1 枚。問題解答モードで「解答を表示」に使う）/ extra=説明用 */
 export type MistakeImageRole = 'problem' | 'extra' | 'answer'
 
+/** 定着度（手動で付ける）: mastered=定着 / unsure=あいまい / unmastered=未定着。未設定は null */
+export type MistakeMastery = 'mastered' | 'unsure' | 'unmastered'
+
 export interface MistakeImage {
   id: number
   role: MistakeImageRole
@@ -956,6 +959,10 @@ export interface MistakeNoteSummary {
   source: string | null
   notedOn: string // ISO
   hidden: boolean
+  /** 定着度（手動。未設定は null） */
+  mastery: MistakeMastery | null
+  /** スクランブルの問題から自動で作ったページの元の問題（それ以外は null） */
+  grammarQuestionId: number | null
   sortOrder: number
   problemImageId: number | null
   problemThumbUrl: string | null
@@ -1026,6 +1033,8 @@ export interface GrammarQuestion {
   hasProblemImage: boolean
   hasAnswerImage: boolean
   hasExplanationImage: boolean
+  /** この問題から作った間違いノートのページ（無ければ null） */
+  noteId: number | null
   stat: GrammarStat | null
 }
 

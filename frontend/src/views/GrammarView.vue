@@ -7,6 +7,7 @@
  * 問題は 1 冊分をまとめて取得し、絞り込み・出題順は画面側で決める。回答は 1 問ごとにサーバーへ記録する。
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import FirstStepCard from '@/components/FirstStepCard.vue'
 import GrammarExplain from '@/components/GrammarExplain.vue'
 import GrammarQuestionCard, { type GrammarAnswerResult } from '@/components/GrammarQuestionCard.vue'
@@ -17,8 +18,9 @@ import { grammarApi } from '@/api/grammar'
 import { sessionsApi } from '@/api/sessions'
 import { shuffle } from '@/lib/design'
 import { QuestionTimer } from '@/lib/quizTimer'
-import { CIRCLED, FORMATS, FORMAT_INFO, chapterParts, questionPreview, statusOf } from '@/lib/grammar'
+import { CIRCLED, FORMATS, FORMAT_INFO, chapterParts, plainText, questionPreview, statusOf } from '@/lib/grammar'
 import { openFirstStepCheckSheet } from '@/lib/firstStepSheet'
+import { createGrammarNote } from '@/lib/grammarNote'
 import { openBookCheckSheet, openGrammarCheckSheet } from '@/lib/grammarSheet'
 import { playResultSound } from '@/lib/sound'
 import { useAuthStore } from '@/stores/auth'
@@ -36,6 +38,7 @@ const isFirstStep = computed(() => series.value === 'first_step')
 const g = useGrammarStore()
 const ui = useUiStore()
 const auth = useAuthStore()
+const router = useRouter()
 /** この画面で扱う問題集（series に属するものだけ） */
 const books = computed(() => g.books.filter((b) => SERIES_BOOKS[series.value].includes(b.key)))
 
@@ -464,6 +467,30 @@ async function onUnsure(unsure: boolean) {
     r.attemptId = await g.setUnsure(q, r.attemptId, unsure)
   }
 }
+// ---- 間違いノート（解答後の「間違いノートを作成」。問題・解答・詳細解説を 1 ページにまとめ、分類・デッキ「スクランブル」は自動） ----
+const noteBusy = ref<number | null>(null)
+async function makeNote(q: GrammarQuestion, result: GrammarAnswerResult | null) {
+  if (noteBusy.value) return
+  if (q.noteId) {
+    finishSession()
+    router.push({ name: 'mistake-edit', params: { id: q.noteId } })
+    return
+  }
+  noteBusy.value = q.id
+  try {
+    const { note, created } = await createGrammarNote(q, result)
+    q.noteId = note.id
+    ui.notify(created ? `間違いノートを作成しました（${[note.subjectName, note.field].filter(Boolean).join(' ／ ') || 'デッキ「スクランブル」'}）` : 'この問題の間違いノートはすでにあります')
+  } catch {
+    ui.notify('間違いノートの作成に失敗しました')
+  } finally {
+    noteBusy.value = null
+  }
+}
+function noteLabel(q: GrammarQuestion): string {
+  return noteBusy.value === q.id ? '作成中…' : q.noteId ? '間違いノートを開く' : '間違いノートを作成'
+}
+
 function next() {
   explainOpen.value = false
   if (quiz.index + 1 >= units.value.length) {
@@ -528,7 +555,7 @@ function retryIncorrect() {
 }
 /** 結果一覧用の正解表示 */
 function answerLabel(q: GrammarQuestion): string {
-  if (q.format === 'choice') return `${CIRCLED[q.answerIndex ?? 0]} ${q.answerText ?? ''}`
+  if (q.format === 'choice') return `${CIRCLED[q.answerIndex ?? 0]} ${plainText(q.answerText)}`
   if (q.format === 'error') return `${CIRCLED[q.answerIndex ?? 0]} ${q.answerText ?? ''}`
   if (q.format === 'order') return (q.answerText ?? '').replace(/[()]/g, '')
   if (q.format === 'image') {
@@ -728,6 +755,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
               <span class="q-no dm">No.{{ q.no }}</span>
               <span class="q-fmt" :style="{ background: FORMAT_INFO[q.format].bg, color: FORMAT_INFO[q.format].fg }">{{ q.formatLabel }}</span>
               <span style="font-size: 11px; color: var(--faint)">{{ q.chapter }}</span>
+              <button v-if="!isFirstStep" class="note-mini" :class="{ made: !!q.noteId }" :disabled="noteBusy !== null" @click="makeNote(q, quiz.results[quiz.list.indexOf(q)] ?? null)">{{ noteLabel(q) }}</button>
             </div>
             <div class="dm" style="font-size: 13.5px; line-height: 1.6">{{ questionPreview(q) }}</div>
             <div style="font-size: 13px; color: var(--primary); font-weight: 600; margin-top: 2px" class="dm">{{ answerLabel(q) }}</div>
@@ -742,6 +770,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
               <span class="q-no dm">No.{{ q.no }}</span>
               <span class="q-fmt" :style="{ background: FORMAT_INFO[q.format].bg, color: FORMAT_INFO[q.format].fg }">{{ q.formatLabel }}</span>
               <span style="font-size: 11px; color: var(--faint)">{{ q.chapter }}</span>
+              <button v-if="!isFirstStep" class="note-mini" :class="{ made: !!q.noteId }" :disabled="noteBusy !== null" @click="makeNote(q, quiz.results[quiz.list.indexOf(q)] ?? null)">{{ noteLabel(q) }}</button>
             </div>
             <div class="dm" style="font-size: 13.5px; line-height: 1.6">{{ questionPreview(q) }}</div>
             <div style="font-size: 13px; color: var(--primary); font-weight: 600; margin-top: 2px" class="dm">{{ answerLabel(q) }}</div>
@@ -789,6 +818,13 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
           @unsure="onUnsure"
         />
         <div v-if="answered && current.stat?.review" class="next-chip">次の復習: {{ current.stat.review.intervalLabel }}後<span v-if="currentResult && currentResult.elapsedMs !== null">　・　解答 {{ fmtSec(currentResult.elapsedMs) }}</span></div>
+        <!-- 解答後: 間違いノートを作成（問題・正解・和訳・詳細解説を 1 ページに。分類とデッキ「スクランブル」は自動）。作成済みならそのページを開く -->
+        <div v-if="answered && !isFirstStep" class="note-row">
+          <button class="note-btn" :class="{ made: !!current.noteId }" :disabled="noteBusy !== null" @click="makeNote(current, currentResult)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z" /><path d="M9 4v5h6V4" /><path d="M8 14h8M8 17h5" /></svg>
+            {{ noteLabel(current) }}
+          </button>
+        </div>
         <template #footer>
           <button class="qf-ghost" :disabled="quiz.index === 0" @click="prev">前へ</button>
           <button v-if="answered" class="qf-ghost" @click="explainOpen = true">解説</button>
@@ -923,6 +959,51 @@ button.vstat.due:disabled .due-go {
   text-align: center;
   font-size: 12px;
   color: var(--faint);
+}
+.note-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+.note-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 18px;
+  border: 1.5px solid #3b50cc;
+  border-radius: 11px;
+  background: #fff;
+  color: #3b50cc;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.note-btn.made {
+  background: #eef0f9;
+}
+.note-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.note-mini {
+  margin-left: auto;
+  padding: 3px 9px;
+  border: 1px solid #c1c8f0;
+  border-radius: 99px;
+  background: #fff;
+  color: #3b50cc;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.note-mini.made {
+  background: #eef0f9;
+}
+.note-mini:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .home-grid {
   display: grid;

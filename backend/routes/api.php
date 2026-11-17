@@ -118,6 +118,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // ===== 間違いノート（1 問 = 1 ページ。写真・手書き・入力。科目 → 分野で管理） =====
         Route::get('/mistake-notes', [MistakeNoteController::class, 'index']);
         Route::post('/mistake-notes', [MistakeNoteController::class, 'store']); // multipart（問題の写真が必須）
+        Route::post('/mistake-notes/from-grammar/{question}', [MistakeNoteController::class, 'storeFromGrammar']); // スクランブルの問題から自動作成（multipart: problem / answer / explanation）
         Route::put('/mistake-notes/reorder', [MistakeNoteController::class, 'reorder']);
         Route::get('/mistake-notes/{note}', [MistakeNoteController::class, 'show']);
         Route::put('/mistake-notes/{note}', [MistakeNoteController::class, 'update']);
