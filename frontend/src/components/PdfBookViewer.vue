@@ -716,15 +716,17 @@ async function download() {
 }
 /* 見開き: 左右 2 枚。空白（1 ページ目の左・最後の右）は少し暗い紙 */
 .book.spread .paper.half {
-  inset: auto;
   top: 0;
   bottom: 0;
   width: 50%;
 }
-.paper.half.left {
+/* .paper の inset:0 を左右で上書き（同じ詳細度以上で left/right を明示する） */
+.book.spread .paper.half.left {
   left: 0;
+  right: auto;
 }
-.paper.half.right {
+.book.spread .paper.half.right {
+  left: auto;
   right: 0;
 }
 .paper.blank,
