@@ -4,7 +4,7 @@
  * - フォルダは階層（道しるべで上へ）。URL の ?f= に今のフォルダを持つ（戻る・共有できる）
  * - アップロードは 4MB ずつの分割。PDF は画面側で文字を抜き出してサーバーに送り、本文でも検索できるようにする
  * - フォルダごとまとめてアップロードできる（「フォルダをアップロード」か、フォルダをドラッグ）。中の階層もそのまま作る。
- *   容量は 1 ファイル 300MB・生徒 1 人の合計（既定 3GB）。始める前に合計を見て、入らなければ受け付けない
+ *   容量は 1 ファイル 300MB・生徒 1 人の合計（既定 15GB）。始める前に合計を見て、入らなければ受け付けない
  * - PDF は本のようにめくるビューア（ブックマーク対応）で閲覧、画像はそのまま表示、その他は保存
  * - 名前の変更・移動・削除。検索は名前と PDF の本文
  * 生徒・講師の両方で同じ画面（API のプレフィックスだけ違う）。
@@ -420,7 +420,7 @@ async function startUpload(items: PickedFile[]) {
     ui.notify(`一度に送れるのは ${MAX_FILES} ファイルまでです（${items.length} ファイル選ばれています）。フォルダを分けてアップロードしてください。`)
     return
   }
-  const u = usage.value ?? { usedBytes: 0, quotaBytes: 3 * 1024 * 1024 * 1024, maxFileBytes: 300 * 1024 * 1024 }
+  const u = usage.value ?? { usedBytes: 0, quotaBytes: 15 * 1024 * 1024 * 1024, maxFileBytes: 300 * 1024 * 1024 }
   const tooBig = items.filter((it) => it.file.size > u.maxFileBytes)
   const okItems = items.filter((it) => it.file.size <= u.maxFileBytes)
   const total = okItems.reduce((a, it) => a + it.file.size, 0)
@@ -442,9 +442,9 @@ async function startUpload(items: PickedFile[]) {
     }
     if (!(await appConfirm(lines.join('\n'), { okText: 'アップロード' }))) return
   }
-  await runUpload(okItems, { isBatch, label, topName: tops.length === 1 ? tops[0] : null })
+  await runUpload(okItems, { isBatch, label })
 }
-async function runUpload(items: PickedFile[], opt: { isBatch: boolean; label: string; topName: string | null }) {
+async function runUpload(items: PickedFile[], opt: { isBatch: boolean; label: string }) {
   const target = folderId.value
   const ctrl = new AbortController()
   Object.assign(batch, { active: true, label: opt.label, total: items.length, done: 0, failed: 0, bytesTotal: items.reduce((a, it) => a + it.file.size, 0), bytesDone: 0, ctrl })
@@ -479,7 +479,7 @@ async function runUpload(items: PickedFile[], opt: { isBatch: boolean; label: st
       await sharedApi.upload(
         fid,
         file,
-        { searchText: extra.text, pageCount: extra.pageCount, silent: opt.isBatch },
+        { searchText: extra.text, pageCount: extra.pageCount },
         (r) => {
           job.ratio = r
           batch.bytesDone = before + Math.round(file.size * r)
@@ -506,13 +506,6 @@ async function runUpload(items: PickedFile[], opt: { isBatch: boolean; label: st
         aborted = true
         break
       }
-    }
-  }
-  if (opt.isBatch && batch.done > 0) {
-    try {
-      await sharedApi.notifyUploaded(target, opt.topName ?? opt.label, batch.done)
-    } catch {
-      /* 通知は無くても登録は済んでいる */
     }
   }
   batch.active = false
@@ -549,7 +542,7 @@ function fileKind(f: SharedFile): string {
     <div class="head-row">
       <div style="display: flex; align-items: center; gap: 8px; min-width: 0">
         <div style="font-size: 17px; font-weight: 700; white-space: nowrap">ファイル共有</div>
-        <HelpTip text="生徒と先生で同じフォルダを共有します。学習データの PDF などをフォルダに分けて置き、先生が確認できます。&#10;「アップロード」またはここにファイル・フォルダをドラッグして追加。「フォルダをアップロード」でフォルダの中身を階層ごとまとめて追加できます（パソコンから）。&#10;容量は 1 ファイル 300MB まで、全体で右上に表示の上限まで。足りないときは不要なファイルを削除してください。&#10;PDF は本のようにめくって読め、PDF にブックマーク（目次）があれば左に表示されます。&#10;検索はファイル名・フォルダ名のほか、PDF の本文（文字が入っている PDF）も対象です。&#10;「⋯」から名前の変更・移動・削除ができます。" />
+        <HelpTip text="生徒と先生で同じフォルダを共有します。学習データの PDF などをフォルダに分けて置き、先生が確認できます。&#10;「アップロード」またはここにファイル・フォルダをドラッグして追加。「フォルダをアップロード」でフォルダの中身を階層ごとまとめて追加できます（パソコンから）。&#10;容量は 1 ファイル 300MB まで、全体で右上に表示の上限まで。足りないときは不要なファイルを削除してください。&#10;PDF は本のようにめくって読め（1 ページ／見開きを切替可）、PDF にブックマーク（目次）があれば左に表示されます。&#10;検索はファイル名・フォルダ名のほか、PDF の本文（文字が入っている PDF）も対象です。&#10;「⋯」から名前の変更・移動・削除ができます。" />
       </div>
       <div class="tools">
         <div class="search">

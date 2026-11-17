@@ -2,6 +2,8 @@
 /**
  * 本のように読む PDF ビューア（ファイル共有の閲覧用）。全画面。
  * - ページは pdf.js で画像にして 1 ページずつ表示し、次へ／前へで紙をめくるアニメーション（左端を軸に 3D 回転）
+ * - 見開き表示に切り替えられる（左=偶数・右=奇数ページ。1 ページ目は右だけ）。見開きのめくりは中央の綴じ目を軸に
+ *   表裏 2 面の紙（表=今の右ページ・裏=次の左ページ）を回す。選択は localStorage に記憶
  * - PDF のブックマーク（アウトライン）を左の目次に出し、タップでそのページへ
  * - 画面の右半分タップ・→ キー・左スワイプで次へ、左半分・← キー・右スワイプで前へ。ページ番号の直接入力、拡大縮小、保存
  * 大きい PDF は Range リクエストで必要な部分だけ読む（サーバーは Accept-Ranges を返す）。
@@ -36,6 +38,23 @@ const outline = ref<PdfOutlineNode[]>([])
 const outlineOpen = ref(false)
 const zoom = ref(1)
 const flip = ref<{ dir: 'next' | 'prev'; page: number } | null>(null)
+/** 見開き表示か（記憶する） */
+const spread = ref(localStorage.getItem('sm_pdf_spread') === '1')
+/** 見開きのめくり中: 下に見せる左右と、回る紙の表（front）・裏（back） */
+const sflip = ref<{ dir: 'next' | 'prev'; baseLeft: number; baseRight: number; front: number; back: number } | null>(null)
+/** 見開きの左ページ（偶数）。1 ページ目は左が 0（空白） */
+function leftOf(n: number): number {
+  return n % 2 === 0 ? n : n - 1
+}
+/** 今見せている見開きの左右（めくり中は下の紙） */
+const pair = computed(() => {
+  if (sflip.value) return { l: sflip.value.baseLeft, r: sflip.value.baseRight }
+  const l = leftOf(page.value)
+  return { l, r: l + 1 }
+})
+function inRange(n: number): boolean {
+  return n >= 1 && n <= numPages.value
+}
 const pageInput = ref('')
 const stage = ref<HTMLElement | null>(null)
 const stageSize = reactive({ w: 0, h: 0 })
@@ -50,13 +69,14 @@ const paperStyle = computed(() => {
   const pad = 16
   const w0 = Math.max(100, stageSize.w - pad * 2)
   const h0 = Math.max(100, stageSize.h - pad * 2)
-  let w = w0
+  const cols = spread.value ? 2 : 1
+  let w = w0 / cols
   let h = w * ratio.value
   if (h > h0) {
     h = h0
     w = h / ratio.value
   }
-  return { width: `${Math.round(w * zoom.value)}px`, height: `${Math.round(h * zoom.value)}px` }
+  return { width: `${Math.round(w * cols * zoom.value)}px`, height: `${Math.round(h * zoom.value)}px` }
 })
 
 onMounted(async () => {
@@ -121,7 +141,7 @@ function cleanup() {
 
 /** 描画する幅（CSS px × 端末の倍率。上限あり） */
 function renderWidth(): number {
-  const cssW = Math.min(1200, Math.max(320, (stageSize.w || 800) * zoom.value))
+  const cssW = Math.min(1200, Math.max(320, ((stageSize.w || 800) / (spread.value ? 2 : 1)) * zoom.value))
   return Math.min(2200, Math.round(cssW * Math.min(2, window.devicePixelRatio || 1)))
 }
 
@@ -168,6 +188,17 @@ function trim() {
   }
 }
 function prefetch() {
+  if (spread.value) {
+    const l = leftOf(page.value)
+    ensure(l)
+      .then(() => ensure(l + 1))
+      .then(() => ensure(l + 2))
+      .then(() => ensure(l + 3))
+      .then(() => ensure(l - 1))
+      .then(() => ensure(l - 2))
+      .catch(() => {})
+    return
+  }
   ensure(page.value + 1).then(() => ensure(page.value - 1)).then(() => ensure(page.value + 2)).catch(() => {})
 }
 
@@ -202,6 +233,7 @@ async function loadOutline(d: PDFDocumentProxy) {
 let busy = false
 async function go(n: number) {
   if (!doc || busy || n < 1 || n > numPages.value || n === page.value) return
+  if (spread.value) return goSpread(n)
   busy = true
   try {
     await ensure(n)
@@ -236,11 +268,72 @@ function endFlip() {
   busy = false
   prefetch()
 }
+/** 見開きでの移動。同じ見開きの中なら切り替えだけ、隣の見開きなら綴じ目を軸にめくる、遠ければ切り替え */
+async function goSpread(n: number) {
+  const from = leftOf(page.value)
+  const to = leftOf(n)
+  if (to === from) {
+    page.value = n
+    return
+  }
+  busy = true
+  try {
+    await Promise.all([ensure(to), ensure(to + 1)])
+    if (reduceMotion || Math.abs(to - from) > 2) {
+      page.value = n
+      sflip.value = null
+      busy = false
+      prefetch()
+      return
+    }
+    if (to > from) {
+      // 右ページ（表）が左へ倒れ、裏に次の左ページが現れる。下は 左=今の左・右=次の右
+      sflip.value = { dir: 'next', baseLeft: from, baseRight: to + 1, front: from + 1, back: to }
+    } else {
+      // 左に伏せていた紙（裏=今の左ページ）が起き上がって右に戻る（表=前の右ページ）。下は 左=前の左・右=今の右
+      sflip.value = { dir: 'prev', baseLeft: to, baseRight: from + 1, front: to + 1, back: from }
+    }
+    page.value = n
+    window.setTimeout(() => sflip.value && endSpreadFlip(), 900)
+  } catch {
+    busy = false
+  }
+}
+function endSpreadFlip() {
+  if (!sflip.value) return
+  sflip.value = null
+  busy = false
+  prefetch()
+}
 function next() {
+  if (spread.value) {
+    const l = leftOf(page.value) + 2
+    if (l <= numPages.value) go(l)
+    return
+  }
   go(page.value + 1)
 }
 function prev() {
+  if (spread.value) {
+    const l = leftOf(page.value) - 2
+    go(Math.max(1, l + 1))
+    return
+  }
   go(page.value - 1)
+}
+/** 1 ページ／見開きの切り替え。描き直し（解像度が変わる）て記憶する */
+function toggleSpread() {
+  if (busy) return
+  spread.value = !spread.value
+  localStorage.setItem('sm_pdf_spread', spread.value ? '1' : '0')
+  flip.value = null
+  sflip.value = null
+  for (const [n, u] of imgs) {
+    URL.revokeObjectURL(u)
+    imgs.delete(n)
+  }
+  const l = leftOf(page.value)
+  Promise.all(spread.value ? [ensure(l), ensure(l + 1)] : [ensure(page.value)]).then(prefetch)
 }
 function onStageClick(e: MouseEvent) {
   if (zoom.value > 1) return
@@ -298,7 +391,8 @@ watch(zoom, () => {
     URL.revokeObjectURL(u)
     imgs.delete(n)
   }
-  ensure(page.value).then(prefetch)
+  const l = leftOf(page.value)
+  Promise.all(spread.value ? [ensure(l), ensure(l + 1)] : [ensure(page.value)]).then(prefetch)
 })
 
 const downloading = ref(false)
@@ -321,6 +415,9 @@ async function download() {
       <div class="bv-tools">
         <button class="bv-icon" :class="{ on: outlineOpen }" :disabled="!hasOutline" :title="hasOutline ? 'ブックマーク（目次）' : 'この PDF にブックマークはありません'" @click="outlineOpen = !outlineOpen">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16" /><path d="M4 12h16" /><path d="M4 18h10" /></svg>
+        </button>
+        <button class="bv-icon" :class="{ on: spread }" :title="spread ? '1 ページ表示にする' : '見開き表示にする'" :aria-label="spread ? '1 ページ表示' : '見開き表示'" @click="toggleSpread">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h8v14H3z" /><path d="M13 5h8v14h-8z" /></svg>
         </button>
         <button class="bv-icon" title="縮小" :disabled="zoom <= 1" @click="zoomBy(1 / 1.25)">−</button>
         <span class="bv-zoom">{{ Math.round(zoom * 100) }}%</span>
@@ -349,6 +446,27 @@ async function download() {
       <div ref="stage" class="bv-stage no-gesture" :class="{ zoomed: zoom > 1 }" @click="onStageClick" @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
         <div v-if="loading" class="bv-msg">読み込み中…</div>
         <div v-else-if="error" class="bv-msg">{{ error }}</div>
+        <div v-else-if="spread" class="book spread" :style="paperStyle">
+          <div class="paper half left" :class="{ blank: !inRange(pair.l) }">
+            <img v-if="imgs.get(pair.l)" :src="imgs.get(pair.l)" :alt="`${pair.l}ページ`" draggable="false" />
+            <div v-else-if="inRange(pair.l)" class="paper-loading">…</div>
+          </div>
+          <div class="paper half right" :class="{ blank: !inRange(pair.r) }">
+            <img v-if="imgs.get(pair.r)" :src="imgs.get(pair.r)" :alt="`${pair.r}ページ`" draggable="false" />
+            <div v-else-if="inRange(pair.r)" class="paper-loading">…</div>
+          </div>
+          <div v-if="sflip" class="leaf" :class="sflip.dir" @animationend="endSpreadFlip">
+            <div class="face front" :class="{ blank: !inRange(sflip.front) }">
+              <img v-if="imgs.get(sflip.front)" :src="imgs.get(sflip.front)" :alt="`${sflip.front}ページ`" draggable="false" />
+              <div class="shade"></div>
+            </div>
+            <div class="face back" :class="{ blank: !inRange(sflip.back) }">
+              <img v-if="imgs.get(sflip.back)" :src="imgs.get(sflip.back)" :alt="`${sflip.back}ページ`" draggable="false" />
+              <div class="shade rev"></div>
+            </div>
+          </div>
+          <div class="gutter"></div>
+        </div>
         <div v-else class="book" :style="paperStyle">
           <div class="paper base">
             <img v-if="imgs.get(page)" :src="imgs.get(page)" :alt="`${page}ページ`" draggable="false" />
@@ -360,23 +478,23 @@ async function download() {
           </div>
           <div class="spine"></div>
         </div>
-        <button v-if="!loading && !error" class="edge left" :disabled="page <= 1" aria-label="前のページ" @click.stop="prev">
+        <button v-if="!loading && !error" class="edge left" :disabled="spread ? leftOf(page) < 2 : page <= 1" aria-label="前のページ" @click.stop="prev">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
         </button>
-        <button v-if="!loading && !error" class="edge right" :disabled="page >= numPages" aria-label="次のページ" @click.stop="next">
+        <button v-if="!loading && !error" class="edge right" :disabled="spread ? leftOf(page) + 2 > numPages : page >= numPages" aria-label="次のページ" @click.stop="next">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
     </div>
 
     <div class="bv-foot">
-      <button class="bv-btn" :disabled="page <= 1" @click="prev">‹ 前へ</button>
+      <button class="bv-btn" :disabled="spread ? leftOf(page) < 2 : page <= 1" @click="prev">‹ 前へ</button>
       <form class="bv-page" @submit.prevent="jump">
         <input v-model="pageInput" type="number" inputmode="numeric" min="1" :max="numPages" :placeholder="String(page)" aria-label="ページ番号" />
         <span>/ {{ numPages }}</span>
       </form>
       <input class="bv-slider" type="range" min="1" :max="Math.max(1, numPages)" :value="page" aria-label="ページ" @change="go(Number(($event.target as HTMLInputElement).value))" />
-      <button class="bv-btn" :disabled="page >= numPages" @click="next">次へ ›</button>
+      <button class="bv-btn" :disabled="spread ? leftOf(page) + 2 > numPages : page >= numPages" @click="next">次へ ›</button>
     </div>
   </div>
 </template>
@@ -596,6 +714,82 @@ async function download() {
   color: #9aa1ab;
   font-size: 24px;
 }
+/* 見開き: 左右 2 枚。空白（1 ページ目の左・最後の右）は少し暗い紙 */
+.book.spread .paper.half {
+  inset: auto;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+}
+.paper.half.left {
+  left: 0;
+}
+.paper.half.right {
+  right: 0;
+}
+.paper.blank,
+.face.blank {
+  background: #e9ebef;
+  box-shadow: none;
+}
+/* 見開きのめくり: 右半分に置いた表裏 2 面の紙を、綴じ目（左端）を軸に回す */
+.leaf {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 50%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  z-index: 3;
+  will-change: transform;
+}
+.leaf .face {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.leaf .face img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.leaf .face.back {
+  transform: rotateY(180deg);
+}
+.leaf.next {
+  animation: bvFlipOut 0.7s cubic-bezier(0.45, 0.05, 0.3, 1) forwards;
+}
+.leaf.prev {
+  animation: bvFlipIn 0.7s cubic-bezier(0.45, 0.05, 0.3, 1) forwards;
+}
+.leaf .shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.02));
+  animation: bvShade 0.7s ease forwards;
+  pointer-events: none;
+}
+.leaf .shade.rev {
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.02));
+}
+.gutter {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  transform: translateX(-50%);
+  background: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.16) 50%, rgba(0, 0, 0, 0));
+  pointer-events: none;
+  z-index: 2;
+}
 /* めくる紙: 左端を軸に回る。裏面は見せない（90° を越えると消える／現れる） */
 .paper.flip {
   transform-origin: left center;
@@ -751,7 +945,8 @@ async function download() {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .paper.flip {
+  .paper.flip,
+  .leaf {
     animation-duration: 0.01s !important;
   }
 }

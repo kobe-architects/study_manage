@@ -419,11 +419,13 @@ php artisan config:cache && php artisan route:cache
   本体は `storage/app/private/shared/{生徒ID}/`（Git 管理外）。アップロードは 4MB ずつの分割（`/shared/files/chunk` → `/shared/files`。上限 300MB）。
   PDF は画面側（pdf.js）で文字を抜き出して `shared_files.search_text` に保存し、`GET /shared/search?q=` で名前・メモ・本文を検索する（文字の無いスキャン PDF は名前のみ）。
   閲覧は `components/PdfBookViewer.vue`（ページをめくるアニメーション・ブックマーク（アウトライン）の目次・拡大・保存。`/shared/files/{id}/file` は Range 対応で必要な部分だけ読む）。
-  追加時は相手（生徒 ⇄ 講師）へ LINE 通知。
+  1 ページ表示と見開き表示を右上のボタンで切り替え（localStorage `sm_pdf_spread` に記憶）。見開きは左=偶数・右=奇数ページ（1 ページ目は右側だけ）で、
+  めくりは中央の綴じ目を軸に表裏 2 面の紙（front=今の右ページ・back=次の左ページ）を回す。
+  追加時の LINE 通知は **しない**（2026-11-17 ユーザー指示で撤去。`notify-uploaded` も削除）。
   - **フォルダごとのアップロード**（2026-11-16 追加）: 「フォルダをアップロード」（`<input webkitdirectory>`。iPhone・iPad では出さない）か、
     フォルダのドラッグ＆ドロップ（`webkitGetAsEntry` で中をたどる）。中の階層は `POST /shared/folders/ensure`（親 ID + 名前の並び → 無い階層だけ作って末端 ID）で作る。
-    ファイルごとの LINE 通知は `silent` で止め、終わりに `POST /shared/notify-uploaded` で 1 回まとめて通知。途中で「中止」できる（AbortController）。
-  - **容量**: 1 ファイル 300MB（`SharedFileController::MAX_BYTES`）と、生徒 1 人の合計 既定 3GB（`config/filesystems.php` の `shared_quota_mb`。.env の `SHARED_QUOTA_MB` で変更。
+    途中で「中止」できる（AbortController）。
+  - **容量**: 1 ファイル 300MB（`SharedFileController::MAX_BYTES`）と、生徒 1 人の合計 既定 15GB（2026-11-17 に 3GB → 15GB。`config/filesystems.php` の `shared_quota_mb`。.env の `SHARED_QUOTA_MB` で変更。
     `php artisan config:cache` を忘れない）。`browse` の `usage` に使用量・上限を返し、画面は道しるべの右に表示。画面側は始める前に合計が残りに入るか確かめ、
     サーバー側は最初の片・各片・確定のたびに確かめて超えるなら 422 で一時ファイルを消す。隠しファイル（`.` 始まり・Thumbs.db・desktop.ini）は送らない。1 回 1000 ファイルまで。
 - **小テストの自己出題**（生徒の「小テスト」→「自分で出題」。`components/SelfQuizDialog.vue`）: 講師と同じ `POST /quizzes`（created_by = 生徒）。

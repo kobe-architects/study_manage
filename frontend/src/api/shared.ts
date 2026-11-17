@@ -39,11 +39,6 @@ export const sharedApi = {
     return data.data.folderId as number
   },
 
-  /** フォルダごとアップロードの完了をまとめて相手に通知（ファイルごとの通知は silent で止めている） */
-  async notifyUploaded(folderId: number | null, folderName: string, fileCount: number): Promise<void> {
-    await client.post(`${p()}/shared/notify-uploaded`, { folderId, folderName, fileCount })
-  },
-
   async updateFolder(id: number, patch: { name?: string; parentId?: number | null }): Promise<SharedFolder> {
     const { data } = await client.put(`${p()}/shared/folders/${id}`, patch)
     return data.data
@@ -56,13 +51,12 @@ export const sharedApi = {
   /**
    * 分割アップロード → 確定。onProgress は 0..1。
    * searchText は画面側（pdf.js）で抜き出した PDF の文字（本文検索用。任意）。
-   * silent なら相手への LINE 通知をしない（フォルダごとのアップロードで最後にまとめて知らせるとき）。
    * signal で途中で止められる（止めたら AbortError）。
    */
   async upload(
     folderId: number | null,
     file: File,
-    extra: { searchText?: string | null; pageCount?: number | null; silent?: boolean } = {},
+    extra: { searchText?: string | null; pageCount?: number | null } = {},
     onProgress?: (ratio: number) => void,
     signal?: AbortSignal,
   ): Promise<SharedFile> {
@@ -86,7 +80,6 @@ export const sharedApi = {
       mime: file.type || null,
       searchText: extra.searchText ?? null,
       pageCount: extra.pageCount ?? null,
-      silent: extra.silent ? 1 : 0,
     })
     return data.data
   },

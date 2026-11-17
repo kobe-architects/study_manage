@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\SharedFile;
 use App\Models\SharedFolder;
-use App\Support\LineNotify;
 use App\Support\PdfTools;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,17 +16,17 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
  * ファイル共有（Google Drive 風）。生徒(owner)と講師(tutor)が同じ階層フォルダを見て、
  * 学習データの PDF などを置く・見る・探す。データはすべて生徒に属し、講師は targetUserId で生徒スコープで操作する。
  * 大きいファイルは 4MB ずつの分割アップロード（chunk）→ 確定（store）。
- * 検索はファイル名・フォルダ名と、画面側（pdf.js）で抜き出した PDF の本文（search_text）。
+ * 検索はファイル名・フォルダ名と、画面側（pdf.js）で抜き出した PDF の本文（search_text）。追加の LINE 通知はしない。
  */
 class SharedFileController extends Controller
 {
     /** 1 ファイルの上限（バイト）。共有サーバーのディスクを考えて 300MB */
     private const MAX_BYTES = 300 * 1024 * 1024;
 
-    /** 生徒 1 人あたりの合計容量（バイト）。.env の SHARED_QUOTA_MB で変更可（既定 3GB） */
+    /** 生徒 1 人あたりの合計容量（バイト）。.env の SHARED_QUOTA_MB で変更可（既定 15GB） */
     private static function quotaBytes(): int
     {
-        return max(1, (int) config('filesystems.shared_quota_mb', 3072)) * 1024 * 1024;
+        return max(1, (int) config('filesystems.shared_quota_mb', 15360)) * 1024 * 1024;
     }
 
     /** 生徒の使用量（登録済みファイルの合計） */
@@ -153,22 +152,6 @@ class SharedFileController extends Controller
         return response()->json(['data' => ['folderId' => $parentId, 'created' => $created]]);
     }
 
-    /** フォルダごとアップロードが終わったときのまとめ通知（ファイルごとの通知は silent で止めておき、最後に 1 回だけ） */
-    public function notifyUploaded(Request $request): JsonResponse
-    {
-        $userId = $this->targetUserId($request);
-        $data = $request->validate([
-            'folderId' => ['nullable', 'integer'],
-            'folderName' => ['required', 'string', 'max:255'],
-            'fileCount' => ['required', 'integer', 'min:1', 'max:100000'],
-        ]);
-        $folder = ! empty($data['folderId']) ? SharedFolder::where('user_id', $userId)->findOrFail($data['folderId']) : null;
-        $where = $folder ? "「{$folder->name}」" : 'ホーム';
-        $this->notifyOthers($request, $userId, "ファイル共有の{$where}にフォルダ「{$this->cleanName($data['folderName'])}」（{$data['fileCount']} ファイル）が追加されました。");
-
-        return response()->json(['message' => 'ok']);
-    }
-
     /** 名前の変更・移動 */
     public function updateFolder(Request $request, SharedFolder $folder): JsonResponse
     {
@@ -254,7 +237,6 @@ class SharedFileController extends Controller
             'searchText' => ['nullable', 'string', 'max:2000000'],
             'pageCount' => ['nullable', 'integer', 'min:0'],
             'note' => ['nullable', 'string', 'max:2000'],
-            'silent' => ['nullable', 'boolean'],
         ]);
         $folder = ! empty($data['folderId']) ? SharedFolder::where('user_id', $userId)->findOrFail($data['folderId']) : null;
         $disk = Storage::disk('local');
@@ -303,10 +285,7 @@ class SharedFileController extends Controller
         ]);
         $file->load('creator:id,name');
 
-        // 相手（生徒が置けば講師たち、講師が置けば生徒）へ LINE で知らせる（フォルダごとのアップロードは最後にまとめて）
-        if (! ($data['silent'] ?? false)) {
-            $this->notifyOthers($request, $userId, "ファイル共有に「{$file->name}」が追加されました".($folder ? "（{$folder->name}）" : '').'。');
-        }
+        // アップロードの LINE 通知はしない（ユーザー指示 2026-11-17）
 
         return response()->json(['data' => $this->filePayload($file)], 201);
     }
@@ -463,20 +442,4 @@ class SharedFileController extends Controller
         return mb_substr(trim($t), 0, 1000000);
     }
 
-    /** 自分以外の関係者（生徒 ⇄ 講師たち）に通知 */
-    private function notifyOthers(Request $request, int $studentId, string $message): void
-    {
-        $actor = $request->user();
-        $student = $actor->isTutor() ? $actor->student : $actor;
-        if ($student === null) {
-            return;
-        }
-        if ($actor->isTutor()) {
-            LineNotify::push($student, $message);
-        } else {
-            foreach ($student->tutors()->get() as $tutor) {
-                LineNotify::push($tutor, $message);
-            }
-        }
-    }
 }
