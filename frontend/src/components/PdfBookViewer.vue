@@ -8,6 +8,7 @@
  *   見開きのめくりは中央の綴じ目を軸に表裏 2 面の紙（表=今の右ページ・裏=次の左ページ）を回す
  * - PDF のブックマーク（アウトライン）を左の目次に出し、タップでそのページへ
  * - 画面の右半分タップ・→ キー・左スワイプで次へ、左半分・← キー・右スワイプで前へ。ページ番号の直接入力、拡大縮小、保存
+ * - 綴じ目や半ページごとの影は付けない（左ページの右端が見づらくなる）。ブックマークは選ぶと目次を閉じる
  * 大きい PDF は Range リクエストで必要な部分だけ読む（サーバーは Accept-Ranges を返す）。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
@@ -327,6 +328,11 @@ function endSpreadFlip() {
   busy = false
   prefetch()
 }
+/** 目次から飛ぶ。選んだら目次は閉じる */
+function goFromOutline(n: number) {
+  outlineOpen.value = false
+  go(n)
+}
 function next() {
   if (spread.value) {
     const nx = nextSpread(spreadOf(page.value))
@@ -467,7 +473,7 @@ async function download() {
           <div class="ol-head">ブックマーク</div>
           <div class="ol-list">
             <template v-for="(n, i) in outline" :key="i">
-              <PdfOutlineItem :node="n" :depth="0" :current="page" @go="go" />
+              <PdfOutlineItem :node="n" :depth="0" :current="page" @go="goFromOutline" />
             </template>
           </div>
         </aside>
@@ -497,7 +503,6 @@ async function download() {
               <div class="shade rev"></div>
             </div>
           </div>
-          <div class="gutter"></div>
         </div>
         <div v-else class="book" :style="paperStyle">
           <div class="paper base">
@@ -769,10 +774,15 @@ async function download() {
   font-size: 24px;
 }
 /* 見開き: 左右 2 枚。空白（1 ページ目の左・最後の右）は少し暗い紙 */
+/* 見開き: 影は本全体に 1 つ。半分ごとの影は隣のページに落ちて端が見づらくなるので付けない。綴じ目の影も無し */
+.book.spread {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
 .book.spread .paper.half {
   top: 0;
   bottom: 0;
   width: 50%;
+  box-shadow: none;
 }
 /* .paper の inset:0 を左右で上書き（同じ詳細度以上で left/right を明示する） */
 .book.spread .paper.half.left {
@@ -807,7 +817,6 @@ async function download() {
   overflow: hidden;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 .leaf .face img {
   display: block;
@@ -834,17 +843,6 @@ async function download() {
 }
 .leaf .shade.rev {
   background: linear-gradient(to left, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.02));
-}
-.gutter {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 24px;
-  transform: translateX(-50%);
-  background: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.16) 50%, rgba(0, 0, 0, 0));
-  pointer-events: none;
-  z-index: 2;
 }
 /* めくる紙: 左端を軸に回る。裏面は見せない（90° を越えると消える／現れる） */
 .paper.flip {

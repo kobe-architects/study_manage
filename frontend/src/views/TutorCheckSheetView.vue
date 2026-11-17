@@ -1,17 +1,18 @@
 <script setup lang="ts">
 /**
  * 講師用: チェックシートを画面上で表示する。
- * 教材（スクランブル英文法・語法／英文法ファーストステップ）を選び、スクランブルは問題集（文法／語法／語い…）をタブで切り替える。
+ * 画面に出すのは 集計行・左の索引（上に 分野別／まとめ の切替）・シート だけ。
+ * 科目 → 教材 → 問題集 の切り替えは、右下の丸いボタンを押すと出るパネルで行う（ふだんは隠す。選択は記憶）。
+ * いまは 英語 → スクランブル（文法／語法／語い／イディオム／会話表現／発音・アクセント／読解・作文の文法）のみ。
  * 生徒側の出力（解いた日付）と違い、回数欄は ○（正解・黒）△（あいまい・青）×（不正解・赤）で表す（日付は出さない）。
  * 表示形式は 2 つ（記憶する。既定は分野別）:
- *   - 分野別: 左の索引で章（分野）を選ぶと、その章だけを表示する
+ *   - 分野別: 索引で章（分野）を選ぶと、その章だけを表示する
  *   - まとめ: 全章を 1 枚のシートとして表示。索引を押すとその章まで送る
- * シートの HTML は生徒側と同じ部品（lib/checkSheet.ts）で組み、iframe に入れて表示する（印刷は iframe の内容を印刷）。
+ * シートの HTML は生徒側と同じ部品（lib/checkSheet.ts）で組み、iframe に入れて表示する。
  */
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { grammarApi } from '@/api/grammar'
 import { buildCheckSheetHtml, type SheetChapter, type SheetSpec } from '@/lib/checkSheet'
-import { buildFirstStepSheetSpec } from '@/lib/firstStepSheet'
 import { buildBookSheetSpec, buildGrammarSheetSpec, type GrammarMarks } from '@/lib/grammarSheet'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
@@ -20,12 +21,21 @@ import type { GrammarBookKey, GrammarQuestion } from '@/types'
 const ui = useUiStore()
 const auth = useAuthStore()
 
-type Material = 'scramble' | 'first_step'
-const MATERIALS: { key: Material; label: string; short: string }[] = [
-  { key: 'scramble', label: 'スクランブル英文法・語法', short: 'スクランブル' },
-  { key: 'first_step', label: '英文法ファーストステップ', short: 'ファーストステップ' },
-]
-const BOOKS: { key: GrammarBookKey; label: string }[] = [
+interface BookDef {
+  key: GrammarBookKey
+  label: string
+}
+interface MaterialDef {
+  key: string
+  label: string
+  books: BookDef[]
+}
+interface SubjectDef {
+  key: string
+  label: string
+  materials: MaterialDef[]
+}
+const SCRAMBLE_BOOKS: BookDef[] = [
   { key: 'grammar', label: '文法' },
   { key: 'usage', label: '語法' },
   { key: 'vocab', label: '語い' },
@@ -34,35 +44,37 @@ const BOOKS: { key: GrammarBookKey; label: string }[] = [
   { key: 'pronunciation', label: '発音・アクセント' },
   { key: 'special', label: '読解・作文の文法' },
 ]
+/** 科目 → 教材 → 問題集。教材を増やすときはここに足す */
+const SUBJECTS: SubjectDef[] = [{ key: 'english', label: '英語', materials: [{ key: 'scramble', label: 'スクランブル', books: SCRAMBLE_BOOKS }] }]
 type Mode = 'chapter' | 'all'
 
 // 選択の記憶
+const KEY_SUBJECT = 'sm_tutor_sheet_subject'
 const KEY_MATERIAL = 'sm_tutor_sheet_material'
 const KEY_BOOK = 'sm_tutor_sheet_book'
 const KEY_MODE = 'sm_tutor_sheet_mode'
-const savedMaterial = localStorage.getItem(KEY_MATERIAL) as Material | null
-const savedBook = localStorage.getItem(KEY_BOOK) as GrammarBookKey | null
-const savedMode = localStorage.getItem(KEY_MODE) as Mode | null
-const material = ref<Material>(savedMaterial && MATERIALS.some((m) => m.key === savedMaterial) ? savedMaterial : 'scramble')
-const book = ref<GrammarBookKey>(savedBook && BOOKS.some((b) => b.key === savedBook) ? savedBook : 'grammar')
-const mode = ref<Mode>(savedMode === 'all' ? 'all' : 'chapter')
+const subject = ref<SubjectDef>(SUBJECTS.find((s) => s.key === localStorage.getItem(KEY_SUBJECT)) ?? SUBJECTS[0]!)
+const material = ref<MaterialDef>(subject.value.materials.find((m) => m.key === localStorage.getItem(KEY_MATERIAL)) ?? subject.value.materials[0]!)
+const book = ref<BookDef>(material.value.books.find((b) => b.key === localStorage.getItem(KEY_BOOK)) ?? material.value.books[0]!)
+const mode = ref<Mode>(localStorage.getItem(KEY_MODE) === 'all' ? 'all' : 'chapter')
+/** 右下のボタンで出す切り替えパネル */
+const pickerOpen = ref(false)
 
 const loading = ref(false)
-/** 今の教材・問題集の全章のシート */
+/** 今の問題集の全章のシート */
 const spec = ref<SheetSpec | null>(null)
 const frame = ref<HTMLIFrameElement | null>(null)
 
-/** 取得した結果のキャッシュ（教材・問題集ごと） */
+/** 取得した結果のキャッシュ（問題集ごと） */
 const marksCache = new Map<GrammarBookKey, GrammarMarks>()
 const questionsCache = new Map<GrammarBookKey, GrammarQuestion[]>()
-/** 分野別で最後に見ていた章（教材・問題集ごと） */
+/** 分野別で最後に見ていた章（問題集ごと） */
 const chapterMemory = new Map<GrammarBookKey, number>()
 const chapterIdx = ref(0)
 
 const studentName = computed(() => auth.user?.student?.name ?? '')
-/** 読み込みのキー（ファーストステップは 1 冊なので book=first_step） */
-const sheetKey = computed<GrammarBookKey>(() => (material.value === 'first_step' ? 'first_step' : book.value))
-const bookLabel = computed(() => (material.value === 'first_step' ? '英文法ファーストステップ' : `スクランブル ${BOOKS.find((b) => b.key === book.value)?.label ?? ''}`))
+const sheetKey = computed<GrammarBookKey>(() => book.value.key)
+const bookLabel = computed(() => `${material.value.label} ${book.value.label}`)
 
 async function load() {
   loading.value = true
@@ -85,7 +97,7 @@ async function load() {
         qs = await grammarApi.questions(key)
         questionsCache.set(key, qs)
       }
-      built = key === 'first_step' ? buildFirstStepSheetSpec(qs, marks, studentName.value, date, extra) : buildBookSheetSpec(key, BOOKS.find((b) => b.key === key)?.label ?? '', qs, marks, studentName.value, date, extra)
+      built = buildBookSheetSpec(key, book.value.label, qs, marks, studentName.value, date, extra)
     }
     if (sheetKey.value !== key) return // 読んでいる間に切り替わった
     spec.value = built
@@ -97,15 +109,23 @@ async function load() {
   }
 }
 
-function selectMaterial(m: Material) {
-  if (material.value === m) return
-  material.value = m
-  localStorage.setItem(KEY_MATERIAL, m)
+function selectSubject(s: SubjectDef) {
+  if (subject.value.key === s.key) return
+  subject.value = s
+  localStorage.setItem(KEY_SUBJECT, s.key)
+  selectMaterial(s.materials[0]!, true)
 }
-function selectBook(k: GrammarBookKey) {
-  if (book.value === k) return
-  book.value = k
-  localStorage.setItem(KEY_BOOK, k)
+function selectMaterial(m: MaterialDef, force = false) {
+  if (!force && material.value.key === m.key) return
+  material.value = m
+  localStorage.setItem(KEY_MATERIAL, m.key)
+  selectBook(m.books[0]!, true)
+}
+function selectBook(b: BookDef, force = false) {
+  if (!force && book.value.key === b.key) return
+  book.value = b
+  localStorage.setItem(KEY_BOOK, b.key)
+  pickerOpen.value = false
 }
 function selectMode(m: Mode) {
   if (mode.value === m) return
@@ -115,17 +135,21 @@ function selectMode(m: Mode) {
 watch(sheetKey, load)
 onMounted(load)
 
-/** 索引: 章ごとの問数と、最新の結果が × の数・未回答の数 */
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Escape' && pickerOpen.value) pickerOpen.value = false
+}
+onMounted(() => window.addEventListener('keydown', onKey))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+
+/** 索引: 章ごとの問数と、最新の結果が × の数 */
 const index = computed(() =>
   (spec.value?.chapters ?? []).map((ch, i) => {
     let ng = 0
-    let none = 0
     for (const r of ch.rows) {
       const last = r.marks[r.marks.length - 1]
-      if (!last) none++
-      else if (last.status === 0) ng++
+      if (last && last.status === 0) ng++
     }
-    return { i, label: ch.label ?? '', title: ch.title, total: ch.rows.length, ng, none }
+    return { i, label: ch.label ?? '', title: ch.title, total: ch.rows.length, ng }
   }),
 )
 function selectChapter(i: number) {
@@ -175,43 +199,10 @@ const stat = computed(() => {
   }
   return total ? { total, correct, incorrect, unsure } : null
 })
-
-function print() {
-  frame.value?.contentWindow?.print()
-}
-async function reload() {
-  marksCache.delete(sheetKey.value)
-  await load()
-}
 </script>
 
 <template>
   <div class="sheet-view">
-    <div class="head-row">
-      <div style="display: flex; align-items: center; gap: 8px; min-width: 0">
-        <div style="font-size: 17px; font-weight: 700; white-space: nowrap">チェックシート</div>
-      </div>
-      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
-        <div v-seg class="seg" role="radiogroup" aria-label="表示形式">
-          <button :class="{ on: mode === 'chapter' }" role="radio" :aria-checked="mode === 'chapter'" @click="selectMode('chapter')">分野別</button>
-          <button :class="{ on: mode === 'all' }" role="radio" :aria-checked="mode === 'all'" @click="selectMode('all')">まとめ</button>
-        </div>
-        <button class="btn-outline" :disabled="loading" @click="reload">更新</button>
-        <button class="btn-outline" :disabled="!html" @click="print">印刷 / PDF</button>
-      </div>
-    </div>
-
-    <!-- 教材 -->
-    <div v-seg class="tabs mat" role="tablist" aria-label="教材">
-      <button v-for="m in MATERIALS" :key="m.key" class="tab" :class="{ on: material === m.key }" role="tab" :aria-selected="material === m.key" @click="selectMaterial(m.key)">
-        <span class="long">{{ m.label }}</span><span class="shortl">{{ m.short }}</span>
-      </button>
-    </div>
-    <!-- スクランブルの問題集 -->
-    <div v-if="material === 'scramble'" v-seg class="tabs" role="tablist" aria-label="問題集">
-      <button v-for="b in BOOKS" :key="b.key" class="tab" :class="{ on: book === b.key }" role="tab" :aria-selected="book === b.key" @click="selectBook(b.key)">{{ b.label }}</button>
-    </div>
-
     <div v-if="stat" class="stat-row">
       <span class="st where">{{ mode === 'chapter' ? `${index[chapterIdx]?.label ?? ''} ${index[chapterIdx]?.title ?? ''}` : bookLabel }}</span>
       <span class="st"><b>{{ stat.total }}</b>問</span>
@@ -219,20 +210,25 @@ async function reload() {
       <span class="st un"><i class="sym un"></i><b>{{ stat.unsure }}</b></span>
       <span class="st ng"><i class="sym ng"></i><b>{{ stat.incorrect }}</b></span>
       <span class="st none">未回答 <b>{{ stat.total - stat.correct - stat.unsure - stat.incorrect }}</b></span>
-      <span class="st faint">※最新の結果で集計</span>
     </div>
 
     <div class="body">
-      <!-- 分野（章）の索引 -->
-      <aside v-if="index.length" class="index" aria-label="分野">
-        <button v-for="it in index" :key="it.i" class="ix" :class="{ on: it.i === chapterIdx }" @click="selectChapter(it.i)">
-          <span class="ix-l">{{ it.label }}</span>
-          <span class="ix-t">{{ it.title }}</span>
-          <span class="ix-n">
-            <span v-if="it.ng" class="ng">×{{ it.ng }}</span>
-            <span class="tot">{{ it.total }}</span>
-          </span>
-        </button>
+      <!-- 左: 表示形式と分野（章）の索引 -->
+      <aside class="index" aria-label="分野">
+        <div v-seg class="seg" role="radiogroup" aria-label="表示形式">
+          <button :class="{ on: mode === 'chapter' }" role="radio" :aria-checked="mode === 'chapter'" @click="selectMode('chapter')">分野別</button>
+          <button :class="{ on: mode === 'all' }" role="radio" :aria-checked="mode === 'all'" @click="selectMode('all')">まとめ</button>
+        </div>
+        <div class="ix-list">
+          <button v-for="it in index" :key="it.i" class="ix" :class="{ on: it.i === chapterIdx }" @click="selectChapter(it.i)">
+            <span class="ix-l">{{ it.label }}</span>
+            <span class="ix-t">{{ it.title }}</span>
+            <span class="ix-n">
+              <span v-if="it.ng" class="ng">×{{ it.ng }}</span>
+              <span class="tot">{{ it.total }}</span>
+            </span>
+          </button>
+        </div>
       </aside>
 
       <div class="frame-wrap">
@@ -240,6 +236,37 @@ async function reload() {
         <iframe v-else-if="html" ref="frame" class="frame" :srcdoc="html" :title="`${bookLabel} チェックシート`"></iframe>
       </div>
     </div>
+
+    <!-- 右下: 科目・教材・問題集の切り替え（ふだんは丸いボタンだけ） -->
+    <div v-if="pickerOpen" class="picker-scrim" @click="pickerOpen = false"></div>
+    <Transition name="pick">
+      <div v-if="pickerOpen" class="picker" role="dialog" aria-label="科目・教材の切り替え">
+        <div class="pk-row">
+          <div class="pk-h">科目</div>
+          <div class="pk-chips">
+            <button v-for="s in SUBJECTS" :key="s.key" class="chip" :class="{ on: subject.key === s.key }" @click="selectSubject(s)">{{ s.label }}</button>
+          </div>
+        </div>
+        <div class="pk-row">
+          <div class="pk-h">教材</div>
+          <div class="pk-chips">
+            <button v-for="m in subject.materials" :key="m.key" class="chip" :class="{ on: material.key === m.key }" @click="selectMaterial(m)">{{ m.label }}</button>
+          </div>
+        </div>
+        <div class="pk-row">
+          <div class="pk-h">問題集</div>
+          <div class="pk-chips">
+            <button v-for="b in material.books" :key="b.key" class="chip" :class="{ on: book.key === b.key }" @click="selectBook(b)">{{ b.label }}</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+    <button class="fab" :class="{ on: pickerOpen }" :title="`${subject.label}・${bookLabel}（科目・教材を切り替え）`" aria-label="科目・教材を切り替え" @click="pickerOpen = !pickerOpen">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 6h16" /><path d="M4 12h16" /><path d="M4 18h16" />
+        <circle cx="9" cy="6" r="2" fill="currentColor" /><circle cx="15" cy="12" r="2" fill="currentColor" /><circle cx="11" cy="18" r="2" fill="currentColor" />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -247,88 +274,10 @@ async function reload() {
 .sheet-view {
   display: flex;
   flex-direction: column;
-  /* 画面の高さいっぱいに使い、シートは内側でスクロールする */
-  min-height: calc(100vh - 140px);
-  min-height: calc(100dvh - 140px);
-}
-.head-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-.btn-outline {
-  padding: 7px 14px;
-  border: 1px solid #e3e6ea;
-  border-radius: 9px;
-  background: #fff;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.btn-outline:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.seg {
-  display: inline-flex;
-  border: 1px solid #e3e6ea;
-  border-radius: 9px;
-  overflow: hidden;
-  background: #fff;
-}
-.seg button {
-  padding: 7px 14px;
-  border: none;
-  background: #fff;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--mut);
-  cursor: pointer;
-}
-.seg button.on {
-  background: #1c2024;
-  color: #fff;
-}
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  background: #fff;
-  border: 1px solid #e3e6ea;
-  border-radius: 12px;
-  padding: 3px;
-  margin-bottom: 8px;
-}
-.tabs.mat .tab {
-  color: var(--ink);
-}
-.tabs.mat .tab.on {
-  background: #d0266f;
-}
-.tab {
-  flex: 1 1 auto;
-  min-height: 38px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--mut);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.tab.on {
-  background: #1c2024;
-  color: #fff;
-}
-.tab .shortl {
-  display: none;
+  /* 見出しを無くしたぶん上に詰める。シートは内側でスクロールする */
+  margin-top: -10px;
+  min-height: calc(100vh - 120px);
+  min-height: calc(100dvh - 120px);
 }
 .stat-row {
   display: flex;
@@ -337,7 +286,7 @@ async function reload() {
   flex-wrap: wrap;
   font-size: 12.5px;
   color: var(--mut);
-  margin: 2px 0 10px;
+  margin: 0 0 8px;
   padding: 0 4px;
 }
 .st {
@@ -364,10 +313,6 @@ async function reload() {
 }
 .st.none b {
   color: #9aa1ab;
-}
-.st.faint {
-  font-size: 11px;
-  color: var(--faint);
 }
 /* 集計の ○△× も太い線で */
 .sym {
@@ -429,8 +374,37 @@ async function reload() {
   border: 1px solid #e3e6ea;
   border-radius: 14px;
   padding: 6px;
+  max-height: calc(100dvh - 170px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.seg {
+  display: flex;
+  flex-shrink: 0;
+  border: 1px solid #e3e6ea;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #fff;
+}
+.seg button {
+  flex: 1;
+  padding: 7px 10px;
+  border: none;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--mut);
+  cursor: pointer;
+}
+.seg button.on {
+  background: #1c2024;
+  color: #fff;
+}
+.ix-list {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  max-height: calc(100dvh - 250px);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -517,20 +491,91 @@ async function reload() {
   font-size: 13px;
   flex: 1;
 }
+/* 右下の丸いボタンと切り替えパネル */
+.fab {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  width: 52px;
+  height: 52px;
+  border: none;
+  border-radius: 50%;
+  background: #1c2024;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  z-index: 60;
+}
+.fab.on {
+  background: #3b50cc;
+}
+.picker-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 58;
+}
+.picker {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 62px);
+  width: min(360px, calc(100vw - 36px));
+  background: #fff;
+  border: 1px solid #e3e6ea;
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 59;
+}
+.pk-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pk-h {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--faint);
+}
+.pk-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  padding: 7px 12px;
+  border: 1px solid #e3e6ea;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+}
+.chip.on {
+  background: #1c2024;
+  border-color: #1c2024;
+  color: #fff;
+}
+.pick-enter-active,
+.pick-leave-active {
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+.pick-enter-from,
+.pick-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+}
 @media (max-width: 760px) {
-  .tabs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-  .tab .long {
-    display: none;
-  }
-  .tab .shortl {
-    display: inline;
-  }
   .sheet-view {
-    min-height: calc(100vh - 110px);
-    min-height: calc(100dvh - 110px);
+    margin-top: -4px;
+    min-height: calc(100vh - 100px);
+    min-height: calc(100dvh - 100px);
   }
   /* 狭い画面では索引を横に並べてスクロール */
   .body {
@@ -539,10 +584,12 @@ async function reload() {
   .index {
     width: 100%;
     max-height: none;
+    padding: 5px;
+  }
+  .ix-list {
     flex-direction: row;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 5px;
   }
   .ix {
     width: auto;

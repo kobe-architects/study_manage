@@ -411,8 +411,10 @@ php artisan config:cache && php artisan route:cache
 
 - マイグレーション `2026_11_16_000001_create_shared_file_tables`（`shared_folders`・`shared_files`）を `php artisan migrate --force` で適用する。追加の Composer 依存はない。
 - **講師のチェックシート表示**（メニュー「チェックシート」`/tutor/checksheets`（旧 `/tutor/scramble` はリダイレクト）・`views/TutorCheckSheetView.vue`）:
-  教材（スクランブル英文法・語法／英文法ファーストステップ）→ スクランブルは問題集タブ。表示形式は「分野別」（左の索引で章を選びその章だけ。既定）と
-  「まとめ」（全章。索引を押すと `#ch-{index}` へスクロール）で、教材・問題集・形式は localStorage（`sm_tutor_sheet_*`）に記憶。
+  画面に出すのは 集計行・左の索引（上に 分野別／まとめ）・シートだけ（見出し・更新・印刷は無し。ユーザー指示 2026-11-17）。
+  科目 → 教材 → 問題集 の切り替えは右下の丸いボタンで出るパネル（`SUBJECTS` 定数。いまは 英語 → スクランブル → 7 冊のみ。ファーストステップは外した）。
+  表示形式は「分野別」（索引で章を選びその章だけ。既定）と「まとめ」（全章。索引を押すと `#ch-{index}` へスクロール）で、
+  科目・教材・問題集・形式は localStorage（`sm_tutor_sheet_*`）に記憶。
   生徒側と同じ `lib/checkSheet.ts` で組んだ HTML を iframe に入れて表示。
   回数欄は `markMode: 'symbol'`（○=正解・黒／△=あいまい・青／×=不正解・赤。文字でなく SVG（`SYMBOL_SVG`）で太く描く。日付は出さない・ツールチップも無し）。API は講師用の
   `GET /tutor/grammar/checksheet?book=`・`/tutor/grammar/questions?book=`（`GrammarController` は targetUserId で担当生徒のデータ）。
@@ -425,7 +427,8 @@ php artisan config:cache && php artisan route:cache
   1 ページ表示と見開き表示を右上のボタンで切り替え（localStorage `sm_pdf_spread` に記憶）。見開きの組み方は「ハードカバー」（既定。表紙=1 ページ目は単独、
   2 ページ目は左が見返しで右だけ、以降は 左=奇数・右=偶数）と「通常」（左=偶数・右=奇数、1 ページ目は右だけ）を見開き中のボタンで切り替え（`sm_pdf_spread_kind`）。
   組み方は `spreadOf(n)` 1 か所で決め、next/prev・めくりは `nextSpread`/`prevSpread` で隣の見開きを求める。
-  めくりは中央の綴じ目を軸に表裏 2 面の紙（front=今の右ページ・back=次の左ページ）を回す。
+  めくりは中央の綴じ目を軸に表裏 2 面の紙（front=今の右ページ・back=次の左ページ）を回す。綴じ目の影・半ページごとの影は付けない（左ページの右端が見づらくなる）。
+  ブックマークは選ぶと目次を閉じる。
   追加時の LINE 通知は **しない**（2026-11-17 ユーザー指示で撤去。`notify-uploaded` も削除）。
   - **フォルダごとのアップロード**（2026-11-16 追加）: 「フォルダをアップロード」（`<input webkitdirectory>`。iPhone・iPad では出さない）か、
     フォルダのドラッグ＆ドロップ（`webkitGetAsEntry` で中をたどる）。中の階層は `POST /shared/folders/ensure`（親 ID + 名前の並び → 無い階層だけ作って末端 ID）で作る。
