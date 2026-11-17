@@ -6,6 +6,7 @@
  * 評価はサーバーに保存され、忘却曲線（間隔反復）に合わせて次に出題される日が決まる。ボタンの下にその間隔を表示する。
  * 「もう一度」にした問題は同じ回の最後にもう一度出る。
  * 解答を表示した後は、定着度（定着 / あいまい / 未定着。手動）も付けられる（閲覧・出題の絞り込みに使う）。
+ * スクランブルから作ったノート（grammarQuestionId あり）は、解答の下に教材の詳細解説の画像（役割 extra）も続けて表示する（縦にスクロール）。
  * キー: Space / Enter = 解答を表示、1〜4 = 評価、← → = 問題と解答の切替、Esc = 閉じる。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -44,9 +45,15 @@ const root = ref<HTMLElement | null>(null)
 // ---- 画像（問題・解答）の用意。問題は layout のトリミングを反映。解答は解答の画像、無ければページ全体を描く ----
 const detailCache = new Map<number, Promise<MistakeNoteDetail>>()
 const problemCache = new Map<number, Promise<string>>()
-const answerCache = new Map<number, Promise<{ url: string; isPage: boolean }>>()
+interface AnswerFace {
+  url: string
+  isPage: boolean
+  /** 解答の下に続けて見せる画像（スクランブルの詳細解説） */
+  extras: string[]
+}
+const answerCache = new Map<number, Promise<AnswerFace>>()
 const problemUrl = ref<string | null>(null)
-const answer = ref<{ url: string; isPage: boolean } | null>(null)
+const answer = ref<AnswerFace | null>(null)
 const loadingImg = ref(false)
 
 function detailOf(id: number): Promise<MistakeNoteDetail> {
@@ -103,17 +110,28 @@ function problemOf(n: MistakeNoteSummary): Promise<string> {
   }
   return p
 }
-function answerOf(n: MistakeNoteSummary): Promise<{ url: string; isPage: boolean }> {
+function answerOf(n: MistakeNoteSummary): Promise<AnswerFace> {
   let p = answerCache.get(n.id)
   if (!p) {
     p = (async () => {
       const d = await detailOf(n.id)
       const img = d.images.find((i) => i.role === 'answer')
+      // スクランブルのノート: 詳細解説（extra）の画像も解答に続けて出す
+      const extras = n.grammarQuestionId
+        ? await Promise.all(
+            d.images
+              .filter((i) => i.role === 'extra')
+              .map((i) => {
+                const item = d.layout.items.find((it) => it.imageId === i.id)
+                return croppedUrl(i.id, item?.crop).catch(() => '')
+              }),
+          ).then((list) => list.filter(Boolean))
+        : []
       if (img) {
         const item = d.layout.items.find((i) => i.imageId === img.id)
-        return { url: await croppedUrl(img.id, item?.crop), isPage: false }
+        return { url: await croppedUrl(img.id, item?.crop), isPage: false, extras }
       }
-      return { url: await pageUrl(d.layout), isPage: true }
+      return { url: await pageUrl(d.layout), isPage: true, extras }
     })()
     p.catch(() => answerCache.delete(n.id))
     answerCache.set(n.id, p)
@@ -299,13 +317,18 @@ onBeforeUnmount(() => {
 
     <template v-else>
       <!-- 画像 -->
-      <div class="stage" @click="revealed && (face = face === 'problem' ? 'answer' : 'problem')">
+      <div class="stage" :class="{ scroll: face === 'answer' && !!answer?.extras.length }" @click="revealed && (face = face === 'problem' ? 'answer' : 'problem')">
         <div v-if="revealed" class="face-seg" v-seg @click.stop>
           <button class="fs-b" :class="{ on: face === 'problem' }" @click="face = 'problem'">問題</button>
           <button class="fs-b" :class="{ on: face === 'answer' }" @click="face = 'answer'">{{ answer?.isPage ? '解答（ページ全体）' : '解答' }}</button>
         </div>
         <Transition name="face" mode="out-in">
           <img v-if="face === 'problem' && problemUrl" key="p" :src="problemUrl" alt="問題" draggable="false" />
+          <div v-else-if="face === 'answer' && answer && answer.extras.length" key="ax" class="ans-col" @click.stop>
+            <img :src="answer.url" alt="解答" draggable="false" />
+            <div class="ans-lab">詳細解説</div>
+            <img v-for="(u, i) in answer.extras" :key="i" :src="u" alt="詳細解説" draggable="false" />
+          </div>
           <img v-else-if="face === 'answer' && answer" key="a" :src="answer.url" alt="解答" draggable="false" />
           <div v-else key="l" class="loading">{{ loadingImg || (face === 'answer' && !answer) ? '読み込み中…' : '画像がありません' }}</div>
         </Transition>
@@ -425,6 +448,32 @@ onBeforeUnmount(() => {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
   -webkit-touch-callout: none;
   pointer-events: none;
+}
+/* 解答＋詳細解説（スクランブル）: 幅いっぱいに並べて縦にスクロール */
+.stage.scroll {
+  align-items: flex-start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 54px;
+}
+.ans-col {
+  width: min(100%, 1100px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ans-col img {
+  width: 100%;
+  max-height: none;
+  height: auto;
+  pointer-events: none;
+}
+.ans-lab {
+  margin: 6px 2px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #b7bcc5;
 }
 .loading {
   color: #9aa1ab;

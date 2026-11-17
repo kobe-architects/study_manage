@@ -469,3 +469,8 @@ php artisan config:cache && php artisan route:cache
   - 2026-11-17 時点の結果: 語い 146/162・イディオム 348/385・会話表現 54/55・発音 78/184（発音の第30章の下線つき 4 択と第31章のアクセント）を文字の問題に置き換え、
     残り（特別編 34 問を含む）は従来どおり画像で出題。読めなかった問題と理由は `REPORT_<book>.txt`、手直しは `docs/design/deploy/ocr/scr_fixes.json`（語い 800 の正解）。
     英文法・語法（Excel 由来）は OCR と突き合わせて CHECK = 英文法 36 問・語法 20 問（多くは整序の表記ゆれ）で、データは変えていない。
+- **2026-11-17 追記（同日 2 回目）**: ① スクランブルの「間違いノートを作成」の結果は画面の中央に出す（`ui.notify(msg, { center: true })`。`App.vue` の v-snackbar を `location=center`・大きめのカードに切り替える）。
+  ② 間違いノートの問題解答モード（`MistakeQuiz`）は、スクランブルから作ったノート（`grammarQuestionId` あり）の解答に、詳細解説の画像（役割 extra）を続けて表示する（縦スクロール）。
+  ③ 問題と解答の Excel 出力: `GET /grammar/export?series=scramble|first_step`（または `book=`。スクランブルは問題集ごとのシート、1 行 1 問。問題・選択肢・正解・完成文・和訳・出典と自分の最終結果／正解数／不正解数／最後に解いた日）、
+  `GET /cards/decks/{deck}/export`（学習カード 1 冊。例題は小問ごとの答えと 4 択）。`App\Support\StudyExcel`（`XlsxStyledWriter`。zip 拡張なしで動く）。画面はチェックシートの隣の「Excel」ボタン（`GrammarView`・`CardDeckView`。数学学習も同じ）。
+  画像だけの問題は「画像」列に ○、答えは文字で登録されている分だけ。英単語は従来どおり単語帳管理の Excel 出力。

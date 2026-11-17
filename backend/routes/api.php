@@ -212,11 +212,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/grammar/attempts/{attempt}', [GrammarController::class, 'updateAttempt']);
         // チェックシート用: 文法・語法 725 問の日ごとの結果（正解・不正解・あいまい）
         Route::get('/grammar/checksheet', [GrammarController::class, 'checksheet']);
+        // 問題と解答の Excel 出力（series=scramble|first_step または book=）
+        Route::get('/grammar/export', [GrammarController::class, 'export']);
 
         // ===== 学習カード（鉄緑会 英文法の覚える表現・例文、合格る確率・合格る計算の問題。カードは共通データ・回答履歴は生徒ごと） =====
         Route::get('/cards/decks', [CardController::class, 'decks']);
         Route::get('/cards/decks/{deck}/items', [CardController::class, 'items']);
         Route::get('/cards/decks/{deck}/checksheet', [CardController::class, 'checksheet']);
+        Route::get('/cards/decks/{deck}/export', [CardController::class, 'export']); // 問題と解答の Excel 出力
         Route::get('/cards/items/{item}/image/{kind}', [CardController::class, 'image'])->where('kind', 'problem|answer');
         Route::post('/cards/items/{item}/attempt', [CardController::class, 'attempt']);
         Route::put('/cards/attempts/{attempt}', [CardController::class, 'updateAttempt']);

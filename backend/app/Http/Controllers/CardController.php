@@ -8,9 +8,11 @@ use App\Models\CardItem;
 use App\Models\QuizSession;
 use App\Models\ReviewState;
 use App\Services\ReviewService;
+use App\Support\StudyExcel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * 学習カード（鉄緑会 英文法の「覚える表現」「例文」、合格る確率・合格る計算の問題）。
@@ -153,6 +155,18 @@ class CardController extends Controller
      * 同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら 0（赤）、正解だけであいまいがあれば 2（青）、それ以外 1（黒）。
      * 返り値: { marks: { カードの no: [[YYYY-MM-DD, 0|1|2], ...] } }
      */
+    /** 束の全カードの問題と解答の Excel 出力（自分の回答状況つき）。画像だけのカードは答えの文字だけ */
+    public function export(Request $request, CardDeck $deck): StreamedResponse
+    {
+        $items = $deck->items()->get();
+        $binary = StudyExcel::cards($deck, $items, $this->stats($request->user()->id, $items->pluck('id')->all()));
+        $filename = $deck->name.'_問題と解答.xlsx';
+
+        return response()->streamDownload(fn () => print($binary), $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
     public function checksheet(Request $request, CardDeck $deck): JsonResponse
     {
         $userId = $request->user()->id;

@@ -8,10 +8,12 @@ use App\Models\MistakeNote;
 use App\Models\QuizSession;
 use App\Models\ReviewState;
 use App\Services\ReviewService;
+use App\Support\StudyExcel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * 英文法・語法 問題演習（スクランブル英文法・語法）。
@@ -171,6 +173,44 @@ class GrammarController extends Controller
      * 日付は端末のタイムゾーン（tz = UTC からのずれ・分。既定は日本時間）で区切る。
      * 返り値: { marks: { 連番: [[YYYY-MM-DD, 0|1|2], ...] } }
      */
+    /**
+     * 問題と解答の Excel 出力。series=scramble（英文法〜読解・作文の文法を問題集ごとのシートに）／ first_step、または book=1 冊。
+     * 自分の回答状況（最終結果・正解数・不正解数・最後に解いた日）も付ける。
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $series = (string) $request->query('series', '');
+        $book = (string) $request->query('book', '');
+        if ($book !== '') {
+            abort_unless(isset(GrammarQuestion::BOOKS[$book]), 404);
+            $books = [$book];
+            $name = ($book === 'first_step' ? '英文法ファーストステップ' : 'スクランブル_'.GrammarQuestion::BOOKS[$book]);
+        } elseif ($series === 'first_step') {
+            $books = ['first_step'];
+            $name = '英文法ファーストステップ';
+        } else {
+            $books = array_values(array_filter(array_keys(GrammarQuestion::BOOKS), fn ($k) => $k !== 'first_step'));
+            $name = 'スクランブル英文法・語法';
+        }
+        $userId = $this->targetUserId($request);
+        $byBook = [];
+        $ids = [];
+        foreach ($books as $b) {
+            $qs = GrammarQuestion::query()->where('book', $b)->orderBy('no')->get();
+            if ($qs->isEmpty()) {
+                continue;
+            }
+            $byBook[$b] = $qs;
+            $ids = array_merge($ids, $qs->pluck('id')->all());
+        }
+        $binary = StudyExcel::grammar($byBook, $this->stats($userId, $ids));
+        $filename = $name.'_問題と解答.xlsx';
+
+        return response()->streamDownload(fn () => print($binary), $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
     public function checksheet(Request $request): JsonResponse
     {
         $userId = $this->targetUserId($request);

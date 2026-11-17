@@ -12,10 +12,12 @@ import HelpTip from '@/components/HelpTip.vue'
 import QuizFullscreen from '@/components/QuizFullscreen.vue'
 import SessionHistory from '@/components/SessionHistory.vue'
 import { cardsApi } from '@/api/cards'
+import client from '@/api/client'
 import { sessionsApi } from '@/api/sessions'
 import { buildSubQuestions } from '@/lib/cardChoices'
 import { openCardCheckSheet } from '@/lib/cardSheet'
 import { shuffle } from '@/lib/design'
+import { saveFile } from '@/lib/native'
 import { QuestionTimer } from '@/lib/quizTimer'
 import { playResultSound } from '@/lib/sound'
 import { useAuthStore } from '@/stores/auth'
@@ -231,6 +233,21 @@ async function openSheet() {
     ui.notify('チェックシートの作成に失敗しました')
   } finally {
     sheetBusy.value = false
+  }
+}
+
+// ---- Excel 出力（この束の全カードの問題と解答。自分の回答状況つき） ----
+const excelBusy = ref(false)
+async function exportExcel() {
+  if (excelBusy.value || !deck.value) return
+  excelBusy.value = true
+  try {
+    const res = await client.get(`/cards/decks/${deck.value.id}/export`, { responseType: 'blob' })
+    await saveFile(res.data, `${deck.value.name}_問題と解答.xlsx`)
+  } catch {
+    ui.notify('Excel の作成に失敗しました')
+  } finally {
+    excelBusy.value = false
   }
 }
 
@@ -486,7 +503,11 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
             チェックシート
           </button>
-          <HelpTip text="全カードを章の順に並べ、回数欄に解いた日付を入れたチェックシートを印刷用に出力します（章・種類で絞り込んでいるときはその範囲）。&#10;黒=正解、赤=不正解、青=あいまい。同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら赤になります。" align="right" />
+          <button class="sheet-btn" :disabled="excelBusy || !deck" title="問題と解答を Excel に出力" @click="exportExcel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z" /><path d="M4 10h16M4 15h16M10 4v16" /></svg>
+            {{ excelBusy ? '作成中…' : 'Excel' }}
+          </button>
+          <HelpTip text="全カードを章の順に並べ、回数欄に解いた日付を入れたチェックシートを印刷用に出力します（章・種類で絞り込んでいるときはその範囲）。&#10;黒=正解、赤=不正解、青=あいまい。同じ日に何度か解いたときは 1 日 1 つにまとめ、1 度でも不正解なら赤になります。&#10;「Excel」は全カードの問題・解答（例題は小問ごとの答えと 4 択）と自分の結果を 1 行 1 枚で出力します。画像だけのカードは答えの文字だけになります。" align="right" />
         </div>
       </div>
 

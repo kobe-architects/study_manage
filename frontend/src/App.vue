@@ -9,7 +9,7 @@ const ui = useUiStore()
   <v-app>
     <router-view />
     <!-- グローバルトースト（iPhone のホームバーに重ならない位置に出す） -->
-    <v-snackbar v-model="ui.toastShow" class="app-toast" location="bottom" timeout="-1" color="secondary" rounded="pill">
+    <v-snackbar v-model="ui.toastShow" class="app-toast" :class="{ center: ui.toastCenter }" :location="ui.toastCenter ? 'center' : 'bottom'" timeout="-1" color="secondary" :rounded="ui.toastCenter ? 'xl' : 'pill'">
       <div style="display: flex; align-items: center; gap: 9px">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7dd88f" stroke-width="2.2">
           <path d="M20 6L9 17l-5-5"></path>

@@ -7,6 +7,8 @@ export type ProgressStyle = 'バー' | 'リング' | 'ドット'
 interface State {
   toast: string
   toastShow: boolean
+  /** 画面の中央に出す（操作の結果をはっきり見せたいとき。既定は下） */
+  toastCenter: boolean
   colorMode: ColorMode
   navStyle: NavStyle
   progressStyle: ProgressStyle
@@ -18,19 +20,21 @@ export const useUiStore = defineStore('ui', {
   state: (): State => ({
     toast: '',
     toastShow: false,
+    toastCenter: false,
     colorMode: '落ち着いた',
     navStyle: 'トップナビ',
     progressStyle: 'バー',
   }),
 
   actions: {
-    notify(message: string) {
+    notify(message: string, opts: { center?: boolean; duration?: number } = {}) {
       this.toast = message
+      this.toastCenter = !!opts.center
       this.toastShow = true
       clearTimeout(toastTimer)
       toastTimer = setTimeout(() => {
         this.toastShow = false
-      }, 2400)
+      }, opts.duration ?? (opts.center ? 3000 : 2400))
     },
 
     colorOf(soft: string, vivid: string): string {
