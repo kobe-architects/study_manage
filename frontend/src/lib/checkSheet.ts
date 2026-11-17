@@ -91,6 +91,16 @@ function esc(s: string | number | null | undefined): string {
 function cellHtml(c: SheetCell): string {
   return typeof c === 'string' ? esc(c) : c.html
 }
+/** 講師表示の記号。文字の ○△× は線が細く色が見づらいので SVG で太く描く（色は currentColor） */
+export const SYMBOL_SVG: Record<'ok' | 'un' | 'ng', string> = {
+  ok: '<svg viewBox="0 0 10 10" aria-label="正解"><circle cx="5" cy="5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+  un: '<svg viewBox="0 0 10 10" aria-label="あいまい"><path d="M5 1.4 9.2 8.7H0.8Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+  ng: '<svg viewBox="0 0 10 10" aria-label="不正解"><path d="M2 2l6 6M8 2l-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+}
+function symClass(status: MarkStatus): 'ok' | 'un' | 'ng' {
+  return status === 0 ? 'ng' : status === 2 ? 'un' : 'ok'
+}
+
 /** YYYY-MM-DD → 11/2 */
 export function markLabel(date: string): string {
   const m = date.match(/^(\d{4})-(\d{2})-(\d{2})/)
@@ -193,7 +203,9 @@ function renderColumn(spec: SheetSpec, blocks: Block[], markCount: number, markW
       const ch = b.ch
       const label = ch.label ? `<span class="chap-l">${esc(ch.label)}</span>` : ''
       const sub = b.cont ? '<span class="chap-s">（続き）</span>' : ch.sub ? `<span class="chap-s">${esc(ch.sub)}</span>` : ''
-      body.push(`<tr class="chap"><td colspan="${nCols}">${label}<span class="chap-t">${esc(ch.title)}</span>${sub}</td></tr>`)
+      // 章の先頭にはアンカー（画面の索引から飛ぶ用。続きの段には付けない）
+      const anchor = b.cont ? '' : ` id="ch-${spec.chapters.indexOf(ch)}"`
+      body.push(`<tr class="chap"${anchor}><td colspan="${nCols}">${label}<span class="chap-t">${esc(ch.title)}</span>${sub}</td></tr>`)
       return
     }
     const r = b.row
@@ -216,7 +228,7 @@ function renderColumn(spec: SheetSpec, blocks: Block[], markCount: number, markW
     for (let k = 0; k < markCount; k++) {
       const m = marks[k]
       if (!m) tds.push('<td class="mk"></td>')
-      else if (spec.markMode === 'symbol') tds.push(`<td class="mk sym ${m.status === 0 ? 'ng' : m.status === 2 ? 'un' : 'ok'}">${m.status === 0 ? '×' : m.status === 2 ? '△' : '○'}</td>`)
+      else if (spec.markMode === 'symbol') tds.push(`<td class="mk sym ${symClass(m.status)}">${SYMBOL_SVG[symClass(m.status)]}</td>`)
       else tds.push(`<td class="mk ${m.status === 0 ? 'ng' : m.status === 2 ? 'un' : 'ok'}" title="${esc(m.date)}">${esc(markLabel(m.date))}</td>`)
     }
     body.push(`<tr>${tds.join('')}</tr>`)
@@ -253,7 +265,7 @@ export function buildCheckSheetHtml(spec: SheetSpec): string {
       <div class="name">名前 <span class="name-v">${esc(spec.name)}</span></div>
       <div class="legend">${
         spec.markMode === 'symbol'
-          ? '<span class="ok">○ 正解</span><span class="un">△ あいまい</span><span class="ng">× 不正解</span>'
+          ? `<span class="ok sym">${SYMBOL_SVG.ok} 正解</span><span class="un sym">${SYMBOL_SVG.un} あいまい</span><span class="ng sym">${SYMBOL_SVG.ng} 不正解</span>`
           : '<span class="ok">11/2 正解</span><span class="ng">11/2 不正解</span><span class="un">11/2 あいまい</span>'
       }${spec.note ? `<span class="note">${esc(spec.note)}</span>` : ''}</div>
     </div>
@@ -287,6 +299,9 @@ export function buildCheckSheetHtml(spec: SheetSpec): string {
   .name-v { display: inline-block; min-width: 42mm; border-bottom: 0.3mm solid #333; padding: 0 2mm 0.4mm; font-size: 9.5pt; font-weight: 600; text-align: left; }
   .legend { margin-top: 1.4mm; font-size: 6.2pt; display: flex; gap: 2.4mm; justify-content: flex-end; }
   .legend .note { color: #777; }
+  .legend .sym { display: inline-flex; align-items: center; gap: 0.7mm; }
+  .legend .sym svg { width: 2.8mm; height: 2.8mm; }
+  .legend .sym.un { color: #1f5fd0; } .legend .sym.ng { color: #d8232a; } .legend .sym.ok { color: #1c2024; }
   .cols { display: grid; grid-template-columns: ${nCols === 1 ? '1fr' : '1fr 1fr'}; gap: 5mm; align-items: start; }
   .col { min-width: 0; }
   .t { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 6.5pt; }
@@ -297,7 +312,9 @@ export function buildCheckSheetHtml(spec: SheetSpec): string {
   .t td.no { text-align: right; font-size: 8.2pt; font-weight: 700; }
   .t td.mk { text-align: center; font-size: 6pt; font-weight: 700; padding: 0 0.5mm; border-left: 0.2mm solid #e3e3e3; letter-spacing: -0.02em; text-overflow: clip; }
   .t.tight td.mk { font-size: 5.2pt; padding: 0 0.25mm; letter-spacing: -0.04em; }
-  .t td.mk.sym { font-size: 8pt; font-weight: 800; letter-spacing: 0; }
+  .t td.mk.sym { padding: 0; letter-spacing: 0; }
+  .t td.mk.sym svg { display: block; width: 3.8mm; height: 3.8mm; margin: 0 auto; }
+  .t.tight td.mk.sym svg { width: 3.2mm; height: 3.2mm; }
   .t td.mk.sym.un { color: #1f5fd0; } .t td.mk.sym.ng { color: #d8232a; } .t td.mk.sym.ok { color: #1c2024; }
   .t.tight th.mk { font-size: 4.8pt; padding: 0 0.25mm; }
   .t td.g { background: #fde4ed; vertical-align: top; padding: 0.9mm 0.8mm 0; border-bottom: 0.3mm solid #fff; white-space: normal; }

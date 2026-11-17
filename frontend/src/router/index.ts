@@ -77,13 +77,14 @@ const router = createRouter({
           component: () => import('@/views/TutorInvoicesView.vue'),
           meta: { tutor: true },
         },
-        // スクランブル英文法・語法のチェックシート（担当生徒の結果を ○△× で表示）
+        // チェックシート（スクランブル英文法・語法／英文法ファーストステップ。担当生徒の結果を ○△× で表示）
         {
-          path: 'scramble',
-          name: 'tutor-scramble',
+          path: 'checksheets',
+          name: 'tutor-checksheets',
           component: () => import('@/views/TutorCheckSheetView.vue'),
           meta: { tutor: true },
         },
+        { path: 'scramble', redirect: { name: 'tutor-checksheets' } },
         // ファイル共有（生徒と同じ階層フォルダ）
         {
           path: 'files',

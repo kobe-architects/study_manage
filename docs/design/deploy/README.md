@@ -410,8 +410,11 @@ php artisan config:cache && php artisan route:cache
 ## 18. 講師のチェックシート表示・ファイル共有・自己出題・単語の画像（2026-11-16 追加）の運用メモ
 
 - マイグレーション `2026_11_16_000001_create_shared_file_tables`（`shared_folders`・`shared_files`）を `php artisan migrate --force` で適用する。追加の Composer 依存はない。
-- **講師のチェックシート表示**（`/tutor/scramble`・`views/TutorCheckSheetView.vue`）: 生徒側と同じ `lib/checkSheet.ts` で組んだ HTML を iframe に入れて表示。
-  回数欄は `markMode: 'symbol'`（○=正解・黒／△=あいまい・青／×=不正解・赤。日付はツールチップ）。API は講師用の
+- **講師のチェックシート表示**（メニュー「チェックシート」`/tutor/checksheets`（旧 `/tutor/scramble` はリダイレクト）・`views/TutorCheckSheetView.vue`）:
+  教材（スクランブル英文法・語法／英文法ファーストステップ）→ スクランブルは問題集タブ。表示形式は「分野別」（左の索引で章を選びその章だけ。既定）と
+  「まとめ」（全章。索引を押すと `#ch-{index}` へスクロール）で、教材・問題集・形式は localStorage（`sm_tutor_sheet_*`）に記憶。
+  生徒側と同じ `lib/checkSheet.ts` で組んだ HTML を iframe に入れて表示。
+  回数欄は `markMode: 'symbol'`（○=正解・黒／△=あいまい・青／×=不正解・赤。文字でなく SVG（`SYMBOL_SVG`）で太く描く。日付は出さない・ツールチップも無し）。API は講師用の
   `GET /tutor/grammar/checksheet?book=`・`/tutor/grammar/questions?book=`（`GrammarController` は targetUserId で担当生徒のデータ）。
   文法・語法は固定データ（`data/scrambleSheet.ts`）、語い・イディオム・会話表現・発音・アクセント・読解・作文の文法は問題データ（章・Theme・連番）から
   `lib/grammarSheet.ts` の `buildBookSheetSpec` で組む。生徒側のチェックシートも、選んでいる問題集が語い以降ならこの体裁で出す（`checksheet?book=vocab` など）。

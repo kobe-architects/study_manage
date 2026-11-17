@@ -63,7 +63,7 @@ const NAV_TUTOR = [
   { key: 'subjects', route: 'tutor-subjects', label: '科目別学習状況', short: '科目別', icon: ICONS.data },
   { key: 'assignment', route: 'tutor-assignments', label: '課題設定', short: '課題', icon: ICONS.record },
   { key: 'quiz', route: 'tutor-quizzes', label: '小テスト', short: '小テスト', icon: ICONS.test },
-  { key: 'scramble', route: 'tutor-scramble', label: 'スクランブル', short: 'スクランブル', icon: ICONS.sheet },
+  { key: 'sheet', route: 'tutor-checksheets', label: 'チェックシート', short: 'シート', icon: ICONS.sheet },
   { key: 'files', route: 'tutor-files', label: 'ファイル共有', short: 'ファイル', icon: ICONS.files },
   { key: 'invoice', route: 'tutor-invoices', label: '請求書管理', short: '請求', icon: ICONS.invoice },
 ]
@@ -84,7 +84,7 @@ const activeKey = computed(() => {
     'tutor-assignments': 'assignment',
     'tutor-quizzes': 'quiz',
     'tutor-quiz-grade': 'quiz',
-    'tutor-scramble': 'scramble',
+    'tutor-checksheets': 'sheet',
     'tutor-files': 'files',
     'tutor-invoices': 'invoice',
   }

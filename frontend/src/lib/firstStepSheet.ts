@@ -18,7 +18,7 @@ function subLabel(q: GrammarQuestion): string {
   return i >= 0 ? s.slice(i + 1) : s
 }
 
-export function buildFirstStepSheetSpec(questions: GrammarQuestion[], marks: GrammarMarks, name: string, outputDate: string): SheetSpec {
+export function buildFirstStepSheetSpec(questions: GrammarQuestion[], marks: GrammarMarks, name: string, outputDate: string, extra: Partial<SheetSpec> = {}): SheetSpec {
   const sorted = questions.slice().sort((a, b) => a.no - b.no)
   const byChapter = new Map<number, GrammarQuestion[]>()
   for (const q of sorted) {
@@ -61,6 +61,7 @@ export function buildFirstStepSheetSpec(questions: GrammarQuestion[], marks: Gra
       { label: '形式', width: 7 },
     ],
     chapters,
+    ...extra,
   }
 }
 
