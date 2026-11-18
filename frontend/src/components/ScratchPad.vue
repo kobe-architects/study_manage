@@ -191,10 +191,29 @@ function clearHold() {
   window.clearTimeout(holdTimer)
   holdTimer = undefined
 }
+/**
+ * 図形判定用に線を間引く: 直前に残した点から 2.5px 未満の点を捨て、末尾で止まっている間の揺れ（最後の点から 8px 以内の連続）は 1 点にまとめる。
+ * Pencil は止めていても毎フレーム微動が届き、そのまま道のりに数えると「道のり ≒ 弦」の直線判定を満たさなくなるため
+ */
+function cleanedPoints(p: number[]): number[] {
+  const out: number[] = []
+  for (let i = 0; i + 1 < p.length; i += 2) {
+    const n = out.length
+    if (n >= 2 && Math.hypot(out[n - 2]! - p[i]!, out[n - 1]! - p[i + 1]!) < 2.5) continue
+    out.push(p[i]!, p[i + 1]!)
+  }
+  const lx = p[p.length - 2]!
+  const ly = p[p.length - 1]!
+  let cut = out.length
+  while (cut >= 4 && Math.hypot(out[cut - 2]! - lx, out[cut - 1]! - ly) < 8) cut -= 2
+  const res = out.slice(0, cut)
+  res.push(lx, ly)
+  return res
+}
 function snapLiveStroke() {
   holdTimer = undefined
   if (!live || snapped) return
-  const shape = recognizeShape(live.points)
+  const shape = recognizeShape(cleanedPoints(live.points))
   if (!shape) return
   live.points = shape.points
   snapped = shape.kind
@@ -317,7 +336,7 @@ function move(e: PointerEvent) {
     }
     return
   }
-  const eps = 0.5 / view.value.scale
+  const eps = 1.2 / view.value.scale
   for (const [x, y] of pts) {
     const n = live.points.length
     if (n >= 2 && Math.abs(live.points[n - 2]! - x) < eps && Math.abs(live.points[n - 1]! - y) < eps) continue
