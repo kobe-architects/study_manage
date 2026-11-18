@@ -728,7 +728,7 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
 
     <!-- ============ QUIZ（全画面） ============ -->
     <Transition name="ui-modal">
-      <QuizFullscreen v-if="phase === 'quiz' && current" :progress="progress" :counter="`${quiz.index + 1}/${quiz.list.length}`" :fixed="!needsSubmit" @close="exitQuiz">
+      <QuizFullscreen v-if="phase === 'quiz' && current" :progress="progress" :counter="`${quiz.index + 1}/${quiz.list.length}`" :fixed="!needsSubmit" :wide="isMath" @close="exitQuiz">
         <CardQuestion
           ref="cardRef"
           :key="current.id + ':' + currentMode"

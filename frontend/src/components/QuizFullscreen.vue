@@ -11,6 +11,8 @@ defineProps<{
   counter: string
   /** 下部固定の領域（選択肢など）を使う（余白と区切り線を付ける） */
   fixed?: boolean
+  /** 問題の幅を広くする（数学の例題: 問題の画像と計算メモを大きく） */
+  wide?: boolean
 }>()
 const emit = defineEmits<{ close: [] }>()
 </script>
@@ -26,10 +28,10 @@ const emit = defineEmits<{ close: [] }>()
       <slot name="head" />
     </header>
     <div class="qf-body">
-      <div class="qf-inner"><slot /></div>
+      <div class="qf-inner" :class="{ wide }"><slot /></div>
     </div>
     <footer class="qf-foot">
-      <div class="qf-inner">
+      <div class="qf-inner" :class="{ wide }">
         <div id="qf-fixed" class="qf-fixed" :class="{ on: fixed }"><slot name="fixed" /></div>
         <div class="qf-btns"><slot name="footer" /></div>
       </div>
@@ -105,6 +107,9 @@ const emit = defineEmits<{ close: [] }>()
 .qf-inner {
   max-width: 680px;
   margin: 0 auto;
+}
+.qf-inner.wide {
+  max-width: 1000px;
 }
 .qf-foot {
   flex-shrink: 0;
