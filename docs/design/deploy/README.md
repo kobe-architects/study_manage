@@ -498,3 +498,11 @@ php artisan config:cache && php artisan route:cache
   分類は `App\Support\CardNoteClassifier`（科目「数学」の中分類を 節名 → 章名 → 束の名前の語 で探す。無ければ大分類＝束の名前）、
   デッキは束の短い名前（「合格る確率」「スタサプ 数Ⅰ」）。`mistake_notes.card_item_id`（マイグレーション `2026_11_18_000001`）で 2 度作らない。
   カード一覧 API の各カードに `noteId`。問題解答モードはスクランブルと同じく解説画像を解答の下に続けて表示する。
+- **Focus Gold 数学Ⅰ+A 例題**（2026-11-18 追加。束 key `fg_1a`、322 枚。タブ「FG 数ⅠA」）: 元はスキャン PDF
+  `docs/other/261118_2/focus_gold_AⅠ_例題のみ.pdf`（1 ページ = 例題の枠だけ）と `docs/other/focus_gold_AⅠ.pdf`（全ページ。枠 → 考え方 → 解答 → Focus → 練習）。
+  `ocr/build_fg.py <scratch>` が例題のみページの枠の領域を全ページ側と画素で照合（同じスキャンなので差がほぼ 0）して例題 N のページを見つけ、
+  問題 = 枠（黒い「例 題 N」の帯から下の内容）、解答 = 枠の下〜「練習」ラベル（`ocr/fg_renshu_tpl.png` のテンプレート照合）の上。
+  ラベルが無いページは解答が次ページに続くとみなして最大 2 ページつなぐ。答えの文字起こしはスタサプと同じくサブエージェント（`ocr/fg_text/`）、
+  合流は `ocr/merge_fg.py <scratch>`（章・題名・難易度は `focus_gold_1a.json` から）→ `cards_fg_1a.json`。画像は `storage/app/private/cards/fg_1a/`（約 50MB）。
+  証明・作図・グラフだけの例題（32 枚）は自己判定。
+- 計算メモは指では書けない（指 1 本＝移動、2 本＝ピンチ。ユーザー指示 2026-11-18。Pencil とマウスだけ）。

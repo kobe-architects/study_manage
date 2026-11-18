@@ -3,9 +3,9 @@
  * 計算用の書き込み欄（数学の例題の出題中に、問題の下の余白へ手書きで計算する）。
  * 保存はしない（その出題の間だけ。前へ／次へで戻っても同じカードの書き込みは残る）。
  * 道具: ペン（黒・青・赤、太さのスライダー。端末に記憶）／消しゴム（線ごと）／戻す／進む／全部消す／欄を広げる／等倍に戻す。
- * 拡縮: 2 本指のピンチ（＋そのまま移動）、PC は Ctrl＋ホイール。指書きが OFF のときは 1 本指で移動。
+ * 拡縮: 2 本指のピンチ（＋そのまま移動）、PC は Ctrl＋ホイール。1 本指は移動（指では書かない。ユーザー指示 2026-11-18）。
  * 図形補正: 線を引いたまま 0.6 秒止めると直線・円／楕円・長方形に整える（間違いノートと同じ lib/inkShapes.ts。直線はそのまま動かすと終点が追従。「図形」で OFF）。
- * Apple Pencil・マウスは常に書ける。指は既定で書けるが、切り替えで「指はスクロール／移動」にできる（端末に記憶）。
+ * 書けるのは Apple Pencil とマウスだけ。
  * iPad 対策（間違いノートの編集画面と同じ）: installInkTouchGuard（touchstart の既定動作を止めて Pencil の反応を良くし、Pencil 中〜1 秒の手のひらを無視）、
  * blockUiTextSelection（書いている最中に文字が選択されて「ペースト」などのメニューが出るのを防ぐ。出題画面全体）、blockDoubleTapZoom（欄の中のダブルタップ拡大を止める）。
  */
@@ -31,7 +31,6 @@ const store: Map<string, PadState> = ((window as unknown as { __scratchStore?: M
 
 const BASE_H = 280
 const STEP_H = 220
-const FINGER_KEY = 'sm_scratch_finger'
 const WIDTH_KEY = 'sm_scratch_width'
 const SHAPE_KEY = 'sm_scratch_shape'
 const HOLD_MS = 600
@@ -53,7 +52,6 @@ const view = ref({ scale: 1, tx: 0, ty: 0 })
 const tool = ref<'pen' | 'eraser'>('pen')
 const color = ref(COLORS[0]!.key)
 const penWidth = ref(DEFAULT_WIDTH)
-const finger = ref(localStorage.getItem(FINGER_KEY) !== 'off')
 const shapeSnap = ref(localStorage.getItem(SHAPE_KEY) !== '0')
 const collapsed = ref(false)
 const undone: MistakeStroke[] = []
@@ -246,9 +244,6 @@ function updatePinch() {
   view.value = { scale, tx: px - (px - pinch.tx) * k + (cx - pinch.cx), ty: py - (py - pinch.ty) * k + (cy - pinch.cy) }
   redraw()
 }
-function penWidthFor(e: PointerEvent): number {
-  return e.pointerType === 'touch' ? penWidth.value * 1.15 : penWidth.value
-}
 function down(e: PointerEvent) {
   if (e.pointerType === 'pen') lastPenAt = performance.now()
   if (e.pointerType === 'touch') {
@@ -266,12 +261,11 @@ function down(e: PointerEvent) {
       startPinch()
       return
     }
-    // Pencil で書いた直後（0.6 秒）の 1 本指は手のひらの可能性が高いので、書かず・動かさず（2 本目が来ればピンチにはなる）
+    // Pencil で書いた直後（0.6 秒）の 1 本指は手のひらの可能性が高いので動かさない（2 本目が来ればピンチにはなる）
     if (performance.now() - lastPenAt < 600) return
-    if (!finger.value) {
-      pan = { id: e.pointerId, x: e.clientX, y: e.clientY, tx: view.value.tx, ty: view.value.ty }
-      return
-    }
+    // 1 本指は移動（指では書かない）
+    pan = { id: e.pointerId, x: e.clientX, y: e.clientY, tx: view.value.tx, ty: view.value.ty }
+    return
   } else if (e.pointerType === 'mouse' && e.button !== 0) {
     return
   }
@@ -284,7 +278,7 @@ function down(e: PointerEvent) {
     eraseAt(x, y)
     return
   }
-  live = { color: color.value, width: penWidthFor(e), kind: 'pen', points: [x, y] }
+  live = { color: color.value, width: penWidth.value, kind: 'pen', points: [x, y] }
   snapped = null
   armHold(e)
   redraw()
@@ -419,14 +413,6 @@ function expand() {
 function shrink() {
   height.value = Math.max(BASE_H, height.value - STEP_H)
 }
-function toggleFinger() {
-  finger.value = !finger.value
-  try {
-    localStorage.setItem(FINGER_KEY, finger.value ? 'on' : 'off')
-  } catch {
-    // ignore
-  }
-}
 const canShrink = computed(() => height.value > BASE_H)
 const hasInk = computed(() => strokes.value.length > 0)
 const zoomed = computed(() => Math.abs(view.value.scale - 1) > 0.01 || view.value.tx !== 0 || view.value.ty !== 0)
@@ -459,7 +445,6 @@ const zoomLabel = computed(() => `${Math.round(view.value.scale * 100)}%`)
           </button>
           <button class="sp-tl txt" :disabled="!hasInk" @click="clearAll">全消去</button>
           <button class="sp-tl txt" :class="{ on: shapeSnap }" :title="shapeSnap ? '図形補正 ON（線を引いたまま止めると直線・円・長方形に）' : '図形補正 OFF'" @click="toggleShape">図形</button>
-          <button class="sp-tl txt" :class="{ on: finger }" :title="finger ? '指でも書ける（押すと指は移動）' : '指は移動（押すと指でも書ける）'" @click="toggleFinger">指</button>
         </div>
       </template>
     </div>
@@ -469,7 +454,7 @@ const zoomLabel = computed(() => `${Math.round(view.value.scale * 100)}%`)
       <div class="sp-foot">
         <button class="sp-tl txt" @click="expand">＋ 欄を広げる</button>
         <button v-if="canShrink" class="sp-tl txt" @click="shrink">－ 縮める</button>
-        <span class="sp-hint">2 本指で拡縮・移動／保存はされません</span>
+        <span class="sp-hint">Pencil で書く・指で移動・2 本指で拡縮／保存はされません</span>
       </div>
     </div>
   </div>
