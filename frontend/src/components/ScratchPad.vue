@@ -181,9 +181,11 @@ function pos(e: { clientX: number; clientY: number }): [number, number] {
 // ---- 図形補正: ペンを止めたまま HOLD_MS 経つと、書きかけの線を直線・円／楕円・長方形に整える ----
 let holdTimer: number | undefined
 let holdAt = { x: 0, y: 0 }
+let holdSince = 0
 let snapped: InkShape | null = null
 function armHold(e: PointerEvent) {
   holdAt = { x: e.clientX, y: e.clientY }
+  holdSince = performance.now()
   window.clearTimeout(holdTimer)
   holdTimer = shapeSnap.value ? window.setTimeout(snapLiveStroke, HOLD_MS) : undefined
 }
@@ -250,8 +252,8 @@ function penWidthFor(e: PointerEvent): number {
 function down(e: PointerEvent) {
   if (e.pointerType === 'pen') lastPenAt = performance.now()
   if (e.pointerType === 'touch') {
-    // 手のひら（接触が大きい）と Pencil 直後の指は無視
-    if (e.width >= 30 || e.height >= 30 || performance.now() - lastPenAt < 1200) return
+    // 手のひら（接触が大きい。iOS の指は width 40〜60px 程度で届くので 70px 超を手のひらとする）は無視
+    if (e.width > 70 || e.height > 70) return
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
     canvas.value?.setPointerCapture(e.pointerId)
     e.preventDefault()
@@ -264,6 +266,8 @@ function down(e: PointerEvent) {
       startPinch()
       return
     }
+    // Pencil で書いた直後（0.6 秒）の 1 本指は手のひらの可能性が高いので、書かず・動かさず（2 本目が来ればピンチにはなる）
+    if (performance.now() - lastPenAt < 600) return
     if (!finger.value) {
       pan = { id: e.pointerId, x: e.clientX, y: e.clientY, tx: view.value.tx, ty: view.value.ty }
       return
@@ -325,8 +329,10 @@ function move(e: PointerEvent) {
     if (n >= 2 && Math.abs(live.points[n - 2]! - x) < eps && Math.abs(live.points[n - 1]! - y) < eps) continue
     live.points.push(x, y)
   }
-  // 画面上で 5px 以上動いたら「止まっている」時間を測り直す（Pencil のわずかな揺れでは測り直さない）
+  // 画面上で 5px 以上動いたら「止まっている」時間を測り直す（Pencil のわずかな揺れでは測り直さない）。
+  // 止まったまま HOLD_MS 経っていればここでも整える（タイマーが遅れる端末向けの保険）
   if (Math.hypot(e.clientX - holdAt.x, e.clientY - holdAt.y) > 5) armHold(e)
+  else if (shapeSnap.value && !snapped && performance.now() - holdSince >= HOLD_MS) snapLiveStroke()
   redraw()
 }
 function up(e: PointerEvent) {
@@ -338,6 +344,7 @@ function up(e: PointerEvent) {
       else {
         pinch = null
         persist()
+        // 残った 1 本の指は touches に残るだけで、書きも動かしもしない（離してから書き直す）
       }
     }
     if (pan && pan.id === e.pointerId) {
