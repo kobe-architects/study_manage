@@ -4,6 +4,7 @@
  * 保存はしない（その出題の間だけ。前へ／次へで戻っても同じカードの書き込みは残る）。
  * 道具: ペン（黒・青・赤、太さのスライダー。端末に記憶）／消しゴム（線ごと）／戻す／進む／全部消す／欄を広げる／等倍に戻す。
  * 拡縮: 2 本指のピンチ（＋そのまま移動）、PC は Ctrl＋ホイール。指書きが OFF のときは 1 本指で移動。
+ * 図形補正: 線を引いたまま 0.6 秒止めると直線・円／楕円・長方形に整える（間違いノートと同じ lib/inkShapes.ts。直線はそのまま動かすと終点が追従。「図形」で OFF）。
  * Apple Pencil・マウスは常に書ける。指は既定で書けるが、切り替えで「指はスクロール／移動」にできる（端末に記憶）。
  * iPad 対策（間違いノートの編集画面と同じ）: installInkTouchGuard（touchstart の既定動作を止めて Pencil の反応を良くし、Pencil 中〜1 秒の手のひらを無視）、
  * blockUiTextSelection（書いている最中に文字が選択されて「ペースト」などのメニューが出るのを防ぐ。出題画面全体）、blockDoubleTapZoom（欄の中のダブルタップ拡大を止める）。
@@ -11,6 +12,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { strokeHits } from '@/lib/inkErase'
 import { drawStroke } from '@/lib/inkRender'
+import { recognizeShape, straightLine, type InkShape } from '@/lib/inkShapes'
 import { blockDoubleTapZoom, blockUiTextSelection, haptic, installInkTouchGuard } from '@/lib/native'
 import type { MistakeStroke } from '@/types'
 
@@ -31,6 +33,8 @@ const BASE_H = 280
 const STEP_H = 220
 const FINGER_KEY = 'sm_scratch_finger'
 const WIDTH_KEY = 'sm_scratch_width'
+const SHAPE_KEY = 'sm_scratch_shape'
+const HOLD_MS = 600
 const DEFAULT_WIDTH = 1.6
 const MIN_SCALE = 0.5
 const MAX_SCALE = 8
@@ -50,6 +54,7 @@ const tool = ref<'pen' | 'eraser'>('pen')
 const color = ref(COLORS[0]!.key)
 const penWidth = ref(DEFAULT_WIDTH)
 const finger = ref(localStorage.getItem(FINGER_KEY) !== 'off')
+const shapeSnap = ref(localStorage.getItem(SHAPE_KEY) !== '0')
 const collapsed = ref(false)
 const undone: MistakeStroke[] = []
 try {
@@ -142,6 +147,7 @@ onMounted(() => {
   }
 })
 onBeforeUnmount(() => {
+  clearHold()
   ro?.disconnect()
   for (const d of disposers) d()
 })
@@ -172,7 +178,41 @@ function pos(e: { clientX: number; clientY: number }): [number, number] {
   const v = view.value
   return [(x - v.tx) / v.scale, (y - v.ty) / v.scale]
 }
+// ---- 図形補正: ペンを止めたまま HOLD_MS 経つと、書きかけの線を直線・円／楕円・長方形に整える ----
+let holdTimer: number | undefined
+let holdAt = { x: 0, y: 0 }
+let snapped: InkShape | null = null
+function armHold(e: PointerEvent) {
+  holdAt = { x: e.clientX, y: e.clientY }
+  window.clearTimeout(holdTimer)
+  holdTimer = shapeSnap.value ? window.setTimeout(snapLiveStroke, HOLD_MS) : undefined
+}
+function clearHold() {
+  window.clearTimeout(holdTimer)
+  holdTimer = undefined
+}
+function snapLiveStroke() {
+  holdTimer = undefined
+  if (!live || snapped) return
+  const shape = recognizeShape(live.points)
+  if (!shape) return
+  live.points = shape.points
+  snapped = shape.kind
+  haptic()
+  redraw()
+}
+function toggleShape() {
+  shapeSnap.value = !shapeSnap.value
+  try {
+    localStorage.setItem(SHAPE_KEY, shapeSnap.value ? '1' : '0')
+  } catch {
+    // ignore
+  }
+}
+
 function endLive(commit: boolean) {
+  clearHold()
+  snapped = null
   if (!live) return
   if (commit) {
     strokes.value = [...strokes.value, live]
@@ -241,6 +281,8 @@ function down(e: PointerEvent) {
     return
   }
   live = { color: color.value, width: penWidthFor(e), kind: 'pen', points: [x, y] }
+  snapped = null
+  armHold(e)
   redraw()
 }
 function move(e: PointerEvent) {
@@ -268,12 +310,23 @@ function move(e: PointerEvent) {
     return
   }
   if (!live) return
+  if (snapped) {
+    // 直線に整えた後はそのまま動かすと終点が追従する（円・長方形はそのまま）
+    if (snapped === 'line') {
+      const [x, y] = pts[pts.length - 1]!
+      live.points = straightLine({ x: live.points[0]!, y: live.points[1]! }, { x, y })
+      redraw()
+    }
+    return
+  }
   const eps = 0.5 / view.value.scale
   for (const [x, y] of pts) {
     const n = live.points.length
     if (n >= 2 && Math.abs(live.points[n - 2]! - x) < eps && Math.abs(live.points[n - 1]! - y) < eps) continue
     live.points.push(x, y)
   }
+  // 画面上で 5px 以上動いたら「止まっている」時間を測り直す（Pencil のわずかな揺れでは測り直さない）
+  if (Math.hypot(e.clientX - holdAt.x, e.clientY - holdAt.y) > 5) armHold(e)
   redraw()
 }
 function up(e: PointerEvent) {
@@ -398,6 +451,7 @@ const zoomLabel = computed(() => `${Math.round(view.value.scale * 100)}%`)
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5" /><path d="M20 9H10a6 6 0 0 0 0 12h3" /></svg>
           </button>
           <button class="sp-tl txt" :disabled="!hasInk" @click="clearAll">全消去</button>
+          <button class="sp-tl txt" :class="{ on: shapeSnap }" :title="shapeSnap ? '図形補正 ON（線を引いたまま止めると直線・円・長方形に）' : '図形補正 OFF'" @click="toggleShape">図形</button>
           <button class="sp-tl txt" :class="{ on: finger }" :title="finger ? '指でも書ける（押すと指は移動）' : '指は移動（押すと指でも書ける）'" @click="toggleFinger">指</button>
         </div>
       </template>
