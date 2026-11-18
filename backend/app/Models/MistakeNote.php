@@ -8,14 +8,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** 間違いノートの 1 ページ（1 問）。科目 → 大分類 → 中分類（→ 小分類）に紐づき（科目「その他」は subject_id = NULL で分類なし）、
  * 問題の写真・解答の画像・説明用の画像・手書き・入力した解説を持つ。デッキ（任意）と復習（間隔反復）の状態も持つ。
- * mastery は手動で付ける定着度（mastered / unsure / unmastered / NULL=未設定）、grammar_question_id はスクランブルの問題から自動で作ったときの元の問題 */
+ * mastery は手動で付ける定着度（mastered / unsure / unmastered / NULL=未設定）、grammar_question_id はスクランブルの問題から自動で作ったときの元の問題、card_item_id は学習カード（数学学習の例題）から自動で作ったときの元のカード */
 class MistakeNote extends Model
 {
     /** 定着度の値 */
     public const MASTERIES = ['mastered', 'unsure', 'unmastered'];
 
     protected $fillable = [
-        'user_id', 'subject_id', 'major_category_id', 'mid_category_id', 'study_item_id', 'resource_book_id', 'mistake_deck_id', 'grammar_question_id',
+        'user_id', 'subject_id', 'major_category_id', 'mid_category_id', 'study_item_id', 'resource_book_id', 'mistake_deck_id', 'grammar_question_id', 'card_item_id',
         'title', 'source', 'noted_on', 'layout', 'hidden', 'mastery', 'sort_order',
         'review_interval', 'review_ease', 'review_reps', 'review_lapses', 'review_due_at', 'review_last_at', 'review_last_grade',
     ];
@@ -68,6 +68,12 @@ class MistakeNote extends Model
     public function grammarQuestion(): BelongsTo
     {
         return $this->belongsTo(GrammarQuestion::class, 'grammar_question_id');
+    }
+
+    /** 元になった学習カード（数学学習の例題から自動作成したページのみ） */
+    public function cardItem(): BelongsTo
+    {
+        return $this->belongsTo(CardItem::class, 'card_item_id');
     }
 
     public function reviews(): HasMany

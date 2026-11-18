@@ -11,17 +11,17 @@ import type { GrammarQuestion, MistakeNoteDetail } from '@/types'
 const W = 1400
 const PAD = 56
 const FONT = "'Zen Kaku Gothic New', 'DM Sans', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif"
-const INK = '#1c2024'
-const MUTED = '#6b7280'
-const PRIMARY = '#3b50cc'
+export const INK = '#1c2024'
+export const MUTED = '#6b7280'
+export const PRIMARY = '#3b50cc'
 
-interface Seg {
+export interface Seg {
   text: string
   size?: number
   weight?: number
   color?: string
 }
-interface Line {
+export interface Line {
   segs: Seg[]
   /** 行の基本サイズ（行間の計算に使う） */
   size: number
@@ -85,7 +85,8 @@ function flow(ctx: CanvasRenderingContext2D, line: Line, y: number, measure: boo
   return rows * lh
 }
 
-function paint(lines: Line[]): Promise<Blob> {
+/** 行の並びを白地の画像（JPEG）に描く（幅 1400px。高さは内容に合わせる） */
+export function paintLines(lines: Line[]): Promise<Blob> {
   const probe = document.createElement('canvas').getContext('2d')!
   let h = PAD
   for (const ln of lines) h += (ln.gapBefore ?? 0) + flow(probe, ln, 0, true)
@@ -138,7 +139,7 @@ export function renderProblemImage(q: GrammarQuestion): Promise<Blob> {
   } else if (q.format === 'order' && q.choices?.length) {
     lines.push({ segs: [{ text: '語句: ', color: MUTED, weight: 700 }, { text: q.choices.join(' ／ ') }], size: 32, gapBefore: 22, indent: 20 })
   }
-  return paint(lines)
+  return paintLines(lines)
 }
 
 /** 解答の画像（正解・完成文・和訳・注記・あなたの答え・出典） */
@@ -178,7 +179,7 @@ export function renderAnswerImage(q: GrammarQuestion, result: GrammarAnswerResul
   if (q.source) foot.push(`出典: ${q.source}`)
   if (q.note) foot.push(q.note)
   if (foot.length) lines.push({ segs: [{ text: foot.join('　'), color: MUTED }], size: 26, gapBefore: 18 })
-  return paint(lines)
+  return paintLines(lines)
 }
 
 async function fetchImage(q: GrammarQuestion, kind: 'problem' | 'answer' | 'explanation'): Promise<Blob | null> {

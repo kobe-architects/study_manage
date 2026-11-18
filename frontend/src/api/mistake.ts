@@ -56,6 +56,20 @@ export const mistakeApi = {
     return { note: data.data, created: !!data.created }
   },
 
+  /**
+   * 学習カード（数学学習の例題: 合格る・スタディサプリ）から間違いノートのページを自動で作る（multipart）。
+   * problem = 教材の問題の切り抜き、answer = 正解（文字を描いた画像）、explanation = 教材の解説の切り抜き。
+   * 分類・デッキ・出典はサーバーが決める。同じカードのページがすでにあればそれを返す（created=false）
+   */
+  async createFromCard(itemId: number, images: { problem: Blob; answer?: Blob | null; explanation?: Blob | null }): Promise<{ note: MistakeNoteDetail; created: boolean }> {
+    const fd = new FormData()
+    fd.append('problem', images.problem, 'problem.jpg')
+    if (images.answer) fd.append('answer', images.answer, 'answer.jpg')
+    if (images.explanation) fd.append('explanation', images.explanation, 'explanation.jpg')
+    const { data } = await client.post(`/mistake-notes/from-card/${itemId}`, fd)
+    return { note: data.data, created: !!data.created }
+  },
+
   async show(id: number): Promise<MistakeNoteDetail> {
     const { data } = await client.get(`/mistake-notes/${id}`)
     return data.data

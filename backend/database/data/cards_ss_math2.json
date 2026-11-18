@@ -1,0 +1,3634 @@
+{
+ "deck": {
+  "key": "ss_math2",
+  "subject": "math",
+  "name": "スタディサプリ ベーシックレベル 数学Ⅱ 例題",
+  "shortName": "スタサプ 数Ⅱ",
+  "studentOnly": false,
+  "resourceBookTitle": "スタディサプリ ベーシックレベル 数Ⅱ",
+  "structure": [
+   [
+    1,
+    "第1講 式と計算",
+    1,
+    4
+   ],
+   [
+    2,
+    "第2講 式と証明",
+    5,
+    9
+   ],
+   [
+    3,
+    "第3講 複素数と 2 次方程式",
+    10,
+    13
+   ],
+   [
+    4,
+    "第4講 剰余の定理と因数定理，高次方程式",
+    14,
+    17
+   ],
+   [
+    5,
+    "第5講 点と直線",
+    18,
+    22
+   ],
+   [
+    6,
+    "第6講 円",
+    23,
+    26
+   ],
+   [
+    7,
+    "第7講 軌跡と領域",
+    27,
+    30
+   ],
+   [
+    8,
+    "第8講 三角関数とその性質",
+    31,
+    35
+   ],
+   [
+    9,
+    "第9講 三角関数のグラフ",
+    36,
+    37
+   ],
+   [
+    10,
+    "第10講 三角関数を含む方程式，不等式",
+    38,
+    39
+   ],
+   [
+    11,
+    "第11講 加法定理",
+    40,
+    43
+   ],
+   [
+    12,
+    "第12講 指数の拡張",
+    44,
+    46
+   ],
+   [
+    13,
+    "第13講 指数関数",
+    47,
+    49
+   ],
+   [
+    14,
+    "第14講 対数とその性質",
+    50,
+    52
+   ],
+   [
+    15,
+    "第15講 対数関数",
+    53,
+    56
+   ],
+   [
+    16,
+    "第16講 微分係数と導関数",
+    57,
+    60
+   ],
+   [
+    17,
+    "第17講 導関数の応用",
+    61,
+    66
+   ],
+   [
+    18,
+    "第18講 不定積分，定積分",
+    67,
+    70
+   ],
+   [
+    19,
+    "第19講 定積分と面積",
+    71,
+    72
+   ]
+  ],
+  "sortOrder": 5
+ },
+ "items": [
+  {
+   "no": 1,
+   "chapterNo": 1,
+   "chapter": "第1講 式と計算",
+   "section": "PART1 3 次式の展開と因数分解の公式",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     1
+    ],
+    "answerPages": [
+     1
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "x³+12x²+48x+64",
+      "options": [
+       "x³+12x²+48x+16",
+       "x³+4x²+16x+64",
+       "x³+8x²+48x+64"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "27x³−54x²y+36xy²−8y³",
+      "options": [
+       "27x³+54x²y+36xy²+8y³",
+       "27x³−54x²y+36xy²+8y³",
+       "27x³−18x²y+12xy²−8y³"
+      ]
+     },
+     {
+      "label": "(1)(iii)",
+      "answer": "x³+216",
+      "options": [
+       "x³−216",
+       "x³+36",
+       "x³+12x²+216"
+      ]
+     },
+     {
+      "label": "(1)(iv)",
+      "answer": "8a³−27b³",
+      "options": [
+       "8a³+27b³",
+       "6a³−9b³",
+       "8a³−27b²"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "(x+2)(x²−2x+4)",
+      "options": [
+       "(x+2)(x²+2x+4)",
+       "(x−2)(x²+2x+4)",
+       "(x+2)(x²−4x+4)"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "(3a−4b)(9a²+12ab+16b²)",
+      "options": [
+       "(3a−4b)(9a²−12ab+16b²)",
+       "(3a+4b)(9a²−12ab+16b²)",
+       "(3a−4b)(9a²+24ab+16b²)"
+      ]
+     }
+    ]
+   },
+   "page": 1,
+   "bookPage": "2",
+   "problemImage": "ss_math2/p001.jpg",
+   "answerImage": "ss_math2/s001.jpg"
+  },
+  {
+   "no": 2,
+   "chapterNo": 1,
+   "chapter": "第1講 式と計算",
+   "section": "PART2 二項定理",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     2
+    ],
+    "answerPages": [
+     2
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "x⁵+15x⁴+90x³+270x²+405x+243",
+      "options": [
+       "x⁵+15x⁴+90x³+270x²+405x+81",
+       "x⁵+5x⁴+10x³+10x²+5x+243",
+       "x⁵+15x⁴+30x³+90x²+405x+243"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "2160",
+      "options": [
+       "−2160",
+       "1080",
+       "4320"
+      ]
+     }
+    ]
+   },
+   "page": 2,
+   "bookPage": "3",
+   "problemImage": "ss_math2/p002.jpg",
+   "answerImage": "ss_math2/s002.jpg"
+  },
+  {
+   "no": 3,
+   "chapterNo": 1,
+   "chapter": "第1講 式と計算",
+   "section": "PART3 多項式の除法",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     3
+    ],
+    "answerPages": [
+     3
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "商 3x+10，余り 32",
+      "options": [
+       "商 3x+10，余り −28",
+       "商 3x−8，余り 26",
+       "商 3x+10，余り 2"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "商 x²+2x−8，余り 27",
+      "options": [
+       "商 x²+2x−8，余り −37",
+       "商 x²+10x+40，余り 155",
+       "商 x²+2x+8，余り 27"
+      ]
+     }
+    ]
+   },
+   "page": 3,
+   "bookPage": "4",
+   "problemImage": "ss_math2/p003.jpg",
+   "answerImage": "ss_math2/s003.jpg"
+  },
+  {
+   "no": 4,
+   "chapterNo": 1,
+   "chapter": "第1講 式と計算",
+   "section": "PART4 分数式の計算",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     4
+    ],
+    "answerPages": [
+     4
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "x/(x−1)",
+      "options": [
+       "x/(x+1)",
+       "1/(x−1)",
+       "(x+1)/(x−1)"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "(x−3)/(x+2)",
+      "options": [
+       "(x+3)/(x−2)",
+       "(x−5)/(x+2)",
+       "(x−3)/(x−2)"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "x/(x+1)",
+      "options": [
+       "x/(x−4)",
+       "x(x−4)/(x+1)",
+       "1/(x+1)"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "−1/((x+1)(x+2))",
+      "options": [
+       "1/((x+1)(x+2))",
+       "−1/(x(x+1)(x+2))",
+       "(x−2)/(x(x+1)(x+2))"
+      ]
+     }
+    ]
+   },
+   "page": 4,
+   "bookPage": "5",
+   "problemImage": "ss_math2/p004.jpg",
+   "answerImage": "ss_math2/s004.jpg"
+  },
+  {
+   "no": 5,
+   "chapterNo": 2,
+   "chapter": "第2講 式と証明",
+   "section": "PART1 恒等式",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     5
+    ],
+    "answerPages": [
+     5
+    ],
+    "subs": [
+     {
+      "label": null,
+      "answer": "a=2，b=4，c=1",
+      "options": [
+       "a=2，b=−4，c=1",
+       "a=2，b=4，c=−1",
+       "a=1，b=2，c=4"
+      ]
+     }
+    ]
+   },
+   "page": 5,
+   "bookPage": "6",
+   "problemImage": "ss_math2/p005.jpg",
+   "answerImage": "ss_math2/s005.jpg"
+  },
+  {
+   "no": 6,
+   "chapterNo": 2,
+   "chapter": "第2講 式と証明",
+   "section": "PART2 等式の証明",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     6
+    ],
+    "answerPages": [
+     6
+    ],
+    "skipped": [
+     "(1) 証明せよ",
+     "(2) 証明せよ",
+     "(3) 証明せよ"
+    ]
+   },
+   "page": 6,
+   "bookPage": "7",
+   "problemImage": "ss_math2/p006.jpg",
+   "answerImage": "ss_math2/s006.jpg"
+  },
+  {
+   "no": 7,
+   "chapterNo": 2,
+   "chapter": "第2講 式と証明",
+   "section": "PART3 不等式の証明",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     7
+    ],
+    "answerPages": [
+     7
+    ],
+    "subs": [
+     {
+      "label": "(2)",
+      "answer": "3x+y=0 のとき",
+      "options": [
+       "3x−y=0 のとき",
+       "x+3y=0 のとき",
+       "9x+y=0 のとき"
+      ]
+     }
+    ],
+    "partial": true,
+    "skipped": [
+     "(1) 証明せよ",
+     "(2) の証明部分（等号成立条件のみ 4 択）"
+    ]
+   },
+   "page": 7,
+   "bookPage": "8",
+   "problemImage": "ss_math2/p007.jpg",
+   "answerImage": "ss_math2/s007.jpg"
+  },
+  {
+   "no": 8,
+   "chapterNo": 2,
+   "chapter": "第2講 式と証明",
+   "section": "PART4 平方の大小関係",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     8
+    ],
+    "answerPages": [
+     8
+    ],
+    "skipped": [
+     "証明せよ"
+    ]
+   },
+   "page": 8,
+   "bookPage": "9",
+   "problemImage": "ss_math2/p008.jpg",
+   "answerImage": "ss_math2/s008.jpg"
+  },
+  {
+   "no": 9,
+   "chapterNo": 2,
+   "chapter": "第2講 式と証明",
+   "section": "PART5 相加平均と相乗平均",
+   "kind": "problem",
+   "front": "例題 5",
+   "back": null,
+   "extra": {
+    "label": "例題 5",
+    "problemPages": [
+     9
+    ],
+    "answerPages": [
+     9
+    ],
+    "subs": [
+     {
+      "label": null,
+      "answer": "x=2 のとき",
+      "options": [
+       "x=4 のとき",
+       "x=√2 のとき",
+       "x=1 のとき"
+      ]
+     }
+    ],
+    "partial": true,
+    "skipped": [
+     "証明部分（等号成立条件のみ 4 択）"
+    ]
+   },
+   "page": 9,
+   "bookPage": "10",
+   "problemImage": "ss_math2/p009.jpg",
+   "answerImage": "ss_math2/s009.jpg"
+  },
+  {
+   "no": 10,
+   "chapterNo": 3,
+   "chapter": "第3講 複素数と 2 次方程式",
+   "section": "PART1 複素数とその計算",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     10
+    ],
+    "answerPages": [
+     10
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "1+6i",
+      "options": [
+       "1−2i",
+       "5+6i",
+       "1−6i"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "0",
+      "options": [
+       "2i",
+       "2",
+       "−2"
+      ]
+     },
+     {
+      "label": "(1)(iii)",
+      "answer": "11+7i",
+      "options": [
+       "1+7i",
+       "11−7i",
+       "6+7i"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "8/13−12/13 i",
+      "options": [
+       "8/13+12/13 i",
+       "8/5−12/5 i",
+       "4/13−6/13 i"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "−1+i",
+      "options": [
+       "1+i",
+       "−1−i",
+       "1−i"
+      ]
+     }
+    ]
+   },
+   "page": 10,
+   "bookPage": "11",
+   "problemImage": "ss_math2/p010.jpg",
+   "answerImage": "ss_math2/s010.jpg"
+  },
+  {
+   "no": 11,
+   "chapterNo": 3,
+   "chapter": "第3講 複素数と 2 次方程式",
+   "section": "PART2 負の数の平方根と 2 次方程式",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     11
+    ],
+    "answerPages": [
+     11
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "−2√3",
+      "options": [
+       "2√3",
+       "2√3 i",
+       "−2√3 i"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "−3i",
+      "options": [
+       "3i",
+       "−3",
+       "3"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "x=±3i",
+      "options": [
+       "x=±3",
+       "x=±9i",
+       "x=3i"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "x=(1±√6 i)/7",
+      "options": [
+       "x=(1±√6)/7",
+       "x=(2±√6 i)/7",
+       "x=(1±√6 i)/14"
+      ]
+     }
+    ]
+   },
+   "page": 11,
+   "bookPage": "12",
+   "problemImage": "ss_math2/p011.jpg",
+   "answerImage": "ss_math2/s011.jpg"
+  },
+  {
+   "no": 12,
+   "chapterNo": 3,
+   "chapter": "第3講 複素数と 2 次方程式",
+   "section": "PART3 2 次方程式の解の判別",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     12
+    ],
+    "answerPages": [
+     12
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "異なる 2 つの虚数解",
+      "options": [
+       "異なる 2 つの実数解",
+       "重解",
+       "1 つの実数解と 1 つの虚数解"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "異なる 2 つの実数解",
+      "options": [
+       "異なる 2 つの虚数解",
+       "重解",
+       "実数解をもたない"
+      ]
+     },
+     {
+      "label": "(1)(iii)",
+      "answer": "重解",
+      "options": [
+       "異なる 2 つの実数解",
+       "異なる 2 つの虚数解",
+       "実数解をもたない"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "a≦−1，2≦a",
+      "options": [
+       "−1≦a≦2",
+       "a≦−2，1≦a",
+       "a<−1，2<a"
+      ]
+     }
+    ]
+   },
+   "page": 12,
+   "bookPage": "13",
+   "problemImage": "ss_math2/p012.jpg",
+   "answerImage": "ss_math2/s012.jpg"
+  },
+  {
+   "no": 13,
+   "chapterNo": 3,
+   "chapter": "第3講 複素数と 2 次方程式",
+   "section": "PART4 2 次方程式の解と係数の関係",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     13
+    ],
+    "answerPages": [
+     13
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "1",
+      "options": [
+       "−1",
+       "5",
+       "−5"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "−5",
+      "options": [
+       "5",
+       "1",
+       "−1"
+      ]
+     },
+     {
+      "label": "(1)(iii)",
+      "answer": "11",
+      "options": [
+       "−9",
+       "9",
+       "21"
+      ]
+     },
+     {
+      "label": "(1)(iv)",
+      "answer": "16",
+      "options": [
+       "−14",
+       "14",
+       "1"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "2(x+(3−√3)/2)(x+(3+√3)/2)",
+      "options": [
+       "2(x−(3−√3)/2)(x−(3+√3)/2)",
+       "(x+(3−√3)/2)(x+(3+√3)/2)",
+       "2(x+(3−√3 i)/2)(x+(3+√3 i)/2)"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "x²+2x+17=0",
+      "options": [
+       "x²−2x+17=0",
+       "x²+2x−15=0",
+       "x²+2x−17=0"
+      ]
+     }
+    ]
+   },
+   "page": 13,
+   "bookPage": "14",
+   "problemImage": "ss_math2/p013.jpg",
+   "answerImage": "ss_math2/s013.jpg"
+  },
+  {
+   "no": 14,
+   "chapterNo": 4,
+   "chapter": "第4講 剰余の定理と因数定理，高次方程式",
+   "section": "PART1 剰余の定理",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     14
+    ],
+    "answerPages": [
+     14
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "6",
+      "options": [
+       "0",
+       "4",
+       "8"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "10",
+      "options": [
+       "−10",
+       "−8",
+       "28"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "31/8",
+      "options": [
+       "29/8",
+       "31/4",
+       "15/8"
+      ]
+     }
+    ]
+   },
+   "page": 14,
+   "bookPage": "15",
+   "problemImage": "ss_math2/p014.jpg",
+   "answerImage": "ss_math2/s014.jpg"
+  },
+  {
+   "no": 15,
+   "chapterNo": 4,
+   "chapter": "第4講 剰余の定理と因数定理，高次方程式",
+   "section": "PART2 因数定理",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     15
+    ],
+    "answerPages": [
+     15
+    ],
+    "subs": [
+     {
+      "label": null,
+      "answer": "(x−1)(2x+1)(x+5)",
+      "options": [
+       "(x+1)(2x−1)(x+5)",
+       "(x−1)(2x−1)(x−5)",
+       "(x−1)(2x+5)(x+1)"
+      ]
+     }
+    ]
+   },
+   "page": 15,
+   "bookPage": "16",
+   "problemImage": "ss_math2/p015.jpg",
+   "answerImage": "ss_math2/s015.jpg"
+  },
+  {
+   "no": 16,
+   "chapterNo": 4,
+   "chapter": "第4講 剰余の定理と因数定理，高次方程式",
+   "section": "PART3 組立除法と因数分解",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     16
+    ],
+    "answerPages": [
+     16
+    ],
+    "subs": [
+     {
+      "label": null,
+      "answer": "(x+3)²(x−5)",
+      "options": [
+       "(x−3)²(x+5)",
+       "(x+3)(x−5)²",
+       "(x+3)²(x+5)"
+      ]
+     }
+    ]
+   },
+   "page": 16,
+   "bookPage": "17",
+   "problemImage": "ss_math2/p016.jpg",
+   "answerImage": "ss_math2/s016.jpg"
+  },
+  {
+   "no": 17,
+   "chapterNo": 4,
+   "chapter": "第4講 剰余の定理と因数定理，高次方程式",
+   "section": "PART4 高次方程式の解法",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     17
+    ],
+    "answerPages": [
+     17,
+     18
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "x=−3，(3±3√3 i)/2",
+      "options": [
+       "x=3，(−3±3√3 i)/2",
+       "x=−3，(3±3√3)/2",
+       "x=−3，(−3±3√3 i)/2"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "x=±2，±i",
+      "options": [
+       "x=±2，±1",
+       "x=±2i，±1",
+       "x=±√2，±i"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "x=−1，2±2√2",
+      "options": [
+       "x=1，2±2√2",
+       "x=−1，−2±2√2",
+       "x=−1，2±√2"
+      ]
+     },
+     {
+      "label": "(4)",
+      "answer": "x=2，−3",
+      "options": [
+       "x=−2，3",
+       "x=2，3",
+       "x=2，−3，−9"
+      ]
+     }
+    ]
+   },
+   "page": 17,
+   "bookPage": "18",
+   "problemImage": "ss_math2/p017.jpg",
+   "answerImage": "ss_math2/s017.jpg"
+  },
+  {
+   "no": 18,
+   "chapterNo": 5,
+   "chapter": "第5講 点と直線",
+   "section": "PART1 2 点間の距離，数直線上の分点の座標",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     19
+    ],
+    "answerPages": [
+     19
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "9/5",
+      "options": [
+       "1/5",
+       "3/5",
+       "11/5"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "1",
+      "options": [
+       "4",
+       "−1",
+       "2"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "11",
+      "options": [
+       "−11",
+       "9",
+       "17"
+      ]
+     },
+     {
+      "label": "(4)",
+      "answer": "−17/3",
+      "options": [
+       "17/3",
+       "−7/3",
+       "−13/3"
+      ]
+     }
+    ]
+   },
+   "page": 19,
+   "bookPage": "20",
+   "problemImage": "ss_math2/p018.jpg",
+   "answerImage": "ss_math2/s018.jpg"
+  },
+  {
+   "no": 19,
+   "chapterNo": 5,
+   "chapter": "第5講 点と直線",
+   "section": "PART2 座標平面上の点",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     20
+    ],
+    "answerPages": [
+     20
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "3√5",
+      "options": [
+       "√5",
+       "5√3",
+       "3√3"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "(4, 2)",
+      "options": [
+       "(3, 0)",
+       "(4, −2)",
+       "(2, 4)"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "(1/2, −5)",
+      "options": [
+       "(−1/2, 5)",
+       "(13/2, 7)",
+       "(1/2, 5)"
+      ]
+     },
+     {
+      "label": "(4)",
+      "answer": "(2, 5/3)",
+      "options": [
+       "(2, 3)",
+       "(6, 5)",
+       "(5/3, 2)"
+      ]
+     }
+    ]
+   },
+   "page": 20,
+   "bookPage": "21",
+   "problemImage": "ss_math2/p019.jpg",
+   "answerImage": "ss_math2/s019.jpg"
+  },
+  {
+   "no": 20,
+   "chapterNo": 5,
+   "chapter": "第5講 点と直線",
+   "section": "PART3 直線の方程式",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     21
+    ],
+    "answerPages": [
+     21
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "y=3x−5",
+      "options": [
+       "y=3x+5",
+       "y=3x−1",
+       "y=3x+7"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "y=1",
+      "options": [
+       "x=4",
+       "x=1",
+       "y=4"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "y=−4/5 x+6/5",
+      "options": [
+       "y=4/5 x+6/5",
+       "y=−5/4 x+3/4",
+       "y=−4/5 x−6/5"
+      ]
+     },
+     {
+      "label": "(4)",
+      "answer": "x=−3",
+      "options": [
+       "y=−3",
+       "x=5",
+       "y=0"
+      ]
+     }
+    ]
+   },
+   "page": 21,
+   "bookPage": "22",
+   "problemImage": "ss_math2/p020.jpg",
+   "answerImage": "ss_math2/s020.jpg"
+  },
+  {
+   "no": 21,
+   "chapterNo": 5,
+   "chapter": "第5講 点と直線",
+   "section": "PART4 2 直線の関係",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     22
+    ],
+    "answerPages": [
+     22
+    ],
+    "subs": [
+     {
+      "label": null,
+      "answer": "l₁: y=−1/3 x+11/3，l₂: y=3x−13",
+      "options": [
+       "l₁: y=−1/3 x+11/3，l₂: y=−3x+17",
+       "l₁: y=1/3 x+1/3，l₂: y=−3x+17",
+       "l₁: y=−3x+17，l₂: y=1/3 x+1/3"
+      ]
+     }
+    ]
+   },
+   "page": 22,
+   "bookPage": "23",
+   "problemImage": "ss_math2/p021.jpg",
+   "answerImage": "ss_math2/s021.jpg"
+  },
+  {
+   "no": 22,
+   "chapterNo": 5,
+   "chapter": "第5講 点と直線",
+   "section": "PART5 点と直線の距離",
+   "kind": "problem",
+   "front": "例題 5",
+   "back": null,
+   "extra": {
+    "label": "例題 5",
+    "problemPages": [
+     23
+    ],
+    "answerPages": [
+     23
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "1",
+      "options": [
+       "5",
+       "1/5",
+       "√5"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "6√5/5",
+      "options": [
+       "6/5",
+       "6√5",
+       "3√5/5"
+      ]
+     }
+    ]
+   },
+   "page": 23,
+   "bookPage": "24",
+   "problemImage": "ss_math2/p022.jpg",
+   "answerImage": "ss_math2/s022.jpg"
+  },
+  {
+   "no": 23,
+   "chapterNo": 6,
+   "chapter": "第6講 円",
+   "section": "PART1 円の方程式",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     24
+    ],
+    "answerPages": [
+     24
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "(x−1)²+(y+1)²=4",
+      "options": [
+       "(x+1)²+(y−1)²=4",
+       "(x−1)²+(y+1)²=2",
+       "(x−1)²+(y−1)²=4"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "x²+y²=25",
+      "options": [
+       "x²+y²=5",
+       "x²+y²=7",
+       "(x−3)²+(y+4)²=25"
+      ]
+     },
+     {
+      "label": "(1)(iii)",
+      "answer": "x²+y²−7x−5y+6=0",
+      "options": [
+       "x²+y²+7x+5y+6=0",
+       "x²+y²−7x−5y−6=0",
+       "x²+y²−5x−7y+6=0"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "点 (−2, 4) を中心とする半径 √3 の円",
+      "options": [
+       "点 (2, −4) を中心とする半径 √3 の円",
+       "点 (−2, 4) を中心とする半径 3 の円",
+       "点 (−4, 8) を中心とする半径 √3 の円"
+      ]
+     }
+    ]
+   },
+   "page": 24,
+   "bookPage": "25",
+   "problemImage": "ss_math2/p023.jpg",
+   "answerImage": "ss_math2/s023.jpg"
+  },
+  {
+   "no": 24,
+   "chapterNo": 6,
+   "chapter": "第6講 円",
+   "section": "PART2 円と直線の共有点の座標と個数",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     25
+    ],
+    "answerPages": [
+     25
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "1 個，(2, −1)",
+      "options": [
+       "2 個，(2, −1)，(−2, 1)",
+       "1 個，(2, 1)",
+       "0 個"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "2 個，(−1/5, 7/5)，(1, −1)",
+      "options": [
+       "2 個，(1/5, 3/5)，(1, −1)",
+       "2 個，(−1/5, 7/5)，(−1, 3)",
+       "1 個，(1, −1)"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "0 個",
+      "options": [
+       "1 個，(−3, 3)",
+       "2 個，(−2, 4)，(−4, 2)",
+       "1 個，(−2, 4)"
+      ]
+     }
+    ]
+   },
+   "page": 25,
+   "bookPage": "26",
+   "problemImage": "ss_math2/p024.jpg",
+   "answerImage": "ss_math2/s024.jpg"
+  },
+  {
+   "no": 25,
+   "chapterNo": 6,
+   "chapter": "第6講 円",
+   "section": "PART3 円と直線の位置関係",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     26
+    ],
+    "answerPages": [
+     26
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "k=±10",
+      "options": [
+       "k=±√10",
+       "k=10",
+       "k=±100"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "k<−10，10<k",
+      "options": [
+       "−10<k<10",
+       "k<−√10，√10<k",
+       "k≦−10，10≦k"
+      ]
+     }
+    ]
+   },
+   "page": 26,
+   "bookPage": "27",
+   "problemImage": "ss_math2/p025.jpg",
+   "answerImage": "ss_math2/s025.jpg"
+  },
+  {
+   "no": 26,
+   "chapterNo": 6,
+   "chapter": "第6講 円",
+   "section": "PART4 円の接線",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     27
+    ],
+    "answerPages": [
+     27
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "2x+y=5",
+      "options": [
+       "x+2y=5",
+       "2x−y=5",
+       "2x+y=10"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "接線 x−3y=10，3x+y=10 ／ 接点 (1, −3)，(3, 1)",
+      "options": [
+       "接線 x+3y=10，3x−y=10 ／ 接点 (1, 3)，(3, −1)",
+       "接線 x−3y=10，3x+y=10 ／ 接点 (−1, 3)，(−3, −1)",
+       "接線 x−3y=5，3x+y=5 ／ 接点 (1, −3)，(3, 1)"
+      ]
+     }
+    ]
+   },
+   "page": 27,
+   "bookPage": "28",
+   "problemImage": "ss_math2/p026.jpg",
+   "answerImage": "ss_math2/s026.jpg"
+  },
+  {
+   "no": 27,
+   "chapterNo": 7,
+   "chapter": "第7講 軌跡と領域",
+   "section": "PART1 軌跡の方程式",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     28
+    ],
+    "answerPages": [
+     28
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "直線 2x−y−4=0",
+      "options": [
+       "直線 2x+y−4=0",
+       "直線 x−2y−4=0",
+       "直線 2x−y+4=0"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "中心 (0, −1)，半径 2√5 の円",
+      "options": [
+       "中心 (0, 1)，半径 2√5 の円",
+       "中心 (0, −1)，半径 √5 の円",
+       "中心 (−1, 0)，半径 2√5 の円"
+      ]
+     }
+    ]
+   },
+   "page": 28,
+   "bookPage": "29",
+   "problemImage": "ss_math2/p027.jpg",
+   "answerImage": "ss_math2/s027.jpg"
+  },
+  {
+   "no": 28,
+   "chapterNo": 7,
+   "chapter": "第7講 軌跡と領域",
+   "section": "PART2 不等式の表す領域",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     29
+    ],
+    "answerPages": [
+     29,
+     30
+    ],
+    "skipped": [
+     "(1)〜(6) 領域を図示せよ"
+    ],
+    "note": "解答には「直線 y=2x+1 の上側（境界線は含まない）」のような文章表現もある"
+   },
+   "page": 29,
+   "bookPage": "30",
+   "problemImage": "ss_math2/p028.jpg",
+   "answerImage": "ss_math2/s028.jpg"
+  },
+  {
+   "no": 29,
+   "chapterNo": 7,
+   "chapter": "第7講 軌跡と領域",
+   "section": "PART3 連立不等式の表す領域",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     31
+    ],
+    "answerPages": [
+     31
+    ],
+    "skipped": [
+     "(1)(2) 領域を図示せよ"
+    ]
+   },
+   "page": 31,
+   "bookPage": "32",
+   "problemImage": "ss_math2/p029.jpg",
+   "answerImage": "ss_math2/s029.jpg"
+  },
+  {
+   "no": 30,
+   "chapterNo": 7,
+   "chapter": "第7講 軌跡と領域",
+   "section": "PART4 領域と最大・最小",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     32
+    ],
+    "answerPages": [
+     32
+    ],
+    "subs": [
+     {
+      "label": null,
+      "answer": "x=2，y=2 のとき最大値 4，x=0，y=0 のとき最小値 0",
+      "options": [
+       "x=14/5，y=0 のとき最大値 14/5，x=0，y=0 のとき最小値 0",
+       "x=0，y=3 のとき最大値 3，x=0，y=0 のとき最小値 0",
+       "x=2，y=2 のとき最大値 4，x=0，y=3 のとき最小値 3"
+      ]
+     }
+    ]
+   },
+   "page": 32,
+   "bookPage": "33",
+   "problemImage": "ss_math2/p030.jpg",
+   "answerImage": "ss_math2/s030.jpg"
+  },
+  {
+   "no": 31,
+   "chapterNo": 8,
+   "chapter": "第8講 三角関数とその性質",
+   "section": "PART1 動径と一般角",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     33
+    ],
+    "answerPages": [
+     33
+    ],
+    "subs": [
+     {
+      "label": null,
+      "answer": "(2) 420°",
+      "options": [
+       "(1) 225°",
+       "(3) −60°",
+       "(4) 870°"
+      ]
+     }
+    ],
+    "partial": true,
+    "skipped": [
+     "(1)〜(4) 動径 OP の図示"
+    ],
+    "note": "4 択は「60° の動径と同じ位置にあるもの」の部分"
+   },
+   "page": 33,
+   "bookPage": "34",
+   "problemImage": "ss_math2/p031.jpg",
+   "answerImage": "ss_math2/s031.jpg"
+  },
+  {
+   "no": 32,
+   "chapterNo": 8,
+   "chapter": "第8講 三角関数とその性質",
+   "section": "PART2 弧度法",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     34
+    ],
+    "answerPages": [
+     34
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "π/6",
+      "options": [
+       "π/3",
+       "π/12",
+       "π/4"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "11/4 π",
+      "options": [
+       "11/2 π",
+       "9/4 π",
+       "11/8 π"
+      ]
+     },
+     {
+      "label": "(1)(iii)",
+      "answer": "−2/3 π",
+      "options": [
+       "−3/2 π",
+       "−π/3",
+       "2/3 π"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "225°",
+      "options": [
+       "135°",
+       "45°",
+       "240°"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "−60°",
+      "options": [
+       "60°",
+       "−30°",
+       "−120°"
+      ]
+     },
+     {
+      "label": "(2)(iii)",
+      "answer": "390°",
+      "options": [
+       "210°",
+       "300°",
+       "330°"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "l=18/5 π，S=54/5 π",
+      "options": [
+       "l=18/5 π，S=108/5 π",
+       "l=9/5 π，S=54/5 π",
+       "l=18/5 π，S=27/5 π"
+      ]
+     }
+    ]
+   },
+   "page": 34,
+   "bookPage": "35",
+   "problemImage": "ss_math2/p032.jpg",
+   "answerImage": "ss_math2/s032.jpg"
+  },
+  {
+   "no": 33,
+   "chapterNo": 8,
+   "chapter": "第8講 三角関数とその性質",
+   "section": "PART3 三角関数",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     35
+    ],
+    "answerPages": [
+     35,
+     36
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "sinθ=−√3/2，cosθ=−1/2，tanθ=√3",
+      "options": [
+       "sinθ=−1/2，cosθ=−√3/2，tanθ=1/√3",
+       "sinθ=√3/2，cosθ=−1/2，tanθ=−√3",
+       "sinθ=−√3/2，cosθ=1/2，tanθ=−√3"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "sinθ=−1/2，cosθ=√3/2，tanθ=−1/√3",
+      "options": [
+       "sinθ=1/2，cosθ=√3/2，tanθ=1/√3",
+       "sinθ=−√3/2，cosθ=1/2，tanθ=−√3",
+       "sinθ=−1/2，cosθ=−√3/2，tanθ=1/√3"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "sinθ=1/√2，cosθ=1/√2，tanθ=1",
+      "options": [
+       "sinθ=−1/√2，cosθ=1/√2，tanθ=−1",
+       "sinθ=1/√2，cosθ=−1/√2，tanθ=−1",
+       "sinθ=−1/√2，cosθ=−1/√2，tanθ=1"
+      ]
+     },
+     {
+      "label": "(4)",
+      "answer": "sinθ=−1，cosθ=0，tanθ は定義されない",
+      "options": [
+       "sinθ=0，cosθ=−1，tanθ=0",
+       "sinθ=1，cosθ=0，tanθ は定義されない",
+       "sinθ=−1，cosθ=0，tanθ=0"
+      ]
+     }
+    ]
+   },
+   "page": 35,
+   "bookPage": "36",
+   "problemImage": "ss_math2/p033.jpg",
+   "answerImage": "ss_math2/s033.jpg"
+  },
+  {
+   "no": 34,
+   "chapterNo": 8,
+   "chapter": "第8講 三角関数とその性質",
+   "section": "PART4 三角関数の相互関係",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     37
+    ],
+    "answerPages": [
+     37
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "sinθ=−4/5，tanθ=−4/3",
+      "options": [
+       "sinθ=4/5，tanθ=4/3",
+       "sinθ=−4/5，tanθ=−3/4",
+       "sinθ=−3/5，tanθ=−4/3"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "sinθ=−3/√10，cosθ=−1/√10",
+      "options": [
+       "sinθ=3/√10，cosθ=1/√10",
+       "sinθ=−1/√10，cosθ=−3/√10",
+       "sinθ=−3/√10，cosθ=1/√10"
+      ]
+     }
+    ]
+   },
+   "page": 37,
+   "bookPage": "38",
+   "problemImage": "ss_math2/p034.jpg",
+   "answerImage": "ss_math2/s034.jpg"
+  },
+  {
+   "no": 35,
+   "chapterNo": 8,
+   "chapter": "第8講 三角関数とその性質",
+   "section": "PART5 三角関数の性質",
+   "kind": "problem",
+   "front": "例題 5",
+   "back": null,
+   "extra": {
+    "label": "例題 5",
+    "problemPages": [
+     38
+    ],
+    "answerPages": [
+     38
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "sin(9/4 π)=1/√2，cos(9/4 π)=1/√2",
+      "options": [
+       "sin(9/4 π)=−1/√2，cos(9/4 π)=1/√2",
+       "sin(9/4 π)=1/√2，cos(9/4 π)=−1/√2",
+       "sin(9/4 π)=−1/√2，cos(9/4 π)=−1/√2"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "sin(−2/3 π)=−√3/2，cos(−2/3 π)=−1/2",
+      "options": [
+       "sin(−2/3 π)=√3/2，cos(−2/3 π)=−1/2",
+       "sin(−2/3 π)=−√3/2，cos(−2/3 π)=1/2",
+       "sin(−2/3 π)=−1/2，cos(−2/3 π)=−√3/2"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "sin(7/6 π)=−1/2，cos(7/6 π)=−√3/2",
+      "options": [
+       "sin(7/6 π)=1/2，cos(7/6 π)=−√3/2",
+       "sin(7/6 π)=−1/2，cos(7/6 π)=√3/2",
+       "sin(7/6 π)=−√3/2，cos(7/6 π)=−1/2"
+      ]
+     }
+    ]
+   },
+   "page": 38,
+   "bookPage": "39",
+   "problemImage": "ss_math2/p035.jpg",
+   "answerImage": "ss_math2/s035.jpg"
+  },
+  {
+   "no": 36,
+   "chapterNo": 9,
+   "chapter": "第9講 三角関数のグラフ",
+   "section": "PART1 三角関数のグラフ",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     39
+    ],
+    "answerPages": [
+     39
+    ],
+    "skipped": [
+     "(1)〜(3) グラフをかけ"
+    ]
+   },
+   "page": 39,
+   "bookPage": "40",
+   "problemImage": "ss_math2/p036.jpg",
+   "answerImage": "ss_math2/s036.jpg"
+  },
+  {
+   "no": 37,
+   "chapterNo": 9,
+   "chapter": "第9講 三角関数のグラフ",
+   "section": "PART2 いろいろな三角関数のグラフ",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     40
+    ],
+    "answerPages": [
+     40
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "ア ②(y)，イ ③(2)，ウ ⑤(2π)",
+      "options": [
+       "ア ①(θ)，イ ③(2)，ウ ⑤(2π)",
+       "ア ②(y)，イ ④(1/2)，ウ ⑤(2π)",
+       "ア ②(y)，イ ③(2)，ウ ⑥(π)"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "エ ①(θ)，オ ④(1/2)，カ ⑥(π)",
+      "options": [
+       "エ ②(y)，オ ④(1/2)，カ ⑥(π)",
+       "エ ①(θ)，オ ③(2)，カ ⑥(π)",
+       "エ ①(θ)，オ ④(1/2)，カ ⑤(2π)"
+      ]
+     },
+     {
+      "label": "(1)(iii)",
+      "answer": "キ ⑤(2π)",
+      "options": [
+       "キ ⑥(π)",
+       "キ ⑦(π/2)",
+       "キ ③(2)"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "周期 2π",
+      "options": [
+       "周期 π",
+       "周期 π/3",
+       "周期 2/3 π"
+      ]
+     }
+    ],
+    "partial": true,
+    "skipped": [
+     "(2) グラフをかく部分"
+    ]
+   },
+   "page": 40,
+   "bookPage": "41",
+   "problemImage": "ss_math2/p037.jpg",
+   "answerImage": "ss_math2/s037.jpg"
+  },
+  {
+   "no": 38,
+   "chapterNo": 10,
+   "chapter": "第10講 三角関数を含む方程式，不等式",
+   "section": "PART1 三角関数を含む方程式",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     41
+    ],
+    "answerPages": [
+     41
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "θ=5/4 π，7/4 π",
+      "options": [
+       "θ=π/4，3/4 π",
+       "θ=3/4 π，5/4 π",
+       "θ=π/4，7/4 π"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "θ=π/3，5/3 π",
+      "options": [
+       "θ=π/6，11/6 π",
+       "θ=2/3 π，4/3 π",
+       "θ=π/3，2/3 π"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "θ=π/6，7/6 π",
+      "options": [
+       "θ=π/3，4/3 π",
+       "θ=π/6，5/6 π",
+       "θ=π/6，11/6 π"
+      ]
+     }
+    ]
+   },
+   "page": 41,
+   "bookPage": "42",
+   "problemImage": "ss_math2/p038.jpg",
+   "answerImage": "ss_math2/s038.jpg"
+  },
+  {
+   "no": 39,
+   "chapterNo": 10,
+   "chapter": "第10講 三角関数を含む方程式，不等式",
+   "section": "PART2 三角関数を含む不等式",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     42
+    ],
+    "answerPages": [
+     42
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "0≦θ≦π/3，2/3 π≦θ<2π",
+      "options": [
+       "π/3≦θ≦2/3 π",
+       "0≦θ≦π/6，5/6 π≦θ<2π",
+       "0≦θ<π/3，2/3 π<θ<2π"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "3/4 π<θ<5/4 π",
+      "options": [
+       "π/4<θ<3/4 π",
+       "3/4 π≦θ≦5/4 π",
+       "0≦θ<3/4 π，5/4 π<θ<2π"
+      ]
+     }
+    ]
+   },
+   "page": 42,
+   "bookPage": "43",
+   "problemImage": "ss_math2/p039.jpg",
+   "answerImage": "ss_math2/s039.jpg"
+  },
+  {
+   "no": 40,
+   "chapterNo": 11,
+   "chapter": "第11講 加法定理",
+   "section": "PART1 正弦・余弦の加法定理",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     43
+    ],
+    "answerPages": [
+     43
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "−63/65",
+      "options": [
+       "63/65",
+       "−33/65",
+       "−16/65"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "−16/65",
+      "options": [
+       "16/65",
+       "−56/65",
+       "−63/65"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "−33/65",
+      "options": [
+       "33/65",
+       "−63/65",
+       "−56/65"
+      ]
+     },
+     {
+      "label": "(4)",
+      "answer": "−56/65",
+      "options": [
+       "56/65",
+       "−16/65",
+       "−33/65"
+      ]
+     }
+    ]
+   },
+   "page": 43,
+   "bookPage": "44",
+   "problemImage": "ss_math2/p040.jpg",
+   "answerImage": "ss_math2/s040.jpg"
+  },
+  {
+   "no": 41,
+   "chapterNo": 11,
+   "chapter": "第11講 加法定理",
+   "section": "PART2 正接の加法定理，2 直線のなす角",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     44
+    ],
+    "answerPages": [
+     44
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "tanα=3，tanβ=1/2",
+      "options": [
+       "tanα=1/3，tanβ=2",
+       "tanα=3，tanβ=2",
+       "tanα=−3，tanβ=1/2"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "−7",
+      "options": [
+       "7",
+       "1",
+       "−1"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "θ=π/4",
+      "options": [
+       "θ=π/3",
+       "θ=π/6",
+       "θ=3/4 π"
+      ]
+     }
+    ]
+   },
+   "page": 44,
+   "bookPage": "45",
+   "problemImage": "ss_math2/p041.jpg",
+   "answerImage": "ss_math2/s041.jpg"
+  },
+  {
+   "no": 42,
+   "chapterNo": 11,
+   "chapter": "第11講 加法定理",
+   "section": "PART3 2 倍角の公式，半角の公式",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     45
+    ],
+    "answerPages": [
+     45
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "sin2α=−24/25，cos2α=−7/25",
+      "options": [
+       "sin2α=24/25，cos2α=−7/25",
+       "sin2α=−24/25，cos2α=7/25",
+       "sin2α=−12/25，cos2α=−7/25"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "sin(α/2)=2/√5，cos(α/2)=1/√5",
+      "options": [
+       "sin(α/2)=1/√5，cos(α/2)=2/√5",
+       "sin(α/2)=−2/√5，cos(α/2)=1/√5",
+       "sin(α/2)=4/5，cos(α/2)=1/5"
+      ]
+     }
+    ]
+   },
+   "page": 45,
+   "bookPage": "46",
+   "problemImage": "ss_math2/p042.jpg",
+   "answerImage": "ss_math2/s042.jpg"
+  },
+  {
+   "no": 43,
+   "chapterNo": 11,
+   "chapter": "第11講 加法定理",
+   "section": "PART4 三角関数の合成",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     46
+    ],
+    "answerPages": [
+     46
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "2sin(θ+π/3)",
+      "options": [
+       "2sin(θ+π/6)",
+       "√2 sin(θ+π/3)",
+       "2sin(θ−π/3)"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "√2 sin(θ−π/4)",
+      "options": [
+       "√2 sin(θ+π/4)",
+       "2sin(θ−π/4)",
+       "√2 sin(θ−3/4 π)"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "最大値 2，最小値 −2",
+      "options": [
+       "最大値 √3，最小値 −1",
+       "最大値 √2，最小値 −√2",
+       "最大値 2，最小値 0"
+      ]
+     }
+    ]
+   },
+   "page": 46,
+   "bookPage": "47",
+   "problemImage": "ss_math2/p043.jpg",
+   "answerImage": "ss_math2/s043.jpg"
+  },
+  {
+   "no": 44,
+   "chapterNo": 12,
+   "chapter": "第12講 指数の拡張",
+   "section": "PART1 0 や負の整数の指数",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     47
+    ],
+    "answerPages": [
+     47
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "a²",
+      "options": [
+       "a⁻¹⁵",
+       "a⁸",
+       "a⁻²"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "1",
+      "options": [
+       "a⁻¹²",
+       "a⁻⁴",
+       "a⁻⁸"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "a¹²",
+      "options": [
+       "a⁻¹²",
+       "a⁻⁷",
+       "a⁷"
+      ]
+     },
+     {
+      "label": "(4)",
+      "answer": "b⁶/a⁸",
+      "options": [
+       "a⁸/b⁶",
+       "a⁸b⁶",
+       "b/a²"
+      ]
+     }
+    ]
+   },
+   "page": 47,
+   "bookPage": "48",
+   "problemImage": "ss_math2/p044.jpg",
+   "answerImage": "ss_math2/s044.jpg"
+  },
+  {
+   "no": 45,
+   "chapterNo": 12,
+   "chapter": "第12講 指数の拡張",
+   "section": "PART2 累乗根",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     48
+    ],
+    "answerPages": [
+     48
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "2³√3",
+      "options": [
+       "3³√2",
+       "2³√6",
+       "4³√3"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "5",
+      "options": [
+       "25",
+       "5⁴√5",
+       "125"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "2",
+      "options": [
+       "4",
+       "16",
+       "√2"
+      ]
+     },
+     {
+      "label": "(4)",
+      "answer": "2",
+      "options": [
+       "4",
+       "8",
+       "√2"
+      ]
+     },
+     {
+      "label": "(5)",
+      "answer": "3",
+      "options": [
+       "9",
+       "√3",
+       "27"
+      ]
+     }
+    ]
+   },
+   "page": 48,
+   "bookPage": "49",
+   "problemImage": "ss_math2/p045.jpg",
+   "answerImage": "ss_math2/s045.jpg"
+  },
+  {
+   "no": 46,
+   "chapterNo": 12,
+   "chapter": "第12講 指数の拡張",
+   "section": "PART3 有理数の指数",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     49
+    ],
+    "answerPages": [
+     49
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "4",
+      "options": [
+       "2",
+       "16/3",
+       "12"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "1/3",
+      "options": [
+       "3",
+       "−3",
+       "1/81"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "3",
+      "options": [
+       "9",
+       "1",
+       "1/3"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "1/2",
+      "options": [
+       "2",
+       "1/8",
+       "−2"
+      ]
+     },
+     {
+      "label": "(2)(iii)",
+      "answer": "5",
+      "options": [
+       "25",
+       "⁶√5",
+       "1"
+      ]
+     },
+     {
+      "label": "(2)(iv)",
+      "answer": "1",
+      "options": [
+       "2",
+       "1/2",
+       "√2"
+      ]
+     }
+    ]
+   },
+   "page": 49,
+   "bookPage": "50",
+   "problemImage": "ss_math2/p046.jpg",
+   "answerImage": "ss_math2/s046.jpg"
+  },
+  {
+   "no": 47,
+   "chapterNo": 13,
+   "chapter": "第13講 指数関数",
+   "section": "PART1 指数関数のグラフ",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     50
+    ],
+    "answerPages": [
+     50
+    ],
+    "skipped": [
+     "グラフをかけ"
+    ]
+   },
+   "page": 50,
+   "bookPage": "51",
+   "problemImage": "ss_math2/p047.jpg",
+   "answerImage": "ss_math2/s047.jpg"
+  },
+  {
+   "no": 48,
+   "chapterNo": 13,
+   "chapter": "第13講 指数関数",
+   "section": "PART2 指数関数の性質",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     51
+    ],
+    "answerPages": [
+     51
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "1/9<1<⁴√27",
+      "options": [
+       "⁴√27<1<1/9",
+       "1/9<⁴√27<1",
+       "1<1/9<⁴√27"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "⁴√(1/27)<³√(1/9)<√(1/3)",
+      "options": [
+       "√(1/3)<³√(1/9)<⁴√(1/27)",
+       "³√(1/9)<⁴√(1/27)<√(1/3)",
+       "⁴√(1/27)<√(1/3)<³√(1/9)"
+      ]
+     }
+    ]
+   },
+   "page": 51,
+   "bookPage": "52",
+   "problemImage": "ss_math2/p048.jpg",
+   "answerImage": "ss_math2/s048.jpg"
+  },
+  {
+   "no": 49,
+   "chapterNo": 13,
+   "chapter": "第13講 指数関数",
+   "section": "PART3 指数関数を含む方程式・不等式",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     52
+    ],
+    "answerPages": [
+     52
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "x=5/2",
+      "options": [
+       "x=2/5",
+       "x=3",
+       "x=5"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "x=−4/5",
+      "options": [
+       "x=−5/4",
+       "x=4/5",
+       "x=−4"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "x<3",
+      "options": [
+       "x>3",
+       "x<6",
+       "x≦3"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "x≦−2",
+      "options": [
+       "x≧−2",
+       "x≦2",
+       "x≧2"
+      ]
+     }
+    ]
+   },
+   "page": 52,
+   "bookPage": "53",
+   "problemImage": "ss_math2/p049.jpg",
+   "answerImage": "ss_math2/s049.jpg"
+  },
+  {
+   "no": 50,
+   "chapterNo": 14,
+   "chapter": "第14講 対数とその性質",
+   "section": "PART1 対数",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     53
+    ],
+    "answerPages": [
+     53
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "6=log₂64",
+      "options": [
+       "2=log₆64",
+       "64=log₂6",
+       "6=log₆₄2"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "−2=log₃(1/9)",
+      "options": [
+       "2=log₃(1/9)",
+       "−2=log_(1/9)3",
+       "1/9=log₃(−2)"
+      ]
+     },
+     {
+      "label": "(1)(iii)",
+      "answer": "1/2=log₉3",
+      "options": [
+       "2=log₉3",
+       "1/2=log₃9",
+       "3=log₉(1/2)"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "5³=125",
+      "options": [
+       "3⁵=125",
+       "125³=5",
+       "5¹²⁵=3"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "7⁻¹=1/7",
+      "options": [
+       "7¹=1/7",
+       "(−1)⁷=1/7",
+       "7^(1/7)=−1"
+      ]
+     },
+     {
+      "label": "(2)(iii)",
+      "answer": "8^(1/3)=2",
+      "options": [
+       "2^(1/3)=8",
+       "8³=2",
+       "2⁸=1/3"
+      ]
+     },
+     {
+      "label": "(3)(i)",
+      "answer": "3",
+      "options": [
+       "100",
+       "10",
+       "2"
+      ]
+     },
+     {
+      "label": "(3)(ii)",
+      "answer": "1/2",
+      "options": [
+       "2",
+       "√3",
+       "1/3"
+      ]
+     },
+     {
+      "label": "(3)(iii)",
+      "answer": "−2",
+      "options": [
+       "2",
+       "−4",
+       "1/2"
+      ]
+     }
+    ]
+   },
+   "page": 53,
+   "bookPage": "54",
+   "problemImage": "ss_math2/p050.jpg",
+   "answerImage": "ss_math2/s050.jpg"
+  },
+  {
+   "no": 51,
+   "chapterNo": 14,
+   "chapter": "第14講 対数とその性質",
+   "section": "PART2 対数の性質",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     54
+    ],
+    "answerPages": [
+     54
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "2",
+      "options": [
+       "1",
+       "3",
+       "64"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "−1",
+      "options": [
+       "1",
+       "−5",
+       "1/5"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "1",
+      "options": [
+       "2",
+       "0",
+       "3"
+      ]
+     },
+     {
+      "label": "(4)",
+      "answer": "0",
+      "options": [
+       "1",
+       "−1",
+       "1/2"
+      ]
+     }
+    ]
+   },
+   "page": 54,
+   "bookPage": "55",
+   "problemImage": "ss_math2/p051.jpg",
+   "answerImage": "ss_math2/s051.jpg"
+  },
+  {
+   "no": 52,
+   "chapterNo": 14,
+   "chapter": "第14講 対数とその性質",
+   "section": "PART3 底の変換公式",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     55
+    ],
+    "answerPages": [
+     55
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "3/4",
+      "options": [
+       "4/3",
+       "1/2",
+       "2"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "−3/2",
+      "options": [
+       "3/2",
+       "−2/3",
+       "−3"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "5",
+      "options": [
+       "32",
+       "2",
+       "10"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "−2",
+      "options": [
+       "2",
+       "−1",
+       "−4"
+      ]
+     }
+    ]
+   },
+   "page": 55,
+   "bookPage": "56",
+   "problemImage": "ss_math2/p052.jpg",
+   "answerImage": "ss_math2/s052.jpg"
+  },
+  {
+   "no": 53,
+   "chapterNo": 15,
+   "chapter": "第15講 対数関数",
+   "section": "PART1 対数関数のグラフ",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     56
+    ],
+    "answerPages": [
+     56
+    ],
+    "skipped": [
+     "グラフをかけ"
+    ]
+   },
+   "page": 56,
+   "bookPage": "57",
+   "problemImage": "ss_math2/p053.jpg",
+   "answerImage": "ss_math2/s053.jpg"
+  },
+  {
+   "no": 54,
+   "chapterNo": 15,
+   "chapter": "第15講 対数関数",
+   "section": "PART2 対数関数の性質",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     57
+    ],
+    "answerPages": [
+     57
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "2log_(1/2)3<log_(1/2)5<0",
+      "options": [
+       "0<log_(1/2)5<2log_(1/2)3",
+       "log_(1/2)5<2log_(1/2)3<0",
+       "2log_(1/2)3<0<log_(1/2)5"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "log₃(1/2)<log₉4<1",
+      "options": [
+       "log₉4<log₃(1/2)<1",
+       "log₃(1/2)<1<log₉4",
+       "1<log₉4<log₃(1/2)"
+      ]
+     }
+    ]
+   },
+   "page": 57,
+   "bookPage": "58",
+   "problemImage": "ss_math2/p054.jpg",
+   "answerImage": "ss_math2/s054.jpg"
+  },
+  {
+   "no": 55,
+   "chapterNo": 15,
+   "chapter": "第15講 対数関数",
+   "section": "PART3 対数関数を含む方程式・不等式",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     58
+    ],
+    "answerPages": [
+     58
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "x=81",
+      "options": [
+       "x=12",
+       "x=64",
+       "x=4/3"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "x=33/32",
+      "options": [
+       "x=1/32",
+       "x=31/32",
+       "x=11"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "0<x≦64",
+      "options": [
+       "x≦64",
+       "0<x≦12",
+       "0<x≦81"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "x>19/9",
+      "options": [
+       "2<x<19/9",
+       "x>11",
+       "x>17/9"
+      ]
+     }
+    ]
+   },
+   "page": 58,
+   "bookPage": "59",
+   "problemImage": "ss_math2/p055.jpg",
+   "answerImage": "ss_math2/s055.jpg"
+  },
+  {
+   "no": 56,
+   "chapterNo": 15,
+   "chapter": "第15講 対数関数",
+   "section": "PART4 常用対数",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     59
+    ],
+    "answerPages": [
+     59
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "1.1761",
+      "options": [
+       "0.7781",
+       "1.4771",
+       "1.0791"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "15 桁",
+      "options": [
+       "14 桁",
+       "16 桁",
+       "30 桁"
+      ]
+     }
+    ]
+   },
+   "page": 59,
+   "bookPage": "60",
+   "problemImage": "ss_math2/p056.jpg",
+   "answerImage": "ss_math2/s056.jpg"
+  },
+  {
+   "no": 57,
+   "chapterNo": 16,
+   "chapter": "第16講 微分係数と導関数",
+   "section": "PART1 平均の速さ，平均変化率",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     60
+    ],
+    "answerPages": [
+     60
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "−3",
+      "options": [
+       "3",
+       "−9",
+       "−1"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "−3h−6",
+      "options": [
+       "3h+6",
+       "−3h+6",
+       "−6h−3"
+      ]
+     }
+    ]
+   },
+   "page": 60,
+   "bookPage": "61",
+   "problemImage": "ss_math2/p057.jpg",
+   "answerImage": "ss_math2/s057.jpg"
+  },
+  {
+   "no": 58,
+   "chapterNo": 16,
+   "chapter": "第16講 微分係数と導関数",
+   "section": "PART2 極限値と微分係数",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     61
+    ],
+    "answerPages": [
+     61
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "4",
+      "options": [
+       "0",
+       "5",
+       "3"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "−5",
+      "options": [
+       "5",
+       "0",
+       "−4"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "4",
+      "options": [
+       "−4",
+       "2",
+       "−2"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "4",
+      "options": [
+       "5",
+       "2",
+       "8"
+      ]
+     }
+    ]
+   },
+   "page": 61,
+   "bookPage": "62",
+   "problemImage": "ss_math2/p058.jpg",
+   "answerImage": "ss_math2/s058.jpg"
+  },
+  {
+   "no": 59,
+   "chapterNo": 16,
+   "chapter": "第16講 微分係数と導関数",
+   "section": "PART3 導関数",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     62
+    ],
+    "answerPages": [
+     62
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "f'(x)=1",
+      "options": [
+       "f'(x)=0",
+       "f'(x)=x",
+       "f'(x)=2x"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "f'(x)=2x",
+      "options": [
+       "f'(x)=x",
+       "f'(x)=x²",
+       "f'(x)=2"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "f'(x)=3x²",
+      "options": [
+       "f'(x)=x²",
+       "f'(x)=3x",
+       "f'(x)=2x³"
+      ]
+     },
+     {
+      "label": "(4)",
+      "answer": "f'(x)=0",
+      "options": [
+       "f'(x)=4",
+       "f'(x)=4x",
+       "f'(x)=1"
+      ]
+     }
+    ]
+   },
+   "page": 62,
+   "bookPage": "63",
+   "problemImage": "ss_math2/p059.jpg",
+   "answerImage": "ss_math2/s059.jpg"
+  },
+  {
+   "no": 60,
+   "chapterNo": 16,
+   "chapter": "第16講 微分係数と導関数",
+   "section": "PART4 導関数の計算",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     63
+    ],
+    "answerPages": [
+     63
+    ],
+    "subs": [
+     {
+      "label": null,
+      "answer": "f'(x)=3x²−8x−3，f'(1)=−8，f'(t)=3t²−8t−3",
+      "options": [
+       "f'(x)=3x²−8x−3，f'(1)=8，f'(t)=3t²−8t−3",
+       "f'(x)=3x²−4x−3，f'(1)=−4，f'(t)=3t²−4t−3",
+       "f'(x)=3x²−8x−1，f'(1)=−6，f'(t)=3t²−8t−1"
+      ]
+     }
+    ]
+   },
+   "page": 63,
+   "bookPage": "64",
+   "problemImage": "ss_math2/p060.jpg",
+   "answerImage": "ss_math2/s060.jpg"
+  },
+  {
+   "no": 61,
+   "chapterNo": 17,
+   "chapter": "第17講 導関数の応用",
+   "section": "PART1 接線の方程式",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     64
+    ],
+    "answerPages": [
+     64
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "y=−4x−1",
+      "options": [
+       "y=−4x+1",
+       "y=4x+7",
+       "y=−4x+3"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "y=3x−5",
+      "options": [
+       "y=3x−2",
+       "y=−3x+1",
+       "y=3x+5"
+      ]
+     }
+    ]
+   },
+   "page": 64,
+   "bookPage": "65",
+   "problemImage": "ss_math2/p061.jpg",
+   "answerImage": "ss_math2/s061.jpg"
+  },
+  {
+   "no": 62,
+   "chapterNo": 17,
+   "chapter": "第17講 導関数の応用",
+   "section": "PART2 曲線上にない点から引いた接線",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     65
+    ],
+    "answerPages": [
+     65
+    ],
+    "subs": [
+     {
+      "label": null,
+      "answer": "y=2x+1，y=−6x+1",
+      "options": [
+       "y=2x−1，y=−6x−1",
+       "y=−2x+1，y=6x+1",
+       "y=2x+1，y=−2x+1"
+      ]
+     }
+    ]
+   },
+   "page": 65,
+   "bookPage": "66",
+   "problemImage": "ss_math2/p062.jpg",
+   "answerImage": "ss_math2/s062.jpg"
+  },
+  {
+   "no": 63,
+   "chapterNo": 17,
+   "chapter": "第17講 導関数の応用",
+   "section": "PART3 関数の増減",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     66
+    ],
+    "answerPages": [
+     66
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "x≦0，2≦x で増加，0≦x≦2 で減少（f(0)=0，f(2)=−4）",
+      "options": [
+       "x≦0，2≦x で減少，0≦x≦2 で増加（f(0)=0，f(2)=−4）",
+       "x≦−2，0≦x で増加，−2≦x≦0 で減少（f(−2)=−20，f(0)=0）",
+       "x≦0，2≦x で増加，0≦x≦2 で減少（f(0)=0，f(2)=4）"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "x≦−1，1≦x で減少，−1≦x≦1 で増加（f(−1)=4/3，f(1)=8/3）",
+      "options": [
+       "x≦−1，1≦x で増加，−1≦x≦1 で減少（f(−1)=4/3，f(1)=8/3）",
+       "x≦−1，1≦x で減少，−1≦x≦1 で増加（f(−1)=8/3，f(1)=4/3）",
+       "常に減少（極値をもたない）"
+      ]
+     }
+    ],
+    "partial": true,
+    "skipped": [
+     "(1)(2) 増減表の作成（増減の結論のみ 4 択）"
+    ]
+   },
+   "page": 66,
+   "bookPage": "67",
+   "problemImage": "ss_math2/p063.jpg",
+   "answerImage": "ss_math2/s063.jpg"
+  },
+  {
+   "no": 64,
+   "chapterNo": 17,
+   "chapter": "第17講 導関数の応用",
+   "section": "PART4 関数の極大・極小",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     67
+    ],
+    "answerPages": [
+     67
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "x=0 で極大値 6，x=2 で極小値 −6",
+      "options": [
+       "x=0 で極小値 6，x=2 で極大値 −6",
+       "x=0 で極大値 6，x=2 で極小値 −2",
+       "x=2 で極大値 6，x=0 で極小値 −6"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "極値をもたない（常に減少）",
+      "options": [
+       "x=1 で極小値 1",
+       "x=1 で極大値 1",
+       "x=1 で極大値 2"
+      ]
+     }
+    ],
+    "partial": true,
+    "skipped": [
+     "(1)(2) グラフをかく部分"
+    ]
+   },
+   "page": 67,
+   "bookPage": "68",
+   "problemImage": "ss_math2/p064.jpg",
+   "answerImage": "ss_math2/s064.jpg"
+  },
+  {
+   "no": 65,
+   "chapterNo": 17,
+   "chapter": "第17講 導関数の応用",
+   "section": "PART5 関数の最大・最小",
+   "kind": "problem",
+   "front": "例題 5",
+   "back": null,
+   "extra": {
+    "label": "例題 5",
+    "problemPages": [
+     68
+    ],
+    "answerPages": [
+     68
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "x=5 で最大値 21，x=3 で最小値 1",
+      "options": [
+       "x=1 で最大値 5，x=3 で最小値 1",
+       "x=5 で最大値 21，x=1/2 で最小値 33/8",
+       "x=5 で最大値 21，x=3 で最小値 −1"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "x=0 で最大値 4，x=1 で最小値 −4",
+      "options": [
+       "x=0 で最大値 4，x=−1 で最小値 0",
+       "x=1 で最大値 4，x=0 で最小値 −4",
+       "x=0 で最大値 4，x=1 で最小値 −2"
+      ]
+     }
+    ]
+   },
+   "page": 68,
+   "bookPage": "69",
+   "problemImage": "ss_math2/p065.jpg",
+   "answerImage": "ss_math2/s065.jpg"
+  },
+  {
+   "no": 66,
+   "chapterNo": 17,
+   "chapter": "第17講 導関数の応用",
+   "section": "PART6 方程式への応用",
+   "kind": "problem",
+   "front": "例題 6",
+   "back": null,
+   "extra": {
+    "label": "例題 6",
+    "problemPages": [
+     69
+    ],
+    "answerPages": [
+     69,
+     70
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "3 個",
+      "options": [
+       "1 個",
+       "2 個",
+       "0 個"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "2 個",
+      "options": [
+       "1 個",
+       "3 個",
+       "0 個"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "1 個",
+      "options": [
+       "2 個",
+       "3 個",
+       "0 個"
+      ]
+     }
+    ]
+   },
+   "page": 69,
+   "bookPage": "70",
+   "problemImage": "ss_math2/p066.jpg",
+   "answerImage": "ss_math2/s066.jpg"
+  },
+  {
+   "no": 67,
+   "chapterNo": 18,
+   "chapter": "第18講 不定積分，定積分",
+   "section": "PART1 不定積分",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     71
+    ],
+    "answerPages": [
+     71
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "1/3 x³+C",
+      "options": [
+       "3x³+C",
+       "1/2 x³+C",
+       "x³+C"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "x+C",
+      "options": [
+       "1/2 x²+C",
+       "C",
+       "x²+C"
+      ]
+     }
+    ]
+   },
+   "page": 71,
+   "bookPage": "72",
+   "problemImage": "ss_math2/p067.jpg",
+   "answerImage": "ss_math2/s067.jpg"
+  },
+  {
+   "no": 68,
+   "chapterNo": 18,
+   "chapter": "第18講 不定積分，定積分",
+   "section": "PART2 xⁿ の不定積分，不定積分の性質",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     72
+    ],
+    "answerPages": [
+     72
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "x³−2x²+5x+C",
+      "options": [
+       "x³−4x²+5x+C",
+       "6x−4+C",
+       "3x³−2x²+5x+C"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "4/3 t³−t+C",
+      "options": [
+       "4t³−t+C",
+       "4/3 t³+C",
+       "8t+C"
+      ]
+     }
+    ]
+   },
+   "page": 72,
+   "bookPage": "73",
+   "problemImage": "ss_math2/p068.jpg",
+   "answerImage": "ss_math2/s068.jpg"
+  },
+  {
+   "no": 69,
+   "chapterNo": 18,
+   "chapter": "第18講 不定積分，定積分",
+   "section": "PART3 定積分",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     73
+    ],
+    "answerPages": [
+     73
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "14",
+      "options": [
+       "18",
+       "4",
+       "12"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "−27",
+      "options": [
+       "27",
+       "−31",
+       "−29"
+      ]
+     }
+    ]
+   },
+   "page": 73,
+   "bookPage": "74",
+   "problemImage": "ss_math2/p069.jpg",
+   "answerImage": "ss_math2/s069.jpg"
+  },
+  {
+   "no": 70,
+   "chapterNo": 18,
+   "chapter": "第18講 不定積分，定積分",
+   "section": "PART4 定積分の性質",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     74
+    ],
+    "answerPages": [
+     74
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "0",
+      "options": [
+       "−2",
+       "1",
+       "3"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "24",
+      "options": [
+       "0",
+       "16",
+       "8"
+      ]
+     }
+    ]
+   },
+   "page": 74,
+   "bookPage": "75",
+   "problemImage": "ss_math2/p070.jpg",
+   "answerImage": "ss_math2/s070.jpg"
+  },
+  {
+   "no": 71,
+   "chapterNo": 19,
+   "chapter": "第19講 定積分と面積",
+   "section": "PART1 定積分と面積",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     75
+    ],
+    "answerPages": [
+     75
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "6",
+      "options": [
+       "3",
+       "4",
+       "14/3"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "9",
+      "options": [
+       "−9",
+       "6",
+       "3"
+      ]
+     }
+    ]
+   },
+   "page": 75,
+   "bookPage": "76",
+   "problemImage": "ss_math2/p071.jpg",
+   "answerImage": "ss_math2/s071.jpg"
+  },
+  {
+   "no": 72,
+   "chapterNo": 19,
+   "chapter": "第19講 定積分と面積",
+   "section": "PART2 2 つの曲線の間の面積",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     76
+    ],
+    "answerPages": [
+     76
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "1/6",
+      "options": [
+       "−1/6",
+       "1/3",
+       "1/2"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "32/3",
+      "options": [
+       "16/3",
+       "64/3",
+       "32"
+      ]
+     }
+    ]
+   },
+   "page": 76,
+   "bookPage": "77",
+   "problemImage": "ss_math2/p072.jpg",
+   "answerImage": "ss_math2/s072.jpg"
+  }
+ ]
+}

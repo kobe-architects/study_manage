@@ -963,6 +963,8 @@ export interface MistakeNoteSummary {
   mastery: MistakeMastery | null
   /** スクランブルの問題から自動で作ったページの元の問題（それ以外は null） */
   grammarQuestionId: number | null
+  /** 学習カード（数学学習の例題）から自動で作ったページの元のカード（それ以外は null） */
+  cardItemId: number | null
   sortOrder: number
   problemImageId: number | null
   problemThumbUrl: string | null
@@ -1084,6 +1086,8 @@ export interface CardStat {
 
 export interface CardItem {
   id: number
+  /** このカードから作った間違いノートのページ（無ければ null） */
+  noteId: number | null
   deckId: number
   no: number
   chapterNo: number

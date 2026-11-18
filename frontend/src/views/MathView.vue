@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * 数学学習。合格るシリーズ（合格る確率＋場合の数／合格る計算）の問題を学習カードとして出題する。
- * 上のタブで教材を切り替える（URL の ?tab= と端末に記憶）。中身は学習カード（CardDeckView）。
+ * 数学学習。合格るシリーズ（合格る確率＋場合の数／合格る計算）とスタディサプリ ベーシックレベル数学（Ⅰ・A・Ⅱ・B・Ⅲ・C の例題）の問題を学習カードとして出題する。
+ * 上のタブで教材を切り替える（URL の ?tab= と端末に記憶。タブが多いので横にスクロール）。中身は学習カード（CardDeckView）。
  */
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -64,13 +64,19 @@ function select(key: string) {
   margin: 0 0 16px;
   border: 1px solid #e3e6ea;
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   background: #fff;
+  -webkit-overflow-scrolling: touch;
+}
+.etabs::-webkit-scrollbar {
+  display: none;
 }
 .etab {
-  flex: 1;
+  flex: 1 0 auto;
   min-height: 42px;
-  padding: 8px 10px;
+  padding: 8px 14px;
   border: none;
   background: transparent;
   color: var(--mut);

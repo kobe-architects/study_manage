@@ -1,0 +1,2625 @@
+[
+ {
+  "no": 1,
+  "lecture": 1,
+  "lectureTitle": "式と計算",
+  "part": 1,
+  "partTitle": "3 次式の展開と因数分解の公式",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "x³+12x²+48x+64",
+    "options": [
+     "x³+12x²+48x+16",
+     "x³+4x²+16x+64",
+     "x³+8x²+48x+64"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "27x³−54x²y+36xy²−8y³",
+    "options": [
+     "27x³+54x²y+36xy²+8y³",
+     "27x³−54x²y+36xy²+8y³",
+     "27x³−18x²y+12xy²−8y³"
+    ]
+   },
+   {
+    "label": "(1)(iii)",
+    "answer": "x³+216",
+    "options": [
+     "x³−216",
+     "x³+36",
+     "x³+12x²+216"
+    ]
+   },
+   {
+    "label": "(1)(iv)",
+    "answer": "8a³−27b³",
+    "options": [
+     "8a³+27b³",
+     "6a³−9b³",
+     "8a³−27b²"
+    ]
+   },
+   {
+    "label": "(2)(i)",
+    "answer": "(x+2)(x²−2x+4)",
+    "options": [
+     "(x+2)(x²+2x+4)",
+     "(x−2)(x²+2x+4)",
+     "(x+2)(x²−4x+4)"
+    ]
+   },
+   {
+    "label": "(2)(ii)",
+    "answer": "(3a−4b)(9a²+12ab+16b²)",
+    "options": [
+     "(3a−4b)(9a²−12ab+16b²)",
+     "(3a+4b)(9a²−12ab+16b²)",
+     "(3a−4b)(9a²+24ab+16b²)"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 2,
+  "lecture": 1,
+  "lectureTitle": "式と計算",
+  "part": 2,
+  "partTitle": "二項定理",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "x⁵+15x⁴+90x³+270x²+405x+243",
+    "options": [
+     "x⁵+15x⁴+90x³+270x²+405x+81",
+     "x⁵+5x⁴+10x³+10x²+5x+243",
+     "x⁵+15x⁴+30x³+90x²+405x+243"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "2160",
+    "options": [
+     "−2160",
+     "1080",
+     "4320"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 3,
+  "lecture": 1,
+  "lectureTitle": "式と計算",
+  "part": 3,
+  "partTitle": "多項式の除法",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "商 3x+10，余り 32",
+    "options": [
+     "商 3x+10，余り −28",
+     "商 3x−8，余り 26",
+     "商 3x+10，余り 2"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "商 x²+2x−8，余り 27",
+    "options": [
+     "商 x²+2x−8，余り −37",
+     "商 x²+10x+40，余り 155",
+     "商 x²+2x+8，余り 27"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 4,
+  "lecture": 1,
+  "lectureTitle": "式と計算",
+  "part": 4,
+  "partTitle": "分数式の計算",
+  "label": 4,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "x/(x−1)",
+    "options": [
+     "x/(x+1)",
+     "1/(x−1)",
+     "(x+1)/(x−1)"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "(x−3)/(x+2)",
+    "options": [
+     "(x+3)/(x−2)",
+     "(x−5)/(x+2)",
+     "(x−3)/(x−2)"
+    ]
+   },
+   {
+    "label": "(2)(i)",
+    "answer": "x/(x+1)",
+    "options": [
+     "x/(x−4)",
+     "x(x−4)/(x+1)",
+     "1/(x+1)"
+    ]
+   },
+   {
+    "label": "(2)(ii)",
+    "answer": "−1/((x+1)(x+2))",
+    "options": [
+     "1/((x+1)(x+2))",
+     "−1/(x(x+1)(x+2))",
+     "(x−2)/(x(x+1)(x+2))"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 5,
+  "lecture": 2,
+  "lectureTitle": "式と証明",
+  "part": 1,
+  "partTitle": "恒等式",
+  "label": 1,
+  "subs": [
+   {
+    "label": null,
+    "answer": "a=2，b=4，c=1",
+    "options": [
+     "a=2，b=−4，c=1",
+     "a=2，b=4，c=−1",
+     "a=1，b=2，c=4"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 6,
+  "lecture": 2,
+  "lectureTitle": "式と証明",
+  "part": 2,
+  "partTitle": "等式の証明",
+  "label": 2,
+  "subs": [],
+  "skipped": [
+   "(1) 証明せよ",
+   "(2) 証明せよ",
+   "(3) 証明せよ"
+  ],
+  "note": ""
+ },
+ {
+  "no": 7,
+  "lecture": 2,
+  "lectureTitle": "式と証明",
+  "part": 3,
+  "partTitle": "不等式の証明",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(2)",
+    "answer": "3x+y=0 のとき",
+    "options": [
+     "3x−y=0 のとき",
+     "x+3y=0 のとき",
+     "9x+y=0 のとき"
+    ]
+   }
+  ],
+  "skipped": [
+   "(1) 証明せよ",
+   "(2) の証明部分（等号成立条件のみ 4 択）"
+  ],
+  "note": ""
+ },
+ {
+  "no": 8,
+  "lecture": 2,
+  "lectureTitle": "式と証明",
+  "part": 4,
+  "partTitle": "平方の大小関係",
+  "label": 4,
+  "subs": [],
+  "skipped": [
+   "証明せよ"
+  ],
+  "note": ""
+ },
+ {
+  "no": 9,
+  "lecture": 2,
+  "lectureTitle": "式と証明",
+  "part": 5,
+  "partTitle": "相加平均と相乗平均",
+  "label": 5,
+  "subs": [
+   {
+    "label": null,
+    "answer": "x=2 のとき",
+    "options": [
+     "x=4 のとき",
+     "x=√2 のとき",
+     "x=1 のとき"
+    ]
+   }
+  ],
+  "skipped": [
+   "証明部分（等号成立条件のみ 4 択）"
+  ],
+  "note": ""
+ },
+ {
+  "no": 10,
+  "lecture": 3,
+  "lectureTitle": "複素数と 2 次方程式",
+  "part": 1,
+  "partTitle": "複素数とその計算",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "1+6i",
+    "options": [
+     "1−2i",
+     "5+6i",
+     "1−6i"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "0",
+    "options": [
+     "2i",
+     "2",
+     "−2"
+    ]
+   },
+   {
+    "label": "(1)(iii)",
+    "answer": "11+7i",
+    "options": [
+     "1+7i",
+     "11−7i",
+     "6+7i"
+    ]
+   },
+   {
+    "label": "(2)(i)",
+    "answer": "8/13−12/13 i",
+    "options": [
+     "8/13+12/13 i",
+     "8/5−12/5 i",
+     "4/13−6/13 i"
+    ]
+   },
+   {
+    "label": "(2)(ii)",
+    "answer": "−1+i",
+    "options": [
+     "1+i",
+     "−1−i",
+     "1−i"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 11,
+  "lecture": 3,
+  "lectureTitle": "複素数と 2 次方程式",
+  "part": 2,
+  "partTitle": "負の数の平方根と 2 次方程式",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "−2√3",
+    "options": [
+     "2√3",
+     "2√3 i",
+     "−2√3 i"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "−3i",
+    "options": [
+     "3i",
+     "−3",
+     "3"
+    ]
+   },
+   {
+    "label": "(2)(i)",
+    "answer": "x=±3i",
+    "options": [
+     "x=±3",
+     "x=±9i",
+     "x=3i"
+    ]
+   },
+   {
+    "label": "(2)(ii)",
+    "answer": "x=(1±√6 i)/7",
+    "options": [
+     "x=(1±√6)/7",
+     "x=(2±√6 i)/7",
+     "x=(1±√6 i)/14"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 12,
+  "lecture": 3,
+  "lectureTitle": "複素数と 2 次方程式",
+  "part": 3,
+  "partTitle": "2 次方程式の解の判別",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "異なる 2 つの虚数解",
+    "options": [
+     "異なる 2 つの実数解",
+     "重解",
+     "1 つの実数解と 1 つの虚数解"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "異なる 2 つの実数解",
+    "options": [
+     "異なる 2 つの虚数解",
+     "重解",
+     "実数解をもたない"
+    ]
+   },
+   {
+    "label": "(1)(iii)",
+    "answer": "重解",
+    "options": [
+     "異なる 2 つの実数解",
+     "異なる 2 つの虚数解",
+     "実数解をもたない"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "a≦−1，2≦a",
+    "options": [
+     "−1≦a≦2",
+     "a≦−2，1≦a",
+     "a<−1，2<a"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 13,
+  "lecture": 3,
+  "lectureTitle": "複素数と 2 次方程式",
+  "part": 4,
+  "partTitle": "2 次方程式の解と係数の関係",
+  "label": 4,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "1",
+    "options": [
+     "−1",
+     "5",
+     "−5"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "−5",
+    "options": [
+     "5",
+     "1",
+     "−1"
+    ]
+   },
+   {
+    "label": "(1)(iii)",
+    "answer": "11",
+    "options": [
+     "−9",
+     "9",
+     "21"
+    ]
+   },
+   {
+    "label": "(1)(iv)",
+    "answer": "16",
+    "options": [
+     "−14",
+     "14",
+     "1"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "2(x+(3−√3)/2)(x+(3+√3)/2)",
+    "options": [
+     "2(x−(3−√3)/2)(x−(3+√3)/2)",
+     "(x+(3−√3)/2)(x+(3+√3)/2)",
+     "2(x+(3−√3 i)/2)(x+(3+√3 i)/2)"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "x²+2x+17=0",
+    "options": [
+     "x²−2x+17=0",
+     "x²+2x−15=0",
+     "x²+2x−17=0"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 14,
+  "lecture": 4,
+  "lectureTitle": "剰余の定理と因数定理，高次方程式",
+  "part": 1,
+  "partTitle": "剰余の定理",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "6",
+    "options": [
+     "0",
+     "4",
+     "8"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "10",
+    "options": [
+     "−10",
+     "−8",
+     "28"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "31/8",
+    "options": [
+     "29/8",
+     "31/4",
+     "15/8"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 15,
+  "lecture": 4,
+  "lectureTitle": "剰余の定理と因数定理，高次方程式",
+  "part": 2,
+  "partTitle": "因数定理",
+  "label": 2,
+  "subs": [
+   {
+    "label": null,
+    "answer": "(x−1)(2x+1)(x+5)",
+    "options": [
+     "(x+1)(2x−1)(x+5)",
+     "(x−1)(2x−1)(x−5)",
+     "(x−1)(2x+5)(x+1)"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 16,
+  "lecture": 4,
+  "lectureTitle": "剰余の定理と因数定理，高次方程式",
+  "part": 3,
+  "partTitle": "組立除法と因数分解",
+  "label": 3,
+  "subs": [
+   {
+    "label": null,
+    "answer": "(x+3)²(x−5)",
+    "options": [
+     "(x−3)²(x+5)",
+     "(x+3)(x−5)²",
+     "(x+3)²(x+5)"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 17,
+  "lecture": 4,
+  "lectureTitle": "剰余の定理と因数定理，高次方程式",
+  "part": 4,
+  "partTitle": "高次方程式の解法",
+  "label": 4,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "x=−3，(3±3√3 i)/2",
+    "options": [
+     "x=3，(−3±3√3 i)/2",
+     "x=−3，(3±3√3)/2",
+     "x=−3，(−3±3√3 i)/2"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "x=±2，±i",
+    "options": [
+     "x=±2，±1",
+     "x=±2i，±1",
+     "x=±√2，±i"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "x=−1，2±2√2",
+    "options": [
+     "x=1，2±2√2",
+     "x=−1，−2±2√2",
+     "x=−1，2±√2"
+    ]
+   },
+   {
+    "label": "(4)",
+    "answer": "x=2，−3",
+    "options": [
+     "x=−2，3",
+     "x=2，3",
+     "x=2，−3，−9"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 18,
+  "lecture": 5,
+  "lectureTitle": "点と直線",
+  "part": 1,
+  "partTitle": "2 点間の距離，数直線上の分点の座標",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "9/5",
+    "options": [
+     "1/5",
+     "3/5",
+     "11/5"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "1",
+    "options": [
+     "4",
+     "−1",
+     "2"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "11",
+    "options": [
+     "−11",
+     "9",
+     "17"
+    ]
+   },
+   {
+    "label": "(4)",
+    "answer": "−17/3",
+    "options": [
+     "17/3",
+     "−7/3",
+     "−13/3"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 19,
+  "lecture": 5,
+  "lectureTitle": "点と直線",
+  "part": 2,
+  "partTitle": "座標平面上の点",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "3√5",
+    "options": [
+     "√5",
+     "5√3",
+     "3√3"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "(4, 2)",
+    "options": [
+     "(3, 0)",
+     "(4, −2)",
+     "(2, 4)"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "(1/2, −5)",
+    "options": [
+     "(−1/2, 5)",
+     "(13/2, 7)",
+     "(1/2, 5)"
+    ]
+   },
+   {
+    "label": "(4)",
+    "answer": "(2, 5/3)",
+    "options": [
+     "(2, 3)",
+     "(6, 5)",
+     "(5/3, 2)"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 20,
+  "lecture": 5,
+  "lectureTitle": "点と直線",
+  "part": 3,
+  "partTitle": "直線の方程式",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "y=3x−5",
+    "options": [
+     "y=3x+5",
+     "y=3x−1",
+     "y=3x+7"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "y=1",
+    "options": [
+     "x=4",
+     "x=1",
+     "y=4"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "y=−4/5 x+6/5",
+    "options": [
+     "y=4/5 x+6/5",
+     "y=−5/4 x+3/4",
+     "y=−4/5 x−6/5"
+    ]
+   },
+   {
+    "label": "(4)",
+    "answer": "x=−3",
+    "options": [
+     "y=−3",
+     "x=5",
+     "y=0"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 21,
+  "lecture": 5,
+  "lectureTitle": "点と直線",
+  "part": 4,
+  "partTitle": "2 直線の関係",
+  "label": 4,
+  "subs": [
+   {
+    "label": null,
+    "answer": "l₁: y=−1/3 x+11/3，l₂: y=3x−13",
+    "options": [
+     "l₁: y=−1/3 x+11/3，l₂: y=−3x+17",
+     "l₁: y=1/3 x+1/3，l₂: y=−3x+17",
+     "l₁: y=−3x+17，l₂: y=1/3 x+1/3"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 22,
+  "lecture": 5,
+  "lectureTitle": "点と直線",
+  "part": 5,
+  "partTitle": "点と直線の距離",
+  "label": 5,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "1",
+    "options": [
+     "5",
+     "1/5",
+     "√5"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "6√5/5",
+    "options": [
+     "6/5",
+     "6√5",
+     "3√5/5"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 23,
+  "lecture": 6,
+  "lectureTitle": "円",
+  "part": 1,
+  "partTitle": "円の方程式",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "(x−1)²+(y+1)²=4",
+    "options": [
+     "(x+1)²+(y−1)²=4",
+     "(x−1)²+(y+1)²=2",
+     "(x−1)²+(y−1)²=4"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "x²+y²=25",
+    "options": [
+     "x²+y²=5",
+     "x²+y²=7",
+     "(x−3)²+(y+4)²=25"
+    ]
+   },
+   {
+    "label": "(1)(iii)",
+    "answer": "x²+y²−7x−5y+6=0",
+    "options": [
+     "x²+y²+7x+5y+6=0",
+     "x²+y²−7x−5y−6=0",
+     "x²+y²−5x−7y+6=0"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "点 (−2, 4) を中心とする半径 √3 の円",
+    "options": [
+     "点 (2, −4) を中心とする半径 √3 の円",
+     "点 (−2, 4) を中心とする半径 3 の円",
+     "点 (−4, 8) を中心とする半径 √3 の円"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 24,
+  "lecture": 6,
+  "lectureTitle": "円",
+  "part": 2,
+  "partTitle": "円と直線の共有点の座標と個数",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "1 個，(2, −1)",
+    "options": [
+     "2 個，(2, −1)，(−2, 1)",
+     "1 個，(2, 1)",
+     "0 個"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "2 個，(−1/5, 7/5)，(1, −1)",
+    "options": [
+     "2 個，(1/5, 3/5)，(1, −1)",
+     "2 個，(−1/5, 7/5)，(−1, 3)",
+     "1 個，(1, −1)"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "0 個",
+    "options": [
+     "1 個，(−3, 3)",
+     "2 個，(−2, 4)，(−4, 2)",
+     "1 個，(−2, 4)"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 25,
+  "lecture": 6,
+  "lectureTitle": "円",
+  "part": 3,
+  "partTitle": "円と直線の位置関係",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "k=±10",
+    "options": [
+     "k=±√10",
+     "k=10",
+     "k=±100"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "k<−10，10<k",
+    "options": [
+     "−10<k<10",
+     "k<−√10，√10<k",
+     "k≦−10，10≦k"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 26,
+  "lecture": 6,
+  "lectureTitle": "円",
+  "part": 4,
+  "partTitle": "円の接線",
+  "label": 4,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "2x+y=5",
+    "options": [
+     "x+2y=5",
+     "2x−y=5",
+     "2x+y=10"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "接線 x−3y=10，3x+y=10 ／ 接点 (1, −3)，(3, 1)",
+    "options": [
+     "接線 x+3y=10，3x−y=10 ／ 接点 (1, 3)，(3, −1)",
+     "接線 x−3y=10，3x+y=10 ／ 接点 (−1, 3)，(−3, −1)",
+     "接線 x−3y=5，3x+y=5 ／ 接点 (1, −3)，(3, 1)"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 27,
+  "lecture": 7,
+  "lectureTitle": "軌跡と領域",
+  "part": 1,
+  "partTitle": "軌跡の方程式",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "直線 2x−y−4=0",
+    "options": [
+     "直線 2x+y−4=0",
+     "直線 x−2y−4=0",
+     "直線 2x−y+4=0"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "中心 (0, −1)，半径 2√5 の円",
+    "options": [
+     "中心 (0, 1)，半径 2√5 の円",
+     "中心 (0, −1)，半径 √5 の円",
+     "中心 (−1, 0)，半径 2√5 の円"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 28,
+  "lecture": 7,
+  "lectureTitle": "軌跡と領域",
+  "part": 2,
+  "partTitle": "不等式の表す領域",
+  "label": 2,
+  "subs": [],
+  "skipped": [
+   "(1)〜(6) 領域を図示せよ"
+  ],
+  "note": "解答には「直線 y=2x+1 の上側（境界線は含まない）」のような文章表現もある"
+ },
+ {
+  "no": 29,
+  "lecture": 7,
+  "lectureTitle": "軌跡と領域",
+  "part": 3,
+  "partTitle": "連立不等式の表す領域",
+  "label": 3,
+  "subs": [],
+  "skipped": [
+   "(1)(2) 領域を図示せよ"
+  ],
+  "note": ""
+ },
+ {
+  "no": 30,
+  "lecture": 7,
+  "lectureTitle": "軌跡と領域",
+  "part": 4,
+  "partTitle": "領域と最大・最小",
+  "label": 4,
+  "subs": [
+   {
+    "label": null,
+    "answer": "x=2，y=2 のとき最大値 4，x=0，y=0 のとき最小値 0",
+    "options": [
+     "x=14/5，y=0 のとき最大値 14/5，x=0，y=0 のとき最小値 0",
+     "x=0，y=3 のとき最大値 3，x=0，y=0 のとき最小値 0",
+     "x=2，y=2 のとき最大値 4，x=0，y=3 のとき最小値 3"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 31,
+  "lecture": 8,
+  "lectureTitle": "三角関数とその性質",
+  "part": 1,
+  "partTitle": "動径と一般角",
+  "label": 1,
+  "subs": [
+   {
+    "label": null,
+    "answer": "(2) 420°",
+    "options": [
+     "(1) 225°",
+     "(3) −60°",
+     "(4) 870°"
+    ]
+   }
+  ],
+  "skipped": [
+   "(1)〜(4) 動径 OP の図示"
+  ],
+  "note": "4 択は「60° の動径と同じ位置にあるもの」の部分"
+ },
+ {
+  "no": 32,
+  "lecture": 8,
+  "lectureTitle": "三角関数とその性質",
+  "part": 2,
+  "partTitle": "弧度法",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "π/6",
+    "options": [
+     "π/3",
+     "π/12",
+     "π/4"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "11/4 π",
+    "options": [
+     "11/2 π",
+     "9/4 π",
+     "11/8 π"
+    ]
+   },
+   {
+    "label": "(1)(iii)",
+    "answer": "−2/3 π",
+    "options": [
+     "−3/2 π",
+     "−π/3",
+     "2/3 π"
+    ]
+   },
+   {
+    "label": "(2)(i)",
+    "answer": "225°",
+    "options": [
+     "135°",
+     "45°",
+     "240°"
+    ]
+   },
+   {
+    "label": "(2)(ii)",
+    "answer": "−60°",
+    "options": [
+     "60°",
+     "−30°",
+     "−120°"
+    ]
+   },
+   {
+    "label": "(2)(iii)",
+    "answer": "390°",
+    "options": [
+     "210°",
+     "300°",
+     "330°"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "l=18/5 π，S=54/5 π",
+    "options": [
+     "l=18/5 π，S=108/5 π",
+     "l=9/5 π，S=54/5 π",
+     "l=18/5 π，S=27/5 π"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 33,
+  "lecture": 8,
+  "lectureTitle": "三角関数とその性質",
+  "part": 3,
+  "partTitle": "三角関数",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "sinθ=−√3/2，cosθ=−1/2，tanθ=√3",
+    "options": [
+     "sinθ=−1/2，cosθ=−√3/2，tanθ=1/√3",
+     "sinθ=√3/2，cosθ=−1/2，tanθ=−√3",
+     "sinθ=−√3/2，cosθ=1/2，tanθ=−√3"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "sinθ=−1/2，cosθ=√3/2，tanθ=−1/√3",
+    "options": [
+     "sinθ=1/2，cosθ=√3/2，tanθ=1/√3",
+     "sinθ=−√3/2，cosθ=1/2，tanθ=−√3",
+     "sinθ=−1/2，cosθ=−√3/2，tanθ=1/√3"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "sinθ=1/√2，cosθ=1/√2，tanθ=1",
+    "options": [
+     "sinθ=−1/√2，cosθ=1/√2，tanθ=−1",
+     "sinθ=1/√2，cosθ=−1/√2，tanθ=−1",
+     "sinθ=−1/√2，cosθ=−1/√2，tanθ=1"
+    ]
+   },
+   {
+    "label": "(4)",
+    "answer": "sinθ=−1，cosθ=0，tanθ は定義されない",
+    "options": [
+     "sinθ=0，cosθ=−1，tanθ=0",
+     "sinθ=1，cosθ=0，tanθ は定義されない",
+     "sinθ=−1，cosθ=0，tanθ=0"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 34,
+  "lecture": 8,
+  "lectureTitle": "三角関数とその性質",
+  "part": 4,
+  "partTitle": "三角関数の相互関係",
+  "label": 4,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "sinθ=−4/5，tanθ=−4/3",
+    "options": [
+     "sinθ=4/5，tanθ=4/3",
+     "sinθ=−4/5，tanθ=−3/4",
+     "sinθ=−3/5，tanθ=−4/3"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "sinθ=−3/√10，cosθ=−1/√10",
+    "options": [
+     "sinθ=3/√10，cosθ=1/√10",
+     "sinθ=−1/√10，cosθ=−3/√10",
+     "sinθ=−3/√10，cosθ=1/√10"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 35,
+  "lecture": 8,
+  "lectureTitle": "三角関数とその性質",
+  "part": 5,
+  "partTitle": "三角関数の性質",
+  "label": 5,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "sin(9/4 π)=1/√2，cos(9/4 π)=1/√2",
+    "options": [
+     "sin(9/4 π)=−1/√2，cos(9/4 π)=1/√2",
+     "sin(9/4 π)=1/√2，cos(9/4 π)=−1/√2",
+     "sin(9/4 π)=−1/√2，cos(9/4 π)=−1/√2"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "sin(−2/3 π)=−√3/2，cos(−2/3 π)=−1/2",
+    "options": [
+     "sin(−2/3 π)=√3/2，cos(−2/3 π)=−1/2",
+     "sin(−2/3 π)=−√3/2，cos(−2/3 π)=1/2",
+     "sin(−2/3 π)=−1/2，cos(−2/3 π)=−√3/2"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "sin(7/6 π)=−1/2，cos(7/6 π)=−√3/2",
+    "options": [
+     "sin(7/6 π)=1/2，cos(7/6 π)=−√3/2",
+     "sin(7/6 π)=−1/2，cos(7/6 π)=√3/2",
+     "sin(7/6 π)=−√3/2，cos(7/6 π)=−1/2"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 36,
+  "lecture": 9,
+  "lectureTitle": "三角関数のグラフ",
+  "part": 1,
+  "partTitle": "三角関数のグラフ",
+  "label": 1,
+  "subs": [],
+  "skipped": [
+   "(1)〜(3) グラフをかけ"
+  ],
+  "note": ""
+ },
+ {
+  "no": 37,
+  "lecture": 9,
+  "lectureTitle": "三角関数のグラフ",
+  "part": 2,
+  "partTitle": "いろいろな三角関数のグラフ",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "ア ②(y)，イ ③(2)，ウ ⑤(2π)",
+    "options": [
+     "ア ①(θ)，イ ③(2)，ウ ⑤(2π)",
+     "ア ②(y)，イ ④(1/2)，ウ ⑤(2π)",
+     "ア ②(y)，イ ③(2)，ウ ⑥(π)"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "エ ①(θ)，オ ④(1/2)，カ ⑥(π)",
+    "options": [
+     "エ ②(y)，オ ④(1/2)，カ ⑥(π)",
+     "エ ①(θ)，オ ③(2)，カ ⑥(π)",
+     "エ ①(θ)，オ ④(1/2)，カ ⑤(2π)"
+    ]
+   },
+   {
+    "label": "(1)(iii)",
+    "answer": "キ ⑤(2π)",
+    "options": [
+     "キ ⑥(π)",
+     "キ ⑦(π/2)",
+     "キ ③(2)"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "周期 2π",
+    "options": [
+     "周期 π",
+     "周期 π/3",
+     "周期 2/3 π"
+    ]
+   }
+  ],
+  "skipped": [
+   "(2) グラフをかく部分"
+  ],
+  "note": ""
+ },
+ {
+  "no": 38,
+  "lecture": 10,
+  "lectureTitle": "三角関数を含む方程式，不等式",
+  "part": 1,
+  "partTitle": "三角関数を含む方程式",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "θ=5/4 π，7/4 π",
+    "options": [
+     "θ=π/4，3/4 π",
+     "θ=3/4 π，5/4 π",
+     "θ=π/4，7/4 π"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "θ=π/3，5/3 π",
+    "options": [
+     "θ=π/6，11/6 π",
+     "θ=2/3 π，4/3 π",
+     "θ=π/3，2/3 π"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "θ=π/6，7/6 π",
+    "options": [
+     "θ=π/3，4/3 π",
+     "θ=π/6，5/6 π",
+     "θ=π/6，11/6 π"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 39,
+  "lecture": 10,
+  "lectureTitle": "三角関数を含む方程式，不等式",
+  "part": 2,
+  "partTitle": "三角関数を含む不等式",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "0≦θ≦π/3，2/3 π≦θ<2π",
+    "options": [
+     "π/3≦θ≦2/3 π",
+     "0≦θ≦π/6，5/6 π≦θ<2π",
+     "0≦θ<π/3，2/3 π<θ<2π"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "3/4 π<θ<5/4 π",
+    "options": [
+     "π/4<θ<3/4 π",
+     "3/4 π≦θ≦5/4 π",
+     "0≦θ<3/4 π，5/4 π<θ<2π"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 40,
+  "lecture": 11,
+  "lectureTitle": "加法定理",
+  "part": 1,
+  "partTitle": "正弦・余弦の加法定理",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "−63/65",
+    "options": [
+     "63/65",
+     "−33/65",
+     "−16/65"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "−16/65",
+    "options": [
+     "16/65",
+     "−56/65",
+     "−63/65"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "−33/65",
+    "options": [
+     "33/65",
+     "−63/65",
+     "−56/65"
+    ]
+   },
+   {
+    "label": "(4)",
+    "answer": "−56/65",
+    "options": [
+     "56/65",
+     "−16/65",
+     "−33/65"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 41,
+  "lecture": 11,
+  "lectureTitle": "加法定理",
+  "part": 2,
+  "partTitle": "正接の加法定理，2 直線のなす角",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "tanα=3，tanβ=1/2",
+    "options": [
+     "tanα=1/3，tanβ=2",
+     "tanα=3，tanβ=2",
+     "tanα=−3，tanβ=1/2"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "−7",
+    "options": [
+     "7",
+     "1",
+     "−1"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "θ=π/4",
+    "options": [
+     "θ=π/3",
+     "θ=π/6",
+     "θ=3/4 π"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 42,
+  "lecture": 11,
+  "lectureTitle": "加法定理",
+  "part": 3,
+  "partTitle": "2 倍角の公式，半角の公式",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "sin2α=−24/25，cos2α=−7/25",
+    "options": [
+     "sin2α=24/25，cos2α=−7/25",
+     "sin2α=−24/25，cos2α=7/25",
+     "sin2α=−12/25，cos2α=−7/25"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "sin(α/2)=2/√5，cos(α/2)=1/√5",
+    "options": [
+     "sin(α/2)=1/√5，cos(α/2)=2/√5",
+     "sin(α/2)=−2/√5，cos(α/2)=1/√5",
+     "sin(α/2)=4/5，cos(α/2)=1/5"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 43,
+  "lecture": 11,
+  "lectureTitle": "加法定理",
+  "part": 4,
+  "partTitle": "三角関数の合成",
+  "label": 4,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "2sin(θ+π/3)",
+    "options": [
+     "2sin(θ+π/6)",
+     "√2 sin(θ+π/3)",
+     "2sin(θ−π/3)"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "√2 sin(θ−π/4)",
+    "options": [
+     "√2 sin(θ+π/4)",
+     "2sin(θ−π/4)",
+     "√2 sin(θ−3/4 π)"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "最大値 2，最小値 −2",
+    "options": [
+     "最大値 √3，最小値 −1",
+     "最大値 √2，最小値 −√2",
+     "最大値 2，最小値 0"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 44,
+  "lecture": 12,
+  "lectureTitle": "指数の拡張",
+  "part": 1,
+  "partTitle": "0 や負の整数の指数",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "a²",
+    "options": [
+     "a⁻¹⁵",
+     "a⁸",
+     "a⁻²"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "1",
+    "options": [
+     "a⁻¹²",
+     "a⁻⁴",
+     "a⁻⁸"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "a¹²",
+    "options": [
+     "a⁻¹²",
+     "a⁻⁷",
+     "a⁷"
+    ]
+   },
+   {
+    "label": "(4)",
+    "answer": "b⁶/a⁸",
+    "options": [
+     "a⁸/b⁶",
+     "a⁸b⁶",
+     "b/a²"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 45,
+  "lecture": 12,
+  "lectureTitle": "指数の拡張",
+  "part": 2,
+  "partTitle": "累乗根",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "2³√3",
+    "options": [
+     "3³√2",
+     "2³√6",
+     "4³√3"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "5",
+    "options": [
+     "25",
+     "5⁴√5",
+     "125"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "2",
+    "options": [
+     "4",
+     "16",
+     "√2"
+    ]
+   },
+   {
+    "label": "(4)",
+    "answer": "2",
+    "options": [
+     "4",
+     "8",
+     "√2"
+    ]
+   },
+   {
+    "label": "(5)",
+    "answer": "3",
+    "options": [
+     "9",
+     "√3",
+     "27"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 46,
+  "lecture": 12,
+  "lectureTitle": "指数の拡張",
+  "part": 3,
+  "partTitle": "有理数の指数",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "4",
+    "options": [
+     "2",
+     "16/3",
+     "12"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "1/3",
+    "options": [
+     "3",
+     "−3",
+     "1/81"
+    ]
+   },
+   {
+    "label": "(2)(i)",
+    "answer": "3",
+    "options": [
+     "9",
+     "1",
+     "1/3"
+    ]
+   },
+   {
+    "label": "(2)(ii)",
+    "answer": "1/2",
+    "options": [
+     "2",
+     "1/8",
+     "−2"
+    ]
+   },
+   {
+    "label": "(2)(iii)",
+    "answer": "5",
+    "options": [
+     "25",
+     "⁶√5",
+     "1"
+    ]
+   },
+   {
+    "label": "(2)(iv)",
+    "answer": "1",
+    "options": [
+     "2",
+     "1/2",
+     "√2"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 47,
+  "lecture": 13,
+  "lectureTitle": "指数関数",
+  "part": 1,
+  "partTitle": "指数関数のグラフ",
+  "label": 1,
+  "subs": [],
+  "skipped": [
+   "グラフをかけ"
+  ],
+  "note": ""
+ },
+ {
+  "no": 48,
+  "lecture": 13,
+  "lectureTitle": "指数関数",
+  "part": 2,
+  "partTitle": "指数関数の性質",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "1/9<1<⁴√27",
+    "options": [
+     "⁴√27<1<1/9",
+     "1/9<⁴√27<1",
+     "1<1/9<⁴√27"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "⁴√(1/27)<³√(1/9)<√(1/3)",
+    "options": [
+     "√(1/3)<³√(1/9)<⁴√(1/27)",
+     "³√(1/9)<⁴√(1/27)<√(1/3)",
+     "⁴√(1/27)<√(1/3)<³√(1/9)"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 49,
+  "lecture": 13,
+  "lectureTitle": "指数関数",
+  "part": 3,
+  "partTitle": "指数関数を含む方程式・不等式",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "x=5/2",
+    "options": [
+     "x=2/5",
+     "x=3",
+     "x=5"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "x=−4/5",
+    "options": [
+     "x=−5/4",
+     "x=4/5",
+     "x=−4"
+    ]
+   },
+   {
+    "label": "(2)(i)",
+    "answer": "x<3",
+    "options": [
+     "x>3",
+     "x<6",
+     "x≦3"
+    ]
+   },
+   {
+    "label": "(2)(ii)",
+    "answer": "x≦−2",
+    "options": [
+     "x≧−2",
+     "x≦2",
+     "x≧2"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 50,
+  "lecture": 14,
+  "lectureTitle": "対数とその性質",
+  "part": 1,
+  "partTitle": "対数",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "6=log₂64",
+    "options": [
+     "2=log₆64",
+     "64=log₂6",
+     "6=log₆₄2"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "−2=log₃(1/9)",
+    "options": [
+     "2=log₃(1/9)",
+     "−2=log_(1/9)3",
+     "1/9=log₃(−2)"
+    ]
+   },
+   {
+    "label": "(1)(iii)",
+    "answer": "1/2=log₉3",
+    "options": [
+     "2=log₉3",
+     "1/2=log₃9",
+     "3=log₉(1/2)"
+    ]
+   },
+   {
+    "label": "(2)(i)",
+    "answer": "5³=125",
+    "options": [
+     "3⁵=125",
+     "125³=5",
+     "5¹²⁵=3"
+    ]
+   },
+   {
+    "label": "(2)(ii)",
+    "answer": "7⁻¹=1/7",
+    "options": [
+     "7¹=1/7",
+     "(−1)⁷=1/7",
+     "7^(1/7)=−1"
+    ]
+   },
+   {
+    "label": "(2)(iii)",
+    "answer": "8^(1/3)=2",
+    "options": [
+     "2^(1/3)=8",
+     "8³=2",
+     "2⁸=1/3"
+    ]
+   },
+   {
+    "label": "(3)(i)",
+    "answer": "3",
+    "options": [
+     "100",
+     "10",
+     "2"
+    ]
+   },
+   {
+    "label": "(3)(ii)",
+    "answer": "1/2",
+    "options": [
+     "2",
+     "√3",
+     "1/3"
+    ]
+   },
+   {
+    "label": "(3)(iii)",
+    "answer": "−2",
+    "options": [
+     "2",
+     "−4",
+     "1/2"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 51,
+  "lecture": 14,
+  "lectureTitle": "対数とその性質",
+  "part": 2,
+  "partTitle": "対数の性質",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "2",
+    "options": [
+     "1",
+     "3",
+     "64"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "−1",
+    "options": [
+     "1",
+     "−5",
+     "1/5"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "1",
+    "options": [
+     "2",
+     "0",
+     "3"
+    ]
+   },
+   {
+    "label": "(4)",
+    "answer": "0",
+    "options": [
+     "1",
+     "−1",
+     "1/2"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 52,
+  "lecture": 14,
+  "lectureTitle": "対数とその性質",
+  "part": 3,
+  "partTitle": "底の変換公式",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "3/4",
+    "options": [
+     "4/3",
+     "1/2",
+     "2"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "−3/2",
+    "options": [
+     "3/2",
+     "−2/3",
+     "−3"
+    ]
+   },
+   {
+    "label": "(2)(i)",
+    "answer": "5",
+    "options": [
+     "32",
+     "2",
+     "10"
+    ]
+   },
+   {
+    "label": "(2)(ii)",
+    "answer": "−2",
+    "options": [
+     "2",
+     "−1",
+     "−4"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 53,
+  "lecture": 15,
+  "lectureTitle": "対数関数",
+  "part": 1,
+  "partTitle": "対数関数のグラフ",
+  "label": 1,
+  "subs": [],
+  "skipped": [
+   "グラフをかけ"
+  ],
+  "note": ""
+ },
+ {
+  "no": 54,
+  "lecture": 15,
+  "lectureTitle": "対数関数",
+  "part": 2,
+  "partTitle": "対数関数の性質",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "2log_(1/2)3<log_(1/2)5<0",
+    "options": [
+     "0<log_(1/2)5<2log_(1/2)3",
+     "log_(1/2)5<2log_(1/2)3<0",
+     "2log_(1/2)3<0<log_(1/2)5"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "log₃(1/2)<log₉4<1",
+    "options": [
+     "log₉4<log₃(1/2)<1",
+     "log₃(1/2)<1<log₉4",
+     "1<log₉4<log₃(1/2)"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 55,
+  "lecture": 15,
+  "lectureTitle": "対数関数",
+  "part": 3,
+  "partTitle": "対数関数を含む方程式・不等式",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "x=81",
+    "options": [
+     "x=12",
+     "x=64",
+     "x=4/3"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "x=33/32",
+    "options": [
+     "x=1/32",
+     "x=31/32",
+     "x=11"
+    ]
+   },
+   {
+    "label": "(2)(i)",
+    "answer": "0<x≦64",
+    "options": [
+     "x≦64",
+     "0<x≦12",
+     "0<x≦81"
+    ]
+   },
+   {
+    "label": "(2)(ii)",
+    "answer": "x>19/9",
+    "options": [
+     "2<x<19/9",
+     "x>11",
+     "x>17/9"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 56,
+  "lecture": 15,
+  "lectureTitle": "対数関数",
+  "part": 4,
+  "partTitle": "常用対数",
+  "label": 4,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "1.1761",
+    "options": [
+     "0.7781",
+     "1.4771",
+     "1.0791"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "15 桁",
+    "options": [
+     "14 桁",
+     "16 桁",
+     "30 桁"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 57,
+  "lecture": 16,
+  "lectureTitle": "微分係数と導関数",
+  "part": 1,
+  "partTitle": "平均の速さ，平均変化率",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "−3",
+    "options": [
+     "3",
+     "−9",
+     "−1"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "−3h−6",
+    "options": [
+     "3h+6",
+     "−3h+6",
+     "−6h−3"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 58,
+  "lecture": 16,
+  "lectureTitle": "微分係数と導関数",
+  "part": 2,
+  "partTitle": "極限値と微分係数",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)(i)",
+    "answer": "4",
+    "options": [
+     "0",
+     "5",
+     "3"
+    ]
+   },
+   {
+    "label": "(1)(ii)",
+    "answer": "−5",
+    "options": [
+     "5",
+     "0",
+     "−4"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "4",
+    "options": [
+     "−4",
+     "2",
+     "−2"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "4",
+    "options": [
+     "5",
+     "2",
+     "8"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 59,
+  "lecture": 16,
+  "lectureTitle": "微分係数と導関数",
+  "part": 3,
+  "partTitle": "導関数",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "f'(x)=1",
+    "options": [
+     "f'(x)=0",
+     "f'(x)=x",
+     "f'(x)=2x"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "f'(x)=2x",
+    "options": [
+     "f'(x)=x",
+     "f'(x)=x²",
+     "f'(x)=2"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "f'(x)=3x²",
+    "options": [
+     "f'(x)=x²",
+     "f'(x)=3x",
+     "f'(x)=2x³"
+    ]
+   },
+   {
+    "label": "(4)",
+    "answer": "f'(x)=0",
+    "options": [
+     "f'(x)=4",
+     "f'(x)=4x",
+     "f'(x)=1"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 60,
+  "lecture": 16,
+  "lectureTitle": "微分係数と導関数",
+  "part": 4,
+  "partTitle": "導関数の計算",
+  "label": 4,
+  "subs": [
+   {
+    "label": null,
+    "answer": "f'(x)=3x²−8x−3，f'(1)=−8，f'(t)=3t²−8t−3",
+    "options": [
+     "f'(x)=3x²−8x−3，f'(1)=8，f'(t)=3t²−8t−3",
+     "f'(x)=3x²−4x−3，f'(1)=−4，f'(t)=3t²−4t−3",
+     "f'(x)=3x²−8x−1，f'(1)=−6，f'(t)=3t²−8t−1"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 61,
+  "lecture": 17,
+  "lectureTitle": "導関数の応用",
+  "part": 1,
+  "partTitle": "接線の方程式",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "y=−4x−1",
+    "options": [
+     "y=−4x+1",
+     "y=4x+7",
+     "y=−4x+3"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "y=3x−5",
+    "options": [
+     "y=3x−2",
+     "y=−3x+1",
+     "y=3x+5"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 62,
+  "lecture": 17,
+  "lectureTitle": "導関数の応用",
+  "part": 2,
+  "partTitle": "曲線上にない点から引いた接線",
+  "label": 2,
+  "subs": [
+   {
+    "label": null,
+    "answer": "y=2x+1，y=−6x+1",
+    "options": [
+     "y=2x−1，y=−6x−1",
+     "y=−2x+1，y=6x+1",
+     "y=2x+1，y=−2x+1"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 63,
+  "lecture": 17,
+  "lectureTitle": "導関数の応用",
+  "part": 3,
+  "partTitle": "関数の増減",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "x≦0，2≦x で増加，0≦x≦2 で減少（f(0)=0，f(2)=−4）",
+    "options": [
+     "x≦0，2≦x で減少，0≦x≦2 で増加（f(0)=0，f(2)=−4）",
+     "x≦−2，0≦x で増加，−2≦x≦0 で減少（f(−2)=−20，f(0)=0）",
+     "x≦0，2≦x で増加，0≦x≦2 で減少（f(0)=0，f(2)=4）"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "x≦−1，1≦x で減少，−1≦x≦1 で増加（f(−1)=4/3，f(1)=8/3）",
+    "options": [
+     "x≦−1，1≦x で増加，−1≦x≦1 で減少（f(−1)=4/3，f(1)=8/3）",
+     "x≦−1，1≦x で減少，−1≦x≦1 で増加（f(−1)=8/3，f(1)=4/3）",
+     "常に減少（極値をもたない）"
+    ]
+   }
+  ],
+  "skipped": [
+   "(1)(2) 増減表の作成（増減の結論のみ 4 択）"
+  ],
+  "note": ""
+ },
+ {
+  "no": 64,
+  "lecture": 17,
+  "lectureTitle": "導関数の応用",
+  "part": 4,
+  "partTitle": "関数の極大・極小",
+  "label": 4,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "x=0 で極大値 6，x=2 で極小値 −6",
+    "options": [
+     "x=0 で極小値 6，x=2 で極大値 −6",
+     "x=0 で極大値 6，x=2 で極小値 −2",
+     "x=2 で極大値 6，x=0 で極小値 −6"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "極値をもたない（常に減少）",
+    "options": [
+     "x=1 で極小値 1",
+     "x=1 で極大値 1",
+     "x=1 で極大値 2"
+    ]
+   }
+  ],
+  "skipped": [
+   "(1)(2) グラフをかく部分"
+  ],
+  "note": ""
+ },
+ {
+  "no": 65,
+  "lecture": 17,
+  "lectureTitle": "導関数の応用",
+  "part": 5,
+  "partTitle": "関数の最大・最小",
+  "label": 5,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "x=5 で最大値 21，x=3 で最小値 1",
+    "options": [
+     "x=1 で最大値 5，x=3 で最小値 1",
+     "x=5 で最大値 21，x=1/2 で最小値 33/8",
+     "x=5 で最大値 21，x=3 で最小値 −1"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "x=0 で最大値 4，x=1 で最小値 −4",
+    "options": [
+     "x=0 で最大値 4，x=−1 で最小値 0",
+     "x=1 で最大値 4，x=0 で最小値 −4",
+     "x=0 で最大値 4，x=1 で最小値 −2"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 66,
+  "lecture": 17,
+  "lectureTitle": "導関数の応用",
+  "part": 6,
+  "partTitle": "方程式への応用",
+  "label": 6,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "3 個",
+    "options": [
+     "1 個",
+     "2 個",
+     "0 個"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "2 個",
+    "options": [
+     "1 個",
+     "3 個",
+     "0 個"
+    ]
+   },
+   {
+    "label": "(3)",
+    "answer": "1 個",
+    "options": [
+     "2 個",
+     "3 個",
+     "0 個"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 67,
+  "lecture": 18,
+  "lectureTitle": "不定積分，定積分",
+  "part": 1,
+  "partTitle": "不定積分",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "1/3 x³+C",
+    "options": [
+     "3x³+C",
+     "1/2 x³+C",
+     "x³+C"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "x+C",
+    "options": [
+     "1/2 x²+C",
+     "C",
+     "x²+C"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 68,
+  "lecture": 18,
+  "lectureTitle": "不定積分，定積分",
+  "part": 2,
+  "partTitle": "xⁿ の不定積分，不定積分の性質",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "x³−2x²+5x+C",
+    "options": [
+     "x³−4x²+5x+C",
+     "6x−4+C",
+     "3x³−2x²+5x+C"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "4/3 t³−t+C",
+    "options": [
+     "4t³−t+C",
+     "4/3 t³+C",
+     "8t+C"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 69,
+  "lecture": 18,
+  "lectureTitle": "不定積分，定積分",
+  "part": 3,
+  "partTitle": "定積分",
+  "label": 3,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "14",
+    "options": [
+     "18",
+     "4",
+     "12"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "−27",
+    "options": [
+     "27",
+     "−31",
+     "−29"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 70,
+  "lecture": 18,
+  "lectureTitle": "不定積分，定積分",
+  "part": 4,
+  "partTitle": "定積分の性質",
+  "label": 4,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "0",
+    "options": [
+     "−2",
+     "1",
+     "3"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "24",
+    "options": [
+     "0",
+     "16",
+     "8"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 71,
+  "lecture": 19,
+  "lectureTitle": "定積分と面積",
+  "part": 1,
+  "partTitle": "定積分と面積",
+  "label": 1,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "6",
+    "options": [
+     "3",
+     "4",
+     "14/3"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "9",
+    "options": [
+     "−9",
+     "6",
+     "3"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ },
+ {
+  "no": 72,
+  "lecture": 19,
+  "lectureTitle": "定積分と面積",
+  "part": 2,
+  "partTitle": "2 つの曲線の間の面積",
+  "label": 2,
+  "subs": [
+   {
+    "label": "(1)",
+    "answer": "1/6",
+    "options": [
+     "−1/6",
+     "1/3",
+     "1/2"
+    ]
+   },
+   {
+    "label": "(2)",
+    "answer": "32/3",
+    "options": [
+     "16/3",
+     "64/3",
+     "32"
+    ]
+   }
+  ],
+  "skipped": [],
+  "note": ""
+ }
+]

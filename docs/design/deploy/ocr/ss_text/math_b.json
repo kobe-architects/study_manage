@@ -1,0 +1,467 @@
+[
+  {
+    "no": 1,
+    "lecture": 1,
+    "lectureTitle": "数列，等差数列",
+    "part": 1,
+    "partTitle": "数列",
+    "label": 1,
+    "subs": [
+      { "label": "(1)(i)", "answer": "−1，1，3，5，7", "options": ["−3，−1，1，3，5", "1，3，5，7，9", "−1，0，1，2，3"] },
+      { "label": "(1)(ii)", "answer": "1，2，4，8，16", "options": ["2，4，8，16，32", "1，2，3，4，5", "1，3，9，27，81"] },
+      { "label": "(2)", "answer": "初項 1，末項 16，項数 5", "options": ["初項 1，末項 −8，項数 5", "初項 1，末項 16，項数 4", "初項 −2，末項 16，項数 5"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 2,
+    "lecture": 1,
+    "lectureTitle": "数列，等差数列",
+    "part": 2,
+    "partTitle": "等差数列",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "aₙ=3n−5，a₂₀=55", "options": ["aₙ=3n−2，a₂₀=58", "aₙ=3n−5，a₂₀=58", "aₙ=−2n+3，a₂₀=−37"] },
+      { "label": "(2)(i)", "answer": "a=3，d=5，aₙ=5n−2", "options": ["a=3，d=5，aₙ=5n+3", "a=3，d=5，aₙ=3n+5", "a=5，d=3，aₙ=3n+2"] },
+      { "label": "(2)(ii)", "answer": "a=19，d=−7，aₙ=−7n+26", "options": ["a=19，d=−7，aₙ=−7n+19", "a=19，d=7，aₙ=7n+12", "a=19，d=−7，aₙ=−7n+12"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 3,
+    "lecture": 1,
+    "lectureTitle": "数列，等差数列",
+    "part": 3,
+    "partTitle": "等差数列の一般項",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "aₙ=−4n+17", "options": ["aₙ=−4n+13", "aₙ=4n+1", "aₙ=−4n+9"] },
+      { "label": "(2)", "answer": "a₂₀=−63", "options": ["a₂₀=−67", "a₂₀=−71", "a₂₀=63"] },
+      { "label": "(3)", "answer": "第 10 項", "options": ["第 9 項", "第 11 項", "第 12 項"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 4,
+    "lecture": 1,
+    "lectureTitle": "数列，等差数列",
+    "part": 4,
+    "partTitle": "等差数列の和",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "S=120", "options": ["S=116", "S=240", "S=112"] },
+      { "label": "(2)(i)", "answer": "S=400", "options": ["S=420", "S=380", "S=800"] },
+      { "label": "(2)(ii)", "answer": "Sₙ=(1/2)n(5n−1)", "options": ["Sₙ=(1/2)n(5n+1)", "Sₙ=(1/2)n(5n−3)", "Sₙ=n(5n−1)"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 5,
+    "lecture": 2,
+    "lectureTitle": "等比数列",
+    "part": 1,
+    "partTitle": "等比数列",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "aₙ=−5・2^(n−1)，a₅=−80", "options": ["aₙ=−5・2^n，a₅=−160", "aₙ=−5・2^(n−1)，a₅=−160", "aₙ=5・2^(n−1)，a₅=80"] },
+      { "label": "(2)(i)", "answer": "a=48，r=1/4，aₙ=48・(1/4)^(n−1)", "options": ["a=48，r=4，aₙ=48・4^(n−1)", "a=48，r=1/4，aₙ=48・(1/4)^n", "a=48，r=1/3，aₙ=48・(1/3)^(n−1)"] },
+      { "label": "(2)(ii)", "answer": "a=2，r=−5，aₙ=2・(−5)^(n−1)", "options": ["a=2，r=5，aₙ=2・5^(n−1)", "a=2，r=−5，aₙ=2・(−5)^n", "a=2，r=−5，aₙ=−2・5^(n−1)"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 6,
+    "lecture": 2,
+    "lectureTitle": "等比数列",
+    "part": 2,
+    "partTitle": "等比数列の一般項",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "aₙ=3^n または aₙ=(−3)^n", "options": ["aₙ=3^(n−1) または aₙ=(−3)^(n−1)", "aₙ=3^n", "aₙ=3^(n+1) または aₙ=(−3)^(n+1)"] },
+      { "label": "(2)", "answer": "aₙ=−96・(−1/2)^(n−1)", "options": ["aₙ=96・(−1/2)^(n−1)", "aₙ=−96・(1/2)^(n−1)", "aₙ=−96・(−1/2)^n"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 7,
+    "lecture": 2,
+    "lectureTitle": "等比数列",
+    "part": 3,
+    "partTitle": "等比数列の和",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "S=315", "options": ["S=310", "S=160", "S=630"] },
+      { "label": "(2)", "answer": "S=488", "options": ["S=−488", "S=976", "S=484"] },
+      { "label": "(3)", "answer": "Sₙ=(3/2){1−(1/3)^n}", "options": ["Sₙ=(2/3){1−(1/3)^n}", "Sₙ=(3/2){(1/3)^n−1}", "Sₙ=3{1−(1/3)^n}"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 8,
+    "lecture": 3,
+    "lectureTitle": "和の記号Σ，階差数列",
+    "part": 1,
+    "partTitle": "和の記号Σ",
+    "label": 1,
+    "subs": [
+      { "label": "(1)(i)", "answer": "a₁+a₂+a₃+……+aₙ₋₁", "options": ["a₁+a₂+a₃+……+aₙ", "a₀+a₁+a₂+……+aₙ₋₁", "a₁+a₂+a₃+……+aₙ₊₁"] },
+      { "label": "(1)(ii)", "answer": "4+7+10+13", "options": ["1+4+7+10", "4+7+10+13+16", "3+6+9+12"] },
+      { "label": "(2)(i)", "answer": "Σ[k=1→5] 2k", "options": ["Σ[k=1→10] 2k", "Σ[k=1→5] (k+1)", "Σ[k=1→4] 2k"] },
+      { "label": "(2)(ii)", "answer": "Σ[k=3→n] k²", "options": ["Σ[k=1→n] k²", "Σ[k=3→n] k", "Σ[k=1→n−2] k²"] },
+      { "label": "(3)", "answer": "(1/4){1−(−3)^n}", "options": ["(1/4){(−3)^n−1}", "(1/2){1−(−3)^n}", "(1/4){1−3^n}"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 9,
+    "lecture": 3,
+    "lectureTitle": "和の記号Σ，階差数列",
+    "part": 2,
+    "partTitle": "自然数の和の公式，Σの性質",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "−5n", "options": ["−5", "5n", "−5n(n+1)/2"] },
+      { "label": "(2)", "answer": "3n(n+1)", "options": ["6n(n+1)", "3n(n−1)", "(3/2)n(n+1)"] },
+      { "label": "(3)", "answer": "n²", "options": ["n(n+1)", "n²−n", "2n²−n"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 10,
+    "lecture": 3,
+    "lectureTitle": "和の記号Σ，階差数列",
+    "part": 3,
+    "partTitle": "自然数の 2 乗の和の公式",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "(1/2)n(n+1)(2n+1)", "options": ["(1/6)n(n+1)(2n+1)", "(1/2)n(n+1)(n+2)", "(3/2)n(n+1)(2n+1)"] },
+      { "label": "(2)", "answer": "(1/3)n(n−1)(n−2)", "options": ["(1/3)n(n+1)(n+2)", "(1/6)n(n−1)(n−2)", "(1/3)n(n−1)(n+2)"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 11,
+    "lecture": 3,
+    "lectureTitle": "和の記号Σ，階差数列",
+    "part": 4,
+    "partTitle": "階差数列と一般項",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "aₙ=2n²−5n+4", "options": ["aₙ=2n²−3n+2", "aₙ=2n²+5n−6", "aₙ=4n²−5n+2"] },
+      { "label": "(2)", "answer": "aₙ=(1/2)・3^(n−1)+5/2", "options": ["aₙ=(1/2)・3^n+5/2", "aₙ=(3/2)・3^(n−1)+3/2", "aₙ=(1/2)・3^(n−1)−5/2"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 12,
+    "lecture": 4,
+    "lectureTitle": "いろいろな数列の和",
+    "part": 1,
+    "partTitle": "数列の和と一般項",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "aₙ=6n−1", "options": ["aₙ=6n+1", "aₙ=6n−5", "aₙ=3n+2"] },
+      { "label": "(2)", "answer": "aₙ=2^(n−1)", "options": ["aₙ=2^n", "aₙ=2^n−1", "aₙ=2^(n−1)−1"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 13,
+    "lecture": 4,
+    "lectureTitle": "いろいろな数列の和",
+    "part": 2,
+    "partTitle": "分数で表された数列の和",
+    "label": 2,
+    "subs": [
+      { "label": "(2)", "answer": "S=n/(2n+1)", "options": ["S=n/(2n−1)", "S=2n/(2n+1)", "S=1/(2n+1)"] }
+    ],
+    "skipped": ["(1) 等式を証明する問題のため"],
+    "note": ""
+  },
+  {
+    "no": 14,
+    "lecture": 5,
+    "lectureTitle": "漸化式と数学的帰納法",
+    "part": 1,
+    "partTitle": "漸化式",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "2，0，−2，−4，−6", "options": ["2，0，−2，−4，−8", "2，4，6，8，10", "2，1，0，−1，−2"] },
+      { "label": "(2)", "answer": "3，7，17，45，127", "options": ["3，7，17，43，121", "3，7，19，53，151", "3，9，27，81，243"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 15,
+    "lecture": 5,
+    "lectureTitle": "漸化式と数学的帰納法",
+    "part": 2,
+    "partTitle": "漸化式と一般項",
+    "label": 2,
+    "subs": [
+      { "label": "(1)(i)", "answer": "aₙ=5n−8", "options": ["aₙ=5n−3", "aₙ=5n+2", "aₙ=−3n+5"] },
+      { "label": "(1)(ii)", "answer": "aₙ=3^(n+1)", "options": ["aₙ=3^n", "aₙ=9^(n−1)", "aₙ=3^(n−1)"] },
+      { "label": "(2)(i)", "answer": "aₙ=4(n²−n+1)", "options": ["aₙ=4(n²+n+1)", "aₙ=4n²+4", "aₙ=4(n²−n)"] },
+      { "label": "(2)(ii)", "answer": "aₙ=(4^n+2)/3", "options": ["aₙ=(4^n−2)/3", "aₙ=(4^(n−1)+2)/3", "aₙ=(4^n+1)/3"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 16,
+    "lecture": 5,
+    "lectureTitle": "漸化式と数学的帰納法",
+    "part": 3,
+    "partTitle": "aₙ₊₁=paₙ+q の形の漸化式",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "aₙ=2・3^(n−1)+4", "options": ["aₙ=2・3^(n−1)−4", "aₙ=2・3^n+4", "aₙ=4・3^(n−1)+2"] },
+      { "label": "(2)", "answer": "aₙ=5・(1/2)^(n−1)−6", "options": ["aₙ=5・(1/2)^(n−1)+6", "aₙ=−5・(1/2)^(n−1)−6", "aₙ=5・(1/2)^n−6"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 17,
+    "lecture": 5,
+    "lectureTitle": "漸化式と数学的帰納法",
+    "part": 4,
+    "partTitle": "数学的帰納法",
+    "label": 4,
+    "subs": [],
+    "skipped": ["数学的帰納法で等式を証明する問題のため"],
+    "note": ""
+  },
+  {
+    "no": 18,
+    "lecture": 6,
+    "lectureTitle": "確率分布",
+    "part": 1,
+    "partTitle": "確率変数と確率分布",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "P(X=0)=1/7，P(X=1)=4/7，P(X=2)=2/7", "options": ["P(X=0)=2/7，P(X=1)=4/7，P(X=2)=1/7", "P(X=0)=1/7，P(X=1)=3/7，P(X=2)=3/7", "P(X=0)=1/7，P(X=1)=2/7，P(X=2)=4/7"] },
+      { "label": "(2)", "answer": "5/7", "options": ["6/7", "4/7", "3/7"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 19,
+    "lecture": 6,
+    "lectureTitle": "確率分布",
+    "part": 2,
+    "partTitle": "確率変数の期待値",
+    "label": 2,
+    "subs": [
+      { "label": null, "answer": "E(X)=3/2", "options": ["E(X)=1", "E(X)=2", "E(X)=3/4"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 20,
+    "lecture": 6,
+    "lectureTitle": "確率分布",
+    "part": 3,
+    "partTitle": "確率変数の分散と標準偏差",
+    "label": 3,
+    "subs": [
+      { "label": null, "answer": "期待値 1，分散 4/9，標準偏差 2/3", "options": ["期待値 1，分散 2/3，標準偏差 4/9", "期待値 2，分散 4/9，標準偏差 2/3", "期待値 1，分散 2/9，標準偏差 √2/3"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 21,
+    "lecture": 6,
+    "lectureTitle": "確率分布",
+    "part": 4,
+    "partTitle": "確率変数の変換",
+    "label": 4,
+    "subs": [
+      { "label": null, "answer": "E(6X−5)=6，V(6X−5)=35，σ(6X−5)=√35", "options": ["E(6X−5)=11，V(6X−5)=35，σ(6X−5)=√35", "E(6X−5)=6，V(6X−5)=35/6，σ(6X−5)=√210/6", "E(6X−5)=6，V(6X−5)=30，σ(6X−5)=√30"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 22,
+    "lecture": 7,
+    "lectureTitle": "確率変数の和と積",
+    "part": 1,
+    "partTitle": "確率変数の和の期待値",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "1", "options": ["1/2", "2", "3/2"] },
+      { "label": "(2)", "answer": "55 円", "options": ["110 円", "27.5 円", "50 円"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 23,
+    "lecture": 7,
+    "lectureTitle": "確率変数の和と積",
+    "part": 2,
+    "partTitle": "独立な確率変数",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "E(XY)=3/2", "options": ["E(XY)=5/2", "E(XY)=3", "E(XY)=3/4"] },
+      { "label": "(2)", "answer": "V(X+Y)=5/4", "options": ["V(X+Y)=3/4", "V(X+Y)=1/4", "V(X+Y)=5/2"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 24,
+    "lecture": 8,
+    "lectureTitle": "二項分布",
+    "part": 1,
+    "partTitle": "二項分布",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "B(4, 1/2)", "options": ["B(2, 1/4)", "B(1/2, 4)", "B(4, 1/4)"] },
+      { "label": "(2)", "answer": "P(X=0)=1/16，P(X=1)=4/16，P(X=2)=6/16，P(X=3)=4/16，P(X=4)=1/16", "options": ["P(X=0)=1/16，P(X=1)=3/16，P(X=2)=8/16，P(X=3)=3/16，P(X=4)=1/16", "P(X=0)=1/16，P(X=1)=4/16，P(X=2)=4/16，P(X=3)=4/16，P(X=4)=3/16", "P(X=0)=1/16，P(X=1)=2/16，P(X=2)=10/16，P(X=3)=2/16，P(X=4)=1/16"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 25,
+    "lecture": 8,
+    "lectureTitle": "二項分布",
+    "part": 2,
+    "partTitle": "二項分布の期待値，分散，標準偏差",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "E(X)=50", "options": ["E(X)=60", "E(X)=250", "E(X)=150"] },
+      { "label": "(2)", "answer": "V(X)=125/3", "options": ["V(X)=250/3", "V(X)=125/6", "V(X)=50"] },
+      { "label": "(3)", "answer": "σ(X)=5√15/3", "options": ["σ(X)=5√5/3", "σ(X)=√15/3", "σ(X)=5√3/3"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 26,
+    "lecture": 9,
+    "lectureTitle": "正規分布",
+    "part": 1,
+    "partTitle": "連続分布",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "0.1", "options": ["0.2", "0.05", "0.4"] },
+      { "label": "(2)", "answer": "1", "options": ["2", "1/2", "4"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 27,
+    "lecture": 9,
+    "lectureTitle": "正規分布",
+    "part": 2,
+    "partTitle": "正規分布",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "0.2019", "options": ["0.2054", "0.1985", "0.3485"] },
+      { "label": "(2)", "answer": "0.0993", "options": ["0.7819", "0.0984", "0.1006"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 28,
+    "lecture": 9,
+    "lectureTitle": "正規分布",
+    "part": 3,
+    "partTitle": "確率変数の標準化",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "約 57％", "options": ["約 35％", "約 43％", "約 60％"] },
+      { "label": "(2)", "answer": "約 2％", "options": ["約 48％", "約 5％", "約 10％"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 29,
+    "lecture": 9,
+    "lectureTitle": "正規分布",
+    "part": 4,
+    "partTitle": "二項分布の正規分布による近似",
+    "label": 4,
+    "subs": [
+      { "label": null, "answer": "0.7088", "options": ["0.2912", "0.2088", "0.7912"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 30,
+    "lecture": 10,
+    "lectureTitle": "統計的な推測",
+    "part": 1,
+    "partTitle": "母集団と標本",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "P(X=1)=1/10，P(X=2)=2/10，P(X=3)=3/10，P(X=4)=4/10", "options": ["P(X=1)=4/10，P(X=2)=3/10，P(X=3)=2/10，P(X=4)=1/10", "P(X=1)=1/4，P(X=2)=1/4，P(X=3)=1/4，P(X=4)=1/4", "P(X=1)=1/10，P(X=2)=1/5，P(X=3)=1/5，P(X=4)=1/2"] },
+      { "label": "(2)", "answer": "m=3，σ²=1，σ=1", "options": ["m=3，σ²=2，σ=√2", "m=2.5，σ²=1，σ=1", "m=3，σ²=10，σ=√10"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 31,
+    "lecture": 10,
+    "lectureTitle": "統計的な推測",
+    "part": 2,
+    "partTitle": "標本平均の分布",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "E(X̄)=170，σ(X̄)=5/4", "options": ["E(X̄)=170，σ(X̄)=5", "E(X̄)=170，σ(X̄)=5/16", "E(X̄)=170/16，σ(X̄)=5/4"] },
+      { "label": "(2)", "answer": "0.9544", "options": ["0.4772", "0.6826", "0.9974"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 32,
+    "lecture": 10,
+    "lectureTitle": "統計的な推測",
+    "part": 3,
+    "partTitle": "母平均の推定",
+    "label": 3,
+    "subs": [
+      { "label": null, "answer": "312.47 g 以上 315.83 g 以下", "options": ["313.31 g 以上 314.99 g 以下", "312.19 g 以上 316.11 g 以下", "311.00 g 以上 317.30 g 以下"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 33,
+    "lecture": 10,
+    "lectureTitle": "統計的な推測",
+    "part": 4,
+    "partTitle": "仮説検定",
+    "label": 4,
+    "subs": [
+      { "label": null, "answer": "帰無仮説は棄却できず，A を選ぶ人の割合は 1/3 ではないとは判断できない（P(Z≧1)=0.1587＞0.05）", "options": ["帰無仮説は棄却され，A を選ぶ人の割合は 1/3 ではないと判断してよい（P(Z≧1)=0.1587＞0.05）", "帰無仮説は棄却され，A を選ぶ人の割合は 1/3 ではないと判断してよい（P(Z≧1)=0.0413＜0.05）", "帰無仮説は棄却できず，A を選ぶ人の割合は 1/3 であると判断してよい（P(Z≧1)=0.3413＞0.05）"] }
+    ],
+    "skipped": [],
+    "note": ""
+  }
+]

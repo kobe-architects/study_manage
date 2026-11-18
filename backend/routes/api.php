@@ -119,6 +119,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/mistake-notes', [MistakeNoteController::class, 'index']);
         Route::post('/mistake-notes', [MistakeNoteController::class, 'store']); // multipart（問題の写真が必須）
         Route::post('/mistake-notes/from-grammar/{question}', [MistakeNoteController::class, 'storeFromGrammar']); // スクランブルの問題から自動作成（multipart: problem / answer / explanation）
+        Route::post('/mistake-notes/from-card/{item}', [MistakeNoteController::class, 'storeFromCard']); // 学習カード（数学の例題）から自動作成（同上）
         Route::put('/mistake-notes/reorder', [MistakeNoteController::class, 'reorder']);
         Route::get('/mistake-notes/{note}', [MistakeNoteController::class, 'show']);
         Route::put('/mistake-notes/{note}', [MistakeNoteController::class, 'update']);

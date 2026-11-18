@@ -6,7 +6,7 @@
  * 評価はサーバーに保存され、忘却曲線（間隔反復）に合わせて次に出題される日が決まる。ボタンの下にその間隔を表示する。
  * 「もう一度」にした問題は同じ回の最後にもう一度出る。
  * 解答を表示した後は、定着度（定着 / あいまい / 未定着。手動）も付けられる（閲覧・出題の絞り込みに使う）。
- * スクランブルから作ったノート（grammarQuestionId あり）は、解答の下に教材の詳細解説の画像（役割 extra）も続けて表示する（縦にスクロール）。
+ * スクランブル（grammarQuestionId）・数学の例題（cardItemId）から作ったノートは、解答の下に教材の詳細解説の画像（役割 extra）も続けて表示する（縦にスクロール）。
  * キー: Space / Enter = 解答を表示、1〜4 = 評価、← → = 問題と解答の切替、Esc = 閉じる。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -116,8 +116,8 @@ function answerOf(n: MistakeNoteSummary): Promise<AnswerFace> {
     p = (async () => {
       const d = await detailOf(n.id)
       const img = d.images.find((i) => i.role === 'answer')
-      // スクランブルのノート: 詳細解説（extra）の画像も解答に続けて出す
-      const extras = n.grammarQuestionId
+      // スクランブル・数学の例題から作ったノート: 詳細解説（extra）の画像も解答に続けて出す
+      const extras = n.grammarQuestionId || n.cardItemId
         ? await Promise.all(
             d.images
               .filter((i) => i.role === 'extra')

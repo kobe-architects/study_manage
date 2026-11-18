@@ -474,3 +474,27 @@ php artisan config:cache && php artisan route:cache
   ③ 問題と解答の Excel 出力: `GET /grammar/export?series=scramble|first_step`（または `book=`。スクランブルは問題集ごとのシート、1 行 1 問。問題・選択肢・正解・完成文・和訳・出典と自分の最終結果／正解数／不正解数／最後に解いた日）、
   `GET /cards/decks/{deck}/export`（学習カード 1 冊。例題は小問ごとの答えと 4 択）。`App\Support\StudyExcel`（`XlsxStyledWriter`。zip 拡張なしで動く）。画面はチェックシートの隣の「Excel」ボタン（`GrammarView`・`CardDeckView`。数学学習も同じ）。
   画像だけの問題は「画像」列に ○、答えは文字で登録されている分だけ。英単語は従来どおり単語帳管理の Excel 出力。
+
+## 20. スタディサプリ ベーシックレベル数学の例題・計算メモ・数学の間違いノート自動作成（2026-11-18 追加）の運用メモ
+
+- 数学学習にタブ「スタサプ 数Ⅰ／数A／数Ⅱ／数B／数Ⅲ／数C」（束の key `ss_math1` `ss_math_a` `ss_math2` `ss_math_b` `ss_math3` `ss_math_c`。
+  例題 60・41・72・33・75・23 枚＝304 枚）を追加。元 PDF は `docs/other/261118/ベーシックレベル数学X_例題のみ.pdf`（文字はアウトライン化されていて
+  文字データが無い。各ページ = 上が問題・点線の下が［解答］。解答が長いと次ページに続く）。
+- データ作成（`docs/design/deploy/ocr/`）:
+  1. `python build_ss.py <scratch>` … 見出しの灰色帯（開始ページ）と点線（問題／解答の境）を PDF の描画から検出して 200dpi で切り出す
+     （問題 `pNNN.jpg`・解答 `sNNN.jpg`。続きページは解答の下に縦に連結）。数学Ⅰの p13・p14 はスキャン画像なので濃淡で検出する（page_info_raster）。
+     読み取り用に 110dpi のページ画像 `<scratch>/pages/<key>/` も出す。
+  2. 答えの文字起こし（4 択の正解と誤答 3 つ・講／PART の見出し）は OCR でなく、ページ画像を Claude（サブエージェント）が読んで JSON にした
+     （指示書 `ocr/ss_text/INSTRUCTIONS.md`、結果 `ocr/ss_text/<key>.json`。数式は Unicode の文字で x²・√2・(x+1)/2 のように書く）。
+  3. `python merge_ss.py <scratch> [key...]` … 1 と 2 を合流して `backend/database/data/cards_ss_<key>.json` を作る（誤答が 3 つそろわない小問は
+     4 択にせず partial、図示・証明だけの例題は自己判定）。登録は `php artisan cards:import --file=database/data/cards_ss_<key>.json [--prune]`。
+  カードの画像は `storage/app/private/cards/ss_<key>/`（合計約 39MB。WinSCP で put）。束の `resourceBookTitle` は既存の講義教材
+  「スタディサプリ ベーシックレベル 数X」（間違いノートの出典に使う）。
+- 計算メモ（`frontend/src/components/ScratchPad.vue`）: 数学の例題（合格る・スタサプ）の出題中、問題の下に手書きの計算欄を出す。
+  ペン 3 色・消しゴム（線ごと）・戻す／進む・全消去・欄を広げる。保存はしない（同じ出題中はカードごとに保持）。Pencil 直後の指・手のひらは無視、
+  「指」で指書きの ON/OFF（localStorage `sm_scratch_finger`）。
+- 数学の例題の「間違いノートを作成」（解答後。`frontend/src/lib/cardNote.ts` → `POST /mistake-notes/from-card/{item}`）:
+  問題の切り抜き → 正解（文字を canvas で描いた画像。あなたの答え・出典つき）→ 解説の切り抜き（役割 extra）を 1 ページに。
+  分類は `App\Support\CardNoteClassifier`（科目「数学」の中分類を 節名 → 章名 → 束の名前の語 で探す。無ければ大分類＝束の名前）、
+  デッキは束の短い名前（「合格る確率」「スタサプ 数Ⅰ」）。`mistake_notes.card_item_id`（マイグレーション `2026_11_18_000001`）で 2 度作らない。
+  カード一覧 API の各カードに `noteId`。問題解答モードはスクランブルと同じく解説画像を解答の下に続けて表示する。

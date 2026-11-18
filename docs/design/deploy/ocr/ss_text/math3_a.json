@@ -1,0 +1,592 @@
+[
+  {
+    "no": 1,
+    "lecture": 1,
+    "lectureTitle": "いろいろな関数",
+    "part": 1,
+    "partTitle": "分数関数",
+    "label": 1,
+    "subs": [
+      { "label": "(1)(i)", "answer": "漸近線 x=1，y=0", "options": ["漸近線 x=−1，y=0", "漸近線 x=0，y=1", "漸近線 x=1，y=1"] },
+      { "label": "(1)(ii)", "answer": "漸近線 x=0，y=3", "options": ["漸近線 x=3，y=0", "漸近線 x=0，y=−3", "漸近線 x=−4，y=3"] },
+      { "label": "(1)(iii)", "answer": "漸近線 x=−3，y=1", "options": ["漸近線 x=3，y=1", "漸近線 x=−3，y=−1", "漸近線 x=1，y=−3"] },
+      { "label": "(1)(iv)", "answer": "漸近線 x=2，y=−2", "options": ["漸近線 x=−2，y=2", "漸近線 x=2，y=2", "漸近線 x=2，y=3"] },
+      { "label": "(2)(i)", "answer": "(1, 2)，(4, 5)", "options": ["(1, 2)，(5, 6)", "(2, 3)，(4, 5)", "(−1, 0)，(4, 5)"] },
+      { "label": "(2)(ii)", "answer": "x<1，2<x<4", "options": ["1<x<2，x>4", "x<1，x>4", "1<x<4"] }
+    ],
+    "skipped": ["(1) グラフをかく部分（漸近線は 4 択にした）"],
+    "note": ""
+  },
+  {
+    "no": 2,
+    "lecture": 1,
+    "lectureTitle": "いろいろな関数",
+    "part": 2,
+    "partTitle": "無理関数",
+    "label": 2,
+    "subs": [
+      { "label": "(2)(i)", "answer": "(3, 3)", "options": ["(−1, −1)", "(−1, −1)，(3, 3)", "(1, 1)"] },
+      { "label": "(2)(ii)", "answer": "−3/2≦x<3", "options": ["x<3", "−3/2≦x<−1", "x>3"] }
+    ],
+    "skipped": ["(1)(i)〜(iv) グラフをかく問題のため"],
+    "note": ""
+  },
+  {
+    "no": 3,
+    "lecture": 1,
+    "lectureTitle": "いろいろな関数",
+    "part": 3,
+    "partTitle": "逆関数",
+    "label": 3,
+    "subs": [
+      { "label": "(1)(i)", "answer": "y=(1/3)x+2 (−3≦x≦0)", "options": ["y=3x+6 (−3≦x≦0)", "y=(1/3)x−2 (−3≦x≦0)", "y=(1/3)x+2 (1≦x≦2)"] },
+      { "label": "(1)(ii)", "answer": "y=−x²+2 (x≧0)", "options": ["y=x²−2 (x≧0)", "y=−x²+2 (x≦2)", "y=x²+2 (x≧0)"] },
+      { "label": "(1)(iii)", "answer": "y=log₄x", "options": ["y=4^x", "y=log_x4", "y=(1/4)^x"] },
+      { "label": "(1)(iv)", "answer": "y=(1/3)^x", "options": ["y=3^x", "y=log₃x", "y=−3^x"] },
+      { "label": "(2)", "answer": "y=(x−5)/(x−2)", "options": ["y=(x−2)/(x−5)", "y=(x+5)/(x+2)", "y=(2x−5)/(x−1)"] }
+    ],
+    "skipped": ["(1) グラフをかく部分（逆関数の式は 4 択にした）"],
+    "note": ""
+  },
+  {
+    "no": 4,
+    "lecture": 1,
+    "lectureTitle": "いろいろな関数",
+    "part": 4,
+    "partTitle": "合成関数",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "(g∘f)(x)=4x²−4x+4，(f∘g)(x)=2x²+5", "options": ["(g∘f)(x)=2x²+5，(f∘g)(x)=4x²−4x+4", "(g∘f)(x)=4x²+4x+4，(f∘g)(x)=2x²+6", "(g∘f)(x)=4x²−4x+1，(f∘g)(x)=2x²+5"] },
+      { "label": "(2)", "answer": "(g∘f)(x)=x，(f∘g)(x)=x (x>0)", "options": ["(g∘f)(x)=x (x>0)，(f∘g)(x)=x", "(g∘f)(x)=2x，(f∘g)(x)=x (x>0)", "(g∘f)(x)=1，(f∘g)(x)=1 (x>0)"] },
+      { "label": "(3)", "answer": "(g∘f)(x)=sin²x，(f∘g)(x)=sin x²", "options": ["(g∘f)(x)=sin x²，(f∘g)(x)=sin²x", "(g∘f)(x)=2sinx，(f∘g)(x)=sin x²", "(g∘f)(x)=sin²x，(f∘g)(x)=sin2x"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 5,
+    "lecture": 2,
+    "lectureTitle": "数列の極限",
+    "part": 1,
+    "partTitle": "数列の極限",
+    "label": 1,
+    "subs": [
+      { "label": "(1)(i)", "answer": "0 に収束", "options": ["5 に収束", "正の無限大に発散", "振動"] },
+      { "label": "(1)(ii)", "answer": "0 に収束", "options": ["負の無限大に発散", "−2 に収束", "振動"] },
+      { "label": "(1)(iii)", "answer": "正の無限大に発散", "options": ["3 に収束", "0 に収束", "振動"] },
+      { "label": "(1)(iv)", "answer": "負の無限大に発散", "options": ["正の無限大に発散", "0 に収束", "−1 に収束"] },
+      { "label": "(1)(v)", "answer": "正の無限大に発散", "options": ["2 に収束", "0 に収束", "振動"] },
+      { "label": "(1)(vi)", "answer": "振動", "options": ["正の無限大に発散", "負の無限大に発散", "0 に収束"] },
+      { "label": "(2)(i)", "answer": "1", "options": ["4", "3", "0"] },
+      { "label": "(2)(ii)", "answer": "2", "options": ["5/3", "0", "1"] },
+      { "label": "(2)(iii)", "answer": "5/2", "options": ["2/5", "5", "1/2"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 6,
+    "lecture": 2,
+    "lectureTitle": "数列の極限",
+    "part": 2,
+    "partTitle": "不定形の極限",
+    "label": 2,
+    "subs": [
+      { "label": "(1)(i)", "answer": "∞", "options": ["−∞", "0", "−3"] },
+      { "label": "(1)(ii)", "answer": "−∞", "options": ["∞", "0", "−4"] },
+      { "label": "(2)(i)", "answer": "2/3", "options": ["3/2", "0", "∞"] },
+      { "label": "(2)(ii)", "answer": "0", "options": ["4", "∞", "−4/3"] },
+      { "label": "(2)(iii)", "answer": "∞", "options": ["−∞", "0", "1/4"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 7,
+    "lecture": 2,
+    "lectureTitle": "数列の極限",
+    "part": 3,
+    "partTitle": "無理式の極限",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "∞", "options": ["0", "1/3", "3"] },
+      { "label": "(2)", "answer": "√3/3", "options": ["√3", "1/3", "0"] },
+      { "label": "(3)", "answer": "0", "options": ["−3", "∞", "−3/2"] },
+      { "label": "(4)", "answer": "1/2", "options": ["0", "1", "∞"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 8,
+    "lecture": 2,
+    "lectureTitle": "数列の極限",
+    "part": 4,
+    "partTitle": "数列の大小関係と極限",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "0", "options": ["1/2", "∞", "極限はない"] },
+      { "label": "(2)", "answer": "0", "options": ["1", "極限はない", "∞"] },
+      { "label": "(3)", "answer": "0", "options": ["振動して極限はない", "−1", "1"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 9,
+    "lecture": 3,
+    "lectureTitle": "無限等比数列の極限",
+    "part": 1,
+    "partTitle": "無限等比数列の極限と収束条件",
+    "label": 1,
+    "subs": [
+      { "label": "(1)(i)", "answer": "0 に収束する", "options": ["正の無限大に発散する", "2/3 に収束する", "振動して極限はない"] },
+      { "label": "(1)(ii)", "answer": "正の無限大に発散する", "options": ["0 に収束する", "5/4 に収束する", "振動して極限はない"] },
+      { "label": "(1)(iii)", "answer": "振動して極限はない", "options": ["正の無限大に発散する", "負の無限大に発散する", "0 に収束する"] },
+      { "label": "(1)(iv)", "answer": "0 に収束する", "options": ["−2 に収束する", "振動して極限はない", "負の無限大に発散する"] },
+      { "label": "(2)(i)", "answer": "∞", "options": ["−∞", "0", "2"] },
+      { "label": "(2)(ii)", "answer": "−1", "options": ["1", "−4", "4/3"] },
+      { "label": "(3)", "answer": "−1/3<x≦1/3，極限値は −1/3<x<1/3 のとき 0，x=1/3 のとき 1", "options": ["−1/3≦x≦1/3，極限値は −1/3<x<1/3 のとき 0，x=±1/3 のとき 1", "−1/3<x<1/3，極限値は 0", "−3<x≦3，極限値は −3<x<3 のとき 0，x=3 のとき 1"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 10,
+    "lecture": 3,
+    "lectureTitle": "無限等比数列の極限",
+    "part": 2,
+    "partTitle": "漸化式と極限",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "2", "options": ["6", "0", "−2"] },
+      { "label": "(2)", "answer": "∞", "options": ["−2", "0", "−∞"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 11,
+    "lecture": 4,
+    "lectureTitle": "無限級数",
+    "part": 1,
+    "partTitle": "無限級数の収束と発散",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "収束し，和は 1/2", "options": ["収束し，和は 1", "収束し，和は 1/3", "発散する"] },
+      { "label": "(2)", "answer": "発散する", "options": ["収束し，和は (1+√2)/2", "収束し，和は 1/2", "収束し，和は −(1+√2)/2"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 12,
+    "lecture": 4,
+    "lectureTitle": "無限級数",
+    "part": 2,
+    "partTitle": "無限等比級数の収束と発散",
+    "label": 2,
+    "subs": [
+      { "label": "(1)(i)", "answer": "発散する", "options": ["収束し，和は −4/5", "収束し，和は 4", "収束し，和は −4"] },
+      { "label": "(1)(ii)", "answer": "収束し，和は (2+3√2)/2", "options": ["発散する", "収束し，和は (3+√2)/2", "収束し，和は 2+3√2"] },
+      { "label": "(2)", "answer": "0≦x<2，和は x=0 のとき 0，0<x<2 のとき 1", "options": ["0<x<2，和は 1", "−1<x<1，和は x=0 のとき 0，それ以外のとき 1", "0≦x<2，和は x=0 のとき 0，0<x<2 のとき x"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 13,
+    "lecture": 4,
+    "lectureTitle": "無限級数",
+    "part": 3,
+    "partTitle": "無限級数と数列の一般項，無限級数の性質",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "発散する", "options": ["収束し，和は 1", "収束し，和は 1/2", "収束し，和は 2"] },
+      { "label": "(2)", "answer": "7/3", "options": ["3", "11/3", "2/3"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 14,
+    "lecture": 5,
+    "lectureTitle": "関数の極限",
+    "part": 1,
+    "partTitle": "関数の極限",
+    "label": 1,
+    "subs": [
+      { "label": "(1)(i)", "answer": "5", "options": ["13", "3", "1"] },
+      { "label": "(1)(ii)", "answer": "−1/2", "options": ["1/2", "−7/2", "−2"] },
+      { "label": "(1)(iii)", "answer": "3", "options": ["9", "√11", "√3"] },
+      { "label": "(2)(i)", "answer": "3/5", "options": ["5/3", "0", "1/5"] },
+      { "label": "(2)(ii)", "answer": "1", "options": ["0", "2", "1/2"] },
+      { "label": "(2)(iii)", "answer": "1/4", "options": ["1/2", "0", "4"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 15,
+    "lecture": 5,
+    "lectureTitle": "関数の極限",
+    "part": 2,
+    "partTitle": "極限値の条件による関数の決定",
+    "label": 2,
+    "subs": [
+      { "label": null, "answer": "a=2，b=−3", "options": ["a=−2，b=3", "a=3，b=−4", "a=2，b=3"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 16,
+    "lecture": 5,
+    "lectureTitle": "関数の極限",
+    "part": 3,
+    "partTitle": "±∞に発散，右極限と左極限",
+    "label": 3,
+    "subs": [
+      { "label": "(1)(i)", "answer": "∞", "options": ["−∞", "0", "1/9"] },
+      { "label": "(1)(ii)", "answer": "∞", "options": ["−∞", "−1", "0"] },
+      { "label": "(1)(iii)", "answer": "−∞", "options": ["∞", "−1", "0"] },
+      { "label": "(2)(i)", "answer": "1", "options": ["−1", "0", "∞"] },
+      { "label": "(2)(ii)", "answer": "−1", "options": ["1", "0", "−∞"] },
+      { "label": "(2)(iii)", "answer": "∞", "options": ["−∞", "1", "0"] },
+      { "label": "(2)(iv)", "answer": "−∞", "options": ["∞", "1", "−1"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 17,
+    "lecture": 5,
+    "lectureTitle": "関数の極限",
+    "part": 4,
+    "partTitle": "x→±∞のときの極限，指数・対数関数の極限",
+    "label": 4,
+    "subs": [
+      { "label": "(1)(i)", "answer": "3", "options": ["1", "0", "∞"] },
+      { "label": "(1)(ii)", "answer": "−∞", "options": ["∞", "0", "1"] },
+      { "label": "(2)(i)", "answer": "0", "options": ["3", "∞", "3/2"] },
+      { "label": "(2)(ii)", "answer": "−∞", "options": ["∞", "0", "1/3"] },
+      { "label": "(2)(iii)", "answer": "1", "options": ["0", "2", "∞"] },
+      { "label": "(2)(iv)", "answer": "−3/2", "options": ["3/2", "0", "−∞"] },
+      { "label": "(3)(i)", "answer": "−1", "options": ["1", "0", "−∞"] },
+      { "label": "(3)(ii)", "answer": "∞", "options": ["−∞", "0", "1"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 18,
+    "lecture": 6,
+    "lectureTitle": "三角関数の極限，関数の連続",
+    "part": 1,
+    "partTitle": "三角関数の極限",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "1", "options": ["0", "∞", "−1"] },
+      { "label": "(2)", "answer": "3/2", "options": ["2/3", "1", "6"] },
+      { "label": "(3)", "answer": "1", "options": ["0", "∞", "−1"] },
+      { "label": "(4)", "answer": "2", "options": ["1/2", "0", "4"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 19,
+    "lecture": 6,
+    "lectureTitle": "三角関数の極限，関数の連続",
+    "part": 2,
+    "partTitle": "おき換え，はさみうちによる三角関数の極限",
+    "label": 2,
+    "subs": [
+      { "label": "(1)(i)", "answer": "1/3", "options": ["3", "0", "1"] },
+      { "label": "(1)(ii)", "answer": "−1/2", "options": ["1/2", "0", "−1"] },
+      { "label": "(2)(i)", "answer": "0", "options": ["1", "極限はない", "∞"] },
+      { "label": "(2)(ii)", "answer": "0", "options": ["1", "−1", "極限はない"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 20,
+    "lecture": 6,
+    "lectureTitle": "三角関数の極限，関数の連続",
+    "part": 3,
+    "partTitle": "関数の連続",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "x=0 で連続である", "options": ["x=0 で不連続である", "x=0 で定義されない", "x=0 で極限が存在しない"] },
+      { "label": "(2)", "answer": "x=2 で連続である", "options": ["x=2 で不連続である", "x=2 で定義されない", "x=2 で極限が存在しない"] },
+      { "label": "(3)", "answer": "x=1 で不連続である", "options": ["x=1 で連続である", "x=1 で定義されない", "x=1 で左右の極限が一致する"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 21,
+    "lecture": 6,
+    "lectureTitle": "三角関数の極限，関数の連続",
+    "part": 4,
+    "partTitle": "中間値の定理",
+    "label": 4,
+    "subs": [],
+    "skipped": ["示せ（証明問題）のため"],
+    "note": ""
+  },
+  {
+    "no": 22,
+    "lecture": 7,
+    "lectureTitle": "微分係数と導関数",
+    "part": 1,
+    "partTitle": "微分係数と微分可能",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "1/(2√3)", "options": ["2√3", "√3/2", "1/√3"] }
+    ],
+    "skipped": ["(2) 微分可能でないことを示せ（証明問題）のため"],
+    "note": ""
+  },
+  {
+    "no": 23,
+    "lecture": 7,
+    "lectureTitle": "微分係数と導関数",
+    "part": 2,
+    "partTitle": "導関数",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "f'(x)=−2/x³", "options": ["f'(x)=2/x³", "f'(x)=−1/x³", "f'(x)=−2/x"] },
+      { "label": "(2)", "answer": "f'(x)=1/√(2x−1)", "options": ["f'(x)=2/√(2x−1)", "f'(x)=1/(2√(2x−1))", "f'(x)=√(2x−1)"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 24,
+    "lecture": 7,
+    "lectureTitle": "微分係数と導関数",
+    "part": 3,
+    "partTitle": "導関数の公式，積の導関数",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "y'=4x³−6x", "options": ["y'=4x³−6x+5", "y'=4x³−3x", "y'=x³−6x"] },
+      { "label": "(2)", "answer": "y'=10x⁴−9x²+1", "options": ["y'=10x⁴−9x²", "y'=10x⁴−3x²+1", "y'=2x⁴−3x²+1"] },
+      { "label": "(3)", "answer": "y'=18x²+2x+3", "options": ["y'=18x²−2x+3", "y'=12x−2", "y'=18x²+2x−3"] },
+      { "label": "(4)", "answer": "y'=4x³+3x²−4x−3", "options": ["y'=4x³+3x²+4x−3", "y'=2x(2x+1)", "y'=4x³+3x²−4x+3"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 25,
+    "lecture": 7,
+    "lectureTitle": "微分係数と導関数",
+    "part": 4,
+    "partTitle": "商の導関数，xⁿ の導関数",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "y'=−2/(2x+3)²", "options": ["y'=2/(2x+3)²", "y'=−1/(2x+3)²", "y'=−2/(2x+3)"] },
+      { "label": "(2)", "answer": "y'=−2(x²−1)/(x²+1)²", "options": ["y'=2(x²−1)/(x²+1)²", "y'=2(x²+1)/(x²+1)²", "y'=−2(x²−1)/(x²+1)"] },
+      { "label": "(3)", "answer": "y'=−3/x⁴", "options": ["y'=3/x⁴", "y'=−3/x²", "y'=−1/(3x²)"] },
+      { "label": "(4)", "answer": "y'=1−1/x²+2/x³", "options": ["y'=1+1/x²−2/x³", "y'=1−1/x²−2/x³", "y'=1+1/x²+2/x³"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 26,
+    "lecture": 8,
+    "lectureTitle": "合成関数の微分法，逆関数の微分法",
+    "part": 1,
+    "partTitle": "合成関数の微分法",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "y'=5(3x²−x)⁴(6x−1)", "options": ["y'=5(3x²−x)⁴", "y'=5(6x−1)⁴", "y'=(3x²−x)⁴(6x−1)"] },
+      { "label": "(2)", "answer": "y'=−24x(1−3x²)³", "options": ["y'=24x(1−3x²)³", "y'=4(1−3x²)³", "y'=−6x(1−3x²)³"] },
+      { "label": "(3)", "answer": "y'=−4x/(x²+1)³", "options": ["y'=4x/(x²+1)³", "y'=−2/(x²+1)³", "y'=−4x/(x²+1)²"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 27,
+    "lecture": 8,
+    "lectureTitle": "合成関数の微分法，逆関数の微分法",
+    "part": 2,
+    "partTitle": "逆関数の微分法，x^r の導関数",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "dy/dx=1/(3³√x²)", "options": ["dy/dx=3³√x²", "dy/dx=1/(3³√x)", "dy/dx=1/(3y²) ただし y=x³"] },
+      { "label": "(2)(i)", "answer": "y'=2/(5⁵√x³)", "options": ["y'=5/(2⁵√x³)", "y'=2/(5⁵√x²)", "y'=(2/5)⁵√x³"] },
+      { "label": "(2)(ii)", "answer": "y'=−1/(2√x³)", "options": ["y'=1/(2√x³)", "y'=−1/(2√x)", "y'=−2/√x³"] },
+      { "label": "(2)(iii)", "answer": "y'=1/√(2x+3)", "options": ["y'=1/(2√(2x+3))", "y'=2/√(2x+3)", "y'=√(2x+3)/2"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 28,
+    "lecture": 9,
+    "lectureTitle": "三角・指数・対数関数の導関数，高次導関数",
+    "part": 1,
+    "partTitle": "三角関数の導関数",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "y'=3cos(3x−π/4)", "options": ["y'=cos(3x−π/4)", "y'=−3cos(3x−π/4)", "y'=3sin(3x−π/4)"] },
+      { "label": "(2)", "answer": "y'=−3cos²x sinx", "options": ["y'=3cos²x sinx", "y'=3cos²x", "y'=−3sin²x cosx"] },
+      { "label": "(3)", "answer": "y'=−1/sin²x", "options": ["y'=1/sin²x", "y'=−1/cos²x", "y'=−1/tan²x"] },
+      { "label": "(4)", "answer": "y'=cos2x", "options": ["y'=sin2x", "y'=−cos2x", "y'=cosx sinx"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 29,
+    "lecture": 9,
+    "lectureTitle": "三角・指数・対数関数の導関数，高次導関数",
+    "part": 2,
+    "partTitle": "対数関数の導関数",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "y'=2x/(x²−1)", "options": ["y'=1/(x²−1)", "y'=2x log(x²−1)", "y'=x/(x²−1)"] },
+      { "label": "(2)", "answer": "y'=1/(x log3)", "options": ["y'=2/(x log3)", "y'=1/(2x log3)", "y'=log3/x"] },
+      { "label": "(3)", "answer": "y'=−tanx", "options": ["y'=tanx", "y'=1/cosx", "y'=−1/tanx"] },
+      { "label": "(4)", "answer": "y'=logx+1", "options": ["y'=logx", "y'=1", "y'=logx−1"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 30,
+    "lecture": 9,
+    "lectureTitle": "三角・指数・対数関数の導関数，高次導関数",
+    "part": 3,
+    "partTitle": "指数関数の導関数，対数微分法",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "y'=−2xe^(−x²)", "options": ["y'=2xe^(−x²)", "y'=−e^(−x²)", "y'=−x²e^(−x²)"] },
+      { "label": "(2)", "answer": "y'=(1+x log3)・3^x", "options": ["y'=3^x", "y'=(1+x)・3^x", "y'=x・3^(x−1)"] },
+      { "label": "(3)", "answer": "y'=(x−1)e^x/x²", "options": ["y'=(x+1)e^x/x²", "y'=(1−x)e^x/x²", "y'=e^x/x²"] },
+      { "label": "(4)", "answer": "y'=2x^(logx−1) logx", "options": ["y'=x^(logx−1) logx", "y'=2x^(logx) logx", "y'=(logx)x^(logx−1)"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 31,
+    "lecture": 9,
+    "lectureTitle": "三角・指数・対数関数の導関数，高次導関数",
+    "part": 4,
+    "partTitle": "高次導関数",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "y'=cosx，y''=−sinx，y'''=−cosx，y⁽⁴⁾=sinx", "options": ["y'=−cosx，y''=−sinx，y'''=cosx，y⁽⁴⁾=sinx", "y'=cosx，y''=sinx，y'''=cosx，y⁽⁴⁾=sinx", "y'=cosx，y''=−sinx，y'''=−cosx，y⁽⁴⁾=−sinx"] },
+      { "label": "(2)", "answer": "y'=−e^(−x)，y''=e^(−x)，y'''=−e^(−x)，y⁽⁴⁾=e^(−x)", "options": ["y'=e^(−x)，y''=e^(−x)，y'''=e^(−x)，y⁽⁴⁾=e^(−x)", "y'=−e^(−x)，y''=−e^(−x)，y'''=−e^(−x)，y⁽⁴⁾=−e^(−x)", "y'=−e^(−x)，y''=e^(−x)，y'''=−e^(−x)，y⁽⁴⁾=−e^(−x)"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 32,
+    "lecture": 10,
+    "lectureTitle": "接線と法線の方程式",
+    "part": 1,
+    "partTitle": "接線と法線の方程式",
+    "label": 1,
+    "subs": [
+      { "label": "(1)(i)", "answer": "接線 y=−x，法線 y=x+2", "options": ["接線 y=x+2，法線 y=−x", "接線 y=−x+2，法線 y=x", "接線 y=−x，法線 y=x−2"] },
+      { "label": "(1)(ii)", "answer": "接線 y=−(1/√3)x−√3，法線 y=√3x−√3", "options": ["接線 y=(1/√3)x−√3，法線 y=−√3x−√3", "接線 y=−√3x−√3，法線 y=(1/√3)x−√3", "接線 y=−(1/√3)x+√3，法線 y=√3x+√3"] },
+      { "label": "(1)(iii)", "answer": "接線 y=−(√3/2)x+(√3/6)π+1/2，法線 y=(2√3/3)x−(2√3/9)π+1/2", "options": ["接線 y=(√3/2)x−(√3/6)π+1/2，法線 y=−(2√3/3)x+(2√3/9)π+1/2", "接線 y=−(1/2)x+π/6+1/2，法線 y=2x−(2/3)π+1/2", "接線 y=−(√3/2)x+(√3/6)π−1/2，法線 y=(2√3/3)x−(2√3/9)π−1/2"] },
+      { "label": "(1)(iv)", "answer": "接線 y=ex−2，法線 y=−(1/e)x+1/e²−1", "options": ["接線 y=ex−1，法線 y=−(1/e)x−1", "接線 y=(1/e)x−2，法線 y=−ex+1/e²−1", "接線 y=ex+2，法線 y=−(1/e)x−1/e²−1"] },
+      { "label": "(2)", "answer": "y=2ex", "options": ["y=ex", "y=2x", "y=e²x"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 33,
+    "lecture": 10,
+    "lectureTitle": "接線と法線の方程式",
+    "part": 2,
+    "partTitle": "いろいろな曲線の接線の方程式",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "接線 y=−x+1，法線 y=x+5", "options": ["接線 y=x+5，法線 y=−x+1", "接線 y=−x−1，法線 y=x−5", "接線 y=−x+1，法線 y=x+1"] },
+      { "label": "(2)", "answer": "y=√3x−√6", "options": ["y=−√3x+√6", "y=√3x+√6", "y=(1/√3)x−√6"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 34,
+    "lecture": 10,
+    "lectureTitle": "接線と法線の方程式",
+    "part": 3,
+    "partTitle": "平均値の定理",
+    "label": 3,
+    "subs": [
+      { "label": "(1)(i)", "answer": "c=−1", "options": ["c=1", "c=±1", "c=0"] },
+      { "label": "(1)(ii)", "answer": "c=25/4", "options": ["c=5/2", "c=13/2", "c=25/2"] }
+    ],
+    "skipped": ["(2) 不等式を証明せよ（証明問題）のため"],
+    "note": ""
+  },
+  {
+    "no": 35,
+    "lecture": 11,
+    "lectureTitle": "関数の増減",
+    "part": 1,
+    "partTitle": "関数の増加と減少",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "つねに増加する", "options": ["つねに減少する", "0<x<1 で減少，1≦x で増加", "0<x≦1 で増加，1≦x で減少"] },
+      { "label": "(2)", "answer": "x≦1 で増加，1≦x で減少", "options": ["x≦1 で減少，1≦x で増加", "x≦0 で増加，0≦x で減少", "つねに増加する"] },
+      { "label": "(3)", "answer": "x≦1，3≦x で増加，1≦x<2，2<x≦3 で減少", "options": ["x≦1，3≦x で減少，1≦x<2，2<x≦3 で増加", "x≦2 で増加，2<x で減少", "x≦1 で増加，1≦x<2，2<x で減少"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 36,
+    "lecture": 11,
+    "lectureTitle": "関数の増減",
+    "part": 2,
+    "partTitle": "関数の極大・極小",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "x=π で極大値 3，x=π/3，5π/3 で極小値 −3/2", "options": ["x=π で極小値 3，x=π/3，5π/3 で極大値 −3/2", "x=π で極大値 3，x=0，2π で極小値 −1", "x=π で極大値 1，x=π/3，5π/3 で極小値 −3/2"] },
+      { "label": "(2)", "answer": "x=1/3 で極大値 2√3/9，x=1 で極小値 0", "options": ["x=1/3 で極小値 2√3/9，x=1 で極大値 0", "x=1/3 で極大値 2/(3√3)，x=0 で極小値 0", "x=1 で極大値 0，x=1/3 で極小値 −2√3/9"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 37,
+    "lecture": 11,
+    "lectureTitle": "関数の増減",
+    "part": 3,
+    "partTitle": "極値をもつための条件",
+    "label": 3,
+    "subs": [
+      { "label": null, "answer": "a=11", "options": ["a=−11", "a=14", "a=3"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 38,
+    "lecture": 11,
+    "lectureTitle": "関数の増減",
+    "part": 4,
+    "partTitle": "関数の最大・最小",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "x=−2 のとき最大値 2+1/e²，x=0 のとき最小値 1", "options": ["x=1 のとき最大値 −1+e，x=0 のとき最小値 1", "x=−2 のとき最大値 2+1/e²，x=1 のとき最小値 −1+e", "x=0 のとき最大値 1，x=−2 のとき最小値 2+1/e²"] },
+      { "label": "(2)", "answer": "x=√2/2 のとき最大値 1/2，x=−√2/2 のとき最小値 −1/2", "options": ["x=1 のとき最大値 0，x=−1 のとき最小値 0", "x=√2/2 のとき最大値 √2/2，x=−√2/2 のとき最小値 −√2/2", "x=−√2/2 のとき最大値 1/2，x=√2/2 のとき最小値 −1/2"] }
+    ],
+    "skipped": [],
+    "note": ""
+  }
+]

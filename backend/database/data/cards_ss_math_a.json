@@ -1,0 +1,2075 @@
+{
+ "deck": {
+  "key": "ss_math_a",
+  "subject": "math",
+  "name": "スタディサプリ ベーシックレベル 数学A 例題",
+  "shortName": "スタサプ 数A",
+  "studentOnly": false,
+  "resourceBookTitle": "スタディサプリ ベーシックレベル 数A",
+  "structure": [
+   [
+    1,
+    "第1講 場合の数",
+    1,
+    4
+   ],
+   [
+    2,
+    "第2講 順列",
+    5,
+    8
+   ],
+   [
+    3,
+    "第3講 組合せ",
+    9,
+    12
+   ],
+   [
+    4,
+    "第4講 事象と確率",
+    13,
+    16
+   ],
+   [
+    5,
+    "第5講 独立な試行の確率，反復試行の確率",
+    17,
+    18
+   ],
+   [
+    6,
+    "第6講 条件付き確率，期待値",
+    19,
+    20
+   ],
+   [
+    7,
+    "第7講 三角形の性質",
+    21,
+    26
+   ],
+   [
+    8,
+    "第8講 円の性質",
+    27,
+    31
+   ],
+   [
+    9,
+    "第9講 空間図形",
+    32,
+    33
+   ],
+   [
+    10,
+    "第10講 約数と倍数",
+    34,
+    37
+   ],
+   [
+    11,
+    "第11講 ユークリッドの互除法，整数の性質の活用",
+    38,
+    41
+   ]
+  ],
+  "sortOrder": 4
+ },
+ "items": [
+  {
+   "no": 1,
+   "chapterNo": 1,
+   "chapter": "第1講 場合の数",
+   "section": "PART1 集合の要素の個数",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     1
+    ],
+    "answerPages": [
+     1
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "20 個",
+      "options": [
+       "25 個",
+       "19 個",
+       "21 個"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "80 個",
+      "options": [
+       "75 個",
+       "79 個",
+       "81 個"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "2 個",
+      "options": [
+       "3 個",
+       "1 個",
+       "4 個"
+      ]
+     },
+     {
+      "label": "(4)",
+      "answer": "32 個",
+      "options": [
+       "34 個",
+       "30 個",
+       "36 個"
+      ]
+     },
+     {
+      "label": "(5)",
+      "answer": "18 個",
+      "options": [
+       "16 個",
+       "20 個",
+       "12 個"
+      ]
+     }
+    ]
+   },
+   "page": 1,
+   "bookPage": "2",
+   "problemImage": "ss_math_a/p001.jpg",
+   "answerImage": "ss_math_a/s001.jpg"
+  },
+  {
+   "no": 2,
+   "chapterNo": 1,
+   "chapter": "第1講 場合の数",
+   "section": "PART2 場合の数",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     2
+    ],
+    "answerPages": [
+     2
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "10 通り",
+      "options": [
+       "15 通り",
+       "6 通り",
+       "12 通り"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "10 通り",
+      "options": [
+       "8 通り",
+       "6 通り",
+       "12 通り"
+      ]
+     }
+    ]
+   },
+   "page": 2,
+   "bookPage": "3",
+   "problemImage": "ss_math_a/p002.jpg",
+   "answerImage": "ss_math_a/s002.jpg"
+  },
+  {
+   "no": 3,
+   "chapterNo": 1,
+   "chapter": "第1講 場合の数",
+   "section": "PART3 和の法則",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     3
+    ],
+    "answerPages": [
+     3
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "7 通り",
+      "options": [
+       "6 通り",
+       "8 通り",
+       "12 通り"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "9 通り",
+      "options": [
+       "8 通り",
+       "10 通り",
+       "7 通り"
+      ]
+     }
+    ]
+   },
+   "page": 3,
+   "bookPage": "4",
+   "problemImage": "ss_math_a/p003.jpg",
+   "answerImage": "ss_math_a/s003.jpg"
+  },
+  {
+   "no": 4,
+   "chapterNo": 1,
+   "chapter": "第1講 場合の数",
+   "section": "PART4 積の法則",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     4
+    ],
+    "answerPages": [
+     4
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "9 通り",
+      "options": [
+       "6 通り",
+       "12 通り",
+       "18 通り"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "24 通り",
+      "options": [
+       "9 通り",
+       "12 通り",
+       "14 通り"
+      ]
+     }
+    ]
+   },
+   "page": 4,
+   "bookPage": "5",
+   "problemImage": "ss_math_a/p004.jpg",
+   "answerImage": "ss_math_a/s004.jpg"
+  },
+  {
+   "no": 5,
+   "chapterNo": 2,
+   "chapter": "第2講 順列",
+   "section": "PART1 順列",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     5
+    ],
+    "answerPages": [
+     5
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "24",
+      "options": [
+       "12",
+       "64",
+       "4"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "7",
+      "options": [
+       "1",
+       "6",
+       "42"
+      ]
+     },
+     {
+      "label": "(1)(iii)",
+      "answer": "6",
+      "options": [
+       "3",
+       "9",
+       "27"
+      ]
+     },
+     {
+      "label": "(1)(iv)",
+      "answer": "120",
+      "options": [
+       "25",
+       "24",
+       "60"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "20 通り",
+      "options": [
+       "10 通り",
+       "25 通り",
+       "120 通り"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "5040 通り",
+      "options": [
+       "720 通り",
+       "2520 通り",
+       "49 通り"
+      ]
+     }
+    ]
+   },
+   "page": 5,
+   "bookPage": "6",
+   "problemImage": "ss_math_a/p005.jpg",
+   "answerImage": "ss_math_a/s005.jpg"
+  },
+  {
+   "no": 6,
+   "chapterNo": 2,
+   "chapter": "第2講 順列",
+   "section": "PART2 順列の利用",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     6
+    ],
+    "answerPages": [
+     6
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "210 通り",
+      "options": [
+       "35 通り",
+       "343 通り",
+       "21 通り"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "72 個",
+      "options": [
+       "48 個",
+       "120 個",
+       "60 個"
+      ]
+     },
+     {
+      "label": "(3)(i)",
+      "answer": "12 通り",
+      "options": [
+       "24 通り",
+       "6 通り",
+       "48 通り"
+      ]
+     },
+     {
+      "label": "(3)(ii)",
+      "answer": "36 通り",
+      "options": [
+       "12 通り",
+       "72 通り",
+       "18 通り"
+      ]
+     }
+    ]
+   },
+   "page": 6,
+   "bookPage": "7",
+   "problemImage": "ss_math_a/p006.jpg",
+   "answerImage": "ss_math_a/s006.jpg"
+  },
+  {
+   "no": 7,
+   "chapterNo": 2,
+   "chapter": "第2講 順列",
+   "section": "PART3 円順列",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     7
+    ],
+    "answerPages": [
+     7
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "24 通り",
+      "options": [
+       "120 通り",
+       "12 通り",
+       "60 通り"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "12 通り",
+      "options": [
+       "6 通り",
+       "24 通り",
+       "48 通り"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "60 種類",
+      "options": [
+       "120 種類",
+       "360 種類",
+       "30 種類"
+      ]
+     }
+    ]
+   },
+   "page": 7,
+   "bookPage": "8",
+   "problemImage": "ss_math_a/p007.jpg",
+   "answerImage": "ss_math_a/s007.jpg"
+  },
+  {
+   "no": 8,
+   "chapterNo": 2,
+   "chapter": "第2講 順列",
+   "section": "PART4 重複順列",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     8
+    ],
+    "answerPages": [
+     8
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "32 通り",
+      "options": [
+       "25 通り",
+       "10 通り",
+       "16 通り"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "192 個",
+      "options": [
+       "256 個",
+       "81 個",
+       "108 個"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "96 個",
+      "options": [
+       "128 個",
+       "48 個",
+       "72 個"
+      ]
+     }
+    ]
+   },
+   "page": 8,
+   "bookPage": "9",
+   "problemImage": "ss_math_a/p008.jpg",
+   "answerImage": "ss_math_a/s008.jpg"
+  },
+  {
+   "no": 9,
+   "chapterNo": 3,
+   "chapter": "第3講 組合せ",
+   "section": "PART1 組合せ",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     9
+    ],
+    "answerPages": [
+     9
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "56",
+      "options": [
+       "336",
+       "28",
+       "84"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "15",
+      "options": [
+       "360",
+       "30",
+       "20"
+      ]
+     },
+     {
+      "label": "(1)(iii)",
+      "answer": "5",
+      "options": [
+       "1",
+       "10",
+       "4"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "210 通り",
+      "options": [
+       "5040 通り",
+       "840 通り",
+       "120 通り"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "20 個",
+      "options": [
+       "120 個",
+       "18 個",
+       "15 個"
+      ]
+     }
+    ]
+   },
+   "page": 9,
+   "bookPage": "10",
+   "problemImage": "ss_math_a/p009.jpg",
+   "answerImage": "ss_math_a/s009.jpg"
+  },
+  {
+   "no": 10,
+   "chapterNo": 3,
+   "chapter": "第3講 組合せ",
+   "section": "PART2 組合せの利用",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     10
+    ],
+    "answerPages": [
+     10
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "220 通り",
+      "options": [
+       "1320 通り",
+       "110 通り",
+       "440 通り"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "70 通り",
+      "options": [
+       "35 通り",
+       "140 通り",
+       "105 通り"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "210 通り",
+      "options": [
+       "215 通り",
+       "175 通り",
+       "200 通り"
+      ]
+     }
+    ]
+   },
+   "page": 10,
+   "bookPage": "11",
+   "problemImage": "ss_math_a/p010.jpg",
+   "answerImage": "ss_math_a/s010.jpg"
+  },
+  {
+   "no": 11,
+   "chapterNo": 3,
+   "chapter": "第3講 組合せ",
+   "section": "PART3 組分け",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     11
+    ],
+    "answerPages": [
+     11
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "1680 通り",
+      "options": [
+       "280 通り",
+       "840 通り",
+       "5040 通り"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "280 通り",
+      "options": [
+       "1680 通り",
+       "560 通り",
+       "840 通り"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "1260 通り",
+      "options": [
+       "7560 通り",
+       "2520 通り",
+       "630 通り"
+      ]
+     }
+    ]
+   },
+   "page": 11,
+   "bookPage": "12",
+   "problemImage": "ss_math_a/p011.jpg",
+   "answerImage": "ss_math_a/s011.jpg"
+  },
+  {
+   "no": 12,
+   "chapterNo": 3,
+   "chapter": "第3講 組合せ",
+   "section": "PART4 同じものを含む順列",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     12
+    ],
+    "answerPages": [
+     12
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "60 個",
+      "options": [
+       "720 個",
+       "120 個",
+       "30 個"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "35 通り",
+      "options": [
+       "21 通り",
+       "70 通り",
+       "12 通り"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "18 通り",
+      "options": [
+       "9 通り",
+       "12 通り",
+       "35 通り"
+      ]
+     }
+    ]
+   },
+   "page": 12,
+   "bookPage": "13",
+   "problemImage": "ss_math_a/p012.jpg",
+   "answerImage": "ss_math_a/s012.jpg"
+  },
+  {
+   "no": 13,
+   "chapterNo": 4,
+   "chapter": "第4講 事象と確率",
+   "section": "PART1 試行と事象",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     13
+    ],
+    "answerPages": [
+     13
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "2/3",
+      "options": [
+       "1/2",
+       "1/3",
+       "5/6"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "3/5",
+      "options": [
+       "2/5",
+       "1/5",
+       "3/4"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "1/2",
+      "options": [
+       "1/4",
+       "1/3",
+       "3/4"
+      ]
+     }
+    ]
+   },
+   "page": 13,
+   "bookPage": "14",
+   "problemImage": "ss_math_a/p013.jpg",
+   "answerImage": "ss_math_a/s013.jpg"
+  },
+  {
+   "no": 14,
+   "chapterNo": 4,
+   "chapter": "第4講 事象と確率",
+   "section": "PART2 順列・組合せと確率",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     14
+    ],
+    "answerPages": [
+     14
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "1/5",
+      "options": [
+       "1/30",
+       "1/6",
+       "1/20"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "2/7",
+      "options": [
+       "1/7",
+       "10/21",
+       "3/7"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "1/7",
+      "options": [
+       "2/7",
+       "1/35",
+       "5/7"
+      ]
+     }
+    ]
+   },
+   "page": 14,
+   "bookPage": "15",
+   "problemImage": "ss_math_a/p014.jpg",
+   "answerImage": "ss_math_a/s014.jpg"
+  },
+  {
+   "no": 15,
+   "chapterNo": 4,
+   "chapter": "第4講 事象と確率",
+   "section": "PART3 確率の基本性質",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     15
+    ],
+    "answerPages": [
+     15
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "1/6",
+      "options": [
+       "5/42",
+       "1/21",
+       "1/12"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "11/21",
+      "options": [
+       "10/21",
+       "1/21",
+       "4/21"
+      ]
+     }
+    ]
+   },
+   "page": 15,
+   "bookPage": "16",
+   "problemImage": "ss_math_a/p015.jpg",
+   "answerImage": "ss_math_a/s015.jpg"
+  },
+  {
+   "no": 16,
+   "chapterNo": 4,
+   "chapter": "第4講 事象と確率",
+   "section": "PART4 和事象の確率，余事象の確率",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     16
+    ],
+    "answerPages": [
+     16
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "6/7",
+      "options": [
+       "8/7",
+       "4/7",
+       "2/7"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "25/91",
+      "options": [
+       "66/91",
+       "1/7",
+       "13/91"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "12/13",
+      "options": [
+       "1/13",
+       "11/13",
+       "6/7"
+      ]
+     }
+    ]
+   },
+   "page": 16,
+   "bookPage": "17",
+   "problemImage": "ss_math_a/p016.jpg",
+   "answerImage": "ss_math_a/s016.jpg"
+  },
+  {
+   "no": 17,
+   "chapterNo": 5,
+   "chapter": "第5講 独立な試行の確率，反復試行の確率",
+   "section": "PART1 独立な試行の確率",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     17
+    ],
+    "answerPages": [
+     17
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "1/3",
+      "options": [
+       "1/4",
+       "1/2",
+       "2/3"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "8/9",
+      "options": [
+       "1/9",
+       "4/9",
+       "5/9"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "7/15",
+      "options": [
+       "4/15",
+       "1/5",
+       "8/15"
+      ]
+     }
+    ]
+   },
+   "page": 17,
+   "bookPage": "18",
+   "problemImage": "ss_math_a/p017.jpg",
+   "answerImage": "ss_math_a/s017.jpg"
+  },
+  {
+   "no": 18,
+   "chapterNo": 5,
+   "chapter": "第5講 独立な試行の確率，反復試行の確率",
+   "section": "PART2 反復試行の確率",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     18
+    ],
+    "answerPages": [
+     18,
+     19
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "25/216",
+      "options": [
+       "25/1296",
+       "1/36",
+       "125/216"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "8/81",
+      "options": [
+       "2/81",
+       "4/81",
+       "1/27"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "11/16",
+      "options": [
+       "5/16",
+       "3/8",
+       "15/16"
+      ]
+     }
+    ]
+   },
+   "page": 18,
+   "bookPage": "19",
+   "problemImage": "ss_math_a/p018.jpg",
+   "answerImage": "ss_math_a/s018.jpg"
+  },
+  {
+   "no": 19,
+   "chapterNo": 6,
+   "chapter": "第6講 条件付き確率，期待値",
+   "section": "PART1 条件付き確率",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     20
+    ],
+    "answerPages": [
+     20
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "3/19",
+      "options": [
+       "1/5",
+       "4/19",
+       "3/20"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "3/95",
+      "options": [
+       "1/25",
+       "3/19",
+       "4/95"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "1/5",
+      "options": [
+       "16/95",
+       "3/19",
+       "4/19"
+      ]
+     }
+    ]
+   },
+   "page": 20,
+   "bookPage": "21",
+   "problemImage": "ss_math_a/p019.jpg",
+   "answerImage": "ss_math_a/s019.jpg"
+  },
+  {
+   "no": 20,
+   "chapterNo": 6,
+   "chapter": "第6講 条件付き確率，期待値",
+   "section": "PART2 期待値",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     21
+    ],
+    "answerPages": [
+     21
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "4/5 個（0.8 個）",
+      "options": [
+       "3/5 個（0.6 個）",
+       "1 個",
+       "7/10 個（0.7 個）"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "80 円",
+      "options": [
+       "100 円",
+       "60 円",
+       "120 円"
+      ]
+     }
+    ]
+   },
+   "page": 21,
+   "bookPage": "22",
+   "problemImage": "ss_math_a/p020.jpg",
+   "answerImage": "ss_math_a/s020.jpg"
+  },
+  {
+   "no": 21,
+   "chapterNo": 7,
+   "chapter": "第7講 三角形の性質",
+   "section": "PART1 線分の内分・外分，角の二等分線と比",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     22
+    ],
+    "answerPages": [
+     22
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "BD=3",
+      "options": [
+       "BD=2",
+       "BD=5/2",
+       "BD=10/3"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "CE=10",
+      "options": [
+       "CE=15",
+       "CE=8",
+       "CE=12"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "DE=12",
+      "options": [
+       "DE=10",
+       "DE=13",
+       "DE=15"
+      ]
+     }
+    ]
+   },
+   "page": 22,
+   "bookPage": "23",
+   "problemImage": "ss_math_a/p021.jpg",
+   "answerImage": "ss_math_a/s021.jpg"
+  },
+  {
+   "no": 22,
+   "chapterNo": 7,
+   "chapter": "第7講 三角形の性質",
+   "section": "PART2 三角形の外心・内心",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     23
+    ],
+    "answerPages": [
+     23
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "x=35°，y=150°",
+      "options": [
+       "x=40°，y=150°",
+       "x=35°，y=75°",
+       "x=25°，y=140°"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "x=30°，y=122°",
+      "options": [
+       "x=30°，y=116°",
+       "x=32°，y=120°",
+       "x=30°，y=128°"
+      ]
+     }
+    ]
+   },
+   "page": 23,
+   "bookPage": "24",
+   "problemImage": "ss_math_a/p022.jpg",
+   "answerImage": "ss_math_a/s022.jpg"
+  },
+  {
+   "no": 23,
+   "chapterNo": 7,
+   "chapter": "第7講 三角形の性質",
+   "section": "PART3 三角形の重心",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     24
+    ],
+    "answerPages": [
+     24
+    ],
+    "subs": [
+     {
+      "label": null,
+      "answer": "x=4，y=6",
+      "options": [
+       "x=4，y=4",
+       "x=16，y=6",
+       "x=4，y=8"
+      ]
+     }
+    ]
+   },
+   "page": 24,
+   "bookPage": "25",
+   "problemImage": "ss_math_a/p023.jpg",
+   "answerImage": "ss_math_a/s023.jpg"
+  },
+  {
+   "no": 24,
+   "chapterNo": 7,
+   "chapter": "第7講 三角形の性質",
+   "section": "PART4 三角形の線分の比と面積比",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     25
+    ],
+    "answerPages": [
+     25
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "3：4",
+      "options": [
+       "4：3",
+       "3：7",
+       "9：16"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "2：5",
+      "options": [
+       "2：3",
+       "3：5",
+       "4：25"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "3：4",
+      "options": [
+       "2：3",
+       "4：3",
+       "3：5"
+      ]
+     }
+    ]
+   },
+   "page": 25,
+   "bookPage": "26",
+   "problemImage": "ss_math_a/p024.jpg",
+   "answerImage": "ss_math_a/s024.jpg"
+  },
+  {
+   "no": 25,
+   "chapterNo": 7,
+   "chapter": "第7講 三角形の性質",
+   "section": "PART5 チェバの定理，メネラウスの定理",
+   "kind": "problem",
+   "front": "例題 5",
+   "back": null,
+   "extra": {
+    "label": "例題 5",
+    "problemPages": [
+     26
+    ],
+    "answerPages": [
+     26
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "BP：PC=3：8",
+      "options": [
+       "BP：PC=8：3",
+       "BP：PC=3：2",
+       "BP：PC=2：3"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "CQ：QA=2：3",
+      "options": [
+       "CQ：QA=3：2",
+       "CQ：QA=1：3",
+       "CQ：QA=3：4"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "PR：RC=9：14",
+      "options": [
+       "PR：RC=14：9",
+       "PR：RC=6：7",
+       "PR：RC=9：7"
+      ]
+     }
+    ]
+   },
+   "page": 26,
+   "bookPage": "27",
+   "problemImage": "ss_math_a/p025.jpg",
+   "answerImage": "ss_math_a/s025.jpg"
+  },
+  {
+   "no": 26,
+   "chapterNo": 7,
+   "chapter": "第7講 三角形の性質",
+   "section": "PART6 三角形の辺と角",
+   "kind": "problem",
+   "front": "例題 6",
+   "back": null,
+   "extra": {
+    "label": "例題 6",
+    "problemPages": [
+     27
+    ],
+    "answerPages": [
+     27
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "存在する",
+      "options": [
+       "存在しない",
+       "直角三角形としてのみ存在する",
+       "二等辺三角形としてのみ存在する"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "存在しない",
+      "options": [
+       "存在する",
+       "直角三角形として存在する",
+       "鈍角三角形として存在する"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "∠B",
+      "options": [
+       "∠A",
+       "∠C",
+       "∠A と ∠B"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "辺 AB",
+      "options": [
+       "辺 BC",
+       "辺 CA",
+       "辺 BC と辺 CA"
+      ]
+     }
+    ]
+   },
+   "page": 27,
+   "bookPage": "28",
+   "problemImage": "ss_math_a/p026.jpg",
+   "answerImage": "ss_math_a/s026.jpg"
+  },
+  {
+   "no": 27,
+   "chapterNo": 8,
+   "chapter": "第8講 円の性質",
+   "section": "PART1 円に内接する四角形",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     28
+    ],
+    "answerPages": [
+     28
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "x=100°，y=72°",
+      "options": [
+       "x=80°，y=108°",
+       "x=100°，y=108°",
+       "x=72°，y=100°"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "x=60°，y=120°",
+      "options": [
+       "x=120°，y=60°",
+       "x=60°，y=60°",
+       "x=240°，y=120°"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "①，②",
+      "options": [
+       "①のみ",
+       "②のみ",
+       "どちらも内接しない"
+      ]
+     }
+    ]
+   },
+   "page": 28,
+   "bookPage": "29",
+   "problemImage": "ss_math_a/p027.jpg",
+   "answerImage": "ss_math_a/s027.jpg"
+  },
+  {
+   "no": 28,
+   "chapterNo": 8,
+   "chapter": "第8講 円の性質",
+   "section": "PART2 円と接線",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     29
+    ],
+    "answerPages": [
+     29
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "AF=2",
+      "options": [
+       "AF=3",
+       "AF=4",
+       "AF=1"
+      ]
+     },
+     {
+      "label": "(2)(i)",
+      "answer": "x=36°，y=72°",
+      "options": [
+       "x=72°，y=36°",
+       "x=36°，y=54°",
+       "x=54°，y=72°"
+      ]
+     },
+     {
+      "label": "(2)(ii)",
+      "answer": "x=20°，y=50°",
+      "options": [
+       "x=40°，y=70°",
+       "x=20°，y=70°",
+       "x=20°，y=90°"
+      ]
+     }
+    ]
+   },
+   "page": 29,
+   "bookPage": "30",
+   "problemImage": "ss_math_a/p028.jpg",
+   "answerImage": "ss_math_a/s028.jpg"
+  },
+  {
+   "no": 29,
+   "chapterNo": 8,
+   "chapter": "第8講 円の性質",
+   "section": "PART3 方べきの定理",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     30
+    ],
+    "answerPages": [
+     30
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "x=6",
+      "options": [
+       "x=5",
+       "x=8/3",
+       "x=3/2"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "x=3",
+      "options": [
+       "x=6",
+       "x=2",
+       "x=11/3"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "x=4",
+      "options": [
+       "x=9",
+       "x=6",
+       "x=31/5"
+      ]
+     }
+    ]
+   },
+   "page": 30,
+   "bookPage": "31",
+   "problemImage": "ss_math_a/p029.jpg",
+   "answerImage": "ss_math_a/s029.jpg"
+  },
+  {
+   "no": 30,
+   "chapterNo": 8,
+   "chapter": "第8講 円の性質",
+   "section": "PART4 2 つの円の位置関係と共通接線",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     31
+    ],
+    "answerPages": [
+     31
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "外接する，共通接線は 3 本",
+      "options": [
+       "内接する，共通接線は 1 本",
+       "2 点で交わる，共通接線は 2 本",
+       "離れている，共通接線は 4 本"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "AB=12",
+      "options": [
+       "AB=13",
+       "AB=5",
+       "AB=√194"
+      ]
+     }
+    ]
+   },
+   "page": 31,
+   "bookPage": "32",
+   "problemImage": "ss_math_a/p030.jpg",
+   "answerImage": "ss_math_a/s030.jpg"
+  },
+  {
+   "no": 31,
+   "chapterNo": 8,
+   "chapter": "第8講 円の性質",
+   "section": "PART5 作図",
+   "kind": "problem",
+   "front": "例題 5",
+   "back": null,
+   "extra": {
+    "label": "例題 5",
+    "problemPages": [
+     32
+    ],
+    "answerPages": [
+     32
+    ],
+    "skipped": [
+     "作図せよ（線分 AB を 3：2 に内分する点の作図）のため"
+    ]
+   },
+   "page": 32,
+   "bookPage": "33",
+   "problemImage": "ss_math_a/p031.jpg",
+   "answerImage": "ss_math_a/s031.jpg"
+  },
+  {
+   "no": 32,
+   "chapterNo": 9,
+   "chapter": "第9講 空間図形",
+   "section": "PART1 直線と平面",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     33
+    ],
+    "answerPages": [
+     33
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "辺 AD，AE，BC，BF，DH，EH，CG，FG",
+      "options": [
+       "辺 AD，AE，BC，BF",
+       "辺 DC，EF，HG，DH，EH，CG，FG",
+       "辺 AD，BC，DH，CG，EH，FG"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "θ=45°",
+      "options": [
+       "θ=90°",
+       "θ=60°",
+       "θ=30°"
+      ]
+     },
+     {
+      "label": "(3)",
+      "answer": "面 AEHD，BFGC",
+      "options": [
+       "面 ABCD，AEFB",
+       "面 AEHD，EFGH",
+       "面 BFGC，HGCD"
+      ]
+     },
+     {
+      "label": "(4)",
+      "answer": "面 ABCD，AEFB，EFGH，HGCD",
+      "options": [
+       "面 ABCD，EFGH",
+       "面 AEFB，HGCD，BFGC",
+       "面 BFGC のみ"
+      ]
+     }
+    ]
+   },
+   "page": 33,
+   "bookPage": "34",
+   "problemImage": "ss_math_a/p032.jpg",
+   "answerImage": "ss_math_a/s032.jpg"
+  },
+  {
+   "no": 33,
+   "chapterNo": 9,
+   "chapter": "第9講 空間図形",
+   "section": "PART2 多面体",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     34
+    ],
+    "answerPages": [
+     34
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "12",
+      "options": [
+       "20",
+       "60",
+       "15"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "e=30",
+      "options": [
+       "e=34",
+       "e=20",
+       "e=32"
+      ]
+     }
+    ]
+   },
+   "page": 34,
+   "bookPage": "35",
+   "problemImage": "ss_math_a/p033.jpg",
+   "answerImage": "ss_math_a/s033.jpg"
+  },
+  {
+   "no": 34,
+   "chapterNo": 10,
+   "chapter": "第10講 約数と倍数",
+   "section": "PART1 約数と倍数",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     35
+    ],
+    "answerPages": [
+     35
+    ],
+    "subs": [
+     {
+      "label": "(1)(i)",
+      "answer": "1，2，3，4，6，8，12，24",
+      "options": [
+       "1，2，3，4，6，12，24",
+       "1，2，3，4，6，8，12，16，24",
+       "2，3，4，6，8，12"
+      ]
+     },
+     {
+      "label": "(1)(ii)",
+      "answer": "15，30，45，60，75",
+      "options": [
+       "1，3，5，15，30",
+       "15，30，45，60，90",
+       "30，45，60，75，90"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "5",
+      "options": [
+       "0",
+       "2",
+       "0 と 5"
+      ]
+     }
+    ]
+   },
+   "page": 35,
+   "bookPage": "36",
+   "problemImage": "ss_math_a/p034.jpg",
+   "answerImage": "ss_math_a/s034.jpg"
+  },
+  {
+   "no": 35,
+   "chapterNo": 10,
+   "chapter": "第10講 約数と倍数",
+   "section": "PART2 素因数分解と約数",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     36
+    ],
+    "answerPages": [
+     36
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "n=14",
+      "options": [
+       "n=7",
+       "n=2",
+       "n=35"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "12 個",
+      "options": [
+       "8 個",
+       "6 個",
+       "18 個"
+      ]
+     }
+    ]
+   },
+   "page": 36,
+   "bookPage": "37",
+   "problemImage": "ss_math_a/p035.jpg",
+   "answerImage": "ss_math_a/s035.jpg"
+  },
+  {
+   "no": 36,
+   "chapterNo": 10,
+   "chapter": "第10講 約数と倍数",
+   "section": "PART3 最大公約数と最小公倍数",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     37
+    ],
+    "answerPages": [
+     37
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "最大公約数 14，最小公倍数 1540",
+      "options": [
+       "最大公約数 7，最小公倍数 1540",
+       "最大公約数 14，最小公倍数 3080",
+       "最大公約数 14，最小公倍数 770"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "最大公約数 1，最小公倍数 30030",
+      "options": [
+       "最大公約数 1，最小公倍数 15015",
+       "最大公約数 3，最小公倍数 10010",
+       "最大公約数 13，最小公倍数 2310"
+      ]
+     }
+    ]
+   },
+   "page": 37,
+   "bookPage": "38",
+   "problemImage": "ss_math_a/p036.jpg",
+   "answerImage": "ss_math_a/s036.jpg"
+  },
+  {
+   "no": 37,
+   "chapterNo": 10,
+   "chapter": "第10講 約数と倍数",
+   "section": "PART4 余りによる分類",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     38
+    ],
+    "answerPages": [
+     38
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "0",
+      "options": [
+       "1",
+       "5",
+       "2"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "1",
+      "options": [
+       "6",
+       "0",
+       "2"
+      ]
+     }
+    ]
+   },
+   "page": 38,
+   "bookPage": "39",
+   "problemImage": "ss_math_a/p037.jpg",
+   "answerImage": "ss_math_a/s037.jpg"
+  },
+  {
+   "no": 38,
+   "chapterNo": 11,
+   "chapter": "第11講 ユークリッドの互除法，整数の性質の活用",
+   "section": "PART1 ユークリッドの互除法",
+   "kind": "problem",
+   "front": "例題 1",
+   "back": null,
+   "extra": {
+    "label": "例題 1",
+    "problemPages": [
+     39
+    ],
+    "answerPages": [
+     39
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "18",
+      "options": [
+       "198",
+       "9",
+       "6"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "1",
+      "options": [
+       "5",
+       "6",
+       "95"
+      ]
+     }
+    ]
+   },
+   "page": 39,
+   "bookPage": "40",
+   "problemImage": "ss_math_a/p038.jpg",
+   "answerImage": "ss_math_a/s038.jpg"
+  },
+  {
+   "no": 39,
+   "chapterNo": 11,
+   "chapter": "第11講 ユークリッドの互除法，整数の性質の活用",
+   "section": "PART2 1 次不定方程式",
+   "kind": "problem",
+   "front": "例題 2",
+   "back": null,
+   "extra": {
+    "label": "例題 2",
+    "problemPages": [
+     40
+    ],
+    "answerPages": [
+     40
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "x=5k，y=3k（k は整数）",
+      "options": [
+       "x=3k，y=5k（k は整数）",
+       "x=5k，y=−3k（k は整数）",
+       "x=5k+1，y=3k（k は整数）"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "x=5k+2，y=−8k−3（k は整数）",
+      "options": [
+       "x=5k+2，y=8k−3（k は整数）",
+       "x=8k+2，y=−5k−3（k は整数）",
+       "x=5k−2，y=−8k+3（k は整数）"
+      ]
+     }
+    ]
+   },
+   "page": 40,
+   "bookPage": "41",
+   "problemImage": "ss_math_a/p039.jpg",
+   "answerImage": "ss_math_a/s039.jpg"
+  },
+  {
+   "no": 40,
+   "chapterNo": 11,
+   "chapter": "第11講 ユークリッドの互除法，整数の性質の活用",
+   "section": "PART3 1 次不定方程式とユークリッドの互除法",
+   "kind": "problem",
+   "front": "例題 3",
+   "back": null,
+   "extra": {
+    "label": "例題 3",
+    "problemPages": [
+     41
+    ],
+    "answerPages": [
+     41
+    ],
+    "subs": [
+     {
+      "label": null,
+      "answer": "x=9，y=−13",
+      "options": [
+       "x=−9，y=13",
+       "x=9，y=13",
+       "x=13，y=−9"
+      ]
+     }
+    ]
+   },
+   "page": 41,
+   "bookPage": "42",
+   "problemImage": "ss_math_a/p040.jpg",
+   "answerImage": "ss_math_a/s040.jpg"
+  },
+  {
+   "no": 41,
+   "chapterNo": 11,
+   "chapter": "第11講 ユークリッドの互除法，整数の性質の活用",
+   "section": "PART4 整数の性質の活用",
+   "kind": "problem",
+   "front": "例題 4",
+   "back": null,
+   "extra": {
+    "label": "例題 4",
+    "problemPages": [
+     42
+    ],
+    "answerPages": [
+     42
+    ],
+    "subs": [
+     {
+      "label": "(1)",
+      "answer": "50",
+      "options": [
+       "38",
+       "52",
+       "100"
+      ]
+     },
+     {
+      "label": "(2)",
+      "answer": "1010111₍₂₎",
+      "options": [
+       "1110101₍₂₎",
+       "1010110₍₂₎",
+       "1011011₍₂₎"
+      ]
+     }
+    ]
+   },
+   "page": 42,
+   "bookPage": "43",
+   "problemImage": "ss_math_a/p041.jpg",
+   "answerImage": "ss_math_a/s041.jpg"
+  }
+ ]
+}

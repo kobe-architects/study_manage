@@ -1,0 +1,330 @@
+[
+  {
+    "no": 1,
+    "lecture": 1,
+    "lectureTitle": "平面上のベクトル",
+    "part": 1,
+    "partTitle": "有向線分とベクトル，ベクトルの相等",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "→a と →e，→c と →h，→d と →i", "options": ["→a と →e，→b と →f，→d と →i", "→a と →e，→c と →h，→g と →j", "→b と →f，→c と →h，→d と →i"] },
+      { "label": "(2)", "answer": "→a と →e，→b と →f，→d と →i", "options": ["→a と →e，→c と →h，→d と →i", "→a と →e，→b と →f，→c と →h", "→b と →f，→d と →i，→g と →j"] },
+      { "label": "(3)", "answer": "→a と →e，→d と →i", "options": ["→a と →e，→b と →f", "→c と →h，→d と →i", "→a と →e，→c と →h"] },
+      { "label": "(4)", "answer": "→c と →h", "options": ["→a と →e", "→d と →i", "→b と →f"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 2,
+    "lecture": 1,
+    "lectureTitle": "平面上のベクトル",
+    "part": 2,
+    "partTitle": "ベクトルの加法・減法",
+    "label": 2,
+    "subs": [],
+    "skipped": ["(1) 図示する問題のため", "(2) 図示する問題のため"],
+    "note": ""
+  },
+  {
+    "no": 3,
+    "lecture": 1,
+    "lectureTitle": "平面上のベクトル",
+    "part": 3,
+    "partTitle": "ベクトルの実数倍，ベクトルの演算",
+    "label": 3,
+    "subs": [
+      { "label": "(2)(i)", "answer": "2→a", "options": ["12→a", "−2→a", "→a"] },
+      { "label": "(2)(ii)", "answer": "−2→a−3→b", "options": ["−2→a−→b", "2→a−3→b", "−2→a+3→b"] },
+      { "label": "(2)(iii)", "answer": "→a", "options": ["→a−24→b", "5→a", "→a+24→b"] },
+      { "label": "(3)", "answer": "→x=−(4/3)→a+(1/3)→b", "options": ["→x=−4→a+→b", "→x=(4/3)→a−(1/3)→b", "→x=−(4/3)→a+(1/2)→b"] }
+    ],
+    "skipped": ["(1) 図示する問題のため"],
+    "note": ""
+  },
+  {
+    "no": 4,
+    "lecture": 1,
+    "lectureTitle": "平面上のベクトル",
+    "part": 4,
+    "partTitle": "ベクトルの平行，ベクトルの分解",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "FC→=2→a", "options": ["FC→=−2→a", "FC→=2→b", "FC→=→a+→b"] },
+      { "label": "(2)", "answer": "AO→=→a+→b", "options": ["AO→=→a−→b", "AO→=2→a+→b", "AO→=(→a+→b)/2"] },
+      { "label": "(3)", "answer": "DF→=−2→a−→b", "options": ["DF→=2→a+→b", "DF→=−→a−2→b", "DF→=−2→a+→b"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 5,
+    "lecture": 2,
+    "lectureTitle": "ベクトルの成分表示",
+    "part": 1,
+    "partTitle": "ベクトルの成分",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "→a=(−3, −2)，|→a|=√13 ／ →b=(0, 1)，|→b|=1", "options": ["→a=(3, 2)，|→a|=√13 ／ →b=(0, 1)，|→b|=1", "→a=(−3, −2)，|→a|=√5 ／ →b=(0, 1)，|→b|=1", "→a=(−2, −3)，|→a|=√13 ／ →b=(1, 0)，|→b|=1"] },
+      { "label": "(2)(i)", "answer": "(5, −3)", "options": ["(−1, 1)", "(5, 3)", "(−5, 3)"] },
+      { "label": "(2)(ii)", "answer": "(−5, 4)", "options": ["(5, −4)", "(−5, 6)", "(13, −8)"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 6,
+    "lecture": 2,
+    "lectureTitle": "ベクトルの成分表示",
+    "part": 2,
+    "partTitle": "ベクトルの成分と平行・分解",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "x=−5/2", "options": ["x=5/2", "x=−2/5", "x=−10"] },
+      { "label": "(2)", "answer": "→p=4→a+3→b", "options": ["→p=3→a+4→b", "→p=4→a−3→b", "→p=−4→a+3→b"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 7,
+    "lecture": 2,
+    "lectureTitle": "ベクトルの成分表示",
+    "part": 3,
+    "partTitle": "座標と成分表示",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "AB→=(4, −1)，|AB→|=√17 ／ BC→=(2, 2)，|BC→|=2√2", "options": ["AB→=(−4, 1)，|AB→|=√15 ／ BC→=(2, 2)，|BC→|=2√2", "AB→=(4, −1)，|AB→|=√17 ／ BC→=(2, 2)，|BC→|=4", "AB→=(6, 5)，|AB→|=√61 ／ BC→=(12, 6)，|BC→|=6√5"] },
+      { "label": "(2)", "answer": "(3, 5)", "options": ["(−1, 1)", "(11, 3)", "(5, 3)"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 8,
+    "lecture": 3,
+    "lectureTitle": "ベクトルの内積",
+    "part": 1,
+    "partTitle": "ベクトルの内積",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "3", "options": ["√3", "2√3", "6"] },
+      { "label": "(2)", "answer": "−1", "options": ["1", "−2", "−√3"] },
+      { "label": "(3)", "answer": "0", "options": ["√3", "1", "−√3"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 9,
+    "lecture": 3,
+    "lectureTitle": "ベクトルの内積",
+    "part": 2,
+    "partTitle": "ベクトルの内積と成分",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "4", "options": ["12", "0", "−4"] },
+      { "label": "(2)", "answer": "0", "options": ["24", "−24", "6"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 10,
+    "lecture": 3,
+    "lectureTitle": "ベクトルの内積",
+    "part": 3,
+    "partTitle": "ベクトルのなす角",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "θ=120°", "options": ["θ=60°", "θ=150°", "θ=135°"] },
+      { "label": "(2)", "answer": "x=−10", "options": ["x=10", "x=−5/2", "x=5/2"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 11,
+    "lecture": 3,
+    "lectureTitle": "ベクトルの内積",
+    "part": 4,
+    "partTitle": "内積の性質",
+    "label": 4,
+    "subs": [
+      { "label": "(2)", "answer": "√5", "options": ["5", "√21", "√13"] }
+    ],
+    "skipped": ["(1) 証明せよのため"],
+    "note": ""
+  },
+  {
+    "no": 12,
+    "lecture": 4,
+    "lectureTitle": "ベクトルと平面図形",
+    "part": 1,
+    "partTitle": "位置ベクトル",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "→p=(→a+3→b)/4，→q=(−→a+3→b)/2", "options": ["→p=(3→a+→b)/4，→q=(3→a−→b)/2", "→p=(→a+3→b)/4，→q=(→a−3→b)/2", "→p=(→a+3→b)/3，→q=(−→a+3→b)/4"] },
+      { "label": "(2)", "answer": "→p=(5→a+2→b)/7，→q=(5→a−2→b)/3", "options": ["→p=(2→a+5→b)/7，→q=(−2→a+5→b)/3", "→p=(5→a+2→b)/7，→q=(−5→a+2→b)/3", "→p=(5→a+2→b)/7，→q=(5→a−2→b)/7"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 13,
+    "lecture": 4,
+    "lectureTitle": "ベクトルと平面図形",
+    "part": 2,
+    "partTitle": "一直線上の点",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "AC→=→b+→d，AE→=(3/5)→d，AF→=(2/7)→b+(5/7)→d", "options": ["AC→=→b+→d，AE→=(2/5)→d，AF→=(5/7)→b+(2/7)→d", "AC→=→b−→d，AE→=(3/5)→d，AF→=(2/7)→b+(5/7)→d", "AC→=→b+→d，AE→=(3/5)→b，AF→=(2/5)→b+(5/7)→d"] }
+    ],
+    "skipped": ["(2) 一直線上にあることを示せのため"],
+    "note": ""
+  },
+  {
+    "no": 14,
+    "lecture": 4,
+    "lectureTitle": "ベクトルと平面図形",
+    "part": 3,
+    "partTitle": "2直線の交点",
+    "label": 3,
+    "subs": [
+      { "label": null, "answer": "OP→=(1/5)→a+(2/5)→b", "options": ["OP→=(2/5)→a+(1/5)→b", "OP→=(1/3)→a+(1/2)→b", "OP→=(4/5)→a+(3/5)→b"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 15,
+    "lecture": 4,
+    "lectureTitle": "ベクトルと平面図形",
+    "part": 4,
+    "partTitle": "ベクトル方程式",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "x=2−t，y=−3+5t", "options": ["x=2+t，y=−3+5t", "x=−1+2t，y=5−3t", "x=2−t，y=3+5t"] },
+      { "label": "(2)", "answer": "x=−1+3t，y=6−5t", "options": ["x=−1+2t，y=6+t", "x=−1−3t，y=6+5t", "x=3−t，y=−5+6t"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 16,
+    "lecture": 5,
+    "lectureTitle": "空間のベクトル",
+    "part": 1,
+    "partTitle": "空間の座標",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "A(1, 2, 0)，B(0, 2, 3)，C(1, 0, 3)", "options": ["A(0, 2, 3)，B(1, 2, 0)，C(1, 0, 3)", "A(1, 2, 0)，B(1, 0, 3)，C(0, 2, 3)", "A(0, 0, 3)，B(1, 0, 0)，C(0, 2, 0)"] },
+      { "label": "(2)", "answer": "Q(1, 2, −3)", "options": ["Q(−1, 2, 3)", "Q(1, −2, 3)", "Q(−1, −2, 3)"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 17,
+    "lecture": 5,
+    "lectureTitle": "空間のベクトル",
+    "part": 2,
+    "partTitle": "空間のベクトル",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "AF→=→a+→c", "options": ["AF→=→a+→b", "AF→=→a−→c", "AF→=→b+→c"] },
+      { "label": "(2)", "answer": "AG→=→a+→b+→c", "options": ["AG→=→a+→b−→c", "AG→=→a−→b+→c", "AG→=→b+→c"] },
+      { "label": "(3)", "answer": "FC→=→b−→c", "options": ["FC→=→c−→b", "FC→=→b+→c", "FC→=→a+→b−→c"] },
+      { "label": "(4)", "answer": "CE→=−→a−→b+→c", "options": ["CE→=→a+→b−→c", "CE→=−→a+→b+→c", "CE→=−→a−→b−→c"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 18,
+    "lecture": 5,
+    "lectureTitle": "空間のベクトル",
+    "part": 3,
+    "partTitle": "ベクトルの成分と演算，座標と成分表示",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "3→a−2→b=(−1, −3, 7)，|3→a−2→b|=√59", "options": ["3→a−2→b=(7, −3, −1)，|3→a−2→b|=√59", "3→a−2→b=(−1, −3, 7)，|3→a−2→b|=√41", "3→a−2→b=(1, −3, 7)，|3→a−2→b|=√59"] },
+      { "label": "(2)", "answer": "AB→=(−2, −2, 8)，|AB→|=6√2", "options": ["AB→=(2, 2, −8)，|AB→|=6√2", "AB→=(−2, −2, 8)，|AB→|=4√2", "AB→=(4, 6, −2)，|AB→|=2√14"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 19,
+    "lecture": 5,
+    "lectureTitle": "空間のベクトル",
+    "part": 4,
+    "partTitle": "ベクトルの内積となす角",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "9", "options": ["9√2", "18", "9√3"] },
+      { "label": "(2)", "answer": "∠ABC=30°", "options": ["∠ABC=60°", "∠ABC=45°", "∠ABC=120°"] },
+      { "label": "(3)", "answer": "k=2", "options": ["k=−2", "k=10", "k=1/2"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 20,
+    "lecture": 6,
+    "lectureTitle": "空間図形とベクトル",
+    "part": 1,
+    "partTitle": "位置ベクトル",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "→p=(→a+→b+→c+→d)/4", "options": ["→p=(→a+→b+→c+→d)/2", "→p=(→a+→b+→c+→d)/3", "→p=(→a+→d)/2"] },
+      { "label": "(2)", "answer": "→h=(→a+→b+→c+→d)/4", "options": ["→h=(3→a+→b+→c+→d)/4", "→h=(→a+→b+→c+→d)/3", "→h=(→a+3→b+3→c+3→d)/4"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 21,
+    "lecture": 6,
+    "lectureTitle": "空間図形とベクトル",
+    "part": 2,
+    "partTitle": "一直線上の点",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "AM→=(1/2)→c，AC→=→a+→b，AP→=(→a+→b+→c)/3", "options": ["AM→=(1/2)→c，AC→=→a+→b，AP→=(→a+→b+→c)/2", "AM→=(1/2)→b，AC→=→a+→c，AP→=(→a+→b+→c)/3", "AM→=2→c，AC→=→a+→b+→c，AP→=(→a+→b+→c)/3"] }
+    ],
+    "skipped": ["(2) 一直線上にあることを示せのため"],
+    "note": ""
+  },
+  {
+    "no": 22,
+    "lecture": 6,
+    "lectureTitle": "空間図形とベクトル",
+    "part": 3,
+    "partTitle": "同一平面上にある点",
+    "label": 3,
+    "subs": [
+      { "label": null, "answer": "x=5", "options": ["x=−5", "x=1", "x=3"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 23,
+    "lecture": 6,
+    "lectureTitle": "空間図形とベクトル",
+    "part": 4,
+    "partTitle": "座標空間における図形",
+    "label": 4,
+    "subs": [
+      { "label": "(1)(i)", "answer": "(1/5, 12/5, 13/5)", "options": ["(−1/5, 13/5, 12/5)", "(1/5, 12/5, 7/5)", "(3/5, 11/5, 14/5)"] },
+      { "label": "(1)(ii)", "answer": "(5, 0, 5)", "options": ["(−5, 0, −5)", "(5, 0, −5)", "(−3, 4, 1)"] },
+      { "label": "(2)(i)", "answer": "z=−1", "options": ["z=2", "x=2", "z=−3"] },
+      { "label": "(2)(ii)", "answer": "x=2", "options": ["x=−3", "y=−3", "z=−1"] },
+      { "label": "(2)(iii)", "answer": "y=−3", "options": ["y=2", "x=2", "y=−1"] },
+      { "label": "(3)", "answer": "(x−2)²+(y−2)²+(z+2)²=6", "options": ["(x−2)²+(y−2)²+(z−2)²=6", "(x−2)²+(y−2)²+(z+2)²=√6", "(x−2)²+(y−2)²+(z+2)²=24"] }
+    ],
+    "skipped": [],
+    "note": ""
+  }
+]

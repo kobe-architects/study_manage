@@ -1,0 +1,605 @@
+[
+  {
+    "no": 1,
+    "lecture": 1,
+    "lectureTitle": "場合の数",
+    "part": 1,
+    "partTitle": "集合の要素の個数",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "20 個", "options": ["25 個", "19 個", "21 個"] },
+      { "label": "(2)", "answer": "80 個", "options": ["75 個", "79 個", "81 個"] },
+      { "label": "(3)", "answer": "2 個", "options": ["3 個", "1 個", "4 個"] },
+      { "label": "(4)", "answer": "32 個", "options": ["34 個", "30 個", "36 個"] },
+      { "label": "(5)", "answer": "18 個", "options": ["16 個", "20 個", "12 個"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 2,
+    "lecture": 1,
+    "lectureTitle": "場合の数",
+    "part": 2,
+    "partTitle": "場合の数",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "10 通り", "options": ["15 通り", "6 通り", "12 通り"] },
+      { "label": "(2)", "answer": "10 通り", "options": ["8 通り", "6 通り", "12 通り"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 3,
+    "lecture": 1,
+    "lectureTitle": "場合の数",
+    "part": 3,
+    "partTitle": "和の法則",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "7 通り", "options": ["6 通り", "8 通り", "12 通り"] },
+      { "label": "(2)", "answer": "9 通り", "options": ["8 通り", "10 通り", "7 通り"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 4,
+    "lecture": 1,
+    "lectureTitle": "場合の数",
+    "part": 4,
+    "partTitle": "積の法則",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "9 通り", "options": ["6 通り", "12 通り", "18 通り"] },
+      { "label": "(2)", "answer": "24 通り", "options": ["9 通り", "12 通り", "14 通り"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 5,
+    "lecture": 2,
+    "lectureTitle": "順列",
+    "part": 1,
+    "partTitle": "順列",
+    "label": 1,
+    "subs": [
+      { "label": "(1)(i)", "answer": "24", "options": ["12", "64", "4"] },
+      { "label": "(1)(ii)", "answer": "7", "options": ["1", "6", "42"] },
+      { "label": "(1)(iii)", "answer": "6", "options": ["3", "9", "27"] },
+      { "label": "(1)(iv)", "answer": "120", "options": ["25", "24", "60"] },
+      { "label": "(2)(i)", "answer": "20 通り", "options": ["10 通り", "25 通り", "120 通り"] },
+      { "label": "(2)(ii)", "answer": "5040 通り", "options": ["720 通り", "2520 通り", "49 通り"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 6,
+    "lecture": 2,
+    "lectureTitle": "順列",
+    "part": 2,
+    "partTitle": "順列の利用",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "210 通り", "options": ["35 通り", "343 通り", "21 通り"] },
+      { "label": "(2)", "answer": "72 個", "options": ["48 個", "120 個", "60 個"] },
+      { "label": "(3)(i)", "answer": "12 通り", "options": ["24 通り", "6 通り", "48 通り"] },
+      { "label": "(3)(ii)", "answer": "36 通り", "options": ["12 通り", "72 通り", "18 通り"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 7,
+    "lecture": 2,
+    "lectureTitle": "順列",
+    "part": 3,
+    "partTitle": "円順列",
+    "label": 3,
+    "subs": [
+      { "label": "(1)(i)", "answer": "24 通り", "options": ["120 通り", "12 通り", "60 通り"] },
+      { "label": "(1)(ii)", "answer": "12 通り", "options": ["6 通り", "24 通り", "48 通り"] },
+      { "label": "(2)", "answer": "60 種類", "options": ["120 種類", "360 種類", "30 種類"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 8,
+    "lecture": 2,
+    "lectureTitle": "順列",
+    "part": 4,
+    "partTitle": "重複順列",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "32 通り", "options": ["25 通り", "10 通り", "16 通り"] },
+      { "label": "(2)(i)", "answer": "192 個", "options": ["256 個", "81 個", "108 個"] },
+      { "label": "(2)(ii)", "answer": "96 個", "options": ["128 個", "48 個", "72 個"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 9,
+    "lecture": 3,
+    "lectureTitle": "組合せ",
+    "part": 1,
+    "partTitle": "組合せ",
+    "label": 1,
+    "subs": [
+      { "label": "(1)(i)", "answer": "56", "options": ["336", "28", "84"] },
+      { "label": "(1)(ii)", "answer": "15", "options": ["360", "30", "20"] },
+      { "label": "(1)(iii)", "answer": "5", "options": ["1", "10", "4"] },
+      { "label": "(2)(i)", "answer": "210 通り", "options": ["5040 通り", "840 通り", "120 通り"] },
+      { "label": "(2)(ii)", "answer": "20 個", "options": ["120 個", "18 個", "15 個"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 10,
+    "lecture": 3,
+    "lectureTitle": "組合せ",
+    "part": 2,
+    "partTitle": "組合せの利用",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "220 通り", "options": ["1320 通り", "110 通り", "440 通り"] },
+      { "label": "(2)", "answer": "70 通り", "options": ["35 通り", "140 通り", "105 通り"] },
+      { "label": "(3)", "answer": "210 通り", "options": ["215 通り", "175 通り", "200 通り"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 11,
+    "lecture": 3,
+    "lectureTitle": "組合せ",
+    "part": 3,
+    "partTitle": "組分け",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "1680 通り", "options": ["280 通り", "840 通り", "5040 通り"] },
+      { "label": "(2)", "answer": "280 通り", "options": ["1680 通り", "560 通り", "840 通り"] },
+      { "label": "(3)", "answer": "1260 通り", "options": ["7560 通り", "2520 通り", "630 通り"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 12,
+    "lecture": 3,
+    "lectureTitle": "組合せ",
+    "part": 4,
+    "partTitle": "同じものを含む順列",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "60 個", "options": ["720 個", "120 個", "30 個"] },
+      { "label": "(2)(i)", "answer": "35 通り", "options": ["21 通り", "70 通り", "12 通り"] },
+      { "label": "(2)(ii)", "answer": "18 通り", "options": ["9 通り", "12 通り", "35 通り"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 13,
+    "lecture": 4,
+    "lectureTitle": "事象と確率",
+    "part": 1,
+    "partTitle": "試行と事象",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "2/3", "options": ["1/2", "1/3", "5/6"] },
+      { "label": "(2)", "answer": "3/5", "options": ["2/5", "1/5", "3/4"] },
+      { "label": "(3)", "answer": "1/2", "options": ["1/4", "1/3", "3/4"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 14,
+    "lecture": 4,
+    "lectureTitle": "事象と確率",
+    "part": 2,
+    "partTitle": "順列・組合せと確率",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "1/5", "options": ["1/30", "1/6", "1/20"] },
+      { "label": "(2)(i)", "answer": "2/7", "options": ["1/7", "10/21", "3/7"] },
+      { "label": "(2)(ii)", "answer": "1/7", "options": ["2/7", "1/35", "5/7"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 15,
+    "lecture": 4,
+    "lectureTitle": "事象と確率",
+    "part": 3,
+    "partTitle": "確率の基本性質",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "1/6", "options": ["5/42", "1/21", "1/12"] },
+      { "label": "(2)", "answer": "11/21", "options": ["10/21", "1/21", "4/21"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 16,
+    "lecture": 4,
+    "lectureTitle": "事象と確率",
+    "part": 4,
+    "partTitle": "和事象の確率，余事象の確率",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "6/7", "options": ["8/7", "4/7", "2/7"] },
+      { "label": "(2)(i)", "answer": "25/91", "options": ["66/91", "1/7", "13/91"] },
+      { "label": "(2)(ii)", "answer": "12/13", "options": ["1/13", "11/13", "6/7"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 17,
+    "lecture": 5,
+    "lectureTitle": "独立な試行の確率，反復試行の確率",
+    "part": 1,
+    "partTitle": "独立な試行の確率",
+    "label": 1,
+    "subs": [
+      { "label": "(1)(i)", "answer": "1/3", "options": ["1/4", "1/2", "2/3"] },
+      { "label": "(1)(ii)", "answer": "8/9", "options": ["1/9", "4/9", "5/9"] },
+      { "label": "(2)", "answer": "7/15", "options": ["4/15", "1/5", "8/15"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 18,
+    "lecture": 5,
+    "lectureTitle": "独立な試行の確率，反復試行の確率",
+    "part": 2,
+    "partTitle": "反復試行の確率",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "25/216", "options": ["25/1296", "1/36", "125/216"] },
+      { "label": "(2)", "answer": "8/81", "options": ["2/81", "4/81", "1/27"] },
+      { "label": "(3)", "answer": "11/16", "options": ["5/16", "3/8", "15/16"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 19,
+    "lecture": 6,
+    "lectureTitle": "条件付き確率，期待値",
+    "part": 1,
+    "partTitle": "条件付き確率",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "3/19", "options": ["1/5", "4/19", "3/20"] },
+      { "label": "(2)", "answer": "3/95", "options": ["1/25", "3/19", "4/95"] },
+      { "label": "(3)", "answer": "1/5", "options": ["16/95", "3/19", "4/19"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 20,
+    "lecture": 6,
+    "lectureTitle": "条件付き確率，期待値",
+    "part": 2,
+    "partTitle": "期待値",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "4/5 個（0.8 個）", "options": ["3/5 個（0.6 個）", "1 個", "7/10 個（0.7 個）"] },
+      { "label": "(2)", "answer": "80 円", "options": ["100 円", "60 円", "120 円"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 21,
+    "lecture": 7,
+    "lectureTitle": "三角形の性質",
+    "part": 1,
+    "partTitle": "線分の内分・外分，角の二等分線と比",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "BD=3", "options": ["BD=2", "BD=5/2", "BD=10/3"] },
+      { "label": "(2)", "answer": "CE=10", "options": ["CE=15", "CE=8", "CE=12"] },
+      { "label": "(3)", "answer": "DE=12", "options": ["DE=10", "DE=13", "DE=15"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 22,
+    "lecture": 7,
+    "lectureTitle": "三角形の性質",
+    "part": 2,
+    "partTitle": "三角形の外心・内心",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "x=35°，y=150°", "options": ["x=40°，y=150°", "x=35°，y=75°", "x=25°，y=140°"] },
+      { "label": "(2)", "answer": "x=30°，y=122°", "options": ["x=30°，y=116°", "x=32°，y=120°", "x=30°，y=128°"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 23,
+    "lecture": 7,
+    "lectureTitle": "三角形の性質",
+    "part": 3,
+    "partTitle": "三角形の重心",
+    "label": 3,
+    "subs": [
+      { "label": null, "answer": "x=4，y=6", "options": ["x=4，y=4", "x=16，y=6", "x=4，y=8"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 24,
+    "lecture": 7,
+    "lectureTitle": "三角形の性質",
+    "part": 4,
+    "partTitle": "三角形の線分の比と面積比",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "3：4", "options": ["4：3", "3：7", "9：16"] },
+      { "label": "(2)", "answer": "2：5", "options": ["2：3", "3：5", "4：25"] },
+      { "label": "(3)", "answer": "3：4", "options": ["2：3", "4：3", "3：5"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 25,
+    "lecture": 7,
+    "lectureTitle": "三角形の性質",
+    "part": 5,
+    "partTitle": "チェバの定理，メネラウスの定理",
+    "label": 5,
+    "subs": [
+      { "label": "(1)", "answer": "BP：PC=3：8", "options": ["BP：PC=8：3", "BP：PC=3：2", "BP：PC=2：3"] },
+      { "label": "(2)(i)", "answer": "CQ：QA=2：3", "options": ["CQ：QA=3：2", "CQ：QA=1：3", "CQ：QA=3：4"] },
+      { "label": "(2)(ii)", "answer": "PR：RC=9：14", "options": ["PR：RC=14：9", "PR：RC=6：7", "PR：RC=9：7"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 26,
+    "lecture": 7,
+    "lectureTitle": "三角形の性質",
+    "part": 6,
+    "partTitle": "三角形の辺と角",
+    "label": 6,
+    "subs": [
+      { "label": "(1)(i)", "answer": "存在する", "options": ["存在しない", "直角三角形としてのみ存在する", "二等辺三角形としてのみ存在する"] },
+      { "label": "(1)(ii)", "answer": "存在しない", "options": ["存在する", "直角三角形として存在する", "鈍角三角形として存在する"] },
+      { "label": "(2)(i)", "answer": "∠B", "options": ["∠A", "∠C", "∠A と ∠B"] },
+      { "label": "(2)(ii)", "answer": "辺 AB", "options": ["辺 BC", "辺 CA", "辺 BC と辺 CA"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 27,
+    "lecture": 8,
+    "lectureTitle": "円の性質",
+    "part": 1,
+    "partTitle": "円に内接する四角形",
+    "label": 1,
+    "subs": [
+      { "label": "(1)(i)", "answer": "x=100°，y=72°", "options": ["x=80°，y=108°", "x=100°，y=108°", "x=72°，y=100°"] },
+      { "label": "(1)(ii)", "answer": "x=60°，y=120°", "options": ["x=120°，y=60°", "x=60°，y=60°", "x=240°，y=120°"] },
+      { "label": "(2)", "answer": "①，②", "options": ["①のみ", "②のみ", "どちらも内接しない"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 28,
+    "lecture": 8,
+    "lectureTitle": "円の性質",
+    "part": 2,
+    "partTitle": "円と接線",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "AF=2", "options": ["AF=3", "AF=4", "AF=1"] },
+      { "label": "(2)(i)", "answer": "x=36°，y=72°", "options": ["x=72°，y=36°", "x=36°，y=54°", "x=54°，y=72°"] },
+      { "label": "(2)(ii)", "answer": "x=20°，y=50°", "options": ["x=40°，y=70°", "x=20°，y=70°", "x=20°，y=90°"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 29,
+    "lecture": 8,
+    "lectureTitle": "円の性質",
+    "part": 3,
+    "partTitle": "方べきの定理",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "x=6", "options": ["x=5", "x=8/3", "x=3/2"] },
+      { "label": "(2)", "answer": "x=3", "options": ["x=6", "x=2", "x=11/3"] },
+      { "label": "(3)", "answer": "x=4", "options": ["x=9", "x=6", "x=31/5"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 30,
+    "lecture": 8,
+    "lectureTitle": "円の性質",
+    "part": 4,
+    "partTitle": "2 つの円の位置関係と共通接線",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "外接する，共通接線は 3 本", "options": ["内接する，共通接線は 1 本", "2 点で交わる，共通接線は 2 本", "離れている，共通接線は 4 本"] },
+      { "label": "(2)", "answer": "AB=12", "options": ["AB=13", "AB=5", "AB=√194"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 31,
+    "lecture": 8,
+    "lectureTitle": "円の性質",
+    "part": 5,
+    "partTitle": "作図",
+    "label": 5,
+    "subs": [],
+    "skipped": ["作図せよ（線分 AB を 3：2 に内分する点の作図）のため"],
+    "note": ""
+  },
+  {
+    "no": 32,
+    "lecture": 9,
+    "lectureTitle": "空間図形",
+    "part": 1,
+    "partTitle": "直線と平面",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "辺 AD，AE，BC，BF，DH，EH，CG，FG", "options": ["辺 AD，AE，BC，BF", "辺 DC，EF，HG，DH，EH，CG，FG", "辺 AD，BC，DH，CG，EH，FG"] },
+      { "label": "(2)", "answer": "θ=45°", "options": ["θ=90°", "θ=60°", "θ=30°"] },
+      { "label": "(3)", "answer": "面 AEHD，BFGC", "options": ["面 ABCD，AEFB", "面 AEHD，EFGH", "面 BFGC，HGCD"] },
+      { "label": "(4)", "answer": "面 ABCD，AEFB，EFGH，HGCD", "options": ["面 ABCD，EFGH", "面 AEFB，HGCD，BFGC", "面 BFGC のみ"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 33,
+    "lecture": 9,
+    "lectureTitle": "空間図形",
+    "part": 2,
+    "partTitle": "多面体",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "12", "options": ["20", "60", "15"] },
+      { "label": "(2)", "answer": "e=30", "options": ["e=34", "e=20", "e=32"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 34,
+    "lecture": 10,
+    "lectureTitle": "約数と倍数",
+    "part": 1,
+    "partTitle": "約数と倍数",
+    "label": 1,
+    "subs": [
+      { "label": "(1)(i)", "answer": "1，2，3，4，6，8，12，24", "options": ["1，2，3，4，6，12，24", "1，2，3，4，6，8，12，16，24", "2，3，4，6，8，12"] },
+      { "label": "(1)(ii)", "answer": "15，30，45，60，75", "options": ["1，3，5，15，30", "15，30，45，60，90", "30，45，60，75，90"] },
+      { "label": "(2)", "answer": "5", "options": ["0", "2", "0 と 5"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 35,
+    "lecture": 10,
+    "lectureTitle": "約数と倍数",
+    "part": 2,
+    "partTitle": "素因数分解と約数",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "n=14", "options": ["n=7", "n=2", "n=35"] },
+      { "label": "(2)", "answer": "12 個", "options": ["8 個", "6 個", "18 個"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 36,
+    "lecture": 10,
+    "lectureTitle": "約数と倍数",
+    "part": 3,
+    "partTitle": "最大公約数と最小公倍数",
+    "label": 3,
+    "subs": [
+      { "label": "(1)", "answer": "最大公約数 14，最小公倍数 1540", "options": ["最大公約数 7，最小公倍数 1540", "最大公約数 14，最小公倍数 3080", "最大公約数 14，最小公倍数 770"] },
+      { "label": "(2)", "answer": "最大公約数 1，最小公倍数 30030", "options": ["最大公約数 1，最小公倍数 15015", "最大公約数 3，最小公倍数 10010", "最大公約数 13，最小公倍数 2310"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 37,
+    "lecture": 10,
+    "lectureTitle": "約数と倍数",
+    "part": 4,
+    "partTitle": "余りによる分類",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "0", "options": ["1", "5", "2"] },
+      { "label": "(2)", "answer": "1", "options": ["6", "0", "2"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 38,
+    "lecture": 11,
+    "lectureTitle": "ユークリッドの互除法，整数の性質の活用",
+    "part": 1,
+    "partTitle": "ユークリッドの互除法",
+    "label": 1,
+    "subs": [
+      { "label": "(1)", "answer": "18", "options": ["198", "9", "6"] },
+      { "label": "(2)", "answer": "1", "options": ["5", "6", "95"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 39,
+    "lecture": 11,
+    "lectureTitle": "ユークリッドの互除法，整数の性質の活用",
+    "part": 2,
+    "partTitle": "1 次不定方程式",
+    "label": 2,
+    "subs": [
+      { "label": "(1)", "answer": "x=5k，y=3k（k は整数）", "options": ["x=3k，y=5k（k は整数）", "x=5k，y=−3k（k は整数）", "x=5k+1，y=3k（k は整数）"] },
+      { "label": "(2)", "answer": "x=5k+2，y=−8k−3（k は整数）", "options": ["x=5k+2，y=8k−3（k は整数）", "x=8k+2，y=−5k−3（k は整数）", "x=5k−2，y=−8k+3（k は整数）"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 40,
+    "lecture": 11,
+    "lectureTitle": "ユークリッドの互除法，整数の性質の活用",
+    "part": 3,
+    "partTitle": "1 次不定方程式とユークリッドの互除法",
+    "label": 3,
+    "subs": [
+      { "label": null, "answer": "x=9，y=−13", "options": ["x=−9，y=13", "x=9，y=13", "x=13，y=−9"] }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 41,
+    "lecture": 11,
+    "lectureTitle": "ユークリッドの互除法，整数の性質の活用",
+    "part": 4,
+    "partTitle": "整数の性質の活用",
+    "label": 4,
+    "subs": [
+      { "label": "(1)", "answer": "50", "options": ["38", "52", "100"] },
+      { "label": "(2)", "answer": "1010111₍₂₎", "options": ["1110101₍₂₎", "1010110₍₂₎", "1011011₍₂₎"] }
+    ],
+    "skipped": [],
+    "note": ""
+  }
+]

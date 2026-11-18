@@ -4,9 +4,11 @@
  * 設定（章・種類・形式・出題対象・出題順・問題数）→ 全画面で 1 枚ずつ解答 → 結果。
  * 回答は 1 枚ごとにサーバーへ記録し（解答時間つき）、忘却曲線の復習状態が更新される。
  * 「今日の復習」は復習期限が来ているカードだけを期限の古い順に出す。1 回の出題は「出題履歴」に残る。
+ * 数学の例題は解答後に「間違いノートを作成」（問題の切り抜き・正解・解説を 1 ページに。分類とデッキは自動。作成済みなら開く）。
  * 英語学習（EnglishView）・数学学習（MathView）のタブの中で使う。deckKey で束を指定する。
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import CardQuestion, { type CardAnswerResult } from '@/components/CardQuestion.vue'
 import HelpTip from '@/components/HelpTip.vue'
 import QuizFullscreen from '@/components/QuizFullscreen.vue'
@@ -15,6 +17,7 @@ import { cardsApi } from '@/api/cards'
 import client from '@/api/client'
 import { sessionsApi } from '@/api/sessions'
 import { buildSubQuestions } from '@/lib/cardChoices'
+import { createCardNote } from '@/lib/cardNote'
 import { openCardCheckSheet } from '@/lib/cardSheet'
 import { shuffle } from '@/lib/design'
 import { saveFile } from '@/lib/native'
@@ -27,6 +30,7 @@ import type { CardDeck, CardItem, CardKind, CardMode, CardStat } from '@/types'
 const props = defineProps<{ deckKey: string; subject: 'english' | 'math' }>()
 const ui = useUiStore()
 const auth = useAuthStore()
+const router = useRouter()
 
 type Phase = 'home' | 'quiz' | 'results'
 const phase = ref<Phase>('home')
@@ -397,6 +401,30 @@ async function onUnsure(unsure: boolean) {
     // ignore
   }
 }
+// ---- 間違いノート（数学の例題。解答後の「間違いノートを作成」。問題・正解・解説を 1 ページにまとめ、分類・デッキは自動） ----
+const noteBusy = ref<number | null>(null)
+async function makeNote(c: CardItem, result: CardAnswerResult | null) {
+  if (noteBusy.value) return
+  if (c.noteId) {
+    finishSession()
+    router.push({ name: 'mistake-edit', params: { id: c.noteId } })
+    return
+  }
+  noteBusy.value = c.id
+  try {
+    const { note, created } = await createCardNote(c, result, deck.value?.name ?? null)
+    c.noteId = note.id
+    ui.notify(created ? `間違いノートを作成しました（${[note.subjectName, note.field].filter(Boolean).join(' ／ ') || `デッキ「${note.deckName ?? ''}」`}）` : 'この問題の間違いノートはすでにあります', { center: true })
+  } catch {
+    ui.notify('間違いノートの作成に失敗しました', { center: true })
+  } finally {
+    noteBusy.value = null
+  }
+}
+function noteLabel(c: CardItem): string {
+  return noteBusy.value === c.id ? '作成中…' : c.noteId ? '間違いノートを開く' : '間違いノートを作成'
+}
+
 function next() {
   if (quiz.index + 1 >= quiz.list.length) {
     finishSession()
@@ -715,6 +743,13 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
           @revealed="peeked = true"
         />
         <div v-if="currentResult && current.stat?.review" class="next-chip">次の復習: {{ current.stat.review.intervalLabel }}後<span v-if="currentResult.elapsedMs !== null">　・　解答 {{ fmtSec(currentResult.elapsedMs) }}</span></div>
+        <!-- 解答後（数学の例題）: 間違いノートを作成（問題の切り抜き・正解・解説を 1 ページに。分類とデッキは自動）。作成済みならそのページを開く -->
+        <div v-if="currentResult && current.kind === 'problem'" class="note-row">
+          <button class="note-btn" :class="{ made: !!current.noteId }" :disabled="noteBusy !== null" @click="makeNote(current, currentResult)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z" /><path d="M9 4v5h6V4" /><path d="M8 14h8M8 17h5" /></svg>
+            {{ noteLabel(current) }}
+          </button>
+        </div>
         <template #footer>
           <button class="qf-ghost" :disabled="quiz.index === 0" @click="prev">前へ</button>
           <button v-if="!currentResult" class="qf-ghost" @click="giveUp">わからない</button>
@@ -730,6 +765,33 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.note-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+.note-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 18px;
+  border: 1.5px solid #3b50cc;
+  border-radius: 11px;
+  background: #fff;
+  color: #3b50cc;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.note-btn.made {
+  background: #eef0f9;
+}
+.note-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .only {
   padding: 2px 8px;

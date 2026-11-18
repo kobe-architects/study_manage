@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CardItem;
 use App\Models\GrammarQuestion;
 use App\Models\MajorCategory;
 use App\Models\MidCategory;
@@ -12,6 +13,7 @@ use App\Models\MistakeReview;
 use App\Models\ResourceBook;
 use App\Models\StudyItem;
 use App\Models\Subject;
+use App\Support\CardNoteClassifier;
 use App\Support\GrammarNoteClassifier;
 use App\Support\ImageTools;
 use App\Support\MistakeReviewScheduler;
@@ -205,18 +207,38 @@ class MistakeNoteController extends Controller
         if ($existing) {
             return response()->json(['data' => $this->detail($existing), 'created' => false]);
         }
+
+        return $this->storeAuto($request, $userId, GrammarNoteClassifier::resolve($userId, $question), ['grammar_question_id' => $question->id]);
+    }
+
+    /**
+     * 学習カード（数学学習の例題: 合格る・スタディサプリ）から自動で作る。multipart: problem（問題の画像・必須）/ answer（正解の画像）/ explanation（解説の画像）。
+     * 分類・デッキ・出典は CardNoteClassifier が決める。同じカードのページがすでにあればそれを返す（created=false）
+     */
+    public function storeFromCard(Request $request, CardItem $item): JsonResponse
+    {
+        $userId = $this->targetUserId($request);
+        $existing = MistakeNote::with(self::WITH)->where('user_id', $userId)->where('card_item_id', $item->id)->first();
+        if ($existing) {
+            return response()->json(['data' => $this->detail($existing), 'created' => false]);
+        }
+
+        return $this->storeAuto($request, $userId, CardNoteClassifier::resolve($userId, $item), ['card_item_id' => $item->id]);
+    }
+
+    /** 自動作成の共通部分: 画像を検証し、問題 → 解答 → 解説 の順に幅いっぱいで上から並べたページを作る */
+    private function storeAuto(Request $request, int $userId, array $meta, array $link): JsonResponse
+    {
         $request->validate([
             'problem' => ['required', 'image', 'mimes:jpeg,png,gif,webp', 'max:12288'],
             'answer' => ['nullable', 'image', 'mimes:jpeg,png,gif,webp', 'max:12288'],
             'explanation' => ['nullable', 'image', 'mimes:jpeg,png,gif,webp', 'max:12288'],
             'mastery' => ['nullable', 'string', self::MASTERY_RULE],
         ]);
-        $meta = GrammarNoteClassifier::resolve($userId, $question);
 
-        $note = DB::transaction(function () use ($request, $userId, $question, $meta) {
-            $note = MistakeNote::create($meta + [
+        $note = DB::transaction(function () use ($request, $userId, $meta, $link) {
+            $note = MistakeNote::create($meta + $link + [
                 'user_id' => $userId,
-                'grammar_question_id' => $question->id,
                 'noted_on' => now()->toDateString(),
                 'mastery' => $request->input('mastery') ?: 'unmastered',
                 'layout' => ['items' => [], 'ink' => []],
@@ -597,6 +619,7 @@ class MistakeNoteController extends Controller
             'hidden' => (bool) $n->hidden,
             'mastery' => $n->mastery,
             'grammarQuestionId' => $n->grammar_question_id,
+            'cardItemId' => $n->card_item_id,
             'sortOrder' => (int) $n->sort_order,
             'problemImageId' => $problem?->id,
             'problemThumbUrl' => $problem ? '/api/mistake-note-images/'.$problem->id.'?v=thumb' : null,

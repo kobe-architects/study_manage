@@ -9,9 +9,11 @@
  *   問題（image）        … 例題の画像を見て解き、小問ごとに答えを 4 つから選ぶ。「詳細を表示」で解説の画像
  * 全小問が正解のときだけ正解。4 択にできないカード（和訳の無い例文・表だけの囲み・答えが読めなかった問題）は
  * 従来どおり「答えを見る」→ ○／× の自己判定（○／× は画面下部の固定領域 #qf-fixed に Teleport）。
+ * 数学の例題（問題）には、問題の下に手書きの計算メモ（ScratchPad。保存しない）を出す。
  */
 import { computed, onMounted, ref, watch } from 'vue'
 import AuthImage from '@/components/AuthImage.vue'
+import ScratchPad from '@/components/ScratchPad.vue'
 import { cardsApi } from '@/api/cards'
 import { blankText, buildSubQuestions, normalizeText, type SubQuestion } from '@/lib/cardChoices'
 import { speak } from '@/lib/design'
@@ -168,6 +170,8 @@ function longOptions(s: SubQuestion): boolean {
       <div v-if="it.extra?.label" class="cq-label">{{ it.extra.label }}</div>
       <AuthImage v-if="it.hasProblemImage" :src="cardsApi.imageUrl(it.id, 'problem', it.iv)" class="cq-img" alt="問題" />
       <p v-else class="cq-sent">{{ it.front }}</p>
+      <!-- 計算用の書き込み欄（余白に手書き。保存しない） -->
+      <ScratchPad v-if="isMath" :pad-key="`card-${it.id}`" />
       <template v-if="subs">
         <div v-for="s in subs" :key="s.key" class="cq-sub">
           <div class="cq-sub-head"><span v-if="s.label" class="cq-sub-lab dm">{{ s.label }}</span><span class="cq-sub-q">答えを選んでください</span></div>

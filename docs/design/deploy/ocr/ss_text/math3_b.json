@@ -1,0 +1,932 @@
+[
+  {
+    "no": 39,
+    "lecture": 12,
+    "lectureTitle": "関数のグラフ",
+    "part": 1,
+    "partTitle": "曲線の凹凸と変曲点",
+    "label": 1,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "x<−1/2，0<x で下に凸，−1/2<x<0 で上に凸，変曲点 (−1/2, −1/16)，(0, 0)",
+        "options": [
+          "x<−1/2，0<x で上に凸，−1/2<x<0 で下に凸，変曲点 (−1/2, −1/16)，(0, 0)",
+          "x<−1/2，0<x で下に凸，−1/2<x<0 で上に凸，変曲点 (−1/2, 1/16)，(0, 0)",
+          "x<0，1/2<x で下に凸，0<x<1/2 で上に凸，変曲点 (0, 0)，(1/2, 3/16)"
+        ]
+      },
+      {
+        "label": "(2)",
+        "answer": "x<−1，1<x で上に凸，−1<x<1 で下に凸，変曲点 (−1, log2)，(1, log2)",
+        "options": [
+          "x<−1，1<x で下に凸，−1<x<1 で上に凸，変曲点 (−1, log2)，(1, log2)",
+          "x<−1，1<x で上に凸，−1<x<1 で下に凸，変曲点 (−1, 0)，(1, 0)",
+          "x<0 で上に凸，0<x で下に凸，変曲点 (0, 0)"
+        ]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 40,
+    "lecture": 12,
+    "lectureTitle": "関数のグラフ",
+    "part": 2,
+    "partTitle": "関数のグラフの概形",
+    "label": 2,
+    "subs": [],
+    "skipped": ["(1) グラフの概形をかく問題のため", "(2) グラフの概形をかく問題のため"],
+    "note": ""
+  },
+  {
+    "no": 41,
+    "lecture": 12,
+    "lectureTitle": "関数のグラフ",
+    "part": 3,
+    "partTitle": "指数関数・対数関数のグラフの概形",
+    "label": 3,
+    "subs": [],
+    "skipped": ["グラフの概形をかく問題のため"],
+    "note": ""
+  },
+  {
+    "no": 42,
+    "lecture": 12,
+    "lectureTitle": "関数のグラフ",
+    "part": 4,
+    "partTitle": "第 2 次導関数と極値",
+    "label": 4,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "極大値 6 (x=±1)，極小値 5 (x=0)",
+        "options": [
+          "極大値 5 (x=0)，極小値 6 (x=±1)",
+          "極大値 6 (x=±1)，極小値 4 (x=0)",
+          "極大値 7 (x=±1)，極小値 5 (x=0)"
+        ]
+      },
+      {
+        "label": "(2)",
+        "answer": "極大値 π/6+√3 (x=π/6)，極小値 5π/6−√3 (x=5π/6)",
+        "options": [
+          "極大値 5π/6−√3 (x=5π/6)，極小値 π/6+√3 (x=π/6)",
+          "極大値 π/6+√3 (x=π/6)，極小値 5π/6+√3 (x=5π/6)",
+          "極大値 π/3+1 (x=π/3)，極小値 5π/3−1 (x=5π/3)"
+        ]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 43,
+    "lecture": 13,
+    "lectureTitle": "方程式・不等式への応用",
+    "part": 1,
+    "partTitle": "不等式の証明",
+    "label": 1,
+    "subs": [],
+    "skipped": ["(1)(i) 証明問題のため", "(1)(ii) 証明問題のため", "(2) 証明問題のため"],
+    "note": ""
+  },
+  {
+    "no": 44,
+    "lecture": 13,
+    "lectureTitle": "方程式・不等式への応用",
+    "part": 2,
+    "partTitle": "方程式の実数解の個数",
+    "label": 2,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "1 個",
+        "options": ["0 個", "2 個", "3 個"]
+      },
+      {
+        "label": "(2)",
+        "answer": "a>e のとき 2 個，a=e，a<0 のとき 1 個，0≦a<e のとき 0 個",
+        "options": [
+          "a>e のとき 2 個，a=e のとき 1 個，a<e のとき 0 個",
+          "a>e，a<0 のとき 2 個，a=e のとき 1 個，0≦a<e のとき 0 個",
+          "a>1 のとき 2 個，a=1，a<0 のとき 1 個，0≦a<1 のとき 0 個"
+        ]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 45,
+    "lecture": 14,
+    "lectureTitle": "速度と加速度，関数の近似式",
+    "part": 1,
+    "partTitle": "直線上の点の運動",
+    "label": 1,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "v=Aωcosωt，α=−Aω²sinωt",
+        "options": [
+          "v=Aωcosωt，α=Aω²sinωt",
+          "v=−Aωsinωt，α=−Aω²cosωt",
+          "v=Acosωt，α=−Aωsinωt"
+        ]
+      },
+      {
+        "label": "(2)",
+        "answer": "v=v₀−gt，α=−g",
+        "options": [
+          "v=v₀−gt，α=g",
+          "v=v₀−(1/2)gt，α=−(1/2)g",
+          "v=v₀+gt，α=−g"
+        ]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 46,
+    "lecture": 14,
+    "lectureTitle": "速度と加速度，関数の近似式",
+    "part": 2,
+    "partTitle": "平面上の点の運動",
+    "label": 2,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "速度 (e^t−e^(−t), e^t+e^(−t))，速さ √(2(e^(2t)+e^(−2t)))，加速度 (e^t+e^(−t), e^t−e^(−t))，加速度の大きさ √(2(e^(2t)+e^(−2t)))",
+        "options": [
+          "速度 (e^t+e^(−t), e^t−e^(−t))，速さ √(2(e^(2t)−e^(−2t)))，加速度 (e^t−e^(−t), e^t+e^(−t))，加速度の大きさ √(2(e^(2t)−e^(−2t)))",
+          "速度 (e^t−e^(−t), e^t+e^(−t))，速さ 2(e^t+e^(−t))，加速度 (e^t+e^(−t), e^t−e^(−t))，加速度の大きさ 2(e^t−e^(−t))",
+          "速度 (e^t+e^(−t), e^t−e^(−t))，速さ √(e^(2t)+e^(−2t))，加速度 (e^t−e^(−t), e^t+e^(−t))，加速度の大きさ √(e^(2t)+e^(−2t))"
+        ]
+      },
+      {
+        "label": "(2)",
+        "answer": "速度 (−(2/3)π sin(π/3)t, (2/3)π cos(π/3)t)，速さ (2/3)π，加速度 (−(2/9)π² cos(π/3)t, −(2/9)π² sin(π/3)t)，加速度の大きさ (2/9)π²",
+        "options": [
+          "速度 ((2/3)π sin(π/3)t, −(2/3)π cos(π/3)t)，速さ (2/3)π，加速度 ((2/9)π² cos(π/3)t, (2/9)π² sin(π/3)t)，加速度の大きさ (2/9)π²",
+          "速度 (−(2/3)π sin(π/3)t, (2/3)π cos(π/3)t)，速さ (4/9)π²，加速度 (−(2/9)π² cos(π/3)t, −(2/9)π² sin(π/3)t)，加速度の大きさ (4/81)π⁴",
+          "速度 (−2 sin(π/3)t, 2 cos(π/3)t)，速さ 2，加速度 (−2 cos(π/3)t, −2 sin(π/3)t)，加速度の大きさ 2"
+        ]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 47,
+    "lecture": 14,
+    "lectureTitle": "速度と加速度，関数の近似式",
+    "part": 3,
+    "partTitle": "関数の近似式",
+    "label": 3,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "cos(a+h)≒cosa−h sina，cos46°≒0.695",
+        "options": [
+          "cos(a+h)≒cosa+h sina，cos46°≒0.719",
+          "cos(a+h)≒cosa−h cosa，cos46°≒0.695",
+          "cos(a+h)≒cosa−h sina，cos46°≒0.705"
+        ]
+      },
+      {
+        "label": "(2)(i)",
+        "answer": "1.004",
+        "options": ["0.996", "1.002", "1.008"]
+      },
+      {
+        "label": "(2)(ii)",
+        "answer": "7.020",
+        "options": ["7.010", "7.061", "7.002"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 48,
+    "lecture": 15,
+    "lectureTitle": "不定積分",
+    "part": 1,
+    "partTitle": "不定積分の計算",
+    "label": 1,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "−1/(3x³)+C",
+        "options": ["1/(3x³)+C", "−1/(4x⁵)+C", "−3/x³+C"]
+      },
+      {
+        "label": "(2)",
+        "answer": "(3/2)³√(t²)+C",
+        "options": ["(2/3)³√(t²)+C", "(3/4)³√(t⁴)+C", "−(3/2)³√(t²)+C"]
+      },
+      {
+        "label": "(3)",
+        "answer": "2x²√x+(8/3)x√x+C",
+        "options": ["2x²√x+8x√x+C", "(5/2)x²√x+(4/3)x√x+C", "2x²√x+(8/3)√x+C"]
+      },
+      {
+        "label": "(4)",
+        "answer": "2√x−2log|x|+C",
+        "options": ["√x−2log|x|+C", "2√x+2log|x|+C", "(1/2)√x−2log|x|+C"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 49,
+    "lecture": 15,
+    "lectureTitle": "不定積分",
+    "part": 2,
+    "partTitle": "三角関数・指数関数の不定積分",
+    "label": 2,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "sinx+cosx+C",
+        "options": ["sinx−cosx+C", "−sinx+cosx+C", "cosx−tanx+C"]
+      },
+      {
+        "label": "(2)",
+        "answer": "tanx−x+C",
+        "options": ["tanx+x+C", "(1/3)tan³x+C", "−tanx+x+C"]
+      },
+      {
+        "label": "(3)",
+        "answer": "−1/tanx−x+C",
+        "options": ["1/tanx−x+C", "−1/tanx+x+C", "−1/(3tan³x)+C"]
+      },
+      {
+        "label": "(4)",
+        "answer": "5e^x−2^x+C",
+        "options": ["5e^x−2^x log2+C", "5e^x+2^x+C", "5e^x−2^x(log2)²+C"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 50,
+    "lecture": 15,
+    "lectureTitle": "不定積分",
+    "part": 3,
+    "partTitle": "f(ax+b) の不定積分",
+    "label": 3,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "(2/9)(3x+1)√(3x+1)+C",
+        "options": ["(2/3)(3x+1)√(3x+1)+C", "(2/9)√(3x+1)+C", "2(3x+1)√(3x+1)+C"]
+      },
+      {
+        "label": "(2)",
+        "answer": "log|2x−1|+C",
+        "options": ["2log|2x−1|+C", "(1/2)log|2x−1|+C", "−2/(2x−1)²+C"]
+      },
+      {
+        "label": "(3)",
+        "answer": "−(1/2)cos(2θ−π/6)+C",
+        "options": ["(1/2)cos(2θ−π/6)+C", "−2cos(2θ−π/6)+C", "−cos(2θ−π/6)+C"]
+      },
+      {
+        "label": "(4)",
+        "answer": "−(1/2)e^(−2x)+3^(4x−3)/(4log3)+C",
+        "options": ["(1/2)e^(−2x)+3^(4x−3)/(4log3)+C", "−(1/2)e^(−2x)+(log3/4)3^(4x−3)+C", "−2e^(−2x)+4・3^(4x−3)/log3+C"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 51,
+    "lecture": 15,
+    "lectureTitle": "不定積分",
+    "part": 4,
+    "partTitle": "次数下げと部分分数分解",
+    "label": 4,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "(1/2)x²−x−log|x−2|+C",
+        "options": ["(1/2)x²−x+log|x−2|+C", "(1/2)x²+x−log|x−2|+C", "x²−x−log|x−2|+C"]
+      },
+      {
+        "label": "(2)",
+        "answer": "x²+log|(x−1)/x|+C",
+        "options": ["x²+log|x/(x−1)|+C", "x²+log|x(x−1)|+C", "2x+log|(x−1)/x|+C"]
+      },
+      {
+        "label": "(3)",
+        "answer": "log((x+1)²/|x+2|)+C",
+        "options": ["log(|x+2|/(x+1)²)+C", "log|(x+1)(x+2)²|+C", "2log|x+1|+log|x+2|+C"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 52,
+    "lecture": 15,
+    "lectureTitle": "不定積分",
+    "part": 5,
+    "partTitle": "三角関数の次数を下げる",
+    "label": 5,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "(1/2)x+(1/4)sin2x+C",
+        "options": ["(1/2)x−(1/4)sin2x+C", "(1/2)x+(1/2)sin2x+C", "(1/3)cos³x+C"]
+      },
+      {
+        "label": "(2)",
+        "answer": "(1/2)x−(1/12)sin6x+C",
+        "options": ["(1/2)x+(1/12)sin6x+C", "(1/2)x−(1/6)sin6x+C", "(1/2)x−(1/4)sin6x+C"]
+      },
+      {
+        "label": "(3)",
+        "answer": "−(1/12)cos6x+(1/4)cos2x+C",
+        "options": ["−(1/12)cos6x−(1/4)cos2x+C", "(1/12)cos6x−(1/4)cos2x+C", "−(1/6)cos6x+(1/2)cos2x+C"]
+      },
+      {
+        "label": "(4)",
+        "answer": "(1/8)sin4x+(1/4)sin2x+C",
+        "options": ["(1/8)sin4x−(1/4)sin2x+C", "(1/4)sin4x+(1/2)sin2x+C", "(1/8)cos4x+(1/4)cos2x+C"]
+      },
+      {
+        "label": "(5)",
+        "answer": "−(1/16)sin8x+(1/4)sin2x+C",
+        "options": ["(1/16)sin8x−(1/4)sin2x+C", "−(1/16)sin8x−(1/4)sin2x+C", "−(1/8)sin8x+(1/2)sin2x+C"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 53,
+    "lecture": 16,
+    "lectureTitle": "置換積分法，部分積分法",
+    "part": 1,
+    "partTitle": "置換積分法",
+    "label": 1,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "(2/15)(3x−4)(x−3)√(x−3)+C",
+        "options": ["(2/15)(3x+4)(x−3)√(x−3)+C", "(2/5)(3x−4)(x−3)√(x−3)+C", "(2/15)(3x−4)√(x−3)+C"]
+      },
+      {
+        "label": "(2)",
+        "answer": "log|x−4|−4/(x−4)+C",
+        "options": ["log|x−4|+4/(x−4)+C", "log|x−4|−1/(x−4)+C", "−log|x−4|−4/(x−4)+C"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 54,
+    "lecture": 16,
+    "lectureTitle": "置換積分法，部分積分法",
+    "part": 2,
+    "partTitle": "f(g(x))g′(x) の形の不定積分",
+    "label": 2,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "(1/15)(x³+1)⁵+C",
+        "options": ["(1/5)(x³+1)⁵+C", "(1/15)(x³+1)⁴+C", "(3/5)(x³+1)⁵+C"]
+      },
+      {
+        "label": "(2)",
+        "answer": "(logx)²/2+C",
+        "options": ["(logx)²+C", "log(logx)+C", "2(logx)²+C"]
+      },
+      {
+        "label": "(3)",
+        "answer": "log(e^x+e^(−x))+C",
+        "options": ["log(e^x−e^(−x))+C", "−log(e^x+e^(−x))+C", "(e^x−e^(−x))²/2+C"]
+      },
+      {
+        "label": "(4)",
+        "answer": "−log|cosx|+C",
+        "options": ["log|cosx|+C", "log|sinx|+C", "−log|sinx|+C"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 55,
+    "lecture": 16,
+    "lectureTitle": "置換積分法，部分積分法",
+    "part": 3,
+    "partTitle": "置換積分法と三角関数",
+    "label": 3,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "−(1/6)cos⁶x+C",
+        "options": ["(1/6)cos⁶x+C", "−(1/6)sin⁶x+C", "−(1/5)cos⁵x+C"]
+      },
+      {
+        "label": "(2)",
+        "answer": "sinx−(1/3)sin³x+C",
+        "options": ["sinx+(1/3)sin³x+C", "cosx−(1/3)cos³x+C", "(1/4)cos⁴x+C"]
+      },
+      {
+        "label": "(3)",
+        "answer": "(1/2)log((1+sinx)/(1−sinx))+C",
+        "options": ["(1/2)log((1−sinx)/(1+sinx))+C", "log((1+sinx)/(1−sinx))+C", "(1/2)log((1+cosx)/(1−cosx))+C"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 56,
+    "lecture": 16,
+    "lectureTitle": "置換積分法，部分積分法",
+    "part": 4,
+    "partTitle": "部分積分法",
+    "label": 4,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "(1/2)(x+1)sin2x+(1/4)cos2x+C",
+        "options": ["(1/2)(x+1)sin2x−(1/4)cos2x+C", "(x+1)sin2x+(1/2)cos2x+C", "(1/2)(x+1)sin2x+(1/2)cos2x+C"]
+      },
+      {
+        "label": "(2)",
+        "answer": "−(x²+2x+2)e^(−x)+C",
+        "options": ["(x²+2x+2)e^(−x)+C", "−(x²−2x+2)e^(−x)+C", "−(x²+2x)e^(−x)+C"]
+      },
+      {
+        "label": "(3)",
+        "answer": "(x−2)log(x−2)−x+C",
+        "options": ["(x−2)log(x−2)+x+C", "xlog(x−2)−x+C", "(x−2)log(x−2)−1/(x−2)+C"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 57,
+    "lecture": 17,
+    "lectureTitle": "定積分",
+    "part": 1,
+    "partTitle": "定積分の計算",
+    "label": 1,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "78",
+        "options": ["156", "39", "80"]
+      },
+      {
+        "label": "(2)",
+        "answer": "(1/2)log(3/2)",
+        "options": ["(1/2)log(2/3)", "log(3/2)", "(1/2)log3"]
+      },
+      {
+        "label": "(3)",
+        "answer": "(1/2)(e⁵−1/e)",
+        "options": ["(1/2)(e⁵−e)", "e⁵−1/e", "(1/2)(e⁵+1/e)"]
+      },
+      {
+        "label": "(4)",
+        "answer": "π/4",
+        "options": ["π/2", "π/8", "1/2"]
+      },
+      {
+        "label": "(5)",
+        "answer": "0",
+        "options": ["1/2", "−1/2", "2/3"]
+      },
+      {
+        "label": "(6)",
+        "answer": "2",
+        "options": ["0", "√3", "1−√3"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 58,
+    "lecture": 17,
+    "lectureTitle": "定積分",
+    "part": 2,
+    "partTitle": "定積分の置換積分法",
+    "label": 2,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "20/3",
+        "options": ["10/3", "16/3", "28/3"]
+      },
+      {
+        "label": "(2)",
+        "answer": "15/64",
+        "options": ["−15/64", "15/16", "7/32"]
+      },
+      {
+        "label": "(3)",
+        "answer": "log((e+2)/3)",
+        "options": ["log(3/(e+2))", "log(e+2)", "log((e+1)/3)"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 59,
+    "lecture": 17,
+    "lectureTitle": "定積分",
+    "part": 3,
+    "partTitle": "特殊な形の置換積分法",
+    "label": 3,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "π/6+1−√3/2",
+        "options": ["π/6−1+√3/2", "π/3+1−√3/2", "π/6+1−√3"]
+      },
+      {
+        "label": "(2)",
+        "answer": "5π/12",
+        "options": ["π/12", "5π/6", "−π/12"]
+      },
+      {
+        "label": "(3)",
+        "answer": "√3π/12",
+        "options": ["√3π/4", "π/12", "√3π/3"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 60,
+    "lecture": 17,
+    "lectureTitle": "定積分",
+    "part": 4,
+    "partTitle": "偶関数・奇関数の定積分",
+    "label": 4,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "0",
+        "options": ["2/3", "4/3", "1/2"]
+      },
+      {
+        "label": "(2)",
+        "answer": "0",
+        "options": ["2(e²−e^(−2))", "e²+e^(−2)−2", "2(e²+e^(−2))"]
+      },
+      {
+        "label": "(3)",
+        "answer": "π/2",
+        "options": ["π/4", "π", "0"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 61,
+    "lecture": 17,
+    "lectureTitle": "定積分",
+    "part": 5,
+    "partTitle": "定積分の部分積分法",
+    "label": 5,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "−(1/6)(β−α)³",
+        "options": ["(1/6)(β−α)³", "−(1/3)(β−α)³", "−(1/6)(β−α)²"]
+      },
+      {
+        "label": "(2)",
+        "answer": "−(log3)/3+2/3",
+        "options": ["(log3)/3−2/3", "−(log3)/3+1/3", "(log3)/3+2/3"]
+      },
+      {
+        "label": "(3)",
+        "answer": "π−2",
+        "options": ["π+2", "π/2−1", "2−π/2"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 62,
+    "lecture": 18,
+    "lectureTitle": "定積分関数",
+    "part": 1,
+    "partTitle": "定積分で表された関数",
+    "label": 1,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "(x−2)e^x",
+        "options": ["(x−2)e^x−(−1)e", "(x−1)e^x", "(x−2)e^x+e^x"]
+      },
+      {
+        "label": "(2)",
+        "answer": "2cos²2x",
+        "options": ["cos²2x", "2cos²x", "−4cos2x sin2x"]
+      },
+      {
+        "label": "(3)",
+        "answer": "−(1/3)cos3x+1/3",
+        "options": ["(1/3)cos3x−1/3", "−(1/3)cos3x+x sin3x", "−cos3x+1"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 63,
+    "lecture": 18,
+    "lectureTitle": "定積分関数",
+    "part": 2,
+    "partTitle": "関数方程式",
+    "label": 2,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "f(x)=2e^x−e+1",
+        "options": ["f(x)=2e^x+e−1", "f(x)=2e^x−2e+2", "f(x)=2e^x−e−1"]
+      },
+      {
+        "label": "(2)",
+        "answer": "f(x)=(1/2)x²logx+x−1/4",
+        "options": ["f(x)=(1/2)x²logx+x+1/4", "f(x)=(1/2)x²logx−1/4", "f(x)=x²logx+x−1/4"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 64,
+    "lecture": 19,
+    "lectureTitle": "区分求積法，定積分と不等式",
+    "part": 1,
+    "partTitle": "区分求積法と定積分",
+    "label": 1,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "2/π",
+        "options": ["1/π", "π/2", "0"]
+      },
+      {
+        "label": "(2)",
+        "answer": "(4√2−2)/3",
+        "options": ["(2√2−1)/3", "(4√2+2)/3", "(4√2−2)/2"]
+      },
+      {
+        "label": "(3)",
+        "answer": "(1/2)log2",
+        "options": ["log2", "(1/4)log2", "π/4"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 65,
+    "lecture": 19,
+    "lectureTitle": "区分求積法，定積分と不等式",
+    "part": 2,
+    "partTitle": "定積分と不等式",
+    "label": 2,
+    "subs": [],
+    "skipped": ["証明問題のため"],
+    "note": ""
+  },
+  {
+    "no": 66,
+    "lecture": 20,
+    "lectureTitle": "面積",
+    "part": 1,
+    "partTitle": "曲線と x 軸の間の面積",
+    "label": 1,
+    "subs": [
+      {
+        "label": "(1)(i)",
+        "answer": "(√2+√3)/2",
+        "options": ["(√3−√2)/2", "(√2+√3)/4", "√2+√3"]
+      },
+      {
+        "label": "(1)(ii)",
+        "answer": "4√2/3",
+        "options": ["2√2/3", "4√2", "−4√2/3"]
+      },
+      {
+        "label": "(2)",
+        "answer": "1+e−2√e",
+        "options": ["e−1", "1+e+2√e", "e−1−2√e"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 67,
+    "lecture": 20,
+    "lectureTitle": "面積",
+    "part": 2,
+    "partTitle": "2 曲線の間の面積",
+    "label": 2,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "63/16−3log2",
+        "options": ["63/16+3log2", "63/16−2log2", "63/8−3log2"]
+      },
+      {
+        "label": "(2)",
+        "answer": "4",
+        "options": ["2", "2√3", "4√3"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 68,
+    "lecture": 20,
+    "lectureTitle": "面積",
+    "part": 3,
+    "partTitle": "曲線 x=g(y) と y 軸の間の面積",
+    "label": 3,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "2−2/e",
+        "options": ["2+2/e", "e−1/e", "1−2/e"]
+      },
+      {
+        "label": "(2)",
+        "answer": "1/6",
+        "options": ["1/3", "1/2", "2/3"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 69,
+    "lecture": 20,
+    "lectureTitle": "面積",
+    "part": 4,
+    "partTitle": "いろいろな曲線と面積",
+    "label": 4,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "2√3π",
+        "options": ["√3π", "12π", "4√3π"]
+      },
+      {
+        "label": "(2)",
+        "answer": "4/3",
+        "options": ["2/3", "8/3", "4"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 70,
+    "lecture": 21,
+    "lectureTitle": "体積",
+    "part": 1,
+    "partTitle": "定積分と体積",
+    "label": 1,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "√(r²−x²)",
+        "options": ["√(r²+x²)", "r²−x²", "r−x"]
+      }
+    ],
+    "skipped": ["(2) 示せ（証明）の問題のため"],
+    "note": ""
+  },
+  {
+    "no": 71,
+    "lecture": 21,
+    "lectureTitle": "体積",
+    "part": 2,
+    "partTitle": "断面図と立体の体積",
+    "label": 2,
+    "subs": [
+      {
+        "label": null,
+        "answer": "6√3",
+        "options": ["3√3", "12√3", "18"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 72,
+    "lecture": 21,
+    "lectureTitle": "体積",
+    "part": 3,
+    "partTitle": "x 軸の周りの回転体の体積",
+    "label": 3,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "π(√3−π/3)",
+        "options": ["π(√3+π/3)", "π(√3−π/6)", "π(1−π/3)"]
+      },
+      {
+        "label": "(2)",
+        "answer": "3π/10",
+        "options": ["π/3", "3π/5", "π/10"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 73,
+    "lecture": 21,
+    "lectureTitle": "体積",
+    "part": 4,
+    "partTitle": "y 軸の周りの回転体の体積",
+    "label": 4,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "2π",
+        "options": ["4π", "π", "8π/3"]
+      },
+      {
+        "label": "(2)",
+        "answer": "128π/3",
+        "options": ["64π/3", "128π", "32π/3"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 74,
+    "lecture": 22,
+    "lectureTitle": "曲線の長さ，速度と道のり",
+    "part": 1,
+    "partTitle": "曲線の長さ",
+    "label": 1,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "3/2",
+        "options": ["3", "3/4", "π/2"]
+      },
+      {
+        "label": "(2)",
+        "answer": "e−1/e",
+        "options": ["e+1/e", "(e−1/e)/2", "2(e−1/e)"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  },
+  {
+    "no": 75,
+    "lecture": 22,
+    "lectureTitle": "曲線の長さ，速度と道のり",
+    "part": 2,
+    "partTitle": "速度と道のり",
+    "label": 2,
+    "subs": [
+      {
+        "label": "(1)",
+        "answer": "s=0，l=4",
+        "options": ["s=4，l=4", "s=0，l=2", "s=0，l=2π"]
+      },
+      {
+        "label": "(2)",
+        "answer": "(5√5−1)/3",
+        "options": ["(5√5+1)/3", "(5√5−1)/2", "(√5−1)/3"]
+      }
+    ],
+    "skipped": [],
+    "note": ""
+  }
+]

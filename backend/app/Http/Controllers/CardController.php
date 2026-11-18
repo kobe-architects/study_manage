@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CardAttempt;
 use App\Models\CardDeck;
 use App\Models\CardItem;
+use App\Models\MistakeNote;
 use App\Models\QuizSession;
 use App\Models\ReviewState;
 use App\Services\ReviewService;
@@ -78,9 +79,12 @@ class CardController extends Controller
     public function items(Request $request, CardDeck $deck): JsonResponse
     {
         $items = $deck->items()->get();
-        $stats = $this->stats($request->user()->id, $items->pluck('id')->all());
+        $userId = $request->user()->id;
+        $stats = $this->stats($userId, $items->pluck('id')->all());
+        // このカードから作った間違いノートのページ（解答後の「間違いノートを作成／開く」用）
+        $notes = MistakeNote::where('user_id', $userId)->whereIn('card_item_id', $items->pluck('id'))->pluck('id', 'card_item_id');
 
-        return response()->json(['data' => $items->map(fn (CardItem $i) => $this->format($i, $stats[$i->id] ?? null))->values()]);
+        return response()->json(['data' => $items->map(fn (CardItem $i) => $this->format($i, $stats[$i->id] ?? null, $notes[$i->id] ?? null))->values()]);
     }
 
     /** 問題・解答の画像（PDF から切り出した JPEG。storage/app/private/cards/ 以下） */
@@ -233,10 +237,11 @@ class CardController extends Controller
         return $out;
     }
 
-    private function format(CardItem $i, ?array $stat): array
+    private function format(CardItem $i, ?array $stat, ?int $noteId = null): array
     {
         return [
             'id' => $i->id,
+            'noteId' => $noteId, // このカードから作った間違いノートのページ（無ければ null）
             'deckId' => $i->card_deck_id,
             'no' => $i->no,
             'chapterNo' => $i->chapter_no,
