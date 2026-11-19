@@ -5,14 +5,14 @@
  * 行（科目・学習分野）と区間（範囲学習・復習・演習・過去問 などのバー／節目）を追加・編集し、
  * バーのドラッグ結果はすぐ画面に反映してから保存する（失敗したら元に戻す）。
  */
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ActionMenu from '@/components/ActionMenu.vue'
 import GanttBoard from '@/components/GanttBoard.vue'
 import GanttRowModal from '@/components/GanttRowModal.vue'
 import GanttTaskModal from '@/components/GanttTaskModal.vue'
 import HelpTip from '@/components/HelpTip.vue'
-import { ganttApi, type GanttChartDetail, type GanttTaskInput } from '@/api/gantt'
+import { ganttApi, type GanttChartDetail, type GanttRowInput, type GanttTaskInput } from '@/api/gantt'
 import { appConfirm } from '@/lib/dialog'
 import { showPdf, useInAppViewer } from '@/lib/docViewer'
 import { GANTT_SNAPS, GANTT_ZOOMS, fmtYm, type GanttSnap, type GanttZoom } from '@/lib/gantt'
@@ -56,7 +56,70 @@ onMounted(() => {
   load()
   // 行の科目の候補（学習項目データ）。講師は担当生徒のもの
   if (!study.items.length) study.fetchItems().catch(() => {})
+  window.addEventListener('keydown', onKeydown)
 })
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+
+// ---- 元に戻す／やり直す ----
+// 操作ごとに「取り消す API 呼び出し」と「もう一度行う API 呼び出し」を履歴に積む。実行後はチャートを再取得して画面を揃える。
+// 削除を取り消すと行・区間は新しい ID で作り直されるので、履歴は元の ID で持ち、実行時に tid() で今の ID に直す。
+interface HistoryEntry {
+  label: string
+  undo: () => Promise<void>
+  redo: () => Promise<void>
+}
+const undoStack = ref<HistoryEntry[]>([])
+const redoStack = ref<HistoryEntry[]>([])
+const historyBusy = ref(false)
+const idMap = new Map<number, number>()
+const tid = (id: number) => idMap.get(id) ?? id
+function pushHistory(e: HistoryEntry) {
+  undoStack.value.push(e)
+  if (undoStack.value.length > 50) undoStack.value.shift()
+  redoStack.value = []
+}
+async function refresh() {
+  chart.value = await ganttApi.show(chartId.value)
+}
+async function runHistory(from: HistoryEntry[], to: HistoryEntry[], dir: 'undo' | 'redo') {
+  if (historyBusy.value || !from.length) return
+  const e = from[from.length - 1]!
+  historyBusy.value = true
+  try {
+    await (dir === 'undo' ? e.undo() : e.redo())
+    from.pop()
+    to.push(e)
+    await refresh()
+    ui.notify(`${dir === 'undo' ? '元に戻しました' : 'やり直しました'}（${e.label}）`)
+  } catch {
+    ui.notify(dir === 'undo' ? '元に戻せませんでした' : 'やり直せませんでした')
+  } finally {
+    historyBusy.value = false
+  }
+}
+const undo = () => runHistory(undoStack.value, redoStack.value, 'undo')
+const redo = () => runHistory(redoStack.value, undoStack.value, 'redo')
+/** Ctrl/⌘+Z で元に戻す、Ctrl/⌘+Shift+Z・Ctrl+Y でやり直す（入力中・モーダル表示中は除く） */
+function onKeydown(e: KeyboardEvent) {
+  if (!(e.ctrlKey || e.metaKey)) return
+  const tag = (e.target as HTMLElement | null)?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || rowModal.open || taskModal.open || settings.open) return
+  const k = e.key.toLowerCase()
+  if (k === 'z' && !e.shiftKey) {
+    e.preventDefault()
+    undo()
+  } else if ((k === 'z' && e.shiftKey) || k === 'y') {
+    e.preventDefault()
+    redo()
+  }
+}
+/** 区間の内容のスナップショット（作り直し・書き戻しに使う） */
+function taskPayload(t: GanttTask): GanttTaskInput & { title: string; startOn: string } {
+  return { title: t.title, kind: t.kind, startOn: t.startOn, endOn: t.endOn, color: t.color, progress: t.progress, note: t.note }
+}
+function rowPayload(r: GanttRow): GanttRowInput & { title: string } {
+  return { title: r.title, group: r.group, subjectId: r.subjectId }
+}
 
 /** 既存のグループ名（行の編集で候補に出す） */
 const groups = computed(() => {
@@ -98,16 +161,30 @@ function openEditRow(r: GanttRow) {
 }
 async function saveRow(payload: { title: string; group: string | null; subjectId?: number | null }) {
   if (!chart.value) return
+  const cid = chart.value.id
   try {
     if (rowModal.row) {
-      const updated = await ganttApi.updateRow(rowModal.row.id, payload)
+      const prev = rowPayload(rowModal.row)
+      const rid = rowModal.row.id
+      const updated = await ganttApi.updateRow(rid, payload)
       const i = chart.value.rows.findIndex((r) => r.id === updated.id)
       if (i >= 0) chart.value.rows.splice(i, 1, updated)
+      pushHistory({
+        label: '行の編集',
+        undo: async () => void (await ganttApi.updateRow(tid(rid), prev)),
+        redo: async () => void (await ganttApi.updateRow(tid(rid), payload)),
+      })
       ui.notify('行を更新しました')
     } else {
-      const created = await ganttApi.createRow(chart.value.id, payload)
+      const created = await ganttApi.createRow(cid, payload)
       chart.value.rows.push(created)
       syncCounts()
+      const rid = created.id
+      pushHistory({
+        label: '行の追加',
+        undo: () => ganttApi.removeRow(tid(rid)),
+        redo: async () => void idMap.set(rid, (await ganttApi.createRow(cid, payload)).id),
+      })
       ui.notify('行を追加しました')
     }
     rowModal.open = false
@@ -120,11 +197,26 @@ async function deleteRow(id: number) {
   if (!chart.value || !r) return
   const msg = r.tasks.length ? `「${r.title}」と区間${r.tasks.length}件を削除しますか？` : `「${r.title}」を削除しますか？`
   if (!(await appConfirm(msg, { danger: true, okText: '削除' }))) return
+  const cid = chart.value.id
+  const order = chart.value.rows.map((x) => x.id)
+  const rp = rowPayload(r)
+  const tasks = r.tasks.map((t) => ({ id: t.id, payload: taskPayload(t) }))
   try {
     await ganttApi.removeRow(id)
     chart.value.rows = chart.value.rows.filter((x) => x.id !== id)
     syncCounts()
     rowModal.open = false
+    pushHistory({
+      label: '行の削除',
+      // 行と区間を作り直し、元の位置に並べ直す
+      undo: async () => {
+        const nr = await ganttApi.createRow(cid, rp)
+        idMap.set(id, nr.id)
+        for (const t of tasks) idMap.set(t.id, (await ganttApi.createTask(nr.id, t.payload)).id)
+        await ganttApi.reorderRows(cid, order.map(tid))
+      },
+      redo: () => ganttApi.removeRow(tid(id)),
+    })
     ui.notify('削除しました')
   } catch {
     ui.notify('削除に失敗しました')
@@ -136,9 +228,16 @@ async function onReorder(ids: number[]) {
   if (!chart.value) return
   const map = new Map(chart.value.rows.map((r) => [r.id, r]))
   const prev = chart.value.rows
+  const prevIds = prev.map((r) => r.id)
+  const cid = chart.value.id
   chart.value.rows = ids.map((id) => map.get(id)!).filter(Boolean)
   try {
-    chart.value.rows = await ganttApi.reorderRows(chart.value.id, ids)
+    chart.value.rows = await ganttApi.reorderRows(cid, ids)
+    pushHistory({
+      label: '並び替え',
+      undo: async () => void (await ganttApi.reorderRows(cid, prevIds.map(tid))),
+      redo: async () => void (await ganttApi.reorderRows(cid, ids.map(tid))),
+    })
   } catch {
     chart.value.rows = prev
     ui.notify('並び順の保存に失敗しました')
@@ -164,14 +263,28 @@ function openEditTask(t: GanttTask) {
 async function saveTask(payload: GanttTaskInput & { title: string; startOn: string }) {
   const row = taskModal.row
   if (!chart.value || !row) return
+  const rid = row.id
   try {
     if (taskModal.task) {
-      replaceTask(await ganttApi.updateTask(taskModal.task.id, payload))
+      const prev = taskPayload(taskModal.task)
+      const id = taskModal.task.id
+      replaceTask(await ganttApi.updateTask(id, payload))
+      pushHistory({
+        label: '区間の編集',
+        undo: async () => void (await ganttApi.updateTask(tid(id), prev)),
+        redo: async () => void (await ganttApi.updateTask(tid(id), payload)),
+      })
       ui.notify('区間を更新しました')
     } else {
-      const created = await ganttApi.createTask(row.id, payload)
+      const created = await ganttApi.createTask(rid, payload)
       row.tasks.push(created)
       syncCounts()
+      const id = created.id
+      pushHistory({
+        label: '区間の追加',
+        undo: () => ganttApi.removeTask(tid(id)),
+        redo: async () => void idMap.set(id, (await ganttApi.createTask(tid(rid), payload)).id),
+      })
       ui.notify('区間を追加しました')
       board.value?.scrollToDate(created.startOn)
     }
@@ -185,11 +298,18 @@ async function deleteTask(id: number) {
   const t = row?.tasks.find((x) => x.id === id)
   if (!chart.value || !row || !t) return
   if (!(await appConfirm(`「${t.title}」を削除しますか？`, { danger: true, okText: '削除' }))) return
+  const rid = row.id
+  const tp = taskPayload(t)
   try {
     await ganttApi.removeTask(id)
     row.tasks = row.tasks.filter((x) => x.id !== id)
     syncCounts()
     taskModal.open = false
+    pushHistory({
+      label: '区間の削除',
+      undo: async () => void idMap.set(id, (await ganttApi.createTask(tid(rid), tp)).id),
+      redo: () => ganttApi.removeTask(tid(id)),
+    })
     ui.notify('削除しました')
   } catch {
     ui.notify('削除に失敗しました')
@@ -205,10 +325,17 @@ function replaceTask(t: GanttTask) {
 /** ドラッグで期間を動かした: 先に画面へ反映し、保存に失敗したら元に戻す */
 async function onMove(t: GanttTask, startOn: string, endOn: string) {
   const prev = { startOn: t.startOn, endOn: t.endOn }
+  const next = { startOn, endOn }
+  const id = t.id
   t.startOn = startOn
   t.endOn = endOn
   try {
-    replaceTask(await ganttApi.updateTask(t.id, { startOn, endOn }))
+    replaceTask(await ganttApi.updateTask(id, next))
+    pushHistory({
+      label: '区間の移動',
+      undo: async () => void (await ganttApi.updateTask(tid(id), prev)),
+      redo: async () => void (await ganttApi.updateTask(tid(id), next)),
+    })
   } catch {
     t.startOn = prev.startOn
     t.endOn = prev.endOn
@@ -287,12 +414,15 @@ const settingsError = computed(() => (settings.startOn && settings.endOn && sett
 const canSaveSettings = computed(() => !!settings.title.trim() && !!settings.startOn && !!settings.endOn && !settingsError.value)
 async function saveSettings() {
   if (!chart.value || !canSaveSettings.value) return
+  const cid = chart.value.id
+  const prev = { title: chart.value.title, startOn: chart.value.startOn, endOn: chart.value.endOn, note: chart.value.note }
+  const next = { title: settings.title.trim(), startOn: settings.startOn, endOn: settings.endOn, note: settings.note.trim() || null }
   try {
-    chart.value = await ganttApi.update(chart.value.id, {
-      title: settings.title.trim(),
-      startOn: settings.startOn,
-      endOn: settings.endOn,
-      note: settings.note.trim() || null,
+    chart.value = await ganttApi.update(cid, next)
+    pushHistory({
+      label: '設定の変更',
+      undo: async () => void (await ganttApi.update(cid, prev)),
+      redo: async () => void (await ganttApi.update(cid, next)),
     })
     settings.open = false
     ui.notify('設定を保存しました')
@@ -331,8 +461,8 @@ function errorMessage(e: unknown, fallback: string): string {
 }
 
 const helpText = isTouch
-  ? '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べます。バーを横にドラッグすると期間ごと移動、両端を引っ張ると開始日・終了日を変えられます。動く単位は「単位」で選べ、10日では 1日・11日・21日で始まり 10日・20日・月末で終わるように吸着、月では月初〜月末に吸着します（細かく動かすときは 1日）。バーをタップすると編集、行の名前をタップすると行の編集、行の「＋」で区間を追加、左端の取っ手を上下にドラッグすると並び替えです。'
-  : '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べます。バーを横にドラッグすると期間ごと移動、両端をドラッグすると開始日・終了日を変えられます。動く単位は「単位」で選べ、10日では 1日・11日・21日で始まり 10日・20日・月末で終わるように吸着、月では月初〜月末に吸着します（細かく動かすときは 1日）。バーをクリックすると編集、行の名前をクリックすると行の編集、行の空いている場所をダブルクリックするとその日から始まる区間を追加、左端の取っ手を上下にドラッグすると並び替えです。'
+  ? '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べます。バーを横にドラッグすると期間ごと移動、両端を引っ張ると開始日・終了日を変えられます。動く単位は「単位」で選べ、10日では 1日・11日・21日で始まり 10日・20日・月末で終わるように吸着、月では月初〜月末に吸着します（細かく動かすときは 1日）。バーをタップすると編集、行の名前をタップすると行の編集、行の「＋」で区間を追加、左端の取っ手を上下にドラッグすると並び替えです。操作は「元に戻す」で取り消せます。'
+  : '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べます。バーを横にドラッグすると期間ごと移動、両端をドラッグすると開始日・終了日を変えられます。動く単位は「単位」で選べ、10日では 1日・11日・21日で始まり 10日・20日・月末で終わるように吸着、月では月初〜月末に吸着します（細かく動かすときは 1日）。バーをクリックすると編集、行の名前をクリックすると行の編集、行の空いている場所をダブルクリックするとその日から始まる区間を追加、左端の取っ手を上下にドラッグすると並び替えです。操作は「元に戻す」（Ctrl+Z）で取り消せます。'
 </script>
 
 <template>
@@ -362,6 +492,14 @@ const helpText = isTouch
             <div v-seg class="seg">
               <button v-for="s in GANTT_SNAPS" :key="s.key" class="seg-btn" :class="{ on: snap === s.key }" :title="s.key === 'ten' ? '1日・11日・21日で始まり、10日・20日・月末で終わる' : s.key === 'month' ? '月初で始まり、月末で終わる' : '1日ずつ'" @click="snap = s.key">{{ s.label }}</button>
             </div>
+          </div>
+          <div class="hist" :class="{ busy: historyBusy }">
+            <button class="hbtn" :disabled="!undoStack.length" :title="undoStack.length ? `元に戻す: ${undoStack[undoStack.length - 1]!.label}（Ctrl+Z）` : '元に戻す'" aria-label="元に戻す" @click="undo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>
+            </button>
+            <button class="hbtn" :disabled="!redoStack.length" :title="redoStack.length ? `やり直す: ${redoStack[redoStack.length - 1]!.label}（Ctrl+Shift+Z）` : 'やり直す'" aria-label="やり直す" @click="redo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5" /><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" /></svg>
+            </button>
           </div>
           <div class="export" :class="{ busy: exporting }">
             <ActionMenu :items="exportItems" label="出力" @select="onExport" />
@@ -523,9 +661,38 @@ const helpText = isTouch
   background: #1c2024;
   color: #fff;
 }
-.export.busy {
+.export.busy,
+.hist.busy {
   opacity: 0.5;
   pointer-events: none;
+}
+.hist {
+  display: flex;
+  background: #fff;
+  border: 1px solid #e6e8eb;
+  border-radius: 11px;
+  padding: 3px;
+}
+.hbtn {
+  width: 34px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--mut);
+  cursor: pointer;
+  padding: 0;
+}
+.hbtn:hover:not(:disabled) {
+  background: #f1f2f4;
+  color: var(--ink);
+}
+.hbtn:disabled {
+  color: #cfd3d9;
+  cursor: default;
 }
 .snap {
   display: flex;
@@ -673,6 +840,14 @@ const helpText = isTouch
   padding: 4px 9px;
   font-size: 12px;
   border-radius: 7px;
+}
+.top.compact .hist {
+  padding: 2px;
+  border-radius: 9px;
+}
+.top.compact .hbtn {
+  width: 30px;
+  height: 26px;
 }
 .top.compact .btn-dark,
 .top.compact .btn-ghost {
