@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * ガントチャートの編集画面。上部に名前・表示期間・倍率・出力、下にチャート本体（GanttBoard）。
+ * 計画表（ガントチャート）の編集画面。上部に名前・表示期間・倍率・出力、下にチャート本体（GanttBoard）。
+ * 生徒・講師で同じ画面を使う（講師は /tutor 配下のルートと API。講師側の計画表は生徒側とは別のデータ）。
  * 行（科目・学習分野）と区間（範囲学習・復習・演習・過去問 などのバー／節目）を追加・編集し、
  * バーのドラッグ結果はすぐ画面に反映してから保存する（失敗したら元に戻す）。
  */
@@ -18,12 +19,19 @@ import { GANTT_SNAPS, GANTT_ZOOMS, fmtYm, type GanttSnap, type GanttZoom } from 
 import { renderGanttImage } from '@/lib/ganttRender'
 import { isTouch, saveFile, viewportWidth } from '@/lib/native'
 import { vSeg } from '@/lib/segSlide'
+import { useAuthStore } from '@/stores/auth'
+import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
 import type { GanttRow, GanttTask } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const ui = useUiStore()
+const auth = useAuthStore()
+const study = useStudyStore()
+/** 一覧・編集画面のルート名（講師は /tutor 配下） */
+const listRoute = computed(() => (auth.isTutor ? 'tutor-gantt' : 'gantt'))
+const chartRoute = computed(() => (auth.isTutor ? 'tutor-gantt-chart' : 'gantt-chart'))
 
 const chartId = computed(() => Number(route.params.id))
 const chart = ref<GanttChartDetail | null>(null)
@@ -36,13 +44,17 @@ async function load() {
   try {
     chart.value = await ganttApi.show(chartId.value)
   } catch {
-    ui.notify('ガントチャートが見つかりません')
-    router.replace({ name: 'gantt' })
+    ui.notify('計画表が見つかりません')
+    router.replace({ name: listRoute.value })
   } finally {
     loading.value = false
   }
 }
-onMounted(load)
+onMounted(() => {
+  load()
+  // 行の科目の候補（学習項目データ）。講師は担当生徒のもの
+  if (!study.items.length) study.fetchItems().catch(() => {})
+})
 
 /** 既存のグループ名（行の編集で候補に出す） */
 const groups = computed(() => {
@@ -292,7 +304,7 @@ async function duplicateChart() {
     const c = await ganttApi.duplicate(chart.value.id)
     ui.notify('複製しました')
     settings.open = false
-    router.push({ name: 'gantt-chart', params: { id: c.id } })
+    router.push({ name: chartRoute.value, params: { id: c.id } })
   } catch {
     ui.notify('複製に失敗しました')
   }
@@ -305,7 +317,7 @@ async function deleteChart() {
   try {
     await ganttApi.remove(chart.value.id)
     ui.notify('削除しました')
-    router.replace({ name: 'gantt' })
+    router.replace({ name: listRoute.value })
   } catch {
     ui.notify('削除に失敗しました')
   }
@@ -328,7 +340,7 @@ const helpText = isTouch
     <template v-else-if="chart">
       <div class="top">
         <div class="left">
-          <button v-if="!isMobile" class="back" @click="router.push({ name: 'gantt' })">
+          <button v-if="!isMobile" class="back" @click="router.push({ name: listRoute })">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7" /></svg>一覧
           </button>
           <button class="ttl-btn" title="名前・表示期間を変更" @click="openSettings">
@@ -399,7 +411,7 @@ const helpText = isTouch
     <Transition name="ui-modal">
       <div v-if="settings.open" class="overlay ui-overlay ui-sheet">
         <div class="modal ui-panel" @click.stop>
-          <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">チャートの設定</div>
+          <div style="font-size: 16px; font-weight: 700; margin-bottom: 18px">計画表の設定</div>
           <div style="display: flex; flex-direction: column; gap: 13px">
             <label class="fld"><span>名前</span><input v-model="settings.title" @keydown.enter="saveSettings" /></label>
             <div class="dates">

@@ -8,8 +8,8 @@ use App\Models\GanttTask;
 use Carbon\CarbonImmutable;
 
 /**
- * ガントチャートの Excel 出力。
- * シート1「ガントチャート」: 列 = 月、行 = 科目・学習分野。区間はその月の範囲を色で塗り、先頭セルに名前（結合）。
+ * 計画表（ガントチャート）の Excel 出力。
+ * シート1「計画表」: 列 = 月、行 = 科目・学習分野。区間はその月の範囲を色で塗り、先頭セルに名前（結合）。
  * シート2「区間一覧」: 行・区間・開始日・終了日・日数・進捗・メモの一覧。
  */
 final class GanttExcel
@@ -156,7 +156,7 @@ final class GanttExcel
         for ($i = 0; $i < $monthCount; $i++) {
             $colWidths[$firstMonthCol + $i] = 6.5;
         }
-        $w->addSheet('ガントチャート', $cells, [
+        $w->addSheet('計画表', $cells, [
             'merges' => $merges,
             'colWidths' => $colWidths,
             'rowHeights' => $rowHeights,

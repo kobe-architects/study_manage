@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 /**
- * JSON からガントチャートを登録する（計画のひな形の投入用）。
+ * JSON から計画表（ガントチャート）を登録する（計画のひな形の投入用。生徒側の計画表として登録する）。
  *
  *   php artisan gantt:import database/data/gantt_plan_2029.json
  *   php artisan gantt:import database/data/gantt_plan_2029.json --user=student@example.com --replace

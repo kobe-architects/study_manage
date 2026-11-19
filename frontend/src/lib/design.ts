@@ -119,7 +119,7 @@ export const NAV: NavDef[] = [
   { key: 'test', route: 'quizzes', label: '小テスト', short: '小テスト' },
   { key: 'files', route: 'files', label: 'ファイル共有', short: 'ファイル' },
   { key: 'goal', route: 'goals', label: '目標設定', short: '目標' },
-  { key: 'gantt', route: 'gantt', label: 'ガント', short: 'ガント' },
+  { key: 'gantt', route: 'gantt', label: '計画表', short: '計画表' },
   { key: 'mistake', route: 'mistakes', label: '間違いノート', short: 'ノート' },
   { key: 'data', route: 'data', label: '学習項目データ', short: '項目' },
   { key: 'invoice', route: 'invoices', label: '講師請求管理', short: '請求' },

@@ -366,5 +366,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/shared/files/{file}', [SharedFileController::class, 'updateFile']);
         Route::delete('/shared/files/{file}', [SharedFileController::class, 'destroyFile']);
         Route::get('/shared/files/{file}/file', [SharedFileController::class, 'file']);
+
+        // ===== 計画表（ガントチャート）。講師自身の計画表（tutor_id = 講師）を生徒側とは別に持つ。生徒の計画表は一覧と複製のみ =====
+        Route::get('/gantt-charts', [GanttController::class, 'index']);
+        Route::get('/gantt-charts/student', [GanttController::class, 'studentCharts']);
+        Route::post('/gantt-charts', [GanttController::class, 'store']);
+        Route::get('/gantt-charts/{chart}', [GanttController::class, 'show']);
+        Route::put('/gantt-charts/{chart}', [GanttController::class, 'update']);
+        Route::delete('/gantt-charts/{chart}', [GanttController::class, 'destroy']);
+        Route::post('/gantt-charts/{chart}/duplicate', [GanttController::class, 'duplicate']);
+        Route::post('/gantt-charts/{chart}/copy-from-student', [GanttController::class, 'copyFromStudent']);
+        Route::post('/gantt-charts/{chart}/pdf', [GanttController::class, 'pdf']);
+        Route::get('/gantt-charts/{chart}/excel', [GanttController::class, 'excel']);
+        Route::post('/gantt-charts/{chart}/rows', [GanttController::class, 'storeRow']);
+        Route::put('/gantt-charts/{chart}/rows/reorder', [GanttController::class, 'reorderRows']);
+        Route::put('/gantt-rows/{row}', [GanttController::class, 'updateRow']);
+        Route::delete('/gantt-rows/{row}', [GanttController::class, 'destroyRow']);
+        Route::post('/gantt-rows/{row}/tasks', [GanttController::class, 'storeTask']);
+        Route::put('/gantt-tasks/{task}', [GanttController::class, 'updateTask']);
+        Route::delete('/gantt-tasks/{task}', [GanttController::class, 'destroyTask']);
     });
 });

@@ -62,6 +62,7 @@ const NAV_TUTOR = [
   { key: 'home', route: 'tutor-home', label: 'トップページ', short: 'トップ', icon: ICONS.home },
   { key: 'subjects', route: 'tutor-subjects', label: '科目別学習状況', short: '科目別', icon: ICONS.data },
   { key: 'assignment', route: 'tutor-assignments', label: '課題設定', short: '課題', icon: ICONS.record },
+  { key: 'gantt', route: 'tutor-gantt', label: '計画表', short: '計画表', icon: ICONS.gantt },
   { key: 'quiz', route: 'tutor-quizzes', label: '小テスト', short: '小テスト', icon: ICONS.test },
   { key: 'sheet', route: 'tutor-checksheets', label: 'チェックシート', short: 'シート', icon: ICONS.sheet },
   { key: 'files', route: 'tutor-files', label: 'ファイル共有', short: 'ファイル', icon: ICONS.files },
@@ -82,6 +83,8 @@ const activeKey = computed(() => {
     'tutor-home': 'home',
     'tutor-subjects': 'subjects',
     'tutor-assignments': 'assignment',
+    'tutor-gantt': 'gantt',
+    'tutor-gantt-chart': 'gantt',
     'tutor-quizzes': 'quiz',
     'tutor-quiz-grade': 'quiz',
     'tutor-checksheets': 'sheet',
@@ -185,7 +188,7 @@ async function logout() {
     <main class="main">
       <div ref="scrollEl" class="scroll app-scroll">
         <PullIndicator v-if="isTouch" :pull="pull" :trigger="pullTrigger" :refreshing="refreshing" />
-        <div ref="contentEl" class="content" :class="{ m: isMobile, tablet: tabletZoom }">
+        <div ref="contentEl" class="content" :class="{ m: isMobile, tablet: tabletZoom, wide: !!route.meta.wide }">
           <!-- スマホでは担当生徒を上部バーに出せないので、先頭に小さく表示する -->
           <div v-if="isMobile && !parentRoute" class="m-student">
             担当: {{ studentName }}<template v-if="daysToExam !== null">・受験まで{{ daysToExam }}日</template>
@@ -329,6 +332,11 @@ async function logout() {
 }
 .content.m {
   padding: 14px max(16px, env(safe-area-inset-right)) calc(26px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+/* 計画表など横に広く使う画面: 横幅 95%（スマホは全幅のまま） */
+.content.wide:not(.m) {
+  max-width: none;
+  width: 95%;
 }
 /* タブレット: 文字・余白ごと 1.15 倍で表示（vh 指定のモーダルは global.css / 各画面側で 100% 基準に直している） */
 .content.tablet {

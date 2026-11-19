@@ -796,7 +796,7 @@ export interface QuizStats {
 }
 
 
-// ===== ガントチャート（数年分の学習計画） =====
+// ===== 計画表（ガントチャート。数年分の学習計画。生徒側・講師側それぞれが持つ） =====
 export type GanttTaskKind = 'task' | 'milestone'
 
 /** 行の中の区間（期間のバー）または節目（1日・ひし形） */

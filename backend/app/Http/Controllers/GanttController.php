@@ -19,9 +19,13 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * ガントチャート（数年分の学習計画）。
+ * 計画表（ガントチャート。数年分の学習計画）。
  * チャート → 行（科目・学習分野） → 区間（範囲学習・復習・演習・過去問 などのバー／1 日の節目）の 3 階層。
  * 画面上のドラッグで動かした結果を保存し、PDF・Excel の出力も行う。
+ *
+ * 生徒側と講師側でデータを分ける: user_id は常に生徒（行の科目の参照先）、tutor_id が null なら生徒の計画表、
+ * 講師の users.id なら その講師の計画表。講師は自分の計画表だけ読み書きでき、生徒の計画表は一覧（studentCharts）と
+ * 複製（copyFromStudent）だけできる。
  */
 class GanttController extends Controller
 {
@@ -33,8 +37,8 @@ class GanttController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $charts = GanttChart::withCount(['rows', 'tasks'])
-            ->where('user_id', $this->targetUserId($request))
+        $charts = $this->scoped($request)
+            ->withCount(['rows', 'tasks'])
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
             ->get();
@@ -53,6 +57,7 @@ class GanttController extends Controller
 
         $chart = GanttChart::create([
             'user_id' => $this->targetUserId($request),
+            'tutor_id' => $this->tutorId($request),
             'title' => $data['title'],
             'note' => ($data['note'] ?? '') !== '' ? $data['note'] : null,
             'start_on' => $data['startOn'],
@@ -112,11 +117,43 @@ class GanttController extends Controller
     public function duplicate(Request $request, GanttChart $chart): JsonResponse
     {
         $this->authorizeChart($request, $chart);
+        $copy = $this->copyChart($chart, mb_substr($chart->title.'のコピー', 0, 255), $chart->tutor_id);
 
-        $copy = DB::transaction(function () use ($chart) {
+        return response()->json(['data' => $this->chartPayload($copy)], 201);
+    }
+
+    /** 講師用: 担当生徒の計画表の一覧（複製元の選択用。読み取りのみ） */
+    public function studentCharts(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->isTutor(), 403);
+        $charts = GanttChart::withCount(['rows', 'tasks'])
+            ->where('user_id', $this->targetUserId($request))
+            ->whereNull('tutor_id')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json(['data' => $charts->map(fn (GanttChart $c) => $this->chartPayload($c))->values()]);
+    }
+
+    /** 講師用: 担当生徒の計画表（例:「受験本番までの学習計画」）を講師側の計画表として複製する */
+    public function copyFromStudent(Request $request, GanttChart $chart): JsonResponse
+    {
+        abort_unless($request->user()->isTutor(), 403);
+        abort_unless($chart->user_id === $this->targetUserId($request) && $chart->tutor_id === null, 403);
+        $copy = $this->copyChart($chart, $chart->title, $request->user()->id);
+
+        return response()->json(['data' => $this->chartPayload($copy)], 201);
+    }
+
+    /** チャートを行・区間ごと複製する。tutorId を渡すと講師側の計画表として作る */
+    private function copyChart(GanttChart $chart, string $title, ?int $tutorId): GanttChart
+    {
+        $copy = DB::transaction(function () use ($chart, $title, $tutorId) {
             $copy = GanttChart::create([
                 'user_id' => $chart->user_id,
-                'title' => mb_substr($chart->title.'のコピー', 0, 255),
+                'tutor_id' => $tutorId,
+                'title' => $title,
                 'note' => $chart->note,
                 'start_on' => $chart->start_on,
                 'end_on' => $chart->end_on,
@@ -152,7 +189,7 @@ class GanttController extends Controller
         });
         $copy->loadCount(['rows', 'tasks']);
 
-        return response()->json(['data' => $this->chartPayload($copy)], 201);
+        return $copy;
     }
 
     // ================================================================
@@ -370,9 +407,27 @@ class GanttController extends Controller
         ];
     }
 
+    /** 講師のリクエストなら講師の users.id、生徒なら null（計画表の tutor_id と同じ意味） */
+    private function tutorId(Request $request): ?int
+    {
+        $user = $request->user();
+
+        return $user->isTutor() ? (int) $user->id : null;
+    }
+
+    /** 自分側（生徒＝tutor_id null／講師＝自分の tutor_id）の計画表だけに絞ったクエリ */
+    private function scoped(Request $request)
+    {
+        $q = GanttChart::where('user_id', $this->targetUserId($request));
+        $tutorId = $this->tutorId($request);
+
+        return $tutorId === null ? $q->whereNull('tutor_id') : $q->where('tutor_id', $tutorId);
+    }
+
     private function authorizeChart(Request $request, GanttChart $chart): void
     {
         abort_unless($chart->user_id === $this->targetUserId($request), 403);
+        abort_unless((int) ($chart->tutor_id ?? 0) === (int) ($this->tutorId($request) ?? 0), 403);
     }
 
     private function withRows(GanttChart $chart): GanttChart

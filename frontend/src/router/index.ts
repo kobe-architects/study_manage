@@ -24,7 +24,7 @@ const router = createRouter({
         { path: 'grammar', name: 'grammar', redirect: { name: 'english', query: { tab: 'scramble' } } },
         { path: 'goals', name: 'goals', component: () => import('@/views/GoalsView.vue') },
         { path: 'gantt', name: 'gantt', component: () => import('@/views/GanttView.vue'), meta: { wide: true } },
-        { path: 'gantt/:id', name: 'gantt-chart', component: () => import('@/views/GanttChartView.vue'), meta: { wide: true, depth: 2, parent: 'gantt', title: 'ガントチャート' } },
+        { path: 'gantt/:id', name: 'gantt-chart', component: () => import('@/views/GanttChartView.vue'), meta: { wide: true, depth: 2, parent: 'gantt', title: '計画表' } },
         { path: 'mistakes', name: 'mistakes', component: () => import('@/views/MistakesView.vue') },
         { path: 'mistakes/new', name: 'mistake-new', component: () => import('@/views/MistakeEditView.vue'), meta: { wide: true, depth: 2, parent: 'mistakes', title: '問題を追加' } },
         { path: 'mistakes/:id', name: 'mistake-edit', component: () => import('@/views/MistakeEditView.vue'), meta: { wide: true, depth: 2, parent: 'mistakes', title: '間違いノートを編集' } },
@@ -85,6 +85,14 @@ const router = createRouter({
           meta: { tutor: true },
         },
         { path: 'scramble', redirect: { name: 'tutor-checksheets' } },
+        // 計画表（講師自身の計画表。生徒側と同じ画面を /tutor の API で使う）
+        { path: 'gantt', name: 'tutor-gantt', component: () => import('@/views/GanttView.vue'), meta: { tutor: true, wide: true } },
+        {
+          path: 'gantt/:id',
+          name: 'tutor-gantt-chart',
+          component: () => import('@/views/GanttChartView.vue'),
+          meta: { tutor: true, wide: true, depth: 2, parent: 'tutor-gantt', title: '計画表' },
+        },
         // ファイル共有（生徒と同じ階層フォルダ）
         {
           path: 'files',
