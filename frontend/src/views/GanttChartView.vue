@@ -38,6 +38,8 @@ const chart = ref<GanttChartDetail | null>(null)
 const loading = ref(true)
 const board = ref<InstanceType<typeof GanttBoard> | null>(null)
 const isMobile = computed(() => viewportWidth.value < 860)
+/** iPad 横など: レイアウト側がナビを隠して全画面にするので、上部の行も小さくして計画表を広く見せる */
+const compact = computed(() => isTouch && !isMobile.value)
 
 async function load() {
   loading.value = true
@@ -338,7 +340,7 @@ const helpText = isTouch
     <div v-if="loading && !chart" class="hint" style="text-align: center">読み込み中…</div>
 
     <template v-else-if="chart">
-      <div class="top">
+      <div class="top" :class="{ compact }">
         <div class="left">
           <button v-if="!isMobile" class="back" @click="router.push({ name: listRoute })">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7" /></svg>一覧
@@ -377,14 +379,13 @@ const helpText = isTouch
         :end-on="chart.endOn"
         :zoom="zoom"
         :snap="snap"
+        :bottom-gap="compact ? 10 : 28"
         @move="onMove"
         @reorder="onReorder"
         @edit-task="openEditTask"
         @edit-row="openEditRow"
         @add-task="openAddTask"
       />
-
-      <div v-if="chart.note" class="note">{{ chart.note }}</div>
     </template>
 
     <!-- 行の追加・編集 -->
@@ -573,13 +574,6 @@ const helpText = isTouch
   font-weight: 600;
   color: #c0444f;
 }
-.note {
-  margin-top: 12px;
-  font-size: 12.5px;
-  color: var(--mut);
-  white-space: pre-line;
-  line-height: 1.7;
-}
 .hint {
   background: #f8f9fb;
   border: 1px dashed #d8dce1;
@@ -646,6 +640,47 @@ const helpText = isTouch
   align-items: center;
   flex-wrap: wrap;
   margin-top: 20px;
+}
+/* iPad 横（全画面）: 上部の行を 1 段・小さめにして計画表の高さを確保する */
+.top.compact {
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.top.compact .left,
+.top.compact .right {
+  gap: 6px;
+}
+.top.compact .back {
+  padding: 4px 8px 4px 4px;
+  font-size: 12px;
+}
+.top.compact .ttl-btn {
+  padding: 2px 6px;
+  margin-left: -4px;
+  gap: 8px;
+}
+.top.compact .ttl {
+  font-size: 14px;
+}
+.top.compact .range {
+  font-size: 11px;
+}
+.top.compact .seg {
+  padding: 2px;
+  border-radius: 9px;
+}
+.top.compact .seg-btn {
+  padding: 4px 9px;
+  font-size: 12px;
+  border-radius: 7px;
+}
+.top.compact .btn-dark,
+.top.compact .btn-ghost {
+  padding: 6px 11px;
+  font-size: 12px;
+}
+.top.compact .snap-label {
+  font-size: 11px;
 }
 @media (max-width: 600px) {
   .ttl {

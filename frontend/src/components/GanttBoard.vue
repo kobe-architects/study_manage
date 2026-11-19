@@ -10,7 +10,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { daysBetween, parseDate } from '@/lib/design'
 import { GANTT_ZOOMS, addDays, isDark, isoAt, monthSpans, snapDate, todayIso, yearSpans, type GanttSnap, type GanttZoom } from '@/lib/gantt'
-import { haptic, viewportWidth } from '@/lib/native'
+import { haptic, isTouch, viewportWidth } from '@/lib/native'
 import { useUiStore } from '@/stores/ui'
 import type { GanttRow, GanttTask } from '@/types'
 
@@ -21,7 +21,7 @@ function rowColor(row: GanttRow): string | undefined {
   return row.colorSoft && row.colorVivid ? ui.colorOf(row.colorSoft, row.colorVivid) : undefined
 }
 
-const props = defineProps<{ rows: GanttRow[]; startOn: string; endOn: string; zoom: GanttZoom; snap: GanttSnap }>()
+const props = withDefaults(defineProps<{ rows: GanttRow[]; startOn: string; endOn: string; zoom: GanttZoom; snap: GanttSnap; bottomGap?: number }>(), { bottomGap: 28 })
 const emit = defineEmits<{
   move: [task: GanttTask, startOn: string, endOn: string]
   reorder: [ids: number[]]
@@ -38,7 +38,8 @@ const bodyEl = ref<HTMLElement | null>(null)
 const rangeStart = computed(() => parseDate(props.startOn))
 const rangeEnd = computed(() => parseDate(props.endOn))
 const totalDays = computed(() => Math.max(1, daysBetween(rangeStart.value, rangeEnd.value) + 1))
-const nameW = computed(() => (viewportWidth.value < 600 ? 150 : 240))
+/** 項目名（科目・学習分野）の列の幅。名前だけを 1 行で出すので狭めにしてチャートを広く使う */
+const nameW = computed(() => (viewportWidth.value < 600 ? 130 : 180))
 
 /** 「全体」倍率のときに使う、チャート部分の幅（枠の幅 − 項目名の列） */
 const fitWidth = ref(800)
@@ -177,13 +178,13 @@ function barTitle(b: Bar): string {
   if (b.task.kind === 'milestone') return `${b.task.title}（${fmt(b.s)}）`
   return `${b.task.title}\n${fmt(b.s)} 〜 ${fmt(b.e)}・${b.e - b.s + 1}日${b.task.progress ? `・${b.task.progress}%` : ''}`
 }
-/** 行の下の小さな説明（区間の数・期間） */
-function rowSub(v: RowView): string {
-  const bars = v.bars.filter((b) => !b.outside)
-  if (!bars.length) return v.row.tasks.length ? '表示期間の外' : '区間なし'
-  const s = Math.min(...bars.map((b) => b.s))
-  const e = Math.max(...bars.map((b) => b.e))
-  return `${fmt(Math.max(0, s))} 〜 ${fmt(Math.min(totalDays.value - 1, e))}`
+/**
+ * バーの両端のつまみの幅（px）。タッチ端末では指で掴みやすいようにバーの幅の 1/3（10〜26px）、マウスは 10px。
+ * 中央は期間ごとの移動に残す
+ */
+function handleW(barW: number): number {
+  if (!isTouch) return 10
+  return Math.max(10, Math.min(26, Math.round(barW * 0.32)))
 }
 
 /** スクロール枠内の X 座標（スクロール量込み） */
@@ -382,7 +383,7 @@ function measure() {
   const el = scroller.value
   if (!el) return
   const top = el.getBoundingClientRect().top
-  maxH.value = Math.max(320, window.innerHeight - top - 28)
+  maxH.value = Math.max(320, window.innerHeight - top - props.bottomGap)
   fitWidth.value = Math.max(200, el.clientWidth - nameW.value)
 }
 onMounted(() => {
@@ -467,11 +468,8 @@ onBeforeUnmount(() => {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7" /><circle cx="15" cy="6" r="1.7" /><circle cx="9" cy="12" r="1.7" /><circle cx="15" cy="12" r="1.7" /><circle cx="9" cy="18" r="1.7" /><circle cx="15" cy="18" r="1.7" /></svg>
           </button>
           <button class="ntext" :title="`${v.row.title}（クリックで行を編集）`" @click="emit('editRow', v.row)">
+            <span v-if="v.groupLabel" class="gchip">{{ v.groupLabel }}</span>
             <span class="ntitle" :style="{ color: rowColor(v.row) }">{{ v.row.title }}</span>
-            <span class="nsub">
-              <span v-if="v.groupLabel" class="gchip">{{ v.groupLabel }}</span>
-              {{ rowSub(v) }}
-            </span>
           </button>
           <button class="nadd" title="この行に区間を追加" aria-label="区間を追加" @click="emit('addTask', v.row)">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
@@ -501,7 +499,7 @@ onBeforeUnmount(() => {
                 v-else
                 class="gbar"
                 :class="{ clipl: b.clipL, clipr: b.clipR, dark: b.dark, narrow: b.width < 72, tiny: b.width < 26, dragging: drag.id === b.task.id }"
-                :style="{ left: b.left + 'px', width: b.width + 'px', '--c': b.task.color }"
+                :style="{ left: b.left + 'px', width: b.width + 'px', '--c': b.task.color, '--hw': handleW(b.width) + 'px' }"
                 :title="barTitle(b)"
                 @pointerdown="onBarDown($event, b.task, 'move')"
                 @pointermove="onBarMove"
@@ -747,8 +745,8 @@ onBeforeUnmount(() => {
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  gap: 5px;
   border: none;
   background: transparent;
   padding: 0 2px;
@@ -757,25 +755,13 @@ onBeforeUnmount(() => {
   line-height: 1.3;
 }
 .ntitle {
-  max-width: 100%;
+  min-width: 0;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.nsub {
-  max-width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  color: var(--faint);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-variant-numeric: tabular-nums;
 }
 .gchip {
   flex-shrink: 0;
@@ -891,7 +877,7 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 10px;
+  width: var(--hw, 10px);
   cursor: ew-resize;
   touch-action: none;
   z-index: 2;
@@ -920,6 +906,12 @@ onBeforeUnmount(() => {
 }
 .gbar:hover .gh::after {
   opacity: 0.55;
+}
+/* タッチ端末はホバーがないので、つまみの印を常に薄く出す（細すぎるバーは除く） */
+@media (pointer: coarse) {
+  .gbar:not(.tiny) .gh::after {
+    opacity: 0.3;
+  }
 }
 .gtip {
   position: absolute;

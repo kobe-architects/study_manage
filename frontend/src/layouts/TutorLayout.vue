@@ -33,11 +33,13 @@ onMounted(async () => {
 
 /** スマホ・iPad 縦: 上部バー＋右上のハンバーガーメニュー */
 const isMobile = computed(() => viewportWidth.value < 860)
+/** iPad 横など（タッチで幅が広い）で計画表を開いたときはナビを隠して全画面にする */
+const fullscreen = computed(() => !!route.meta.fullscreen && isTouch && !isMobile.value)
 /**
  * iPad などタッチのタブレットでは PC と同じ密度だと文字が小さく見づらいので、ページ内容を少し拡大して表示する。
  * 採点・添削画面はキャンバスの座標計算があるため対象外（全画面添削は元々タブレット向けの大きさ）。
  */
-const tabletZoom = computed(() => isTouch && viewportWidth.value >= 700 && route.name !== 'tutor-quiz-grade')
+const tabletZoom = computed(() => isTouch && viewportWidth.value >= 700 && route.name !== 'tutor-quiz-grade' && !fullscreen.value)
 
 // ---- 画面遷移（アニメーション・スクロール位置・引っ張って更新） ----
 const scrollEl = ref<HTMLElement | null>(null)
@@ -126,7 +128,7 @@ async function logout() {
 
   <div v-else class="shell">
     <!-- PC・iPad 横: 上部ナビ -->
-    <header v-if="!isMobile" class="topbar">
+    <header v-if="!isMobile && !fullscreen" class="topbar">
       <div class="brand-mini">
         <div class="logo-sm dm">師</div>
         <div style="line-height: 1.25">
@@ -160,7 +162,7 @@ async function logout() {
     </header>
 
     <!-- スマホ・iPad 縦: 左=ロゴ or 戻る / 中央=画面名 / 右=メニュー -->
-    <header v-else class="mobile-top">
+    <header v-else-if="isMobile" class="mobile-top">
       <div class="mt-side">
         <button v-if="parentRoute" class="mt-back" @click="goBack">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
@@ -188,7 +190,7 @@ async function logout() {
     <main class="main">
       <div ref="scrollEl" class="scroll app-scroll">
         <PullIndicator v-if="isTouch" :pull="pull" :trigger="pullTrigger" :refreshing="refreshing" />
-        <div ref="contentEl" class="content" :class="{ m: isMobile, tablet: tabletZoom, wide: !!route.meta.wide }">
+        <div ref="contentEl" class="content" :class="{ m: isMobile, tablet: tabletZoom, wide: !!route.meta.wide, edge: !!route.meta.fullscreen, full: fullscreen }">
           <!-- スマホでは担当生徒を上部バーに出せないので、先頭に小さく表示する -->
           <div v-if="isMobile && !parentRoute" class="m-student">
             担当: {{ studentName }}<template v-if="daysToExam !== null">・受験まで{{ daysToExam }}日</template>
@@ -333,10 +335,20 @@ async function logout() {
 .content.m {
   padding: 14px max(16px, env(safe-area-inset-right)) calc(26px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
-/* 計画表など横に広く使う画面: 横幅 95%（スマホは全幅のまま） */
+/* 計画表など横に広く使う画面: 横幅 98%（スマホは全幅のまま） */
 .content.wide:not(.m) {
   max-width: none;
-  width: 95%;
+  width: 98%;
+}
+/* 計画表の編集画面: 左右の余白なしで 98% いっぱいに使う */
+.content.edge:not(.m) {
+  padding-left: 0;
+  padding-right: 0;
+}
+/* 全画面（iPad 横の計画表）: 上下の余白も詰める */
+.content.full {
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 /* タブレット: 文字・余白ごと 1.15 倍で表示（vh 指定のモーダルは global.css / 各画面側で 100% 基準に直している） */
 .content.tablet {

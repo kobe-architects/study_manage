@@ -45,8 +45,10 @@ onMounted(async () => {
 })
 
 const isMobile = computed(() => viewportWidth.value < 860)
-const showTopNav = computed(() => !isMobile.value && ui.navStyle === 'トップナビ')
-const showSide = computed(() => !isMobile.value && ui.navStyle !== 'トップナビ')
+/** iPad 横など（タッチで幅が広い）で計画表を開いたときはナビを隠して全画面にする */
+const fullscreen = computed(() => !!route.meta.fullscreen && isTouch && !isMobile.value)
+const showTopNav = computed(() => !isMobile.value && !fullscreen.value && ui.navStyle === 'トップナビ')
+const showSide = computed(() => !isMobile.value && !fullscreen.value && ui.navStyle !== 'トップナビ')
 const isRail = computed(() => ui.navStyle === 'アイコンレール')
 const navWidth = computed(() => (isRail.value ? '74px' : '232px'))
 const showLabels = computed(() => !isRail.value)
@@ -221,7 +223,7 @@ async function logout() {
 
         <div ref="scrollEl" class="scroll app-scroll">
           <PullIndicator v-if="isTouch" :pull="pull" :trigger="pullTrigger" :refreshing="refreshing" />
-          <div ref="contentEl" class="content" :class="{ m: isMobile, wide: !!route.meta.wide }">
+          <div ref="contentEl" class="content" :class="{ m: isMobile, wide: !!route.meta.wide, edge: !!route.meta.fullscreen, full: fullscreen }">
             <router-view v-slot="{ Component }">
               <component :is="Component" :key="route.fullPath + '#' + refreshKey" :class="pageAnim" />
             </router-view>
@@ -467,9 +469,19 @@ async function logout() {
 .content.m {
   padding: 18px max(16px, env(safe-area-inset-right)) calc(26px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
-/* ガントチャートなど横に広く使う画面: 横幅 95%（スマホは全幅のまま） */
+/* 計画表など横に広く使う画面: 横幅 98%（スマホは全幅のまま） */
 .content.wide:not(.m) {
   max-width: none;
-  width: 95%;
+  width: 98%;
+}
+/* 計画表の編集画面: 左右の余白なしで 98% いっぱいに使う */
+.content.edge:not(.m) {
+  padding-left: 0;
+  padding-right: 0;
+}
+/* 全画面（iPad 横の計画表）: 上下の余白も詰める */
+.content.full {
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 </style>

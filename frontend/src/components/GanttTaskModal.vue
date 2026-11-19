@@ -36,6 +36,37 @@ const canSave = computed(() => !!form.title.trim() && !!form.startOn && (isMiles
 function onStartChange() {
   if (!isMilestone.value && form.endOn && form.endOn < form.startOn) form.endOn = form.startOn
 }
+
+// ---- 期間の調整ボタン（iPad などで日付の入力欄を触らずに動かせるように） ----
+type DateField = 'startOn' | 'endOn'
+/** 開始日／終了日を n 日ずらす。開始日を終了日より後にしたときは終了日も同じ日に、終了日を開始日より前にしたときは開始日に止める */
+function shift(field: DateField, n: number) {
+  if (!form[field]) return
+  form[field] = iso(addDays(parseDate(form[field]), n))
+  if (isMilestone.value) return
+  if (field === 'startOn') onStartChange()
+  else if (form.endOn < form.startOn) form.endOn = form.startOn
+}
+/** 開始日をその月の 1 日に（すでに 1 日なら前の月の 1 日に） */
+function toMonthStart() {
+  if (!form.startOn) return
+  const d = parseDate(form.startOn)
+  form.startOn = iso(d.getDate() === 1 ? new Date(d.getFullYear(), d.getMonth() - 1, 1) : new Date(d.getFullYear(), d.getMonth(), 1))
+}
+/** 終了日をその月の末日に（すでに末日なら次の月の末日に） */
+function toMonthEnd() {
+  if (!form.endOn) return
+  const d = parseDate(form.endOn)
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+  form.endOn = iso(d.getDate() === last.getDate() ? new Date(d.getFullYear(), d.getMonth() + 2, 0) : last)
+  if (form.endOn < form.startOn) form.startOn = form.endOn
+}
+/** 日数を直接入れて終了日を決める */
+function onDaysInput(e: Event) {
+  const n = Math.floor(Number((e.target as HTMLInputElement).value))
+  if (!form.startOn || !Number.isFinite(n) || n < 1) return
+  form.endOn = iso(addDays(parseDate(form.startOn), Math.min(3650, n) - 1))
+}
 /** ひな形（範囲学習など）: 名前と色をまとめて入れる */
 function applyPhase(p: { label: string; color: string }) {
   form.title = p.label
@@ -93,14 +124,36 @@ function submit() {
           <input v-model="form.title" :placeholder="isMilestone ? '例: 共通テスト' : '例: 範囲学習'" @keydown.enter="submit" />
         </label>
 
-        <div class="dates">
-          <label class="fld">
-            <span>{{ isMilestone ? '日付' : '開始日' }}</span>
-            <input v-model="form.startOn" type="date" @change="onStartChange" />
-          </label>
-          <label v-if="!isMilestone" class="fld">
-            <span>終了日</span>
-            <input v-model="form.endOn" type="date" :min="form.startOn" />
+        <div class="dates" :class="{ single: isMilestone }">
+          <div class="dcol">
+            <label class="fld">
+              <span>{{ isMilestone ? '日付' : '開始日' }}</span>
+              <input v-model="form.startOn" type="date" @change="onStartChange" />
+            </label>
+            <div class="steps">
+              <button class="step" title="10日前へ" @click="shift('startOn', -10)">−10</button>
+              <button class="step" title="1日前へ" @click="shift('startOn', -1)">−1</button>
+              <button class="step" title="1日後へ" @click="shift('startOn', 1)">+1</button>
+              <button class="step" title="10日後へ" @click="shift('startOn', 10)">+10</button>
+              <button class="step edge" title="その月の 1 日に（すでに 1 日なら前の月の 1 日に）" @click="toMonthStart">月初</button>
+            </div>
+          </div>
+          <div v-if="!isMilestone" class="dcol">
+            <label class="fld">
+              <span>終了日</span>
+              <input v-model="form.endOn" type="date" :min="form.startOn" />
+            </label>
+            <div class="steps">
+              <button class="step" title="10日前へ" @click="shift('endOn', -10)">−10</button>
+              <button class="step" title="1日前へ" @click="shift('endOn', -1)">−1</button>
+              <button class="step" title="1日後へ" @click="shift('endOn', 1)">+1</button>
+              <button class="step" title="10日後へ" @click="shift('endOn', 10)">+10</button>
+              <button class="step edge" title="その月の末日に（すでに末日なら次の月の末日に）" @click="toMonthEnd">月末</button>
+            </div>
+          </div>
+          <label v-if="!isMilestone" class="fld dcol days">
+            <span>日数</span>
+            <input :value="days > 0 ? days : ''" type="number" min="1" inputmode="numeric" @change="onDaysInput" />
           </label>
         </div>
         <div v-if="dateError" class="err">{{ dateError }}</div>
@@ -244,8 +297,55 @@ function submit() {
 }
 .dates {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 64px;
   gap: 10px;
+  align-items: start;
+}
+.dates.single {
+  grid-template-columns: 1fr;
+}
+.dcol {
+  min-width: 0;
+}
+.steps {
+  display: flex;
+  gap: 4px;
+  margin-top: 5px;
+}
+.step {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 0;
+  border: 1px solid #e3e6ea;
+  border-radius: 7px;
+  background: #f8f9fb;
+  color: var(--mut);
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.step:active {
+  background: #e9ecf1;
+}
+.step.edge {
+  flex: 1.3;
+  background: #fff;
+}
+.days input {
+  text-align: center;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+@media (max-width: 520px) {
+  .dates {
+    grid-template-columns: 1fr 1fr;
+  }
+  .dates .days {
+    grid-column: 1 / -1;
+    max-width: 120px;
+  }
 }
 .err {
   font-size: 12px;
