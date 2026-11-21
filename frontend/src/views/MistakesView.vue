@@ -21,6 +21,7 @@ import { showPdf, useInAppViewer } from '@/lib/docViewer'
 import { DECK_COLORS, MASTERIES, OTHER_SUBJECT, fmtDate, groupNotes, masteryInfo, matchMastery, pageIndexOf, paginate, type MasteryFilter, type MistakeGroup } from '@/lib/mistake'
 import { canvasToJpeg, renderBinderPage, renderIndexPages, type IndexEntry } from '@/lib/mistakeRender'
 import { haptic, viewportWidth } from '@/lib/native'
+import { forgetMistakeNote } from '@/lib/noteLink'
 import { useUiStore } from '@/stores/ui'
 import type { MistakeDeck, MistakeMastery, MistakeNoteDetail, MistakeNoteSummary, MistakeReviewState } from '@/types'
 
@@ -378,6 +379,7 @@ async function remove(n: MistakeNoteSummary) {
   try {
     await mistakeApi.remove(n.id)
     notes.value = notes.value.filter((x) => x.id !== n.id)
+    forgetMistakeNote(n.id) // 問題・カード側の「作成済み」を消し、もう一度作れるようにする
     ui.notify('削除しました')
   } catch {
     ui.notify('削除に失敗しました')

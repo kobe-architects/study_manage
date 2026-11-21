@@ -21,6 +21,7 @@ import { createCardNote } from '@/lib/cardNote'
 import { openCardCheckSheet } from '@/lib/cardSheet'
 import { shuffle } from '@/lib/design'
 import { saveFile } from '@/lib/native'
+import { cardCache, mistakeNoteExists } from '@/lib/noteLink'
 import { QuestionTimer } from '@/lib/quizTimer'
 import { playResultSound } from '@/lib/sound'
 import { useAuthStore } from '@/stores/auth'
@@ -38,7 +39,7 @@ const loading = ref(true)
 const deck = ref<CardDeck | null>(null)
 const all = ref<CardItem[]>([])
 /** 束ごとのカードのキャッシュ（タブを行き来しても取り直さない） */
-const cache: Map<string, CardItem[]> = ((window as unknown as { __cardCache?: Map<string, CardItem[]> }).__cardCache ??= new Map())
+const cache = cardCache()
 
 async function load(force = false) {
   loading.value = true
@@ -405,13 +406,17 @@ async function onUnsure(unsure: boolean) {
 const noteBusy = ref<number | null>(null)
 async function makeNote(c: CardItem, result: CardAnswerResult | null) {
   if (noteBusy.value) return
-  if (c.noteId) {
-    finishSession()
-    router.push({ name: 'mistake-edit', params: { id: c.noteId } })
-    return
-  }
   noteBusy.value = c.id
   try {
+    if (c.noteId) {
+      // 一覧で削除済み（別の端末で削除した場合も）なら作り直せるように、開く前にサーバーに実在を確かめる
+      if (await mistakeNoteExists(c.noteId)) {
+        finishSession()
+        router.push({ name: 'mistake-edit', params: { id: c.noteId } })
+        return
+      }
+      c.noteId = null
+    }
     const { note, created } = await createCardNote(c, result, deck.value?.name ?? null)
     c.noteId = note.id
     ui.notify(created ? `間違いノートを作成しました（${[note.subjectName, note.field].filter(Boolean).join(' ／ ') || `デッキ「${note.deckName ?? ''}」`}）` : 'この問題の間違いノートはすでにあります', { center: true })

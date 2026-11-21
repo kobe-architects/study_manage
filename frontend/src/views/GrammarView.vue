@@ -22,6 +22,7 @@ import { QuestionTimer } from '@/lib/quizTimer'
 import { CIRCLED, FORMATS, FORMAT_INFO, chapterParts, plainText, questionPreview, statusOf } from '@/lib/grammar'
 import { openFirstStepCheckSheet } from '@/lib/firstStepSheet'
 import { createGrammarNote } from '@/lib/grammarNote'
+import { mistakeNoteExists } from '@/lib/noteLink'
 import { saveFile } from '@/lib/native'
 import { openBookCheckSheet, openGrammarCheckSheet } from '@/lib/grammarSheet'
 import { playResultSound } from '@/lib/sound'
@@ -488,13 +489,17 @@ async function onUnsure(unsure: boolean) {
 const noteBusy = ref<number | null>(null)
 async function makeNote(q: GrammarQuestion, result: GrammarAnswerResult | null) {
   if (noteBusy.value) return
-  if (q.noteId) {
-    finishSession()
-    router.push({ name: 'mistake-edit', params: { id: q.noteId } })
-    return
-  }
   noteBusy.value = q.id
   try {
+    if (q.noteId) {
+      // 一覧で削除済み（別の端末で削除した場合も）なら作り直せるように、開く前にサーバーに実在を確かめる
+      if (await mistakeNoteExists(q.noteId)) {
+        finishSession()
+        router.push({ name: 'mistake-edit', params: { id: q.noteId } })
+        return
+      }
+      q.noteId = null
+    }
     const { note, created } = await createGrammarNote(q, result)
     q.noteId = note.id
     ui.notify(created ? `間違いノートを作成しました（${[note.subjectName, note.field].filter(Boolean).join(' ／ ') || 'デッキ「スクランブル」'}）` : 'この問題の間違いノートはすでにあります', { center: true })
