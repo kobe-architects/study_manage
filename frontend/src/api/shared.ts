@@ -93,6 +93,20 @@ export const sharedApi = {
     await client.delete(`${p()}/shared/files/${id}`)
   },
 
+  /** 1 ファイルの情報（共有リンクから開くとき） */
+  async show(id: number): Promise<SharedFile> {
+    const { data } = await client.get(`${p()}/shared/files/${id}`)
+    return data.data
+  },
+
+  /**
+   * ページ指定の共有リンク。生徒・講師どちらが開いても router が自分のロールの画面（/files か /tutor/files）に振り分け、
+   * 未ログインならログイン後にそのリンクへ戻る
+   */
+  pageLink(fileId: number, page: number): string {
+    return `${location.origin}/files?file=${fileId}&p=${page}`
+  },
+
   /** ファイル本体の URL（要 Bearer。pdf.js は httpHeaders で、画像は AuthImage で） */
   fileUrl(id: number): string {
     return `/api${p()}/shared/files/${id}/file`

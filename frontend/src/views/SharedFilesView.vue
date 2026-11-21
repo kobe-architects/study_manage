@@ -25,7 +25,11 @@ const route = useRoute()
 const router = useRouter()
 const ui = useUiStore()
 
+/** ページ指定の共有リンク（/files?file=ID&p=N）で開いたとき、そのファイルのフォルダ（URL の f ではなくこちらを表示する。
+ * 画面は route.fullPath をキーに再マウントされるので、ビューアを開いたまま URL を書き換えない） */
+const linkFolder = ref<number | null | undefined>(undefined)
 const folderId = computed<number | null>(() => {
+  if (linkFolder.value !== undefined) return linkFolder.value
   const f = Number(route.query.f)
   return Number.isInteger(f) && f > 0 ? f : null
 })
@@ -57,7 +61,24 @@ async function load() {
     loading.value = false
   }
 }
-onMounted(load)
+onMounted(async () => {
+  // ページ指定の共有リンク（/files?file=ID&p=N）: ファイルの情報を取り、そのフォルダを開いてビューアをそのページで出す
+  const fileId = Number(route.query.file)
+  if (Number.isInteger(fileId) && fileId > 0) {
+    const p = Number(route.query.p)
+    try {
+      const f = await sharedApi.show(fileId)
+      linkFolder.value = f.folderId ?? null
+      viewerPage.value = Number.isInteger(p) && p > 0 ? p : 1
+      openFile(f)
+    } catch {
+      ui.notify('共有されたファイルが見つかりません')
+      router.replace({ query: {} })
+      return
+    }
+  }
+  load()
+})
 watch(folderId, () => {
   search.q = ''
   search.results = null
@@ -252,6 +273,8 @@ function onFileAction(f: SharedFile, key: string) {
 
 // ---- 閲覧 ----
 const viewer = ref<SharedFile | null>(null)
+/** ビューアを開くページ（共有リンクから開いたとき。通常は 1） */
+const viewerPage = ref(1)
 const imageView = ref<SharedFile | null>(null)
 function isImage(f: SharedFile): boolean {
   return !!f.mime && f.mime.startsWith('image/')
@@ -260,6 +283,12 @@ function openFile(f: SharedFile) {
   if (f.isPdf) viewer.value = f
   else if (isImage(f)) imageView.value = f
   else download(f)
+}
+function closeViewer() {
+  viewer.value = null
+  viewerPage.value = 1
+  // 共有リンクから開いていたら、URL をそのフォルダに直す（再読み込みでビューアが再び開かないように）
+  if (linkFolder.value !== undefined) router.replace({ query: linkFolder.value ? { f: String(linkFolder.value) } : {} })
 }
 async function download(f: SharedFile) {
   try {
@@ -713,7 +742,16 @@ function fileKind(f: SharedFile): string {
 
     <!-- PDF ビューア（本のようにめくる） -->
     <Transition name="ui-modal">
-      <PdfBookViewer v-if="viewer" :url="sharedApi.fileUrl(viewer.id)" :title="viewer.name" :download-name="viewer.name" :fetch-blob="() => sharedApi.fetchBlob(viewer!.id)" @close="viewer = null" />
+      <PdfBookViewer
+        v-if="viewer"
+        :url="sharedApi.fileUrl(viewer.id)"
+        :title="viewer.name"
+        :download-name="viewer.name"
+        :start-page="viewerPage"
+        :fetch-blob="() => sharedApi.fetchBlob(viewer!.id)"
+        :link-for="(n: number) => sharedApi.pageLink(viewer!.id, n)"
+        @close="closeViewer"
+      />
     </Transition>
 
     <!-- 画像の表示 -->

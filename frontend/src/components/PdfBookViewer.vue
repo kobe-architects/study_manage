@@ -8,6 +8,7 @@
  *   見開きのめくりは中央の綴じ目を軸に表裏 2 面の紙（表=今の右ページ・裏=次の左ページ）を回す
  * - PDF のブックマーク（アウトライン）を左の目次に出し、タップでそのページへ
  * - 画面の右半分タップ・→ キー・左スワイプで次へ、左半分・← キー・右スワイプで前へ。ページ番号の直接入力、拡大縮小、保存
+ * - 「リンク」: 今のページを開く共有リンク（linkFor で親が組み立てる）を表示し、コピー・共有シート（LINE など）へ渡せる
  * - タッチ端末（iPad・スマホ）: 上下のバーは紙面に重ねて出し、画面中央あたりのタップで出し入れする。ページ移動（左右のタップ・スワイプ・前へ／次へ）では隠す
  * - 綴じ目や半ページごとの影は付けない（左ページの右端が見づらくなる）。ブックマークは選ぶと目次を閉じる
  * 大きい PDF は Range リクエストで必要な部分だけ読む（サーバーは Accept-Ranges を返す）。
@@ -16,6 +17,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { PdfOutlineItem, type PdfOutlineNode } from '@/components/PdfOutlineItem'
 import { isTouch, saveFile } from '@/lib/native'
+import { useUiStore } from '@/stores/ui'
 
 const props = defineProps<{
   /** 認証付き URL（Bearer を付けて取得する） */
@@ -26,8 +28,11 @@ const props = defineProps<{
   fetchBlob?: () => Promise<Blob>
   /** 最初に開くページ */
   startPage?: number
+  /** ページ指定の共有リンクを組み立てる（省略時は「リンク」ボタンを出さない） */
+  linkFor?: (page: number) => string
 }>()
 const emit = defineEmits<{ close: [] }>()
+const ui = useUiStore()
 
 let doc: PDFDocumentProxy | null = null
 const loading = ref(true)
@@ -447,6 +452,34 @@ function zoomBy(f: number) {
 watch(zoom, rerender)
 
 const downloading = ref(false)
+
+// ---- ページ指定の共有リンク ----
+const shareOpen = ref(false)
+/** 見開きのときは右ページ（表紙だけのときは表紙）のリンクにする */
+const sharePage = computed(() => {
+  if (!spread.value) return page.value
+  const sp = spreadOf(page.value)
+  return inRange(sp.r) ? sp.r : sp.l
+})
+const shareLink = computed(() => (props.linkFor ? props.linkFor(sharePage.value) : ''))
+const canShareLink = typeof navigator.share === 'function'
+async function copyLink() {
+  try {
+    await navigator.clipboard.writeText(shareLink.value)
+    ui.notify('リンクをコピーしました', { center: true })
+    shareOpen.value = false
+  } catch {
+    ui.notify('コピーできませんでした。リンクを長押しして選択してください', { center: true })
+  }
+}
+async function shareLinkSheet() {
+  try {
+    await navigator.share({ title: props.title, text: `${props.title}（${sharePage.value} ページ）`, url: shareLink.value })
+    shareOpen.value = false
+  } catch (e) {
+    if ((e as DOMException)?.name !== 'AbortError') ui.notify('共有できませんでした', { center: true })
+  }
+}
 async function download() {
   if (!props.fetchBlob || downloading.value) return
   downloading.value = true
@@ -480,7 +513,23 @@ async function download() {
         <button v-if="fetchBlob" class="bv-icon" title="保存・共有" :disabled="downloading" @click="download">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12" /><path d="M7 8l5-5 5 5" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>
         </button>
+        <button v-if="linkFor" class="bv-icon" :class="{ on: shareOpen }" title="このページのリンクを共有" :disabled="loading || !!error" @click="shareOpen = !shareOpen">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5" /><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5" /></svg>
+        </button>
       </div>
+    </div>
+
+    <!-- ページ指定の共有リンク -->
+    <div v-if="shareOpen" class="bv-share-scrim" @click="shareOpen = false"></div>
+    <div v-if="shareOpen" class="bv-share" role="dialog" aria-label="ページのリンクを共有">
+      <div class="sh-title">{{ sharePage }} ページのリンク</div>
+      <div class="sh-url" @click="($event.target as HTMLElement).ownerDocument.getSelection()?.selectAllChildren($event.target as HTMLElement)">{{ shareLink }}</div>
+      <div class="sh-row">
+        <button class="sh-btn" @click="copyLink">コピー</button>
+        <button v-if="canShareLink" class="sh-btn primary" @click="shareLinkSheet">共有…</button>
+        <button class="sh-btn ghost" @click="shareOpen = false">閉じる</button>
+      </div>
+      <div class="sh-note">開いた人がログインすると、このページが表示されます</div>
     </div>
 
     <div class="bv-body">
@@ -993,6 +1042,72 @@ async function download() {
 .bv-side-leave-to {
   transform: translateX(-30px);
   opacity: 0;
+}
+/* ページ指定の共有リンク（上部バーの下に出る小さなパネル） */
+.bv-share-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+}
+.bv-share {
+  position: absolute;
+  top: calc(max(8px, env(safe-area-inset-top)) + 48px);
+  right: max(10px, env(safe-area-inset-right));
+  z-index: 6;
+  width: min(420px, calc(100vw - 20px));
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  color: #1c2024;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  -webkit-user-select: text;
+  user-select: text;
+}
+.sh-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.sh-url {
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border: 1px solid #d8dce1;
+  border-radius: 8px;
+  background: #f6f7f9;
+  word-break: break-all;
+  cursor: text;
+}
+.sh-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.sh-btn {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #d8dce1;
+  border-radius: 9px;
+  background: #fff;
+  color: #1c2024;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sh-btn.primary {
+  background: #3b50cc;
+  border-color: #3b50cc;
+  color: #fff;
+}
+.sh-btn.ghost {
+  margin-left: auto;
+  border-color: transparent;
+  color: #6b7280;
+}
+.sh-note {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: #6b7280;
 }
 /* タッチ端末: 上下のバーは紙面に重ねて出し、中央のタップで出し入れする（隠れている間は紙面が画面いっぱい） */
 .bv.touch .bv-top,

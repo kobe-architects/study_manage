@@ -271,6 +271,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/shared/files', [SharedFileController::class, 'storeFile']);
         Route::put('/shared/files/{file}', [SharedFileController::class, 'updateFile']);
         Route::delete('/shared/files/{file}', [SharedFileController::class, 'destroyFile']);
+        Route::get('/shared/files/{file}', [SharedFileController::class, 'showFile']); // 共有リンクから開くとき（ページ指定のリンク）
         Route::get('/shared/files/{file}/file', [SharedFileController::class, 'file']);
     });
 
@@ -365,6 +366,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/shared/files', [SharedFileController::class, 'storeFile']);
         Route::put('/shared/files/{file}', [SharedFileController::class, 'updateFile']);
         Route::delete('/shared/files/{file}', [SharedFileController::class, 'destroyFile']);
+        Route::get('/shared/files/{file}', [SharedFileController::class, 'showFile']);
         Route::get('/shared/files/{file}/file', [SharedFileController::class, 'file']);
 
         // ===== 計画表（ガントチャート）。講師自身の計画表（tutor_id = 講師）を生徒側とは別に持つ。生徒の計画表は一覧と複製のみ =====

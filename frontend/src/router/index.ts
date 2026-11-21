@@ -110,13 +110,17 @@ router.beforeEach((to) => {
   const isTutor = localStorage.getItem('sm_role') === 'tutor'
 
   if (!to.meta.public && !token) {
-    return { name: 'login' }
+    // ログイン後に元のリンク（共有ファイルのページ指定リンクなど）へ戻れるように覚えておく
+    return { name: 'login', query: to.fullPath !== '/' ? { redirect: to.fullPath } : {} }
   }
   if (to.name === 'login' && token) {
     return { name: isTutor ? 'tutor-home' : 'home' }
   }
   // ロールごとに入れる画面を分離（tutor は /tutor 配下のみ、owner は /tutor 以外）
   if (token && !to.meta.public) {
+    // ファイル共有のリンクは生徒・講師どちらでも開ける（同じ内容の画面へ、クエリを持って振り分ける）
+    if (isTutor && to.name === 'files') return { name: 'tutor-files', query: to.query }
+    if (!isTutor && to.name === 'tutor-files') return { name: 'files', query: to.query }
     if (isTutor && !to.meta.tutor) return { name: 'tutor-home' }
     if (!isTutor && to.meta.tutor) return { name: 'home' }
   }

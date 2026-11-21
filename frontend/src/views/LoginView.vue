@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 
 const email = ref('')
@@ -17,7 +18,10 @@ async function submit() {
   loading.value = true
   try {
     await auth.login(email.value, password.value)
-    router.push({ name: auth.user?.role === 'tutor' ? 'tutor-home' : 'home' })
+    // 共有リンクなどから来ていればそこへ戻る（同じサイト内のパスだけ。ロールの振り分けは router が行う）
+    const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') && !route.query.redirect.startsWith('//') ? route.query.redirect : null
+    if (redirect) router.push(redirect)
+    else router.push({ name: auth.user?.role === 'tutor' ? 'tutor-home' : 'home' })
   } catch (e: unknown) {
     error.value = 'IDまたはパスワードが正しくありません。'
   } finally {

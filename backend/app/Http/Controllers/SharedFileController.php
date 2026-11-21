@@ -328,6 +328,15 @@ class SharedFileController extends Controller
         return response()->json(['message' => 'deleted']);
     }
 
+    /** 1 ファイルの情報（ページ指定の共有リンク /files?file=ID&p=N から開くときに、フォルダとファイル名を知るため） */
+    public function showFile(Request $request, SharedFile $file): JsonResponse
+    {
+        abort_unless($file->user_id === $this->targetUserId($request), 403);
+        $file->load('creator');
+
+        return response()->json(['data' => $this->filePayload($file)]);
+    }
+
     /** ファイル本体（閲覧・ダウンロード。Range に対応し pdf.js が必要な部分だけ読める） */
     public function file(Request $request, SharedFile $file): BinaryFileResponse
     {
