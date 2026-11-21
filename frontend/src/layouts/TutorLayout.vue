@@ -10,12 +10,14 @@ import { appConfirm } from '@/lib/dialog'
 import { isTouch, viewportWidth } from '@/lib/native'
 import { usePageNav } from '@/lib/pageNav'
 import { useAuthStore } from '@/stores/auth'
+import { useQuestionStore } from '@/stores/questions'
 import { useStudyStore } from '@/stores/study'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const study = useStudyStore()
+const qs = useQuestionStore()
 
 const ready = ref(false)
 
@@ -25,6 +27,11 @@ onMounted(async () => {
     ready.value = true
     // 生徒の学習データ（課題）をバックグラウンドで取得
     study.fetchAssignments().catch(() => {})
+    // 質問事項の未読（ナビのバッジ）。以後 1 分ごとに取り直す
+    qs.fetchUnread()
+    window.setInterval(() => {
+      if (document.visibilityState === 'visible') qs.fetchUnread()
+    }, 60000)
   } catch {
     // 認証エラー時はインターセプタが /login へ
     ready.value = true
@@ -46,7 +53,7 @@ const scrollEl = ref<HTMLElement | null>(null)
 const contentEl = ref<HTMLElement | null>(null)
 const { pageAnim, refreshKey, pull, refreshing, pullTrigger, scrollToTop, onPullRefresh, bind } = usePageNav(scrollEl, contentEl)
 watch(scrollEl, (el) => bind(el))
-onPullRefresh(() => Promise.all([auth.fetchMe(), study.fetchAssignments()]))
+onPullRefresh(() => Promise.all([auth.fetchMe(), study.fetchAssignments(), qs.fetchUnread()]))
 
 const studentName = computed(() => auth.user?.student?.name ?? '生徒')
 const tutorName = computed(() => auth.user?.name ?? '先生')
@@ -68,6 +75,7 @@ const NAV_TUTOR = [
   { key: 'quiz', route: 'tutor-quizzes', label: '小テスト', short: '小テスト', icon: ICONS.test },
   { key: 'sheet', route: 'tutor-checksheets', label: 'チェックシート', short: 'シート', icon: ICONS.sheet },
   { key: 'files', route: 'tutor-files', label: 'ファイル共有', short: 'ファイル', icon: ICONS.files },
+  { key: 'questions', route: 'tutor-questions', label: '質問事項', short: '質問', icon: ICONS.questions },
   { key: 'invoice', route: 'tutor-invoices', label: '請求書管理', short: '請求', icon: ICONS.invoice },
 ]
 
@@ -77,7 +85,7 @@ const navItems = computed(() =>
     if (n.key === 'quiz') return auth.user?.student?.tutorQuizEnabled === true
     if (n.key === 'subjects') return auth.user?.student?.tutorSubjectsEnabled !== false
     return true
-  }),
+  }).map((n) => ({ ...n, badge: n.key === 'questions' ? qs.unreadThreads : 0 })),
 )
 
 const activeKey = computed(() => {
@@ -91,6 +99,7 @@ const activeKey = computed(() => {
     'tutor-quiz-grade': 'quiz',
     'tutor-checksheets': 'sheet',
     'tutor-files': 'files',
+    'tutor-questions': 'questions',
     'tutor-invoices': 'invoice',
   }
   return map[route.name as string] ?? 'home'
@@ -145,6 +154,7 @@ async function logout() {
         >
           <NavIcon :paths="n.icon" :size="18" />
           {{ n.label }}
+          <span v-if="n.badge" class="nav-badge">{{ n.badge }}</span>
         </button>
       </nav>
       <div class="user-box">
@@ -418,5 +428,16 @@ async function logout() {
 }
 .mt-title-leave-to {
   opacity: 0;
+}
+.nav-badge {
+  min-width: 18px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: #e0533d;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
 }
 </style>

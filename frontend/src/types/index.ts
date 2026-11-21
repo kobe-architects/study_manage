@@ -1208,3 +1208,51 @@ export interface SharedBrowse {
   /** 容量: 使用量・生徒ごとの上限・1 ファイルの上限 */
   usage: { usedBytes: number; quotaBytes: number; maxFileBytes: number }
 }
+
+// ===== 質問事項（生徒 ⇄ 講師の質問スレッド） =====
+export type QuestionStatus = 'open' | 'resolved'
+export interface QuestionAttachment {
+  id: number
+  kind: 'image' | 'file'
+  name: string
+  mime: string | null
+  sizeBytes: number
+  width: number | null
+  height: number | null
+}
+export interface QuestionMessage {
+  id: number
+  threadId: number
+  userId: number
+  userName: string | null
+  userRole: UserRole | null
+  /** 簡易タグ付きの本文（lib/richText.ts で描く） */
+  body: string
+  lineNotified: boolean
+  createdAt: string | null
+  attachments: QuestionAttachment[]
+}
+export interface QuestionThread {
+  id: number
+  title: string | null
+  subjectId: number | null
+  subjectName: string | null
+  majorId: number | null
+  majorName: string | null
+  midId: number | null
+  midName: string | null
+  status: QuestionStatus
+  createdBy: number
+  createdByName: string | null
+  createdAt: string | null
+  lastMessageAt: string | null
+  messageCount: number
+  /** 自分の未読メッセージ数 */
+  unreadCount: number
+  lastMessage: { excerpt: string; userName: string | null; userId: number; hasAttachment: boolean } | null
+}
+export interface QuestionThreadDetail extends QuestionThread {
+  messages: QuestionMessage[]
+  canChangeStatus: boolean
+  canDelete: boolean
+}

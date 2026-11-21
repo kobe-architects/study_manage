@@ -17,6 +17,7 @@ use App\Http\Controllers\ResourceBookController;
 use App\Http\Controllers\ResourceBookPdfController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SharedFileController;
+use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\StudyItemController;
 use App\Http\Controllers\StudyResourceController;
 use App\Http\Controllers\StudyTaskController;
@@ -273,6 +274,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/shared/files/{file}', [SharedFileController::class, 'destroyFile']);
         Route::get('/shared/files/{file}', [SharedFileController::class, 'showFile']); // 共有リンクから開くとき（ページ指定のリンク）
         Route::get('/shared/files/{file}/file', [SharedFileController::class, 'file']);
+
+        // ===== 質問事項（生徒 ⇄ 講師の質問スレッド。メッセージ・添付・既読・LINE 通知） =====
+        Route::get('/questions', [QuestionController::class, 'index']);
+        Route::get('/questions/unread-count', [QuestionController::class, 'unreadCount']);
+        Route::post('/questions', [QuestionController::class, 'store']);
+        Route::post('/questions/attachments/chunk', [QuestionController::class, 'uploadChunk']);
+        Route::get('/questions/{thread}', [QuestionController::class, 'show']);
+        Route::put('/questions/{thread}', [QuestionController::class, 'update']);
+        Route::delete('/questions/{thread}', [QuestionController::class, 'destroy']);
+        Route::post('/questions/{thread}/messages', [QuestionController::class, 'storeMessage']);
+        Route::delete('/question-messages/{message}', [QuestionController::class, 'destroyMessage']);
+        Route::get('/question-attachments/{attachment}', [QuestionController::class, 'attachment']);
     });
 
     // ================================================================
@@ -368,6 +381,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/shared/files/{file}', [SharedFileController::class, 'destroyFile']);
         Route::get('/shared/files/{file}', [SharedFileController::class, 'showFile']);
         Route::get('/shared/files/{file}/file', [SharedFileController::class, 'file']);
+
+        // ===== 質問事項（生徒 ⇄ 講師の質問スレッド。メッセージ・添付・既読・LINE 通知） =====
+        Route::get('/questions', [QuestionController::class, 'index']);
+        Route::get('/questions/unread-count', [QuestionController::class, 'unreadCount']);
+        Route::post('/questions', [QuestionController::class, 'store']);
+        Route::post('/questions/attachments/chunk', [QuestionController::class, 'uploadChunk']);
+        Route::get('/questions/{thread}', [QuestionController::class, 'show']);
+        Route::put('/questions/{thread}', [QuestionController::class, 'update']);
+        Route::delete('/questions/{thread}', [QuestionController::class, 'destroy']);
+        Route::post('/questions/{thread}/messages', [QuestionController::class, 'storeMessage']);
+        Route::delete('/question-messages/{message}', [QuestionController::class, 'destroyMessage']);
+        Route::get('/question-attachments/{attachment}', [QuestionController::class, 'attachment']);
 
         // ===== 計画表（ガントチャート）。講師自身の計画表（tutor_id = 講師）を生徒側とは別に持つ。生徒の計画表は一覧と複製のみ =====
         Route::get('/gantt-charts', [GanttController::class, 'index']);

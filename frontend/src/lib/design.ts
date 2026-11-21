@@ -100,6 +100,7 @@ export const ICONS: Record<string, string[]> = {
   invoice: ['M6 3.5h12V20.5l-2.4-1.6-1.8 1.6-1.8-1.6-1.8 1.6-1.8-1.6L6 20.5z', 'M9.5 8l2.5 3.2L14.5 8', 'M12 11.2v4.3', 'M10 12.8h4', 'M10 14.8h4'],
   files: ['M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M3 11h18'],
   sheet: ['M5 3.5h14v17H5z', 'M8.5 8.5h7', 'M8.5 12h7', 'M8.5 15.5h4', 'M15 15l1.2 1.2 2.3-2.5'],
+  questions: ['M4 5h16v11H9l-5 4z', 'M8 9.5h8', 'M8 12.5h5'],
 }
 
 export interface NavDef {
@@ -118,6 +119,7 @@ export const NAV: NavDef[] = [
   { key: 'math', route: 'math', label: '数学学習', short: '数学' },
   { key: 'test', route: 'quizzes', label: '小テスト', short: '小テスト' },
   { key: 'files', route: 'files', label: 'ファイル共有', short: 'ファイル' },
+  { key: 'questions', route: 'questions', label: '質問事項', short: '質問' },
   { key: 'goal', route: 'goals', label: '目標設定', short: '目標' },
   { key: 'gantt', route: 'gantt', label: '計画表', short: '計画表' },
   { key: 'mistake', route: 'mistakes', label: '間違いノート', short: 'ノート' },

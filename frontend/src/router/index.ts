@@ -37,6 +37,8 @@ const router = createRouter({
         { path: 'quizzes/:id/grade', name: 'quiz-grade', component: () => import('@/views/TutorQuizGradeView.vue'), meta: { depth: 2, parent: 'quizzes', title: '採点・添削' } },
         // ファイル共有（講師と同じ階層フォルダ）
         { path: 'files', name: 'files', component: () => import('@/views/SharedFilesView.vue') },
+        // 質問事項（生徒 ⇄ 講師の質問スレッド）
+        { path: 'questions', name: 'questions', component: () => import('@/views/QuestionsView.vue'), meta: { wide: true } },
         { path: 'invoices', name: 'invoices', component: () => import('@/views/InvoicesView.vue') },
       ],
     },
@@ -100,6 +102,8 @@ const router = createRouter({
           component: () => import('@/views/SharedFilesView.vue'),
           meta: { tutor: true },
         },
+        // 質問事項（担当生徒とのスレッド。生徒側と同じ画面）
+        { path: 'questions', name: 'tutor-questions', component: () => import('@/views/QuestionsView.vue'), meta: { tutor: true, wide: true } },
       ],
     },
   ],
@@ -121,6 +125,8 @@ router.beforeEach((to) => {
     // ファイル共有のリンクは生徒・講師どちらでも開ける（同じ内容の画面へ、クエリを持って振り分ける）
     if (isTutor && to.name === 'files') return { name: 'tutor-files', query: to.query }
     if (!isTutor && to.name === 'tutor-files') return { name: 'files', query: to.query }
+    if (isTutor && to.name === 'questions') return { name: 'tutor-questions', query: to.query }
+    if (!isTutor && to.name === 'tutor-questions') return { name: 'questions', query: to.query }
     if (isTutor && !to.meta.tutor) return { name: 'tutor-home' }
     if (!isTutor && to.meta.tutor) return { name: 'home' }
   }

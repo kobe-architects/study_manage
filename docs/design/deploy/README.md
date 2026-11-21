@@ -506,3 +506,18 @@ php artisan config:cache && php artisan route:cache
   合流は `ocr/merge_fg.py <scratch>`（章・題名・難易度は `focus_gold_1a.json` から）→ `cards_fg_1a.json`。画像は `storage/app/private/cards/fg_1a/`（約 50MB）。
   証明・作図・グラフだけの例題（32 枚）は自己判定。
 - 計算メモは指では書けない（指 1 本＝移動、2 本＝ピンチ。ユーザー指示 2026-11-18。Pencil とマウスだけ）。
+
+## 21. 質問事項（生徒 ⇄ 講師の質問スレッド。2026-11-22 追加）の運用メモ
+
+- テーブル: `question_threads`（スレッド。user_id = 生徒、status = open/resolved、分類は任意）・`question_messages`（本文は簡易タグ付き文字）・
+  `question_attachments`（画像は JPEG 正規化＋サムネイル、ファイルはそのまま）・`question_reads`（既読位置 = 読んだ最後のメッセージ ID）。
+  マイグレーション `2026_11_22_000001_create_question_tables.php`。
+- 添付の本体は `storage/app/private/questions/{生徒ID}/{スレッドID}/`（Git 管理外・バックアップ対象）。1 ファイル 50MB まで。
+  アップロードは共有ファイルと同じ 4MB の片（`POST /questions/attachments/chunk`）→ メッセージ送信時に uploadId で確定。
+- API は生徒 `/api/questions...`、講師 `/api/tutor/questions...`（`QuestionController`）。ステータス変更は生徒のみ（講師は 403）。
+  スレッド削除は生徒は全部、講師は自分が立てたものだけ。メッセージ削除は本人のみ。
+- LINE 通知は送信時のチェック（notifyLine）で、生徒 → 担当講師全員 / 講師 → 生徒 へ `LineNotify::push`。相手が未連携なら送らず
+  `line_notified=false`（画面に「通知はされていません」と出る）。文面に URL は付けない。
+- 本文の装飾は `[b][s][u][m][color=red|#rrggbb]`（frontend/src/lib/richText.ts）。HTML は解釈しない。URL は自動リンク、
+  `/files?file=ID&p=N`（ファイル共有のページ指定リンク）はアプリ内で開く。
+- 未読バッジ: `GET /questions/unread-count` をレイアウトが起動時・1 分ごと・引っ張って更新で取り、ナビの「質問事項」とトップページの帯に出す。

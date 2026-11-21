@@ -10,6 +10,7 @@ import { appConfirm } from '@/lib/dialog'
 import { isTouch, viewportWidth } from '@/lib/native'
 import { usePageNav } from '@/lib/pageNav'
 import { useAuthStore } from '@/stores/auth'
+import { useQuestionStore } from '@/stores/questions'
 import { useStudyStore } from '@/stores/study'
 import { useVocabularyStore } from '@/stores/vocabulary'
 import { useUiStore } from '@/stores/ui'
@@ -20,6 +21,7 @@ const auth = useAuthStore()
 const study = useStudyStore()
 const vocab = useVocabularyStore()
 const ui = useUiStore()
+const qs = useQuestionStore()
 
 const ready = ref(false)
 
@@ -38,6 +40,11 @@ onMounted(async () => {
     // 以降の学習データはバックグラウンドで取得し、各画面に届き次第反映する
     study.fetchAll().catch(() => {})
     fetchVocab().catch(() => {})
+    // 質問事項の未読（ナビのバッジ）。以後 1 分ごとに取り直す
+    qs.fetchUnread()
+    window.setInterval(() => {
+      if (document.visibilityState === 'visible') qs.fetchUnread()
+    }, 60000)
   } catch {
     // 認証エラー時はインターセプタが /login へ
     ready.value = true
@@ -58,7 +65,7 @@ const scrollEl = ref<HTMLElement | null>(null)
 const contentEl = ref<HTMLElement | null>(null)
 const { pageAnim, refreshKey, pull, refreshing, pullTrigger, scrollToTop, onPullRefresh, bind } = usePageNav(scrollEl, contentEl)
 watch(scrollEl, (el) => bind(el))
-onPullRefresh(() => Promise.all([auth.fetchMe(), study.fetchAll(), fetchVocab()]))
+onPullRefresh(() => Promise.all([auth.fetchMe(), study.fetchAll(), fetchVocab(), qs.fetchUnread()]))
 
 const settings = computed(() => auth.settings)
 const userName = computed(() => settings.value?.name ?? '学習者')
@@ -100,6 +107,7 @@ const activeKey = computed(() => {
     quizzes: 'test',
     'quiz-grade': 'test',
     files: 'files',
+    questions: 'questions',
     invoices: 'invoice',
     settings: 'settings',
   }
@@ -107,7 +115,7 @@ const activeKey = computed(() => {
 })
 
 const navItems = computed(() =>
-  NAV.map((n) => ({ ...n, icon: ICONS[n.key], active: activeKey.value === n.key })),
+  NAV.map((n) => ({ ...n, icon: ICONS[n.key], active: activeKey.value === n.key, badge: n.key === 'questions' ? qs.unreadThreads : 0 })),
 )
 
 
@@ -152,6 +160,7 @@ async function logout() {
         <button v-for="n in navItems" :key="n.key" class="topnav-btn" :class="{ active: n.active }" @click="go(n.route)">
           <NavIcon :paths="n.icon" :size="18" />
           {{ n.label }}
+          <span v-if="n.badge" class="nav-badge">{{ n.badge }}</span>
         </button>
       </nav>
       <div class="user-box">
@@ -187,6 +196,8 @@ async function logout() {
           <span class="side-bar" :style="{ height: n.active ? '20px' : '0' }"></span>
           <NavIcon :paths="n.icon" :size="19" />
           <span v-if="showLabels">{{ n.label }}</span>
+          <span v-if="n.badge && showLabels" class="nav-badge side">{{ n.badge }}</span>
+          <span v-else-if="n.badge" class="nav-dot"></span>
         </button>
         <div style="flex: 1"></div>
         <div v-if="showLabels" class="exam-box">
@@ -483,5 +494,29 @@ async function logout() {
 .content.full {
   padding-top: 8px;
   padding-bottom: 8px;
+}
+/* ナビの未読バッジ（質問事項） */
+.nav-badge {
+  min-width: 18px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: #e0533d;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+.nav-badge.side {
+  margin-left: auto;
+}
+.nav-dot {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e0533d;
 }
 </style>

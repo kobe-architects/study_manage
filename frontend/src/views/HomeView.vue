@@ -11,6 +11,7 @@ import { computeReviewOn, daysBetween, hexA, iso, parseDate, pct, REVIEW_OPTIONS
 import { openListPrint, type PrintCell, type PrintColumn } from '@/lib/printList'
 import { useStudyStore } from '@/stores/study'
 import { useAuthStore } from '@/stores/auth'
+import { useQuestionStore } from '@/stores/questions'
 import { useUiStore } from '@/stores/ui'
 import { useVocabularyStore } from '@/stores/vocabulary'
 import { useRouter } from 'vue-router'
@@ -21,6 +22,7 @@ import { viewportWidth } from '@/lib/native'
 const study = useStudyStore()
 const auth = useAuthStore()
 const ui = useUiStore()
+const qs = useQuestionStore()
 const vocab = useVocabularyStore()
 const router = useRouter()
 
@@ -497,6 +499,12 @@ async function deleteEvent(id: number) {
 
 <template>
   <div>
+    <!-- 質問事項の未読（講師/生徒からの新しいメッセージ） -->
+    <RouterLink v-if="qs.unreadThreads" :to="{ name: 'questions' }" class="card" style="display: flex; align-items: center; gap: 10px; padding: 11px 16px; margin-bottom: 12px; text-decoration: none; color: inherit; border-color: #f3c9c1; background: #fff7f5">
+      <span style="min-width: 22px; padding: 1px 7px; border-radius: 99px; background: #e0533d; color: #fff; font-size: 11.5px; font-weight: 700; text-align: center">{{ qs.unreadThreads }}</span>
+      <span style="font-size: 13px; font-weight: 600">質問事項に未読のメッセージがあります</span>
+      <span style="margin-left: auto; font-size: 12px; color: var(--primary); font-weight: 600">開く ›</span>
+    </RouterLink>
     <div class="home" :class="{ side: !isMobile, mobile: isMobile, 'tab-tasks': tab === 'tasks' }">
     <!-- タブ: PC は左のサイドメニュー（タスクタブでは日別／週別・日付もここに入る）、
          スマホ縦は画面下部に固定（操作列が上・タブが下）、スマホ横は上に横並び -->

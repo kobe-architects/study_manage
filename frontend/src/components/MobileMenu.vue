@@ -13,6 +13,8 @@ interface MobileMenuItem {
   label: string
   icon: string[]
   active: boolean
+  /** 未読などの件数（0 なら出さない） */
+  badge?: number
 }
 
 const props = defineProps<{
@@ -144,6 +146,7 @@ function onTouchEnd() {
             >
               <NavIcon :paths="n.icon" :size="21" />
               <span>{{ n.label }}</span>
+              <span v-if="n.badge" class="mm-badge">{{ n.badge }}</span>
             </button>
           </div>
 
@@ -160,6 +163,17 @@ function onTouchEnd() {
 </template>
 
 <style scoped>
+.mm-badge {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: #e0533d;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
 .mm-btn {
   display: flex;
   align-items: center;

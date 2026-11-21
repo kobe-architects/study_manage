@@ -4,6 +4,7 @@ import EventModal from '@/components/EventModal.vue'
 import MonthCalendar from '@/components/MonthCalendar.vue'
 import { daysBetween, iso, parseDate, TYPE_BADGE } from '@/lib/design'
 import { useAuthStore } from '@/stores/auth'
+import { useQuestionStore } from '@/stores/questions'
 import { useStudyStore } from '@/stores/study'
 import { useUiStore } from '@/stores/ui'
 import type { RecordListItem } from '@/types'
@@ -12,6 +13,7 @@ import { appConfirm } from '@/lib/dialog'
 const auth = useAuthStore()
 const study = useStudyStore()
 const ui = useUiStore()
+const qs = useQuestionStore()
 
 const today = new Date()
 today.setHours(0, 0, 0, 0)
@@ -172,6 +174,12 @@ function recordColorHex(c: string | null): string {
 
 <template>
   <div>
+    <!-- 質問事項の未読（講師/生徒からの新しいメッセージ） -->
+    <RouterLink v-if="qs.unreadThreads" :to="{ name: 'tutor-questions' }" class="card" style="display: flex; align-items: center; gap: 10px; padding: 11px 16px; margin-bottom: 12px; text-decoration: none; color: inherit; border-color: #f3c9c1; background: #fff7f5">
+      <span style="min-width: 22px; padding: 1px 7px; border-radius: 99px; background: #e0533d; color: #fff; font-size: 11.5px; font-weight: 700; text-align: center">{{ qs.unreadThreads }}</span>
+      <span style="font-size: 13px; font-weight: 600">質問事項に未読のメッセージがあります</span>
+      <span style="margin-left: auto; font-size: 12px; color: var(--primary); font-weight: 600">開く ›</span>
+    </RouterLink>
     <div class="grid">
       <!-- LEFT: カレンダー + 受験本番までの日数 + 今後の予定 -->
       <div style="display: flex; flex-direction: column; gap: 14px">
