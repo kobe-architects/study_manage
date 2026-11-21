@@ -8,13 +8,14 @@
  *   見開きのめくりは中央の綴じ目を軸に表裏 2 面の紙（表=今の右ページ・裏=次の左ページ）を回す
  * - PDF のブックマーク（アウトライン）を左の目次に出し、タップでそのページへ
  * - 画面の右半分タップ・→ キー・左スワイプで次へ、左半分・← キー・右スワイプで前へ。ページ番号の直接入力、拡大縮小、保存
+ * - タッチ端末（iPad・スマホ）: 上下のバーは紙面に重ねて出し、画面中央あたりのタップで出し入れする。ページ移動（左右のタップ・スワイプ・前へ／次へ）では隠す
  * - 綴じ目や半ページごとの影は付けない（左ページの右端が見づらくなる）。ブックマークは選ぶと目次を閉じる
  * 大きい PDF は Range リクエストで必要な部分だけ読む（サーバーは Accept-Ranges を返す）。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { PdfOutlineItem, type PdfOutlineNode } from '@/components/PdfOutlineItem'
-import { saveFile } from '@/lib/native'
+import { isTouch, saveFile } from '@/lib/native'
 
 const props = defineProps<{
   /** 認証付き URL（Bearer を付けて取得する） */
@@ -40,6 +41,11 @@ const rendering = new Map<number, Promise<void>>()
 const outline = ref<PdfOutlineNode[]>([])
 const outlineOpen = ref(false)
 const zoom = ref(1)
+/** 上下のバーの表示（タッチ端末のみ切り替わる。PC は常に表示） */
+const barsOn = ref(true)
+function hideBars() {
+  if (isTouch) barsOn.value = false
+}
 const flip = ref<{ dir: 'next' | 'prev'; page: number } | null>(null)
 /** 見開き表示か（記憶する） */
 const spread = ref(localStorage.getItem('sm_pdf_spread') === '1')
@@ -252,6 +258,7 @@ async function loadOutline(d: PDFDocumentProxy) {
 let busy = false
 async function go(n: number) {
   if (!doc || busy || n < 1 || n > numPages.value || n === page.value) return
+  hideBars()
   if (spread.value) return goSpread(n)
   busy = true
   try {
@@ -377,9 +384,18 @@ function setSpreadKind(k: SpreadKind) {
   prefetch()
 }
 function onStageClick(e: MouseEvent) {
-  if (zoom.value > 1) return
   const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  if (e.clientX - r.left > r.width / 2) next()
+  const x = (e.clientX - r.left) / r.width
+  if (isTouch) {
+    // 中央あたり（幅の 30〜70%）のタップはバーの出し入れ。左右はページ移動（バーは隠れる）
+    if (x > 0.3 && x < 0.7) {
+      barsOn.value = !barsOn.value
+      return
+    }
+    hideBars()
+  }
+  if (zoom.value > 1) return
+  if (x > 0.5) next()
   else prev()
 }
 function jump() {
@@ -417,6 +433,7 @@ function onTouchEnd(e: TouchEvent) {
   const dx = t.clientX - s.x
   const dy = t.clientY - s.y
   if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.3 && e.timeStamp - s.t < 800) {
+    hideBars()
     if (dx < 0) next()
     else prev()
   }
@@ -442,7 +459,7 @@ async function download() {
 </script>
 
 <template>
-  <div class="bv ui-fullscreen">
+  <div class="bv ui-fullscreen" :class="{ touch: isTouch, 'bars-off': !barsOn }">
     <div class="bv-top">
       <button class="bv-btn" @click="emit('close')">閉じる</button>
       <div class="bv-title" :title="title">{{ title }}</div>
@@ -976,6 +993,37 @@ async function download() {
 .bv-side-leave-to {
   transform: translateX(-30px);
   opacity: 0;
+}
+/* タッチ端末: 上下のバーは紙面に重ねて出し、中央のタップで出し入れする（隠れている間は紙面が画面いっぱい） */
+.bv.touch .bv-top,
+.bv.touch .bv-foot {
+  position: absolute;
+  left: env(safe-area-inset-left);
+  right: env(safe-area-inset-right);
+  z-index: 4;
+  background: rgba(28, 31, 36, 0.94);
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+.bv.touch .bv-top {
+  top: 0;
+}
+.bv.touch .bv-foot {
+  bottom: 0;
+}
+.bv.touch.bars-off .bv-top {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+.bv.touch.bars-off .bv-foot {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+/* 目次はバーの下に潜らないように上下に余白 */
+.bv.touch .bv-outline {
+  padding-top: calc(max(8px, env(safe-area-inset-top)) + 46px);
+  padding-bottom: calc(8px + env(safe-area-inset-bottom) + 46px);
 }
 /* 狭い画面: 目次は紙面の上に重ねて出す */
 @media (max-width: 899px) {
