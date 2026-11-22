@@ -10,6 +10,7 @@
  * - 画面の右半分タップ・→ キー・左スワイプで次へ、左半分・← キー・右スワイプで前へ。ページ番号の直接入力、拡大縮小、保存
  * - 「リンク」: 今のページを開く共有リンク（linkFor で親が組み立てる）を表示し、コピー・共有シート（LINE など）へ渡せる
  * - タッチ端末（iPad・スマホ）: 上下のバーは紙面に重ねて出し、画面中央あたりのタップで出し入れする。ページ移動（左右のタップ・スワイプ・前へ／次へ）では隠す
+ * - 2 本指のピンチで拡縮（指の位置を中心に。ピンチ中は CSS の scale で見せ、指を離したときに倍率を確定して描き直す）。拡大中は 1 本指でスクロール
  * - 綴じ目や半ページごとの影は付けない（左ページの右端が見づらくなる）。ブックマークは選ぶと目次を閉じる
  * 大きい PDF は Range リクエストで必要な部分だけ読む（サーバーは Accept-Ranges を返す）。
  */
@@ -46,6 +47,7 @@ const rendering = new Map<number, Promise<void>>()
 const outline = ref<PdfOutlineNode[]>([])
 const outlineOpen = ref(false)
 const zoom = ref(1)
+const MAX_ZOOM = 4
 /** 上下のバーの表示（タッチ端末のみ切り替わる。PC は常に表示） */
 const barsOn = ref(true)
 function hideBars() {
@@ -420,16 +422,71 @@ function onKey(e: KeyboardEvent) {
   } else if (e.key === 'Escape') emit('close')
 }
 
-// ---- スワイプ ----
+// ---- スワイプ（1 本指）とピンチ（2 本指） ----
 let sw: { x: number; y: number; t: number } | null = null
+/** ピンチの開始状態: 指の間隔・そのときの倍率・指の中心（画面座標）と、中心が紙のどの位置か（0〜1） */
+let pinchStart: { dist: number; zoom: number; cx: number; cy: number; bookX: number; bookY: number } | null = null
+/** ピンチ中の見た目の倍率（確定時に zoom に反映して描き直す） */
+const pinchScale = ref(1)
+const pinchOrigin = ref('50% 50%')
+const pinchStyle = computed(() => (pinchScale.value !== 1 ? { transform: `scale(${pinchScale.value})`, transformOrigin: pinchOrigin.value } : {}))
+function touchDist(t: TouchList): number {
+  const a = t[0]!
+  const b = t[1]!
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+}
 function onTouchStart(e: TouchEvent) {
-  if (e.touches.length !== 1 || zoom.value > 1) {
+  if (e.touches.length === 2) {
+    sw = null
+    const st = stage.value
+    const book = st?.querySelector('.book') as HTMLElement | null
+    if (!st || !book) return
+    const r = book.getBoundingClientRect()
+    const cx = (e.touches[0]!.clientX + e.touches[1]!.clientX) / 2
+    const cy = (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2
+    const bookX = Math.min(1, Math.max(0, (cx - r.left) / Math.max(1, r.width)))
+    const bookY = Math.min(1, Math.max(0, (cy - r.top) / Math.max(1, r.height)))
+    pinchStart = { dist: Math.max(1, touchDist(e.touches)), zoom: zoom.value, cx, cy, bookX, bookY }
+    pinchOrigin.value = `${(bookX * 100).toFixed(2)}% ${(bookY * 100).toFixed(2)}%`
+    pinchScale.value = 1
+    return
+  }
+  if (pinchStart || e.touches.length !== 1 || zoom.value > 1) {
     sw = null
     return
   }
   sw = { x: e.touches[0]!.clientX, y: e.touches[0]!.clientY, t: e.timeStamp }
 }
+function onTouchMove(e: TouchEvent) {
+  if (!pinchStart || e.touches.length !== 2) return
+  e.preventDefault() // ピンチ中はスクロールやブラウザの拡大をさせない
+  const target = Math.min(MAX_ZOOM, Math.max(1, pinchStart.zoom * (touchDist(e.touches) / pinchStart.dist)))
+  pinchScale.value = target / pinchStart.zoom
+}
+/** ピンチの終わり: 倍率を確定して描き直し、指の中心にあった点が同じ画面位置に来るようにスクロールする */
+function commitPinch() {
+  const p = pinchStart
+  pinchStart = null
+  if (!p) return
+  const newZoom = Math.round(Math.min(MAX_ZOOM, Math.max(1, p.zoom * pinchScale.value)) * 100) / 100
+  pinchScale.value = 1
+  if (newZoom === zoom.value) return
+  const st = stage.value
+  zoom.value = newZoom
+  if (newZoom === 1 || !st) return // zoom の watch で先頭にスクロールされる
+  nextTick(() => {
+    const book = st.querySelector('.book') as HTMLElement | null
+    if (!book) return
+    const sr = st.getBoundingClientRect()
+    st.scrollLeft = book.offsetLeft + p.bookX * book.offsetWidth - (p.cx - sr.left)
+    st.scrollTop = book.offsetTop + p.bookY * book.offsetHeight - (p.cy - sr.top)
+  })
+}
 function onTouchEnd(e: TouchEvent) {
+  if (pinchStart) {
+    if (e.touches.length < 2) commitPinch()
+    return
+  }
   const s = sw
   sw = null
   if (!s) return
@@ -445,7 +502,7 @@ function onTouchEnd(e: TouchEvent) {
 }
 
 function zoomBy(f: number) {
-  zoom.value = Math.min(3, Math.max(1, Math.round(zoom.value * f * 100) / 100))
+  zoom.value = Math.min(MAX_ZOOM, Math.max(1, Math.round(zoom.value * f * 100) / 100))
   if (zoom.value === 1) nextTick(() => stage.value?.scrollTo({ top: 0, left: 0 }))
 }
 /** 拡大率を変えたら、今のページを新しい解像度で描き直す */
@@ -509,7 +566,7 @@ async function download() {
         </div>
         <button class="bv-icon" title="縮小" :disabled="zoom <= 1" @click="zoomBy(1 / 1.25)">−</button>
         <span class="bv-zoom">{{ Math.round(zoom * 100) }}%</span>
-        <button class="bv-icon" title="拡大" :disabled="zoom >= 3" @click="zoomBy(1.25)">＋</button>
+        <button class="bv-icon" title="拡大" :disabled="zoom >= MAX_ZOOM" @click="zoomBy(1.25)">＋</button>
         <button v-if="fetchBlob" class="bv-icon" title="保存・共有" :disabled="downloading" @click="download">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12" /><path d="M7 8l5-5 5 5" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>
         </button>
@@ -547,10 +604,10 @@ async function download() {
       <div v-if="outlineOpen && hasOutline" class="bv-scrim" @click="outlineOpen = false"></div>
 
       <!-- 紙面 -->
-      <div ref="stage" class="bv-stage no-gesture" :class="{ zoomed: zoom > 1 }" @click="onStageClick" @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
+      <div ref="stage" class="bv-stage no-gesture" :class="{ zoomed: zoom > 1 }" @click="onStageClick" @touchstart.passive="onTouchStart" @touchmove="onTouchMove" @touchend.passive="onTouchEnd" @touchcancel.passive="onTouchEnd">
         <div v-if="loading" class="bv-msg">読み込み中…</div>
         <div v-else-if="error" class="bv-msg">{{ error }}</div>
-        <div v-else-if="spread" class="book spread" :style="paperStyle">
+        <div v-else-if="spread" class="book spread" :style="[paperStyle, pinchStyle]">
           <div class="paper half left" :class="{ blank: !inRange(pair.l) }">
             <img v-if="imgs.get(pair.l)" :src="imgs.get(pair.l)" :alt="`${pair.l}ページ`" draggable="false" />
             <div v-else-if="inRange(pair.l)" class="paper-loading">…</div>
@@ -570,7 +627,7 @@ async function download() {
             </div>
           </div>
         </div>
-        <div v-else class="book" :style="paperStyle">
+        <div v-else class="book" :style="[paperStyle, pinchStyle]">
           <div class="paper base">
             <img v-if="imgs.get(page)" :src="imgs.get(page)" :alt="`${page}ページ`" draggable="false" />
             <div v-else class="paper-loading">…</div>
@@ -806,7 +863,7 @@ async function download() {
   align-items: flex-start;
   justify-content: flex-start;
   cursor: default;
-  touch-action: auto;
+  touch-action: pan-x pan-y; /* 1 本指のスクロールは任せ、ピンチは自前で扱う */
 }
 .bv-stage.zoomed .book {
   margin: 16px auto;
