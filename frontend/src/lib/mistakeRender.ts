@@ -2,10 +2,25 @@
 // 1 ページには複数の問題を置ける（lib/mistake.ts の paginate が割り付ける）。問題と問題の間には罫線を引く。
 import { drawStroke } from '@/lib/inkRender'
 import { ENTRY_GAP, ENTRY_HEAD, GUTTER, HEADER_GAP, HEADER_H, LINE_HEIGHT, NOTE_H, NOTE_W, OUTER, PAGE_H, PAGE_TOP, PAGE_W, contentBox, fmtDate, loadImageEl, type BinderPage } from '@/lib/mistake'
-import type { MistakeLayout, MistakeNoteDetail } from '@/types'
+import type { MistakeLayout, MistakeLayoutItem, MistakeNoteDetail, MistakeStroke } from '@/types'
 
 const FONT = "'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif"
 const INK = '#1c2024'
+
+/** 線が枠（画像など）の上に描かれたものか（点の半分以上が枠の中にあれば、その枠の上の線とみなす） */
+export function strokeOnItem(st: MistakeStroke, it: MistakeLayoutItem): boolean {
+  const p = st.points
+  if (p.length < 2) return false
+  let inside = 0
+  let total = 0
+  for (let i = 0; i + 1 < p.length; i += 2) {
+    total++
+    const x = p[i]!
+    const y = p[i + 1]!
+    if (x >= it.x && x <= it.x + it.w && y >= it.y && y <= it.y + it.h) inside++
+  }
+  return total > 0 && inside / total >= 0.5
+}
 
 /** 文字を枠の幅で折り返す（日本語は 1 文字ずつ、英単語は単語の途中で切らない） */
 export function wrapText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
@@ -45,7 +60,8 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number): str
 /**
  * 置いたもの（画像・文字・手書き）を ctx の (ox, oy) に描く。
 * 置いたもの全体の左上を (ox, oy) に合わせ、scale 倍にして clipW × clipH に切り抜く。
- * problemOnly のときは対象の問題の写真だけを描く（説明用の画像・文字・手書きは描かない。位置・大きさはそのまま）。
+ * problemOnly のときは対象の問題の写真だけを描く（説明用の画像・文字は描かない。位置・大きさはそのまま）。
+ * ただし問題の写真の上に描いた線（複数の小問のうち対象を囲んだ印など）は写真の枠で切り抜いて残す。
  */
 export async function drawNoteContent(ctx: CanvasRenderingContext2D, layout: MistakeLayout, ox: number, oy: number, scale: number, clipW = NOTE_W, clipH = NOTE_H, problemOnly = false) {
   const box = contentBox(layout)
@@ -96,7 +112,22 @@ export async function drawNoteContent(ctx: CanvasRenderingContext2D, layout: Mis
     ctx.restore()
   }
   // ペンの線（種類ごとの見た目は lib/inkRender.ts）
-  if (!problemOnly) for (const st of layout.ink) drawStroke(ctx, st)
+  if (!problemOnly) {
+    for (const st of layout.ink) drawStroke(ctx, st)
+  } else {
+    // 問題だけの表示でも、問題の写真の上に描いた線は残す（写真の枠で切り抜く）
+    for (const it of layout.items) {
+      if (it.type !== 'image' || it.role !== 'problem') continue
+      const on = layout.ink.filter((st) => strokeOnItem(st, it))
+      if (!on.length) continue
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(it.x, it.y, it.w, it.h)
+      ctx.clip()
+      for (const st of on) drawStroke(ctx, st)
+      ctx.restore()
+    }
+  }
   ctx.restore()
 }
 

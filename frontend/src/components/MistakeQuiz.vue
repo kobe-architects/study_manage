@@ -7,15 +7,17 @@
  * 「もう一度」にした問題は同じ回の最後にもう一度出る。
  * 解答を表示した後は、定着度（定着 / あいまい / 未定着。手動）も付けられる（閲覧・出題の絞り込みに使う）。
  * スクランブル（grammarQuestionId）・数学の例題（cardItemId）から作ったノートは、解答の下に教材の詳細解説の画像（役割 extra）も続けて表示する（縦にスクロール）。
+ * 問題の写真の上に描いた線（複数の小問のうち対象を囲んだ印など）は問題の表示にも重ねる（写真の枠の中の線だけ）。
  * キー: Space / Enter = 解答を表示、1〜4 = 評価、← → = 問題と解答の切替、Esc = 閉じる。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { mistakeApi } from '@/api/mistake'
 import { MASTERIES, contentBox, imageObjectUrl, loadImageEl } from '@/lib/mistake'
-import { drawNoteContent } from '@/lib/mistakeRender'
+import { drawStroke } from '@/lib/inkRender'
+import { drawNoteContent, strokeOnItem } from '@/lib/mistakeRender'
 import { blockDoubleTapZoom, blockUiTextSelection, haptic, isTouch } from '@/lib/native'
 import { useUiStore } from '@/stores/ui'
-import type { ImageCrop, MistakeGrade, MistakeLayout, MistakeMastery, MistakeNoteDetail, MistakeNoteSummary, MistakeReviewState } from '@/types'
+import type { ImageCrop, MistakeGrade, MistakeLayout, MistakeLayoutItem, MistakeMastery, MistakeNoteDetail, MistakeNoteSummary, MistakeReviewState, MistakeStroke } from '@/types'
 
 const props = defineProps<{ notes: MistakeNoteSummary[]; title: string }>()
 const emit = defineEmits<{ close: []; graded: [noteId: number, review: MistakeReviewState]; mastery: [noteId: number, mastery: MistakeMastery | null] }>()
@@ -82,6 +84,29 @@ async function croppedUrl(imageId: number, crop: ImageCrop | undefined): Promise
   x.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height)
   return c.toDataURL('image/jpeg', 0.9)
 }
+/** 問題の写真（トリミング反映）に、その上に描いた線（対象の小問を囲んだ印など）を重ねて data URL に */
+async function problemWithInkUrl(imageId: number, item: MistakeLayoutItem, ink: MistakeStroke[]): Promise<string> {
+  const img = await loadImageEl(imageId)
+  const crop = item.crop ?? { x: 0, y: 0, w: 1, h: 1 }
+  const sx = crop.x * img.naturalWidth
+  const sy = crop.y * img.naturalHeight
+  const sw = Math.max(1, crop.w * img.naturalWidth)
+  const sh = Math.max(1, crop.h * img.naturalHeight)
+  const c = document.createElement('canvas')
+  c.width = Math.round(sw)
+  c.height = Math.round(sh)
+  const x = c.getContext('2d')!
+  x.fillStyle = '#fff'
+  x.fillRect(0, 0, c.width, c.height)
+  x.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height)
+  // ページ座標の枠（item.x, y, w, h）がこの canvas 全体に対応する
+  x.save()
+  x.scale(c.width / Math.max(1, item.w), c.height / Math.max(1, item.h))
+  x.translate(-item.x, -item.y)
+  for (const st of ink) drawStroke(x, st)
+  x.restore()
+  return c.toDataURL('image/jpeg', 0.9)
+}
 /** ページ全体（問題＋説明・手書き）を描いて data URL に */
 async function pageUrl(layout: MistakeLayout): Promise<string> {
   const box = contentBox(layout) ?? { x: 0, y: 0, w: 1050, h: 600 }
@@ -103,7 +128,8 @@ function problemOf(n: MistakeNoteSummary): Promise<string> {
       const item = d.layout.items.find((i) => i.role === 'problem' && i.imageId)
       const imageId = item?.imageId ?? d.images.find((i) => i.role === 'problem')?.id ?? n.problemImageId
       if (!imageId) throw new Error('問題の写真がありません')
-      return croppedUrl(imageId, item?.crop)
+      const ink = item ? d.layout.ink.filter((st) => strokeOnItem(st, item)) : []
+      return item && ink.length ? problemWithInkUrl(imageId, item, ink) : croppedUrl(imageId, item?.crop)
     })()
     p.catch(() => problemCache.delete(n.id))
     problemCache.set(n.id, p)

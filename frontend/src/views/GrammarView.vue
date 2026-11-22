@@ -844,8 +844,8 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
           @unsure="onUnsure"
         />
         <div v-if="answered && current.stat?.review" class="next-chip">次の復習: {{ current.stat.review.intervalLabel }}後<span v-if="currentResult && currentResult.elapsedMs !== null">　・　解答 {{ fmtSec(currentResult.elapsedMs) }}</span></div>
-        <!-- 解答後: 間違いノートを作成（問題・正解・和訳・詳細解説を 1 ページに。分類とデッキ「スクランブル」は自動）。作成済みならそのページを開く -->
-        <div v-if="answered && !isFirstStep" class="note-row">
+        <!-- 間違いノートを作成（解答前でも可。問題・正解・和訳・詳細解説を 1 ページに。分類とデッキ「スクランブル」は自動）。作成済みならそのページを開く -->
+        <div v-if="!isFirstStep" class="note-row">
           <button class="note-btn" :class="{ made: !!current.noteId }" :disabled="noteBusy !== null" @click="makeNote(current, currentResult)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z" /><path d="M9 4v5h6V4" /><path d="M8 14h8M8 17h5" /></svg>
             {{ noteLabel(current) }}
