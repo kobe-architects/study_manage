@@ -7,6 +7,9 @@
  * - ステータスの変更は生徒だけ（canChangeStatus）。タイトル・分類はどちらでも直せる
  * - メッセージ本文は簡易タグで装飾（components/QuestionComposer.vue で入力、components/RichText.vue で表示）
  * - 添付の画像はタップで拡大、「書き込んで返信」でその画像に図形・手書きを入れて返信できる。ファイルは保存（共有シート）
+ * - メッセージの「返信」は返信先を付けて送る（[re=ID]。表示をタップすると元のメッセージへ飛ぶ）。「編集」は本人の本文だけ（編集済みの印）
+ * - 本文のファイル共有リンクはこの画面の上に PDF ビューアを重ねて開き、閉じると元のメッセージに戻る（ファイル共有の画面へは移らない）
+ * - スマホ・iPad 縦でスレッドを開いたときは全画面（上部は固定・メッセージだけスクロール）。入力欄はふだん 1 行で、タップすると全体が開く
  * - 20 秒ごとに一覧（と開いているスレッド）を取り直す。開いたスレッドは既読になりナビのバッジが減る
  * 生徒側（/questions）と講師側（/tutor/questions）で同じ画面。API のプレフィックスはロールで切り替わる
  */
@@ -15,16 +18,19 @@ import ActionMenu, { type ActionMenuItem } from '@/components/ActionMenu.vue'
 import AuthImage from '@/components/AuthImage.vue'
 import HelpTip from '@/components/HelpTip.vue'
 import ImageMarkupModal from '@/components/ImageMarkupModal.vue'
+import PdfBookViewer from '@/components/PdfBookViewer.vue'
 import QuestionComposer from '@/components/QuestionComposer.vue'
 import RichText from '@/components/RichText.vue'
 import client from '@/api/client'
 import { questionsApi, type PendingAttachment } from '@/api/questions'
+import { sharedApi } from '@/api/shared'
+import { richExcerpt } from '@/lib/richText'
 import { appConfirm } from '@/lib/dialog'
 import { saveFile, viewportWidth } from '@/lib/native'
 import { useAuthStore } from '@/stores/auth'
 import { useQuestionStore } from '@/stores/questions'
 import { useUiStore } from '@/stores/ui'
-import type { QuestionAttachment, QuestionMessage, QuestionStatus, QuestionThread, QuestionThreadDetail, StudyItemRow } from '@/types'
+import type { QuestionAttachment, QuestionMessage, QuestionStatus, QuestionThread, QuestionThreadDetail, SharedFile, StudyItemRow } from '@/types'
 
 const ui = useUiStore()
 const auth = useAuthStore()
@@ -185,6 +191,7 @@ async function submitReply(p: { body: string; attachments: PendingAttachment[]; 
     const attachments = await uploadAll(p.attachments)
     const m = await questionsApi.sendMessage(d.id, { body: p.body, notifyLine: p.notifyLine, attachments })
     composer.value?.reset()
+    replyTo.value = null
     if (detail.value?.id === d.id) {
       detail.value.messages.push(m)
       detail.value.messageCount = detail.value.messages.length
@@ -194,7 +201,7 @@ async function submitReply(p: { body: string; attachments: PendingAttachment[]; 
     if (t) {
       t.messageCount++
       t.lastMessageAt = m.createdAt
-      t.lastMessage = { excerpt: m.body.replace(/\[\/?(?:b|s|u|m|color)(?:=[^\]]*)?\]/g, '').slice(0, 80), userName: m.userName, userId: m.userId, hasAttachment: m.attachments.length > 0 }
+      t.lastMessage = { excerpt: richExcerpt(m.body, 80), userName: m.userName, userId: m.userId, hasAttachment: m.attachments.length > 0 }
       threads.value = [t, ...threads.value.filter((x) => x.id !== t.id)]
     }
     await nextTick()
@@ -299,6 +306,58 @@ async function removeMessage(m: QuestionMessage) {
     if (t) t.messageCount = Math.max(0, t.messageCount - 1)
   } catch {
     ui.notify('削除に失敗しました')
+  }
+}
+
+// ---- 返信先・編集・返信先へ飛ぶ ----
+const replyTo = ref<{ id: number; name: string; excerpt: string } | null>(null)
+const editingId = ref<number | null>(null)
+const flashId = ref<number | null>(null)
+function startReply(m: QuestionMessage) {
+  replyTo.value = { id: m.id, name: m.userName ?? '', excerpt: richExcerpt(m.body, 60) || (m.attachments.length ? `（添付 ${m.attachments.length} 件）` : '') }
+  editingId.value = null
+  nextTick(() => composer.value?.focus())
+}
+function startEdit(m: QuestionMessage) {
+  editingId.value = m.id
+}
+async function saveEdit(m: QuestionMessage, p: { body: string }) {
+  if (sending.value) return
+  sending.value = true
+  try {
+    const updated = await questionsApi.updateMessage(m.id, p.body)
+    if (detail.value) {
+      const i = detail.value.messages.findIndex((x) => x.id === m.id)
+      if (i >= 0) detail.value.messages.splice(i, 1, updated)
+    }
+    editingId.value = null
+  } catch (e: unknown) {
+    ui.notify(errorMessage(e, '保存に失敗しました'), { center: true })
+  } finally {
+    sending.value = false
+  }
+}
+/** [re=ID] の返信先をタップ: そのメッセージまでスクロールして光らせる */
+function jumpTo(id: number) {
+  const el = document.getElementById(`qmsg-${id}`)
+  if (!el) {
+    ui.notify('元のメッセージは削除されています', { center: true })
+    return
+  }
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  flashId.value = id
+  window.setTimeout(() => (flashId.value === id ? (flashId.value = null) : null), 1600)
+}
+
+// ---- 本文のファイル共有リンク: この画面の上にビューアを重ねて開く（閉じると元のメッセージに戻る） ----
+const sharedViewer = ref<{ file: SharedFile; page: number } | null>(null)
+async function openShared(fileId: number, page: number) {
+  try {
+    const f = await sharedApi.show(fileId)
+    if (f.isPdf) sharedViewer.value = { file: f, page }
+    else await saveFile(await sharedApi.fetchBlob(f.id), f.name, { preferShare: true })
+  } catch {
+    ui.notify('共有されたファイルが見つかりません', { center: true })
   }
 }
 
@@ -465,7 +524,7 @@ onBeforeUnmount(() => {
     </section>
 
     <!-- 右: スレッド / 新しい質問 -->
-    <section v-if="selectedId || composing" class="thread card" @dragover.prevent @drop.prevent="onPaneDrop">
+    <section v-if="selectedId || composing" class="thread card" :class="{ 'no-gesture': isMobile }" @dragover.prevent @drop.prevent="onPaneDrop">
       <!-- 新しい質問 -->
       <template v-if="composing">
         <div class="th-head">
@@ -522,16 +581,21 @@ onBeforeUnmount(() => {
         <div ref="msgList" class="msgs">
           <template v-for="(m, i) in detail.messages" :key="m.id">
             <div v-if="dayLabel(m, i, detail.messages)" class="day"><span>{{ dayLabel(m, i, detail.messages) }}</span></div>
-            <div class="msg" :class="{ mine: m.userId === myId, tutor: m.userRole === 'tutor' }">
+            <div :id="`qmsg-${m.id}`" class="msg" :class="{ mine: m.userId === myId, tutor: m.userRole === 'tutor', flash: flashId === m.id }">
               <div class="avatar" :class="{ tutor: m.userRole === 'tutor' }">{{ initial(m.userName) }}</div>
               <div class="bubble">
                 <div class="m-head">
                   <span class="m-name">{{ m.userName }}<span v-if="m.userRole === 'tutor'" class="role">先生</span></span>
-                  <span class="m-when">{{ fmtWhen(m.createdAt) }}</span>
+                  <span class="m-when">{{ fmtWhen(m.createdAt) }}<span v-if="m.editedAt" class="m-edited" :title="`編集 ${fmtWhen(m.editedAt)}`">（編集済み）</span></span>
                   <span v-if="m.lineNotified" class="m-line" title="LINE に通知済み">LINE</span>
-                  <button v-if="m.userId === myId" class="m-del" title="削除" @click="removeMessage(m)">削除</button>
+                  <span class="m-acts">
+                    <button class="m-act" title="このメッセージに返信" @click="startReply(m)">返信</button>
+                    <button v-if="m.userId === myId && editingId !== m.id" class="m-act" title="本文を編集" @click="startEdit(m)">編集</button>
+                    <button v-if="m.userId === myId" class="m-act" title="削除" @click="removeMessage(m)">削除</button>
+                  </span>
                 </div>
-                <RichText v-if="m.body" :text="m.body" class="m-body" />
+                <QuestionComposer v-if="editingId === m.id" :key="`edit-${m.id}`" mode="edit" :initial-body="m.body" :busy="sending" :min-rows="2" @submit="saveEdit(m, $event)" @cancel="editingId = null" />
+                <RichText v-else-if="m.body" :text="m.body" class="m-body" @shared="openShared" @jump="jumpTo" />
                 <div v-if="m.attachments.length" class="m-atts">
                   <template v-for="a in m.attachments" :key="a.id">
                     <button v-if="a.kind === 'image'" class="m-img" @click="lightbox = a">
@@ -551,7 +615,7 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="th-compose">
-          <QuestionComposer ref="composer" :busy="sending" :progress="progress" :min-rows="2" placeholder="返信を入力…" @submit="submitReply" />
+          <QuestionComposer ref="composer" :busy="sending" :progress="progress" :min-rows="2" placeholder="返信を入力…" :reply-to="replyTo" :collapsible="isMobile" @submit="submitReply" @clear-reply="replyTo = null" />
         </div>
       </template>
       <div v-else class="empty" style="padding: 40px">{{ detailLoading ? '読み込み中…' : '' }}</div>
@@ -604,6 +668,20 @@ onBeforeUnmount(() => {
           <AuthImage :src="questionsApi.attachmentUrl(lightbox.id)" :alt="lightbox.name" />
         </div>
       </div>
+    </Transition>
+
+    <!-- 本文のファイル共有リンク: この画面の上に重ねて開く -->
+    <Transition name="ui-modal">
+      <PdfBookViewer
+        v-if="sharedViewer"
+        :url="sharedApi.fileUrl(sharedViewer.file.id)"
+        :title="sharedViewer.file.name"
+        :download-name="sharedViewer.file.name"
+        :start-page="sharedViewer.page"
+        :fetch-blob="() => sharedApi.fetchBlob(sharedViewer!.file.id)"
+        :link-for="(n: number) => sharedApi.pageLink(sharedViewer!.file.id, n)"
+        @close="sharedViewer = null"
+      />
     </Transition>
 
     <!-- 受け取った画像に書き込んで返信 -->
@@ -875,9 +953,28 @@ onBeforeUnmount(() => {
 .thread {
   position: relative;
 }
+/* スマホ・iPad 縦: スレッドは全画面（ナビの上に重ねる）。上部は固定、メッセージだけがスクロールする */
 .qv.mobile .thread {
-  height: calc(100vh - 120px);
-  min-height: 480px;
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  height: auto;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+  padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+.qv.mobile .thread .th-head {
+  padding-top: max(10px, env(safe-area-inset-top));
+  background: #fff;
+}
+.qv.mobile .thread .msgs {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.qv.mobile .thread .new-form {
+  flex: 1;
+  min-height: 0;
 }
 .th-head {
   display: flex;
@@ -1085,8 +1182,18 @@ onBeforeUnmount(() => {
   border-radius: 5px;
   padding: 0 4px;
 }
-.m-del {
+.m-edited {
+  margin-left: 4px;
+  font-size: 10.5px;
+  color: var(--faint);
+}
+.m-acts {
   margin-left: auto;
+  display: inline-flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.m-act {
   border: none;
   background: transparent;
   color: var(--faint);
@@ -1095,8 +1202,21 @@ onBeforeUnmount(() => {
   padding: 2px 6px;
   border-radius: 6px;
 }
-.m-del:active {
+.m-act:active {
   background: #eef0f4;
+  color: var(--ink);
+}
+.msg.flash .bubble {
+  animation: qflash 1.6s ease;
+}
+@keyframes qflash {
+  0% {
+    box-shadow: 0 0 0 3px rgba(59, 80, 204, 0.55);
+    background: #e4e9ff;
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 80, 204, 0);
+  }
 }
 .m-body {
   display: block;

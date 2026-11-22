@@ -5,13 +5,17 @@
  * - 添付: 「添付」ボタン（画像・ファイル）、画像の Ctrl+V 貼り付け、ドラッグ＆ドロップ、iPad・iPhone 向けの「貼り付け」ボタン（navigator.clipboard.read）
  * - 画像は送る前に「書き込み」（図形・手書き・文字。ImageMarkupModal）で編集できる
  * - 右下に「LINE で通知」のチェック（前回の状態を端末に記憶）と送信ボタン。Ctrl+Enter でも送信
+ * - replyTo があれば「返信先」を上に出し、送信時に本文の先頭へ [re=ID]名前: 抜粋[/re] を付ける
+ * - mode='edit' は本文の編集（添付・LINE は出さず、保存／キャンセル）
+ * - collapsible（スマホ・iPad）: ふだんは 1 行の入力欄と送信ボタンだけ。入力欄をタップすると道具・プレビュー・添付・LINE を含む全体が開く。
+   右上の「∨」で畳む。送信後も畳む
  * 親は submit を受けて添付のアップロードと送信を行い、終わったら reset() を呼ぶ
  */
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import ImageMarkupModal from '@/components/ImageMarkupModal.vue'
 import RichText from '@/components/RichText.vue'
 import type { PendingAttachment } from '@/api/questions'
-import { RICH_COLORS, wrapSelection, type RichTag } from '@/lib/richText'
+import { RICH_COLORS, replyTag, wrapSelection, type RichTag } from '@/lib/richText'
 import { isTouch } from '@/lib/native'
 import { useUiStore } from '@/stores/ui'
 
@@ -24,16 +28,40 @@ const props = withDefaults(
     progress?: number | null
     /** 入力欄を自動で大きくする最小の行数 */
     minRows?: number
+    /** send=送信（既定）/ edit=本文の編集（添付・LINE なし。保存／キャンセル） */
+    mode?: 'send' | 'edit'
+    /** 編集時の元の本文 */
+    initialBody?: string
+    /** 返信先のメッセージ（送信時に本文の先頭へ [re=ID] を付ける） */
+    replyTo?: { id: number; name: string; excerpt: string } | null
+    /** スマホ・iPad: ふだんは 1 行だけ出し、タップで全体を開く */
+    collapsible?: boolean
   }>(),
-  { submitLabel: '送信', placeholder: 'メッセージを入力…', busy: false, progress: null, minRows: 3 },
+  { submitLabel: '送信', placeholder: 'メッセージを入力…', busy: false, progress: null, minRows: 3, mode: 'send', initialBody: '', replyTo: null, collapsible: false },
 )
-const emit = defineEmits<{ submit: [payload: { body: string; attachments: PendingAttachment[]; notifyLine: boolean }] }>()
+const emit = defineEmits<{ submit: [payload: { body: string; attachments: PendingAttachment[]; notifyLine: boolean }]; cancel: []; clearReply: [] }>()
 
 const ui = useUiStore()
 const LINE_KEY = 'sm_q_line'
 
-const body = ref('')
+const body = ref(props.initialBody)
 const attachments = ref<PendingAttachment[]>([])
+const isEdit = computed(() => props.mode === 'edit')
+/** collapsible のとき、全体（道具・プレビュー・添付・LINE）を開いているか */
+const expanded = ref(!props.collapsible)
+const collapsed = computed(() => props.collapsible && !expanded.value)
+function expand() {
+  if (!expanded.value) {
+    expanded.value = true
+    nextTick(autosize)
+  }
+}
+function collapse() {
+  expanded.value = false
+  colorOpen.value = false
+  textarea.value?.blur()
+  nextTick(autosize)
+}
 const notifyLine = ref(localStorage.getItem(LINE_KEY) !== '0')
 const preview = ref(localStorage.getItem('sm_q_preview') !== '0')
 const textarea = ref<HTMLTextAreaElement | null>(null)
@@ -75,6 +103,7 @@ function keyOf() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
 }
 function addFiles(files: Iterable<File | Blob>, nameHint?: string) {
+  expand()
   let n = 0
   for (const f of files) {
     const name = f instanceof File && f.name ? f.name : nameHint ?? (f.type.startsWith('image/') ? `image-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '')}.png` : 'file')
@@ -153,7 +182,9 @@ function fmtSize(n: number): string {
 // ---- 送信 ----
 function submit() {
   if (props.busy || isEmpty.value) return
-  emit('submit', { body: body.value.trim(), attachments: [...attachments.value], notifyLine: notifyLine.value })
+  let text = body.value.trim()
+  if (props.replyTo && !isEdit.value) text = replyTag(props.replyTo.id, props.replyTo.name, props.replyTo.excerpt) + text
+  emit('submit', { body: text, attachments: [...attachments.value], notifyLine: isEdit.value ? false : notifyLine.value })
 }
 function onKey(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -166,31 +197,43 @@ function reset() {
   attachments.value.forEach(release)
   attachments.value = []
   body.value = ''
+  if (props.collapsible) expanded.value = false
   nextTick(autosize)
 }
 function autosize() {
   const el = textarea.value
   if (!el) return
   el.style.height = 'auto'
-  const min = props.minRows * 22 + 16
-  el.style.height = `${Math.max(min, Math.min(360, el.scrollHeight))}px`
+  const min = (collapsed.value ? 1 : props.minRows) * 22 + 16
+  el.style.height = `${Math.max(min, Math.min(collapsed.value ? 110 : 360, el.scrollHeight))}px`
 }
 function focus() {
   textarea.value?.focus()
 }
 onBeforeUnmount(() => attachments.value.forEach(release))
+onMounted(() => nextTick(autosize))
 
-defineExpose({ addFiles, reset, focus, isEmpty })
+watch(
+  () => props.replyTo,
+  (v) => {
+    if (v) expand()
+  },
+)
+
+defineExpose({ addFiles, reset, focus, isEmpty, expand })
 </script>
 
 <template>
-  <div class="qc" :class="{ over: dragOver, busy }" @dragover.prevent="dragOver = true" @dragleave="dragOver = false" @drop.prevent="onDrop">
+  <div class="qc" :class="{ over: dragOver, busy, collapsed }" @dragover.prevent="dragOver = true" @dragleave="dragOver = false" @drop.prevent="onDrop">
     <!-- 道具: 装飾・添付・プレビュー -->
-    <div class="qc-tools">
+    <div v-if="!collapsed" class="qc-tools">
       <button type="button" class="t" title="太字" @click="wrap('b')"><b>B</b></button>
       <button type="button" class="t" title="取消し線" @click="wrap('s')"><s>S</s></button>
       <button type="button" class="t" title="下線" @click="wrap('u')"><u>U</u></button>
       <button type="button" class="t" title="マーカー" @click="wrap('m')"><span class="mk">M</span></button>
+      <button type="button" class="t" title="引用" @click="wrap('q')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h4v4H8.5c0 1.4 1 2.2 2.5 2.5V16c-3-.3-5-2.3-5-5.5V7zm8 0h4v4h-2.5c0 1.4 1 2.2 2.5 2.5V16c-3-.3-5-2.3-5-5.5V7z" /></svg>
+      </button>
       <div class="color-wrap">
         <button type="button" class="t" title="文字の色" :class="{ on: colorOpen }" @click="colorOpen = !colorOpen">
           <span class="color-a">A</span>
@@ -199,39 +242,52 @@ defineExpose({ addFiles, reset, focus, isEmpty })
           <button v-for="c in RICH_COLORS" :key="c.key" type="button" class="sw" :style="{ background: c.hex }" :title="c.label" @click="wrap('color', c.key)"></button>
         </div>
       </div>
-      <span class="sep"></span>
-      <button type="button" class="t wide" title="画像やファイルを添付" @click="pickFiles">
+      <span v-if="!isEdit" class="sep"></span>
+      <button v-if="!isEdit" type="button" class="t wide" title="画像やファイルを添付" @click="pickFiles">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.1l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l8.8-8.8a3.5 3.5 0 0 1 5 5l-8.9 8.8a1.5 1.5 0 0 1-2.1-2.1l8.2-8.1" /></svg>
         添付
       </button>
-      <button v-if="canClipboardRead" type="button" class="t wide" title="クリップボードの画像を貼り付け" @click="pasteFromClipboard">
+      <button v-if="canClipboardRead && !isEdit" type="button" class="t wide" title="クリップボードの画像を貼り付け" @click="pasteFromClipboard">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z" /><path d="M15 5h3a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h3" /></svg>
         貼り付け
       </button>
       <span style="flex: 1"></span>
       <button type="button" class="t wide" :class="{ on: preview }" title="表示イメージ" @click="togglePreview">プレビュー</button>
+      <button v-if="collapsible" type="button" class="t" title="畳む" @click="collapse">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+      </button>
       <input ref="fileInput" type="file" multiple accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" style="display: none" @change="onFilePicked" />
     </div>
 
-    <textarea
-      ref="textarea"
-      v-model="body"
-      class="qc-text"
-      :placeholder="placeholder"
-      :rows="minRows"
-      @input="autosize"
-      @paste="onPaste"
-      @keydown="onKey"
-    ></textarea>
+    <div v-if="replyTo && !isEdit" class="qc-reply">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" /></svg>
+      <span class="qr-label">返信先</span>
+      <span class="qr-text"><b>{{ replyTo.name }}</b>: {{ replyTo.excerpt }}</span>
+      <button type="button" class="qr-x" title="返信先を外す" @click="emit('clearReply')">×</button>
+    </div>
+    <div class="qc-row">
+      <textarea
+        ref="textarea"
+        v-model="body"
+        class="qc-text"
+        :placeholder="placeholder"
+        :rows="collapsed ? 1 : minRows"
+        @focus="expand"
+        @input="autosize"
+        @paste="onPaste"
+        @keydown="onKey"
+      ></textarea>
+      <button v-if="collapsed" type="button" class="send mini" :disabled="busy || isEmpty" @click="submit">{{ busy ? '…' : submitLabel }}</button>
+    </div>
 
     <!-- 表示イメージ -->
-    <div v-if="preview && body.trim()" class="qc-preview">
+    <div v-if="!collapsed && preview && body.trim()" class="qc-preview">
       <div class="pv-label">表示イメージ{{ hasTags ? '' : '（装飾なし）' }}</div>
       <RichText :text="body" />
     </div>
 
     <!-- 添付 -->
-    <div v-if="attachments.length" class="qc-files">
+    <div v-if="!collapsed && attachments.length" class="qc-files">
       <div v-for="a in attachments" :key="a.key" class="att" :class="a.kind">
         <template v-if="a.kind === 'image'">
           <img :src="a.previewUrl ?? ''" :alt="a.name" @click="editing = a" />
@@ -250,7 +306,13 @@ defineExpose({ addFiles, reset, focus, isEmpty })
     </div>
 
     <!-- 下段: LINE 通知と送信 -->
-    <div class="qc-foot">
+    <div v-if="isEdit" class="qc-foot">
+      <span class="hint">Ctrl+Enter で保存</span>
+      <span style="flex: 1"></span>
+      <button type="button" class="send ghost" :disabled="busy" @click="emit('cancel')">キャンセル</button>
+      <button type="button" class="send" :disabled="busy || isEmpty" @click="submit">{{ busy ? '保存中…' : '保存' }}</button>
+    </div>
+    <div v-else-if="!collapsed" class="qc-foot">
       <span v-if="dragOver" class="drop-hint">ここにドロップして添付</span>
       <span v-else-if="progress !== null && busy" class="drop-hint">添付をアップロード中… {{ Math.round((progress ?? 0) * 100) }}%</span>
       <span v-else class="hint">Ctrl+V で画像を貼り付け、ドラッグ＆ドロップでも添付できます</span>
@@ -363,8 +425,67 @@ defineExpose({ addFiles, reset, focus, isEmpty })
   background: var(--line);
   margin: 0 4px;
 }
+.qc-reply {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 10px 0;
+  padding: 5px 8px 5px 10px;
+  border-left: 3px solid var(--primary);
+  border-radius: 0 8px 8px 0;
+  background: #eef1fb;
+  font-size: 12px;
+  color: #3f4a6b;
+  min-width: 0;
+}
+.qc-reply svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.qr-label {
+  font-weight: 700;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.qr-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qr-x {
+  border: none;
+  background: transparent;
+  color: var(--faint);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.send.ghost {
+  background: transparent;
+  color: var(--mut);
+  border: 1px solid #dfe3e8;
+}
+.qc-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.qc.collapsed .qc-row {
+  padding: 6px 6px 6px 0;
+}
+.send.mini {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  flex-shrink: 0;
+}
 .qc-text {
   display: block;
+  flex: 1;
+  min-width: 0;
   width: 100%;
   border: none;
   outline: none;

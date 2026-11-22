@@ -9,9 +9,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** 質問事項のメッセージ（body は簡易タグ付きの文字。添付は QuestionAttachment） */
 class QuestionMessage extends Model
 {
-    protected $fillable = ['thread_id', 'user_id', 'body', 'line_notified'];
+    protected $fillable = ['thread_id', 'user_id', 'body', 'line_notified', 'edited_at'];
 
-    protected $casts = ['line_notified' => 'boolean'];
+    protected $casts = ['line_notified' => 'boolean', 'edited_at' => 'datetime'];
 
     public function thread(): BelongsTo
     {

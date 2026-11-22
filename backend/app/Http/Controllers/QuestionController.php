@@ -179,6 +179,19 @@ class QuestionController extends Controller
         return response()->json(['data' => $this->messagePayload($message->fresh(['user:id,name,role', 'attachments']))], 201);
     }
 
+    /** メッセージの本文を編集（書いた本人だけ。添付はそのまま。編集日時を残す） */
+    public function updateMessage(Request $request, QuestionMessage $message): JsonResponse
+    {
+        $this->authorizeThread($request, $message->thread);
+        abort_unless($message->user_id === $request->user()->id, 403, '自分のメッセージだけ編集できます。');
+        $data = $request->validate(['body' => ['nullable', 'string', 'max:20000']]);
+        $body = trim((string) ($data['body'] ?? ''));
+        abort_if($body === '' && ! $message->attachments()->exists(), 422, 'メッセージを空にはできません。');
+        $message->update(['body' => $body, 'edited_at' => now()]);
+
+        return response()->json(['data' => $this->messagePayload($message->fresh(['user:id,name,role', 'attachments']))]);
+    }
+
     /** メッセージの削除（書いた本人だけ。添付も消す。最後の 1 件を消してもスレッドは残す） */
     public function destroyMessage(Request $request, QuestionMessage $message): JsonResponse
     {
@@ -423,7 +436,9 @@ class QuestionController extends Controller
     /** 装飾タグを外した抜粋（通知・一覧用） */
     public static function excerpt(string $body, int $len): string
     {
-        $t = preg_replace('/\[\/?(?:b|s|u|m|color)(?:=[^\]]*)?\]/u', '', $body) ?? $body;
+        // 返信先の引用（[re=ID]…[/re]）は丸ごと外し、他の装飾タグは外して文字だけにする
+        $t = preg_replace('/\[re=\d+\].*?\[\/re\]/su', '', $body) ?? $body;
+        $t = preg_replace('/\[\/?(?:b|s|u|m|q|re|color)(?:=[^\]]*)?\]/u', '', $t) ?? $t;
         $t = trim(preg_replace('/\s+/u', ' ', $t) ?? $t);
 
         return mb_strlen($t) > $len ? mb_substr($t, 0, $len).'…' : $t;
@@ -467,6 +482,7 @@ class QuestionController extends Controller
             'body' => $m->body,
             'lineNotified' => (bool) $m->line_notified,
             'createdAt' => $m->created_at?->toDateTimeString(),
+            'editedAt' => $m->edited_at?->toDateTimeString(),
             'attachments' => $m->attachments->map(fn (QuestionAttachment $a) => [
                 'id' => $a->id,
                 'kind' => $a->kind,

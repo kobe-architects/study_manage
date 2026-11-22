@@ -1,9 +1,10 @@
 // 質問事項のメッセージの装飾（簡易タグ）。
 // 入力欄のボタンで選択範囲をタグで囲み、表示側はタグを解析してスタイル付きの要素に描く（HTML は一切解釈しないので安全）。
 //   [b]太字[/b]  [s]取消し線[/s]  [u]下線[/u]  [m]マーカー[/m]  [color=red]色[/color]（色名は RICH_COLORS のキーか #rrggbb）
+//   [q]引用[/q]  [re=メッセージID]名前: 抜粋[/re]（特定のメッセージへの返信。タップでそのメッセージへ飛ぶ）
 // URL は自動でリンクにする。ファイル共有のページ指定リンク（/files?file=ID&p=N）はアプリ内で開く。
 
-export type RichTag = 'b' | 's' | 'u' | 'm' | 'color'
+export type RichTag = 'b' | 's' | 'u' | 'm' | 'q' | 're' | 'color'
 
 export type RichNode =
   | { type: 'text'; text: string }
@@ -20,7 +21,8 @@ export const RICH_COLORS: { key: string; hex: string; label: string }[] = [
   { key: 'gray', hex: '#6b7280', label: '灰' },
 ]
 
-const TAG_RE = /\[(\/?)(b|s|u|m|color)(?:=([#\w]+))?\]/g
+const TAG_RE = /\[(\/?)(b|s|u|m|q|re|color)(?:=([#\w]+))?\]/g
+const REPLY_RE = /\[re=\d+\][\s\S]*?\[\/re\]\n?/g
 const URL_RE = /https?:\/\/[^\s<>"'\]\[]+/g
 
 /** 色の指定（名前か #rrggbb）を CSS の色にする。不正なら null */
@@ -85,8 +87,8 @@ export function parseRich(src: string): RichNode[] {
     const closing = m[1] === '/'
     const tag = m[2] as RichTag
     if (!closing) {
-      const value = tag === 'color' ? (m[3] ?? null) : null
-      if (tag === 'color' && !richColor(value)) {
+      const value = tag === 'color' || tag === 're' ? (m[3] ?? null) : null
+      if ((tag === 'color' && !richColor(value)) || (tag === 're' && !/^\d+$/.test(value ?? ''))) {
         cur().push({ type: 'text', text: m[0] })
         continue
       }
@@ -112,9 +114,20 @@ export function parseRich(src: string): RichNode[] {
   return root
 }
 
-/** タグを外した文字だけ（一覧の抜粋・通知用） */
+/** タグを外した文字だけ（一覧の抜粋・通知用）。返信先の引用は丸ごと外す */
 export function richPlain(src: string): string {
-  return src.replace(TAG_RE, '')
+  return src.replace(REPLY_RE, '').replace(TAG_RE, '')
+}
+
+/** 抜粋（改行・空白を詰めて len 文字まで） */
+export function richExcerpt(src: string, len: number): string {
+  const t = richPlain(src).replace(/\s+/g, ' ').trim()
+  return t.length > len ? t.slice(0, len) + '…' : t
+}
+
+/** 特定のメッセージへの返信を表すタグ（本文の先頭に置く） */
+export function replyTag(messageId: number, name: string, excerpt: string): string {
+  return `[re=${messageId}]${name}: ${excerpt.replace(/\[/g, '［').replace(/\]/g, '］')}[/re]\n`
 }
 
 /** 選択範囲をタグで囲む（textarea 用）。選択が無ければ空のタグ対を入れてその中にカーソルを置く */

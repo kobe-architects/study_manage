@@ -284,6 +284,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/questions/{thread}', [QuestionController::class, 'update']);
         Route::delete('/questions/{thread}', [QuestionController::class, 'destroy']);
         Route::post('/questions/{thread}/messages', [QuestionController::class, 'storeMessage']);
+        Route::put('/question-messages/{message}', [QuestionController::class, 'updateMessage']);
         Route::delete('/question-messages/{message}', [QuestionController::class, 'destroyMessage']);
         Route::get('/question-attachments/{attachment}', [QuestionController::class, 'attachment']);
     });
@@ -391,6 +392,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/questions/{thread}', [QuestionController::class, 'update']);
         Route::delete('/questions/{thread}', [QuestionController::class, 'destroy']);
         Route::post('/questions/{thread}/messages', [QuestionController::class, 'storeMessage']);
+        Route::put('/question-messages/{message}', [QuestionController::class, 'updateMessage']);
         Route::delete('/question-messages/{message}', [QuestionController::class, 'destroyMessage']);
         Route::get('/question-attachments/{attachment}', [QuestionController::class, 'attachment']);
 

@@ -1230,6 +1230,8 @@ export interface QuestionMessage {
   body: string
   lineNotified: boolean
   createdAt: string | null
+  /** 本人が本文を編集した日時（表示に「編集済み」） */
+  editedAt: string | null
   attachments: QuestionAttachment[]
 }
 export interface QuestionThread {

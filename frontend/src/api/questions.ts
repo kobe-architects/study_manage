@@ -92,6 +92,12 @@ export const questionsApi = {
     await client.delete(`${p()}/questions/${id}`)
   },
 
+  /** 本文の編集（本人だけ） */
+  async updateMessage(id: number, body: string): Promise<QuestionMessage> {
+    const { data } = await client.put(`${p()}/question-messages/${id}`, { body })
+    return data.data
+  },
+
   async removeMessage(id: number): Promise<void> {
     await client.delete(`${p()}/question-messages/${id}`)
   },

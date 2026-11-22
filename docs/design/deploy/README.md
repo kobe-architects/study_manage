@@ -521,3 +521,6 @@ php artisan config:cache && php artisan route:cache
 - 本文の装飾は `[b][s][u][m][color=red|#rrggbb]`（frontend/src/lib/richText.ts）。HTML は解釈しない。URL は自動リンク、
   `/files?file=ID&p=N`（ファイル共有のページ指定リンク）はアプリ内で開く。
 - 未読バッジ: `GET /questions/unread-count` をレイアウトが起動時・1 分ごと・引っ張って更新で取り、ナビの「質問事項」とトップページの帯に出す。
+- 2026-11-22 追記: メッセージ編集は `PUT /question-messages/{id}`（本人のみ・edited_at）。装飾に `[q]引用[/q]` と `[re=ID]名前: 抜粋[/re]`（返信先。表示をタップで元のメッセージへスクロール）。
+  本文のファイル共有リンクは質問事項の画面上に PdfBookViewer を重ねて開く（RichText の @shared。親が受けていなければファイル共有の画面へ）。
+  スマホ・iPad 縦はスレッドを全画面（position: fixed）にし、入力欄は collapsible（1 行→タップで全体）。
