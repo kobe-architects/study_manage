@@ -417,13 +417,18 @@ function fmtSize(n: number): string {
   return `${(n / 1024 / 1024).toFixed(1)} MB`
 }
 /** 日付の区切り（メッセージの日が変わるところ） */
+function localDay(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso.replace(' ', 'T'))
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+}
 function dayLabel(m: QuestionMessage, i: number, list: QuestionMessage[]): string | null {
-  const cur = (m.createdAt ?? '').slice(0, 10)
-  const prev = i > 0 ? (list[i - 1]!.createdAt ?? '').slice(0, 10) : null
+  // サーバーの日時は ISO 8601（UTC のオフセット付き）。端末のローカル日付で区切る
+  const cur = localDay(m.createdAt)
+  const prev = i > 0 ? localDay(list[i - 1]!.createdAt) : null
   if (cur === prev) return null
-  const d = new Date(cur + 'T00:00:00')
-  const today = new Date().toISOString().slice(0, 10)
-  if (cur === today) return '今日'
+  if (cur === localDay(new Date().toISOString())) return '今日'
+  const d = new Date((m.createdAt ?? '').replace(' ', 'T'))
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 }
 

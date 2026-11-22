@@ -458,8 +458,8 @@ class QuestionController extends Controller
             'status' => $t->status,
             'createdBy' => $t->created_by,
             'createdByName' => $t->creator?->name,
-            'createdAt' => $t->created_at?->toDateTimeString(),
-            'lastMessageAt' => $t->last_message_at?->toDateTimeString(),
+            'createdAt' => $t->created_at?->toIso8601String(),
+            'lastMessageAt' => $t->last_message_at?->toIso8601String(),
             'messageCount' => (int) $t->message_count,
             'unreadCount' => $unread,
             'lastMessage' => $last ? [
@@ -481,8 +481,8 @@ class QuestionController extends Controller
             'userRole' => $m->user?->role,
             'body' => $m->body,
             'lineNotified' => (bool) $m->line_notified,
-            'createdAt' => $m->created_at?->toDateTimeString(),
-            'editedAt' => $m->edited_at?->toDateTimeString(),
+            'createdAt' => $m->created_at?->toIso8601String(),
+            'editedAt' => $m->edited_at?->toIso8601String(),
             'attachments' => $m->attachments->map(fn (QuestionAttachment $a) => [
                 'id' => $a->id,
                 'kind' => $a->kind,
