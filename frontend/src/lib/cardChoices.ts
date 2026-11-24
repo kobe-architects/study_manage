@@ -82,9 +82,26 @@ function finish(answer: string, wrong: string[], rand: () => number): string[] |
 }
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean)
-export function blankText(item: CardItem, b: [number, number]): string {
+const BLANK_LEAD = /^["“”'‘’(\[]+/
+const BLANK_TRAIL = /["“”'‘’)\].,!?;:]+$/
+
+/**
+ * 空所の語句を「前の記号・語句・後ろの記号」に分ける（“That happens.” の happens. → core=happens, trail=.）。
+ * 選択肢や答えは core だけにし、記号は文の側に残す（正解だけ句読点付きで目立たないように）
+ */
+export function blankParts(item: CardItem, b: [number, number]): { lead: string; core: string; trail: string } {
   const w = words(item.front)
-  return w.slice(b[0], Math.min(b[1], w.length - 1) + 1).join(' ')
+  const raw = w.slice(b[0], Math.min(b[1], w.length - 1) + 1).join(' ')
+  const lead = raw.match(BLANK_LEAD)?.[0] ?? ''
+  let core = raw.slice(lead.length)
+  const trail = core.match(BLANK_TRAIL)?.[0] ?? ''
+  core = core.slice(0, core.length - trail.length)
+  return core ? { lead, core, trail } : { lead: '', core: raw, trail: '' }
+}
+
+/** 空所に入る語句（記号を除いたもの） */
+export function blankText(item: CardItem, b: [number, number]): string {
+  return blankParts(item, b).core
 }
 
 /**

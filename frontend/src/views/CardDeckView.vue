@@ -149,8 +149,9 @@ const kindSel = ref<CardKind[]>([])
 function toggleKind(k: CardKind) {
   kindSel.value = kindSel.value.includes(k) ? kindSel.value.filter((x) => x !== k) : [...kindSel.value, k]
 }
-const MODE_KEY = () => `sm_cards_mode_${props.deckKey}`
-const exMode = ref<'translate' | 'fill'>('translate')
+// 例文の既定は空所補充（原本の太字の語句を 4 択で埋める。2026-11-25 のユーザー指示。鍵を変えて以前保存した「和訳」を引き継がない）
+const MODE_KEY = () => `sm_cards_mode2_${props.deckKey}`
+const exMode = ref<'translate' | 'fill'>('fill')
 const phMode = ref<'ja2en' | 'en2ja'>('ja2en')
 try {
   const saved = JSON.parse(localStorage.getItem(MODE_KEY()) ?? 'null')
@@ -169,7 +170,8 @@ watch([exMode, phMode], () => {
 /** カードごとの出題形式 */
 function modeOf(c: CardItem): CardMode {
   if (c.kind === 'problem') return 'image'
-  if (c.kind === 'example') return exMode.value
+  // 空所（太字）の無い例文は和訳で出す
+  if (c.kind === 'example') return exMode.value === 'fill' && !(c.extra?.blanks ?? []).length ? 'translate' : exMode.value
   if (!c.back) return 'en2ja' // 表（画像だけ）などは表現→画像
   return phMode.value
 }
@@ -604,8 +606,8 @@ watch([listQ, listChapter, listStatus], () => (listLimit.value = 60))
               <div v-if="kindCounts.example" style="flex: 1; min-width: 150px">
                 <div class="lab">例文の形式</div>
                 <div v-seg class="seg3">
-                  <button :class="{ on: exMode === 'translate' }" @click="exMode = 'translate'">和訳</button>
                   <button :class="{ on: exMode === 'fill' }" @click="exMode = 'fill'">空所補充</button>
+                  <button :class="{ on: exMode === 'translate' }" @click="exMode = 'translate'">和訳</button>
                 </div>
               </div>
               <div v-if="kindCounts.phrase" style="flex: 1; min-width: 150px">

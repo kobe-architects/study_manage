@@ -15,7 +15,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import AuthImage from '@/components/AuthImage.vue'
 import ScratchPad from '@/components/ScratchPad.vue'
 import { cardsApi } from '@/api/cards'
-import { blankText, buildSubQuestions, normalizeText, type SubQuestion } from '@/lib/cardChoices'
+import { blankParts, blankText, buildSubQuestions, normalizeText, type SubQuestion } from '@/lib/cardChoices'
 import { speak } from '@/lib/design'
 import { haptic } from '@/lib/native'
 import type { CardItem, CardMode } from '@/types'
@@ -77,6 +77,15 @@ const pieces = computed(() => {
 function blankAnswer(bi: number): string {
   const b = blanks.value[bi]
   return b ? blankText(it.value, b) : ''
+}
+/** 空所の前後の記号（引用符・句読点）。空所の外側に出す */
+function blankLead(bi: number): string {
+  const b = blanks.value[bi]
+  return b ? blankParts(it.value, b).lead : ''
+}
+function blankTrail(bi: number): string {
+  const b = blanks.value[bi]
+  return b ? blankParts(it.value, b).trail : ''
 }
 
 function reset() {
@@ -228,8 +237,7 @@ function longOptions(s: SubQuestion): boolean {
         <template v-for="(p, i) in pieces" :key="i">
           <template v-if="p.text !== undefined">{{ p.text }}{{ ' ' }}</template>
           <template v-else>
-            <span v-if="answered" class="blank filled" :class="{ ng: !subCorrect(subs[p.blank!]!) }">{{ blankAnswer(p.blank!) }}</span>
-            <span v-else class="blank hole">{{ blanks.length > 1 ? `(${p.blank! + 1})` : '' }}{{ picked[subs[p.blank!]!.key] ?? '＿＿＿' }}</span>{{ ' ' }}
+{{ blankLead(p.blank!) }}<span v-if="answered" class="blank filled" :class="{ ng: !subCorrect(subs[p.blank!]!) }">{{ blankAnswer(p.blank!) }}</span><span v-else class="blank hole">{{ blanks.length > 1 ? `(${p.blank! + 1})` : '' }}{{ picked[subs[p.blank!]!.key] ?? '＿＿＿' }}</span>{{ blankTrail(p.blank!) }}{{ ' ' }}
           </template>
         </template>
         <button class="bare cq-spk" aria-label="読み上げ" title="読み上げ" @click="speak(it.front)">
