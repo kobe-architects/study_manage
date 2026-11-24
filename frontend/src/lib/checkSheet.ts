@@ -28,6 +28,10 @@ export interface SheetChapter {
   /** 問数と範囲（28問・No.1–28） */
   sub?: string
   rows: SheetRow[]
+  /** 章の番号（API の chapterMarks と対応させる鍵。attachRecordMarks 用） */
+  key?: string | number
+  /** 章そのものに付く学習日（個別学習データで章・週ごとに登録した学習記録）。見出し行の回数欄に出す */
+  marks?: SheetMark[]
   /** この章から新しいページにする */
   newPage?: boolean
   /** この章以降のページ見出しのバッジ（文法／語法）と小見出し。省略時は前の章（最初は spec の値）を引き継ぐ */
@@ -65,6 +69,36 @@ export interface SheetSpec {
   markMode?: 'date' | 'symbol'
   /** 印刷ボタンを出さない（画面に埋め込んで表示するとき） */
   noToolbar?: boolean
+  /** 凡例の右に出す補足（「個別学習データの学習記録を含む」など） */
+  extraNote?: string
+}
+
+/** チェックシート API の返り（回答履歴＋個別学習データの学習記録）。marks = 連番 → 日ごとの結果、chapterMarks = 章番号 → 章ごとの学習日 */
+export interface SheetMarks {
+  marks: Record<string, [string, MarkStatus][]>
+  chapterMarks?: Record<string, [string, MarkStatus][]>
+  /** 学習記録を重ねた個別学習データの教材名（対応する教材が無ければ null） */
+  recordBook?: string | null
+}
+
+/** API の [[日付, 状態], ...] → SheetMark[] */
+export function toSheetMarks(list: [string, MarkStatus][] | undefined): SheetMark[] {
+  return (list ?? []).map(([date, status]) => ({ date, status }))
+}
+
+/**
+ * 章ごとの学習記録（chapterMarks）を spec の章（key が一致するもの）に付け、凡例に教材名の補足を出す。
+ * 回数欄の marks は API 側で回答履歴と合わせてあるので、ここでは章の分だけ扱う。
+ */
+export function attachRecordMarks(spec: SheetSpec, data: SheetMarks): SheetSpec {
+  const cm = data.chapterMarks ?? {}
+  for (const ch of spec.chapters) {
+    if (ch.key === undefined) continue
+    const list = cm[String(ch.key)]
+    if (list?.length) ch.marks = toSheetMarks(list)
+  }
+  if (data.recordBook) spec.extraNote = `個別学習データ「${data.recordBook}」の学習記録を含む`
+  return spec
 }
 
 const ROW_MM = 5.6
@@ -197,6 +231,19 @@ function renderColumn(spec: SheetSpec, blocks: Block[], markCount: number, markW
     for (let k = 1; k < n; k++) span[i + k] = -1
   }
 
+  /** 回数欄のセル（新しい方から markCount 個） */
+  const markTds = (all: SheetMark[]): string[] => {
+    const marks = all.length > markCount ? all.slice(all.length - markCount) : all
+    const tds: string[] = []
+    for (let k = 0; k < markCount; k++) {
+      const m = marks[k]
+      if (!m) tds.push('<td class="mk"></td>')
+      else if (spec.markMode === 'symbol') tds.push(`<td class="mk sym ${symClass(m.status)}">${SYMBOL_SVG[symClass(m.status)]}</td>`)
+      else tds.push(`<td class="mk ${m.status === 0 ? 'ng' : m.status === 2 ? 'un' : 'ok'}" title="${esc(m.date)}">${esc(markLabel(m.date))}</td>`)
+    }
+    return tds
+  }
+
   const body: string[] = []
   blocks.forEach((b, i) => {
     if (b.kind === 'chap') {
@@ -205,7 +252,10 @@ function renderColumn(spec: SheetSpec, blocks: Block[], markCount: number, markW
       const sub = b.cont ? '<span class="chap-s">（続き）</span>' : ch.sub ? `<span class="chap-s">${esc(ch.sub)}</span>` : ''
       // 章の先頭にはアンカー（画面の索引から飛ぶ用。続きの段には付けない）
       const anchor = b.cont ? '' : ` id="ch-${spec.chapters.indexOf(ch)}"`
-      body.push(`<tr class="chap"${anchor}><td colspan="${nCols}">${label}<span class="chap-t">${esc(ch.title)}</span>${sub}</td></tr>`)
+      // 章ごとの学習日（個別学習データで章・週単位に登録した記録）は見出し行の回数欄に出す（続きの段には出さない）
+      const chMarks = !b.cont && ch.marks?.length ? ch.marks : null
+      const span = chMarks ? nCols - markCount : nCols
+      body.push(`<tr class="chap"${anchor}><td colspan="${span}">${label}<span class="chap-t">${esc(ch.title)}</span>${sub}</td>${chMarks ? markTds(chMarks).join('') : ''}</tr>`)
       return
     }
     const r = b.row
@@ -224,13 +274,7 @@ function renderColumn(spec: SheetSpec, blocks: Block[], markCount: number, markW
     }
     tds.push(`<td class="no">${esc(r.no)}</td>`)
     r.cells.forEach((c, ci) => tds.push(`<td style="text-align:${spec.columns[ci]?.align ?? 'left'}">${cellHtml(c)}</td>`))
-    const marks = r.marks.length > markCount ? r.marks.slice(r.marks.length - markCount) : r.marks
-    for (let k = 0; k < markCount; k++) {
-      const m = marks[k]
-      if (!m) tds.push('<td class="mk"></td>')
-      else if (spec.markMode === 'symbol') tds.push(`<td class="mk sym ${symClass(m.status)}">${SYMBOL_SVG[symClass(m.status)]}</td>`)
-      else tds.push(`<td class="mk ${m.status === 0 ? 'ng' : m.status === 2 ? 'un' : 'ok'}" title="${esc(m.date)}">${esc(markLabel(m.date))}</td>`)
-    }
+    tds.push(...markTds(r.marks))
     body.push(`<tr>${tds.join('')}</tr>`)
   })
 
@@ -240,7 +284,10 @@ function renderColumn(spec: SheetSpec, blocks: Block[], markCount: number, markW
 export function buildCheckSheetHtml(spec: SheetSpec): string {
   const accent = spec.accent ?? '#d0266f'
   let maxMarks = 0
-  for (const ch of spec.chapters) for (const r of ch.rows) maxMarks = Math.max(maxMarks, r.marks.length)
+  for (const ch of spec.chapters) {
+    maxMarks = Math.max(maxMarks, ch.marks?.length ?? 0)
+    for (const r of ch.rows) maxMarks = Math.max(maxMarks, r.marks.length)
+  }
   // 回数欄: 固定列を除いた残りの幅に入るだけ（最低 5 つ。多すぎる回数は新しい方から入れる）
   const fixed = (spec.groupColumn?.width ?? 0) + (spec.noWidth ?? 7) + spec.columns.reduce((n, c) => n + c.width, 0)
   const avail = Math.max(MARK_MIN_MM * 5, colMm(spec) - fixed)
@@ -267,7 +314,7 @@ export function buildCheckSheetHtml(spec: SheetSpec): string {
         spec.markMode === 'symbol'
           ? `<span class="ok sym">${SYMBOL_SVG.ok} 正解</span><span class="un sym">${SYMBOL_SVG.un} あいまい</span><span class="ng sym">${SYMBOL_SVG.ng} 不正解</span>`
           : '<span class="ok">11/2 正解</span><span class="ng">11/2 不正解</span><span class="un">11/2 あいまい</span>'
-      }${spec.note ? `<span class="note">${esc(spec.note)}</span>` : ''}</div>
+      }${spec.note ? `<span class="note">${esc(spec.note)}</span>` : ''}</div>${spec.extraNote ? `<div class="recnote">${esc(spec.extraNote)}</div>` : ''}
     </div>
   </div>
   <div class="cols">${cols}</div>
@@ -299,6 +346,7 @@ export function buildCheckSheetHtml(spec: SheetSpec): string {
   .name-v { display: inline-block; min-width: 42mm; border-bottom: 0.3mm solid #333; padding: 0 2mm 0.4mm; font-size: 9.5pt; font-weight: 600; text-align: left; }
   .legend { margin-top: 1.4mm; font-size: 6.2pt; display: flex; gap: 2.4mm; justify-content: flex-end; }
   .legend .note { color: #777; }
+  .recnote { margin-top: 0.8mm; font-size: 5.6pt; color: #777; }
   .legend .sym { display: inline-flex; align-items: center; gap: 0.7mm; }
   .legend .sym svg { width: 2.8mm; height: 2.8mm; }
   .legend .sym.un { color: #1f5fd0; } .legend .sym.ng { color: #d8232a; } .legend .sym.ok { color: #1c2024; }
@@ -322,6 +370,8 @@ export function buildCheckSheetHtml(spec: SheetSpec): string {
   .gt { font-size: 6.2pt; font-weight: 800; color: var(--accent); line-height: 1.2; }
   .gn { font-size: 5.1pt; line-height: 1.25; color: #333; margin-top: 0.4mm; word-break: break-all; }
   .t tr.chap td { height: ${ROW_MM * CHAPTER_UNITS}mm; padding: 0 0 0.6mm; border-bottom: 0.4mm solid #1c2024; vertical-align: bottom; white-space: nowrap; }
+  .t tr.chap td.mk { padding: 0 0.5mm 0.9mm; border-left: 0.2mm solid #e3e3e3; }
+  .t tr.chap td.mk.sym svg { margin-bottom: 0.6mm; }
   .chap-l { font-size: 7pt; font-weight: 700; color: #1c2024; margin-right: 1.2mm; }
   .chap-t { font-size: 10.5pt; font-weight: 800; color: #1c2024; }
   .chap-s { font-size: 6.2pt; color: #666; margin-left: 2mm; }

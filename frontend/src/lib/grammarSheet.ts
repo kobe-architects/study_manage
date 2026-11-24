@@ -45,6 +45,7 @@ export function buildGrammarSheetSpec(marks: GrammarMarks, name: string, outputD
       })
     }
     return {
+      key: no,
       label: `第${no}章`,
       title,
       sub: `${to - from + 1}問・No.${from}–${to}`,
@@ -101,7 +102,7 @@ export function buildBookSheetSpec(book: GrammarBookKey, bookName: string, quest
     let ch = chapters[chapters.length - 1]
     if (!ch || (ch as SheetChapter & { _no?: number })._no !== q.chapterNo) {
       const parts = chapterParts(q.chapter)
-      ch = Object.assign({ label: `第${q.chapterNo}章`, title: parts.name || q.chapter, rows: [] as SheetRow[] }, { _no: q.chapterNo }) as SheetChapter
+      ch = Object.assign({ key: q.chapterNo, label: `第${q.chapterNo}章`, title: parts.name || q.chapter, rows: [] as SheetRow[] }, { _no: q.chapterNo }) as SheetChapter
       chapters.push(ch)
     }
     ch.rows.push({

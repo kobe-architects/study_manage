@@ -383,6 +383,11 @@ php artisan config:cache && php artisan route:cache
   問題文との整合（確率なら分数、何通りなら整数）で検証し、数値を変えた誤答 3 つを付ける。読めなかった例題は自己判定のまま（合格る確率は約 4 割、合格る計算は答えが式なのでほとんど）。
   `build_math.py` は旧版（類題＋解答編ページ）で、ITEM 見出し・類題バッジ・解答編の脚注の関数を `build_math2.py` が流用している。
 - チェックシート: 学習カードは `GET /cards/decks/{id}/checksheet`、個別学習データは画面側で行の学習日（赤=0・青=2・それ以外=1）から組み立てる。
+- **個別学習データの学習記録の反映**（2026-11-25。`App\Support\StudyRecordMarks`）: 学習カード・スクランブル・ファーストステップのチェックシート API は、
+  同じ教材（`card_decks.resource_book_title`／`GrammarQuestion::RESOURCE_BOOKS` の教材名で探した `resource_books`）に個別学習データで登録した学習記録を
+  回答履歴に重ねて返す（同じ日は悪い方）。行がカード・問題に対応する教材（Focus Gold・合格る・スタサプ＝「講＋PART」）は `marks` に、
+  行が章・週に対応する教材（鉄緑会＝週の行、ファーストステップ＝章の行。行の章名がカードの章名と 1 対 1 で一致するとき）は `chapterMarks`（章番号 →）に入れ、
+  画面は章の見出し行の回数欄に出す（`checkSheet.ts` の `SheetChapter.key/marks`・`attachRecordMarks`）。凡例に教材名を補足（`recordBook`）。
   英単語のチェックシートは A4 横 1 段で回数欄を 30 回ぶん並べる（`lib/checkSheet.ts` の `layout: 'landscape1'`）。
 - 出題履歴: `GET /quiz-sessions?kind=&refId=|refKey=`。各出題は開始時に `POST /quiz-sessions`、終了時に `POST /quiz-sessions/{id}/finish`（回答から集計。回答 0 なら削除）。
 

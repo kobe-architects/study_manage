@@ -9,6 +9,7 @@ use App\Models\QuizSession;
 use App\Models\ReviewState;
 use App\Services\ReviewService;
 use App\Support\StudyExcel;
+use App\Support\StudyRecordMarks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -234,7 +235,19 @@ class GrammarController extends Controller
             $marks[(int) $r->no][] = [(string) $r->d, (int) $r->ok === 0 ? 0 : ((int) $r->unsure ? 2 : 1)];
         }
 
-        return response()->json(['data' => ['marks' => (object) $marks]]);
+        // 個別学習データで同じ教材（スクランブル／ファーストステップ）に登録した学習記録を重ねる（行＝問題なら回数欄、行＝章なら章の見出し）
+        $items = GrammarQuestion::whereIn('book', $books)->orderBy('no')
+            ->get(['no', 'chapter_no', 'chapter'])
+            ->map(fn (GrammarQuestion $q) => ['no' => $q->no, 'chapterNo' => $q->chapter_no, 'chapter' => $q->chapter])
+            ->all();
+        $src = GrammarQuestion::RESOURCE_BOOKS[$books[0] === 'first_step' ? 'first_step' : 'scramble'];
+        $rec = StudyRecordMarks::forItems($userId, $src['titles'], $src['keywords'], $items);
+
+        return response()->json(['data' => [
+            'marks' => (object) StudyRecordMarks::merge($marks, $rec['marks']),
+            'chapterMarks' => (object) $rec['chapterMarks'],
+            'recordBook' => $rec['book'],
+        ]]);
     }
 
     /** 自分のセッションの ID だけ受け付ける（他人・存在しない ID は無視） */

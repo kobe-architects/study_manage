@@ -18,7 +18,8 @@ import client from '@/api/client'
 import { sessionsApi } from '@/api/sessions'
 import { buildSubQuestions } from '@/lib/cardChoices'
 import { createCardNote } from '@/lib/cardNote'
-import { openCardCheckSheet } from '@/lib/cardSheet'
+import { buildCardSheetSpec } from '@/lib/cardSheet'
+import { attachRecordMarks, openCheckSheet } from '@/lib/checkSheet'
 import { shuffle } from '@/lib/design'
 import { saveFile } from '@/lib/native'
 import { cardCache, mistakeNoteExists } from '@/lib/noteLink'
@@ -229,10 +230,12 @@ async function openSheet() {
   if (sheetBusy.value || !deck.value) return
   sheetBusy.value = true
   try {
-    const marks = await cardsApi.checksheet(deck.value.id)
+    const data = await cardsApi.checksheet(deck.value.id)
     const d = new Date()
     const targets = rangeActive.value || selectedChapCount.value < chapters.value.length || kindSel.value.length ? new Set(all.value.filter((c) => (rangeActive.value ? c.no >= Number(range.from) && c.no <= Number(range.to) : chapSel.value[c.chapterNo]) && (!kindSel.value.length || kindSel.value.includes(c.kind))).map((c) => c.id)) : null
-    const ok = openCardCheckSheet(deck.value, all.value, targets, marks, auth.user?.name ?? '', `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`)
+    // 個別学習データで章・週単位に登録した学習記録は章の見出しに付ける（カード単位の記録は marks に合わせてある）
+    const spec = attachRecordMarks(buildCardSheetSpec(deck.value, all.value, targets, data.marks, auth.user?.name ?? '', `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`), data)
+    const ok = openCheckSheet(spec)
     if (!ok) ui.notify('ポップアップがブロックされました。ブラウザ設定で許可してください。')
   } catch {
     ui.notify('チェックシートの作成に失敗しました')

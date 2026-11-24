@@ -40,6 +40,7 @@ export function buildFirstStepSheetSpec(questions: GrammarQuestion[], marks: Gra
     const from = list[0]!.no
     const to = list[list.length - 1]!.no
     chapters.push({
+      key: chapterNo,
       label: m ? `第${m[1]}章` : undefined,
       title: m ? (m[2] ?? chapter) : t ? (t[1] ?? chapter) : chapter,
       sub: `${list.length}問・No.${from}–${to}${t ? `・${t[2]}` : ''}`,

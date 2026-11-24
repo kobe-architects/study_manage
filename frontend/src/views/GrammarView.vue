@@ -20,11 +20,12 @@ import { sessionsApi } from '@/api/sessions'
 import { shuffle } from '@/lib/design'
 import { QuestionTimer } from '@/lib/quizTimer'
 import { CIRCLED, FORMATS, FORMAT_INFO, chapterParts, plainText, questionPreview, statusOf } from '@/lib/grammar'
-import { openFirstStepCheckSheet } from '@/lib/firstStepSheet'
+import { attachRecordMarks, openCheckSheet } from '@/lib/checkSheet'
+import { buildFirstStepSheetSpec } from '@/lib/firstStepSheet'
 import { createGrammarNote } from '@/lib/grammarNote'
 import { mistakeNoteExists } from '@/lib/noteLink'
 import { saveFile } from '@/lib/native'
-import { openBookCheckSheet, openGrammarCheckSheet } from '@/lib/grammarSheet'
+import { buildBookSheetSpec, buildGrammarSheetSpec } from '@/lib/grammarSheet'
 import { playResultSound } from '@/lib/sound'
 import { useAuthStore } from '@/stores/auth'
 import { useGrammarStore } from '@/stores/grammar'
@@ -215,15 +216,18 @@ async function openSheet() {
     // 文法・語法は付属のチェックシートと同じ 1 枚（両方）。語い以降の問題集は、その問題集だけのシート（問題データから章・Theme・連番の並びで組む）
     const bookKey = g.book
     const otherBook = !isFirstStep.value && bookKey !== 'grammar' && bookKey !== 'usage'
-    const marks = await grammarApi.checksheet(isFirstStep.value ? 'first_step' : otherBook ? bookKey : undefined)
+    const data = await grammarApi.checksheet(isFirstStep.value ? 'first_step' : otherBook ? bookKey : undefined)
+    const marks = data.marks
     const d = new Date()
     const date = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
     const name = auth.user?.name ?? ''
-    const ok = isFirstStep.value
-      ? openFirstStepCheckSheet(all.value, marks, name, date)
+    // 個別学習データで同じ教材に登録した学習記録: 問題単位は marks に合わせてある。章単位（ファーストステップの章など）は章の見出しに付ける
+    const spec = isFirstStep.value
+      ? buildFirstStepSheetSpec(all.value, marks, name, date)
       : otherBook
-        ? openBookCheckSheet(bookKey, g.currentBook?.name ?? '', all.value, marks, name, date)
-        : openGrammarCheckSheet(marks, name, date)
+        ? buildBookSheetSpec(bookKey, g.currentBook?.name ?? '', all.value, marks, name, date)
+        : buildGrammarSheetSpec(marks, name, date)
+    const ok = openCheckSheet(attachRecordMarks(spec, data))
     if (!ok) ui.notify('ポップアップがブロックされました。ブラウザ設定で許可してください。')
   } catch {
     ui.notify('チェックシートの作成に失敗しました')

@@ -1,4 +1,5 @@
 import client from '@/api/client'
+import type { SheetMarks } from '@/lib/checkSheet'
 import type { GrammarBook, GrammarBookKey, GrammarQuestion, GrammarStat } from '@/types'
 
 /** API プレフィックス。講師ログイン時は /tutor 配下（担当生徒の結果を読むだけ: books / questions / checksheet） */
@@ -42,8 +43,9 @@ export const grammarApi = {
   },
 
   /** チェックシート用: 文法・語法 725 問（book 未指定・grammar・usage）または他の問題集（book=vocab / idiom / … / first_step）の日ごとの結果（連番 → [[日付, 0=不正解|1=正解|2=あいまい], ...]） */
-  async checksheet(book?: GrammarBookKey): Promise<Record<string, [string, 0 | 1 | 2][]>> {
+  async checksheet(book?: GrammarBookKey): Promise<SheetMarks> {
     const { data } = await client.get(`${p()}/grammar/checksheet`, { params: { tz: -new Date().getTimezoneOffset(), ...(book ? { book } : {}) } })
-    return data.data.marks ?? {}
+    // marks には個別学習データの同じ教材（スクランブル／ファーストステップ）の学習記録も合わせてある。chapterMarks は章単位の記録（章番号 →）
+    return { marks: data.data.marks ?? {}, chapterMarks: data.data.chapterMarks ?? {}, recordBook: data.data.recordBook ?? null }
   },
 }

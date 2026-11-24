@@ -12,8 +12,8 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { grammarApi } from '@/api/grammar'
-import { buildCheckSheetHtml, type SheetChapter, type SheetSpec } from '@/lib/checkSheet'
-import { buildBookSheetSpec, buildGrammarSheetSpec, type GrammarMarks } from '@/lib/grammarSheet'
+import { attachRecordMarks, buildCheckSheetHtml, type SheetChapter, type SheetMarks, type SheetSpec } from '@/lib/checkSheet'
+import { buildBookSheetSpec, buildGrammarSheetSpec } from '@/lib/grammarSheet'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import type { GrammarBookKey, GrammarQuestion } from '@/types'
@@ -66,7 +66,7 @@ const spec = ref<SheetSpec | null>(null)
 const frame = ref<HTMLIFrameElement | null>(null)
 
 /** 取得した結果のキャッシュ（問題集ごと） */
-const marksCache = new Map<GrammarBookKey, GrammarMarks>()
+const marksCache = new Map<GrammarBookKey, SheetMarks>()
 const questionsCache = new Map<GrammarBookKey, GrammarQuestion[]>()
 /** 分野別で最後に見ていた章（問題集ごと） */
 const chapterMemory = new Map<GrammarBookKey, number>()
@@ -80,11 +80,12 @@ async function load() {
   loading.value = true
   const key = sheetKey.value
   try {
-    let marks = marksCache.get(key)
-    if (!marks) {
-      marks = await grammarApi.checksheet(key === 'grammar' || key === 'usage' ? undefined : key)
-      marksCache.set(key, marks)
+    let data = marksCache.get(key)
+    if (!data) {
+      data = await grammarApi.checksheet(key === 'grammar' || key === 'usage' ? undefined : key)
+      marksCache.set(key, data)
     }
+    const marks = data.marks
     const d = new Date()
     const date = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
     const extra = { markMode: 'symbol' as const, noToolbar: true, note: `${date} 時点` }
@@ -100,7 +101,7 @@ async function load() {
       built = buildBookSheetSpec(key, book.value.label, qs, marks, studentName.value, date, extra)
     }
     if (sheetKey.value !== key) return // 読んでいる間に切り替わった
-    spec.value = built
+    spec.value = attachRecordMarks(built, data) // 生徒が個別学習データで章単位に登録した学習記録は章の見出しに
     chapterIdx.value = Math.min(chapterMemory.get(key) ?? 0, Math.max(0, built.chapters.length - 1))
   } catch {
     ui.notify('チェックシートの取得に失敗しました')

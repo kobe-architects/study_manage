@@ -10,6 +10,7 @@ use App\Models\QuizSession;
 use App\Models\ReviewState;
 use App\Services\ReviewService;
 use App\Support\StudyExcel;
+use App\Support\StudyRecordMarks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -196,7 +197,18 @@ class CardController extends Controller
             $marks[$r['no']][] = [$r['d'], $r['ok'] === 0 ? 0 : ($r['unsure'] ? 2 : 1)];
         }
 
-        return response()->json(['data' => ['marks' => (object) $marks]]);
+        // 個別学習データで同じ教材（resource_book_title）に登録した学習記録を重ねる（行＝カードなら回数欄、行＝章なら章の見出し）
+        $items = CardItem::where('card_deck_id', $deck->id)->orderBy('no')
+            ->get(['no', 'chapter_no', 'chapter', 'section', 'extra'])
+            ->map(fn (CardItem $it) => ['no' => $it->no, 'chapterNo' => $it->chapter_no, 'chapter' => $it->chapter, 'section' => $it->section, 'label' => $it->extra['label'] ?? null])
+            ->all();
+        $rec = StudyRecordMarks::forItems($userId, array_filter([$deck->resource_book_title, $deck->name]), [], $items);
+
+        return response()->json(['data' => [
+            'marks' => (object) StudyRecordMarks::merge($marks, $rec['marks']),
+            'chapterMarks' => (object) $rec['chapterMarks'],
+            'recordBook' => $rec['book'],
+        ]]);
     }
 
     /**

@@ -18,6 +18,15 @@ class GrammarQuestion extends Model
         'first_step' => 'ファーストステップ', // 高校リード問題集 英文法ファーストステップ（STEP 1・STEP 2・まとめのテスト・総合問題。全問 image 形式）
     ];
 
+    /**
+     * チェックシートに学習記録を重ねるときの、個別学習データの教材名（titles = 完全一致の候補 / keywords = 名前に含まれていれば一致）。
+     * スクランブルは英文法〜読解・作文の文法まで通し番号なので 1 冊の教材（行の番号＝連番）に対応させる。
+     */
+    public const RESOURCE_BOOKS = [
+        'scramble' => ['titles' => ['Scramble 英文法・語法', 'スクランブル 英文法・語法'], 'keywords' => ['スクランブル', 'scramble']],
+        'first_step' => ['titles' => ['高校リード問題集 英文法ファーストステップ', '英文法ファーストステップ'], 'keywords' => ['ファーストステップ']],
+    ];
+
     protected $fillable = [
         'book', 'no', 'chapter_no', 'chapter', 'theme', 'format', 'format_label', 'importance',
         'instruction', 'question', 'choices', 'answer_index', 'answer_text', 'answers', 'answer_note',

@@ -1,4 +1,5 @@
 import client from '@/api/client'
+import type { SheetMarks } from '@/lib/checkSheet'
 import type { CardDeck, CardItem, CardMode, CardStat } from '@/types'
 
 /** 学習カード（鉄緑会 英文法・合格る確率・合格る計算）の API。生徒専用 */
@@ -33,9 +34,12 @@ export const cardsApi = {
     return data.data
   },
 
-  /** チェックシート用: カードの no → [[日付, 0=不正解|1=正解|2=あいまい], ...] */
-  async checksheet(deckId: number): Promise<Record<string, [string, 0 | 1 | 2][]>> {
+  /**
+   * チェックシート用: カードの no → [[日付, 0=不正解|1=正解|2=あいまい], ...]（個別学習データの同じ教材の学習記録を含む）。
+   * chapterMarks は章・週単位で登録された学習記録（章番号 →）、recordBook は重ねた教材名
+   */
+  async checksheet(deckId: number): Promise<SheetMarks> {
     const { data } = await client.get(`/cards/decks/${deckId}/checksheet`, { params: { tz: -new Date().getTimezoneOffset() } })
-    return data.data.marks ?? {}
+    return { marks: data.data.marks ?? {}, chapterMarks: data.data.chapterMarks ?? {}, recordBook: data.data.recordBook ?? null }
   },
 }

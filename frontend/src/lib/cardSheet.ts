@@ -45,6 +45,7 @@ export function buildCardSheetSpec(deck: CardDeck, items: CardItem[], targetIds:
     })
   }
   const chapters: SheetChapter[] = groups.map((g) => ({
+    key: g.key,
     label: g.label,
     title: g.title,
     sub: `${g.rows.length}${isMath ? '問' : '枚'}・No.${g.from}–${g.to}`,
