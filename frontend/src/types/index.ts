@@ -1110,6 +1110,12 @@ export interface CardItem {
     blanks?: [number, number][]
     table?: boolean
     ex?: number
+    /** 例文の補足（原本で例文に添えられた × の誤文・= / ⇔ の書き換え・別の言い方）。解答後に表示 */
+    notes?: string[]
+    /** 補足の和訳（⇔ の書き換えの訳など） */
+    notesJa?: string[]
+    /** セクション内の小見出し（①予定 など） */
+    sub?: string
     rows?: { en: string; ja: string | null }[]
     subs?: { label: string | null; answer: string; options: string[] }[]
     partial?: boolean

@@ -151,6 +151,9 @@ const showAnswer = computed(() => peeked.value || answered.value)
 const frontText = computed(() => (props.mode === 'ja2en' ? (it.value.back ?? it.value.front) : it.value.front))
 const backText = computed(() => (props.mode === 'ja2en' ? (it.value.back ? it.value.front : null) : it.value.back))
 const isEnglishFront = computed(() => props.mode !== 'ja2en' || !it.value.back)
+/** 例文の補足（解答後に表示） */
+const notes = computed(() => (it.value.kind === 'example' ? (it.value.extra?.notes ?? []) : []))
+const notesJa = computed(() => (it.value.kind === 'example' ? (it.value.extra?.notesJa ?? []) : []))
 /** 囲みの見出し（セクション名から番号を除く） */
 const boxTitle = computed(() => (it.value.section ?? '').replace(/^\d+\.\d+\s*/, ''))
 const optionClass = (s: SubQuestion, opt: string) => ({
@@ -170,7 +173,7 @@ function longOptions(s: SubQuestion): boolean {
     <div class="cq-top">
       <span class="cq-kind" :class="it.kind">{{ kindLabel }}</span>
       <span class="cq-no dm">No.{{ it.no }}</span>
-      <span class="cq-ch">{{ it.chapter }}<template v-if="it.section"> ／ {{ it.section }}</template></span>
+      <span class="cq-ch">{{ it.chapter }}<template v-if="it.section"> ／ {{ it.section }}</template><template v-if="it.extra?.sub"> ／ {{ it.extra.sub }}</template></span>
       <span v-if="it.bookPage" class="cq-pg">p.{{ it.bookPage }}</span>
     </div>
 
@@ -301,6 +304,11 @@ function longOptions(s: SubQuestion): boolean {
         正解: <template v-for="(s, i) in subs" :key="s.key"><span v-if="i" class="sep">　</span><span v-if="s.label" class="dm">{{ s.label }} </span><span class="dm" style="font-weight: 700">{{ s.answer }}</span></template>
       </div>
       <div v-if="isFill && it.back" class="cq-ja2">{{ it.back }}</div>
+      <!-- 例文の補足（× の誤文・書き換え・別の言い方） -->
+      <div v-if="notes.length || notesJa.length" class="cq-notes">
+        <div v-for="(n, i) in notes" :key="'n' + i" class="dm" :class="{ wrong: /^[×△]/.test(n) }">{{ n }}</div>
+        <div v-for="(n, i) in notesJa" :key="'j' + i" class="ja">{{ n }}</div>
+      </div>
     </div>
 
     <!-- ============ 下部固定: ○／×（自己判定のときだけ） ============ -->
@@ -397,6 +405,23 @@ function longOptions(s: SubQuestion): boolean {
   font-size: 14px;
   color: #4b5563;
   line-height: 1.6;
+}
+.cq-notes {
+  margin-top: 10px;
+  padding: 9px 12px;
+  border-left: 3px solid #d8dce1;
+  background: #f8f9fb;
+  border-radius: 0 8px 8px 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #374151;
+}
+.cq-notes .wrong {
+  color: #b4434f;
+}
+.cq-notes .ja {
+  font-size: 12.5px;
+  color: #6b7280;
 }
 .cq-hint {
   margin: 12px 0 0;
