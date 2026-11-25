@@ -6,6 +6,7 @@
  * - 行の左の取っ手を上下にドラッグ: 並び替え
  * - 行の空いている場所をダブルクリック: その日から始まる区間を追加
  * 「全体」倍率では枠の幅に合わせて横スクロールなしで全期間を表示する。
+ * readonly（生徒が講師の計画表を見るとき）では、ドラッグ・編集・追加・並び替えをすべて無効にし、バーのタップで内容を見るだけ（showTask）にする。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { daysBetween, parseDate } from '@/lib/design'
@@ -21,13 +22,18 @@ function rowColor(row: GanttRow): string | undefined {
   return row.colorSoft && row.colorVivid ? ui.colorOf(row.colorSoft, row.colorVivid) : undefined
 }
 
-const props = withDefaults(defineProps<{ rows: GanttRow[]; startOn: string; endOn: string; zoom: GanttZoom; snap: GanttSnap; bottomGap?: number }>(), { bottomGap: 28 })
+const props = withDefaults(
+  defineProps<{ rows: GanttRow[]; startOn: string; endOn: string; zoom: GanttZoom; snap: GanttSnap; bottomGap?: number; readonly?: boolean }>(),
+  { bottomGap: 28, readonly: false },
+)
 const emit = defineEmits<{
   move: [task: GanttTask, startOn: string, endOn: string]
   reorder: [ids: number[]]
   editTask: [task: GanttTask]
   editRow: [row: GanttRow]
   addTask: [row: GanttRow, startOn?: string]
+  /** 閲覧のみのとき、バーをタップして内容を見る */
+  showTask: [task: GanttTask]
 }>()
 
 const ROW_H = 44
@@ -195,6 +201,7 @@ function contentX(clientX: number): number {
 }
 
 function onBarDown(e: PointerEvent, t: GanttTask, mode: 'move' | 'l' | 'r') {
+  if (props.readonly) return
   if (e.pointerType === 'mouse' && e.button !== 0) return
   if (rowDrag.id) return
   const bar = (e.currentTarget as HTMLElement).closest<HTMLElement>('.gbar, .gms')
@@ -342,7 +349,7 @@ function onHandleUp() {
 
 // ---- 空いている場所をダブルクリックで区間を追加 ----
 function onCellsDblClick(e: MouseEvent, row: GanttRow) {
-  if (e.target !== e.currentTarget) return
+  if (props.readonly || e.target !== e.currentTarget) return
   const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
   const i = Math.max(0, Math.min(totalDays.value - 1, Math.floor((e.clientX - r.left) / dayW.value)))
   emit('addTask', row, isoAt(rangeStart.value, i))
@@ -406,7 +413,7 @@ onBeforeUnmount(() => {
   <div
     ref="scroller"
     class="gantt no-gesture"
-    :class="{ 'is-drag': drag.id !== 0, 'is-rowdrag': rowDrag.active, fit: zoom === 'fit' }"
+    :class="{ 'is-drag': drag.id !== 0, 'is-rowdrag': rowDrag.active, fit: zoom === 'fit', readonly }"
     :style="{ maxHeight: maxH + 'px', '--name-w': nameW + 'px', '--row-h': ROW_H + 'px' }"
   >
     <!-- 目盛り（上に固定）。左上の角を左に固定し続けるため、幅は本体と同じにする -->
@@ -457,6 +464,7 @@ onBeforeUnmount(() => {
       >
         <div class="gname">
           <button
+            v-if="!readonly"
             class="handle"
             title="ドラッグで並び替え"
             aria-label="並び替え"
@@ -467,11 +475,11 @@ onBeforeUnmount(() => {
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7" /><circle cx="15" cy="6" r="1.7" /><circle cx="9" cy="12" r="1.7" /><circle cx="15" cy="12" r="1.7" /><circle cx="9" cy="18" r="1.7" /><circle cx="15" cy="18" r="1.7" /></svg>
           </button>
-          <button class="ntext" :title="`${v.row.title}（クリックで行を編集）`" @click="emit('editRow', v.row)">
+          <button class="ntext" :title="readonly ? v.row.title : `${v.row.title}（クリックで行を編集）`" @click="!readonly && emit('editRow', v.row)">
             <span v-if="v.groupLabel" class="gchip">{{ v.groupLabel }}</span>
             <span class="ntitle" :style="{ color: rowColor(v.row) }">{{ v.row.title }}</span>
           </button>
-          <button class="nadd" title="この行に区間を追加" aria-label="区間を追加" @click="emit('addTask', v.row)">
+          <button v-if="!readonly" class="nadd" title="この行に区間を追加" aria-label="区間を追加" @click="emit('addTask', v.row)">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
           </button>
         </div>
@@ -490,6 +498,7 @@ onBeforeUnmount(() => {
                 @pointermove="onBarMove"
                 @pointerup="onBarUp"
                 @pointercancel="onBarUp"
+                @click="readonly && emit('showTask', b.task)"
               >
                 <span class="gms-shape"></span>
                 <span class="gms-label">{{ b.task.title }}</span>
@@ -505,11 +514,14 @@ onBeforeUnmount(() => {
                 @pointermove="onBarMove"
                 @pointerup="onBarUp"
                 @pointercancel="onBarUp"
+                @click="readonly && emit('showTask', b.task)"
               >
                 <span class="glabel">{{ b.task.title }}</span>
                 <span v-if="b.task.progress > 0" class="gprog" :style="{ width: `calc((100% - 6px) * ${Math.min(100, b.task.progress) / 100})` }"></span>
-                <span class="gh l" @pointerdown.stop="onBarDown($event, b.task, 'l')"></span>
-                <span class="gh r" @pointerdown.stop="onBarDown($event, b.task, 'r')"></span>
+                <template v-if="!readonly">
+                  <span class="gh l" @pointerdown.stop="onBarDown($event, b.task, 'l')"></span>
+                  <span class="gh r" @pointerdown.stop="onBarDown($event, b.task, 'r')"></span>
+                </template>
               </div>
               <!-- ドラッグ中の日付 -->
               <div v-if="drag.id === b.task.id && drag.moved" class="gtip" :style="{ left: b.left + 'px' }">
@@ -525,7 +537,7 @@ onBeforeUnmount(() => {
       <div v-if="rowDrag.active" class="ins" :style="{ top: rowDrag.to * ROW_H + 'px', left: rowDrag.sx + 'px', width: nameW + 'px' }"></div>
 
       <div v-if="!rows.length" class="grow empty-row">
-        <div class="gempty" :style="{ left: nameW + 'px' }">行がまだありません。「行を追加」から科目・学習分野を追加してください。</div>
+        <div class="gempty" :style="{ left: nameW + 'px' }">{{ readonly ? '行がまだありません。' : '行がまだありません。「行を追加」から科目・学習分野を追加してください。' }}</div>
         <div class="gcells" :style="{ width: totalW + 'px' }"></div>
       </div>
     </div>
@@ -556,6 +568,17 @@ onBeforeUnmount(() => {
 }
 .gantt.is-rowdrag {
   cursor: ns-resize;
+}
+/* 閲覧のみ: 掴める見た目にしない（バーはタップで内容を見るだけ） */
+.gantt.readonly .ntext {
+  cursor: default;
+}
+.gantt.readonly .gbar,
+.gantt.readonly .gms {
+  cursor: pointer;
+}
+.gantt.readonly .gname {
+  padding-left: 10px;
 }
 
 /* ---- 目盛り ---- */

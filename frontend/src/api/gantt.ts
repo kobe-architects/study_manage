@@ -32,7 +32,7 @@ export interface GanttTaskInput {
 
 export type GanttChartDetail = GanttChart & { rows: GanttRow[] }
 
-/** 計画表（ガントチャート）API。生徒・講師それぞれ自分側の計画表を扱う。チャート → 行（科目・学習分野） → 区間（バー／節目） */
+/** 計画表（ガントチャート）API。生徒・講師それぞれ自分側の計画表を扱う（生徒は講師の計画表を閲覧だけできる）。チャート → 行（科目・学習分野） → 区間（バー／節目） */
 export const ganttApi = {
   async list(): Promise<GanttChart[]> {
     const { data } = await client.get(`${p()}/gantt-charts`)
@@ -67,6 +67,12 @@ export const ganttApi = {
   /** 講師用: 担当生徒の計画表の一覧（複製元の選択用） */
   async studentCharts(): Promise<GanttChart[]> {
     const { data } = await client.get('/tutor/gantt-charts/student')
+    return data.data
+  },
+
+  /** 生徒用: 講師が登録した計画表の一覧（閲覧のみ。開くのは show） */
+  async tutorCharts(): Promise<GanttChart[]> {
+    const { data } = await client.get('/gantt-charts/tutor')
     return data.data
   },
 

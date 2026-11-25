@@ -4,6 +4,7 @@
  * 生徒・講師で同じ画面を使う（講師は /tutor 配下のルートと API。講師側の計画表は生徒側とは別のデータ）。
  * 行（科目・学習分野）と区間（範囲学習・復習・演習・過去問 などのバー／節目）を追加・編集し、
  * バーのドラッグ結果はすぐ画面に反映してから保存する（失敗したら元に戻す）。
+ * 生徒が講師の計画表（tutorId あり）を開いたときは閲覧のみ: 編集系のボタン・ドラッグを出さず、バーのタップで内容を見る。出力はできる。
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -15,7 +16,7 @@ import HelpTip from '@/components/HelpTip.vue'
 import { ganttApi, type GanttChartDetail, type GanttRowInput, type GanttTaskInput } from '@/api/gantt'
 import { appConfirm } from '@/lib/dialog'
 import { showPdf, useInAppViewer } from '@/lib/docViewer'
-import { GANTT_SNAPS, GANTT_ZOOMS, fmtYm, type GanttSnap, type GanttZoom } from '@/lib/gantt'
+import { GANTT_SNAPS, GANTT_ZOOMS, fmtYm, fmtYmd, type GanttSnap, type GanttZoom } from '@/lib/gantt'
 import { renderGanttImage } from '@/lib/ganttRender'
 import { isTouch, saveFile, viewportWidth } from '@/lib/native'
 import { vSeg } from '@/lib/segSlide'
@@ -35,6 +36,8 @@ const chartRoute = computed(() => (auth.isTutor ? 'tutor-gantt-chart' : 'gantt-c
 
 const chartId = computed(() => Number(route.params.id))
 const chart = ref<GanttChartDetail | null>(null)
+/** 閲覧のみ（生徒が講師の計画表を開いたとき）。講師自身は自分の計画表なので編集できる */
+const readonly = computed(() => !!chart.value?.tutorId && !auth.isTutor)
 const loading = ref(true)
 const board = ref<InstanceType<typeof GanttBoard> | null>(null)
 const isMobile = computed(() => viewportWidth.value < 860)
@@ -101,7 +104,7 @@ const undo = () => runHistory(undoStack.value, redoStack.value, 'undo')
 const redo = () => runHistory(redoStack.value, undoStack.value, 'redo')
 /** Ctrl/⌘+Z で元に戻す、Ctrl/⌘+Shift+Z・Ctrl+Y でやり直す（入力中・モーダル表示中は除く） */
 function onKeydown(e: KeyboardEvent) {
-  if (!(e.ctrlKey || e.metaKey)) return
+  if (readonly.value || !(e.ctrlKey || e.metaKey)) return
   const tag = (e.target as HTMLElement | null)?.tagName
   if (tag === 'INPUT' || tag === 'TEXTAREA' || rowModal.open || taskModal.open || settings.open) return
   const k = e.key.toLowerCase()
@@ -253,6 +256,7 @@ function openAddTask(row: GanttRow, startOn?: string) {
   taskModal.open = true
 }
 function openEditTask(t: GanttTask) {
+  if (readonly.value) return openShowTask(t)
   const row = findRow(t.rowId)
   if (!row) return
   taskModal.row = row
@@ -260,6 +264,18 @@ function openEditTask(t: GanttTask) {
   taskModal.initialStart = undefined
   taskModal.open = true
 }
+/** 閲覧のみ: 区間の内容（名前・期間・進み具合・メモ）を見るだけのパネル */
+const showTask = reactive<{ open: boolean; task: GanttTask | null; row: GanttRow | null }>({ open: false, task: null, row: null })
+function openShowTask(t: GanttTask) {
+  showTask.task = t
+  showTask.row = findRow(t.rowId) ?? null
+  showTask.open = true
+}
+const showTaskDays = computed(() => {
+  const t = showTask.task
+  if (!t || t.kind === 'milestone') return 0
+  return Math.round((new Date(t.endOn).getTime() - new Date(t.startOn).getTime()) / 86400000) + 1
+})
 async function saveTask(payload: GanttTaskInput & { title: string; startOn: string }) {
   const row = taskModal.row
   if (!chart.value || !row) return
@@ -460,6 +476,7 @@ function errorMessage(e: unknown, fallback: string): string {
   return r?.data?.message || fallback
 }
 
+const readonlyHelp = '講師が講師の画面で作った計画表です。内容を見たり、「出力」で画像・PDF・Excel にしたりできますが、行や区間の変更はできません。バーをタップ（クリック）すると区間の名前・期間・メモを確認できます。'
 const helpText = isTouch
   ? '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べます。バーを横にドラッグすると期間ごと移動、両端を引っ張ると開始日・終了日を変えられます。動く単位は「単位」で選べ、10日では 1日・11日・21日で始まり 10日・20日・月末で終わるように吸着、月では月初〜月末に吸着します（細かく動かすときは 1日）。バーをタップすると編集、行の名前をタップすると行の編集、行の「＋」で区間を追加、左端の取っ手を上下にドラッグすると並び替えです。操作は「元に戻す」で取り消せます。'
   : '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べます。バーを横にドラッグすると期間ごと移動、両端をドラッグすると開始日・終了日を変えられます。動く単位は「単位」で選べ、10日では 1日・11日・21日で始まり 10日・20日・月末で終わるように吸着、月では月初〜月末に吸着します（細かく動かすときは 1日）。バーをクリックすると編集、行の名前をクリックすると行の編集、行の空いている場所をダブルクリックするとその日から始まる区間を追加、左端の取っ手を上下にドラッグすると並び替えです。操作は「元に戻す」（Ctrl+Z）で取り消せます。'
@@ -475,25 +492,30 @@ const helpText = isTouch
           <button v-if="!isMobile" class="back" @click="router.push({ name: listRoute })">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7" /></svg>一覧
           </button>
-          <button class="ttl-btn" title="名前・表示期間を変更" @click="openSettings">
+          <div v-if="readonly" class="ttl-btn ro">
+            <span class="ttl">{{ chart.title }}</span>
+            <span class="range">{{ fmtYm(chart.startOn) }} 〜 {{ fmtYm(chart.endOn) }}</span>
+            <span class="ro-badge">講師{{ chart.tutorName ? ` ${chart.tutorName}` : '' }} の計画表・閲覧のみ</span>
+          </div>
+          <button v-else class="ttl-btn" title="名前・表示期間を変更" @click="openSettings">
             <span class="ttl">{{ chart.title }}</span>
             <span class="range">{{ fmtYm(chart.startOn) }} 〜 {{ fmtYm(chart.endOn) }}</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="pen"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
           </button>
-          <HelpTip :text="helpText" />
+          <HelpTip :text="readonly ? readonlyHelp : helpText" />
         </div>
         <div class="right">
           <div v-seg class="seg">
             <button v-for="z in GANTT_ZOOMS" :key="z.key" class="seg-btn" :class="{ on: zoom === z.key }" @click="zoom = z.key">{{ z.label }}</button>
           </div>
           <button v-if="zoom !== 'fit'" class="btn-ghost" @click="board?.scrollToToday()">今日</button>
-          <div class="snap">
+          <div v-if="!readonly" class="snap">
             <span class="snap-label">単位</span>
             <div v-seg class="seg">
               <button v-for="s in GANTT_SNAPS" :key="s.key" class="seg-btn" :class="{ on: snap === s.key }" :title="s.key === 'ten' ? '1日・11日・21日で始まり、10日・20日・月末で終わる' : s.key === 'month' ? '月初で始まり、月末で終わる' : '1日ずつ'" @click="snap = s.key">{{ s.label }}</button>
             </div>
           </div>
-          <div class="hist" :class="{ busy: historyBusy }">
+          <div v-if="!readonly" class="hist" :class="{ busy: historyBusy }">
             <button class="hbtn" :disabled="!undoStack.length" :title="undoStack.length ? `元に戻す: ${undoStack[undoStack.length - 1]!.label}（Ctrl+Z）` : '元に戻す'" aria-label="元に戻す" @click="undo">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>
             </button>
@@ -504,7 +526,7 @@ const helpText = isTouch
           <div class="export" :class="{ busy: exporting }">
             <ActionMenu :items="exportItems" label="出力" @select="onExport" />
           </div>
-          <button class="btn-dark" @click="openAddRow">
+          <button v-if="!readonly" class="btn-dark" @click="openAddRow">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14" /></svg>行を追加
           </button>
         </div>
@@ -518,6 +540,8 @@ const helpText = isTouch
         :zoom="zoom"
         :snap="snap"
         :bottom-gap="compact ? 10 : 28"
+        :readonly="readonly"
+        @show-task="openShowTask"
         @move="onMove"
         @reorder="onReorder"
         @edit-task="openEditTask"
@@ -544,6 +568,39 @@ const helpText = isTouch
         @delete="deleteTask"
         @close="taskModal.open = false"
       />
+    </Transition>
+
+    <!-- 閲覧のみ: 区間の内容 -->
+    <Transition name="ui-modal">
+      <div v-if="showTask.open && showTask.task" class="overlay ui-overlay ui-sheet" @click="showTask.open = false">
+        <div class="modal ui-panel" @click.stop>
+          <div class="ro-head">
+            <span class="ro-dot" :style="{ background: showTask.task.color }"></span>
+            <span style="font-size: 16px; font-weight: 700">{{ showTask.task.title }}</span>
+          </div>
+          <div v-if="showTask.row" class="ro-row">{{ showTask.row.group ? `${showTask.row.group}・` : '' }}{{ showTask.row.title }}</div>
+          <dl class="ro-dl">
+            <dt>種類</dt>
+            <dd>{{ showTask.task.kind === 'milestone' ? '節目（1 日）' : '期間' }}</dd>
+            <dt>{{ showTask.task.kind === 'milestone' ? '日付' : '期間' }}</dt>
+            <dd>
+              <template v-if="showTask.task.kind === 'milestone'">{{ fmtYmd(showTask.task.startOn) }}</template>
+              <template v-else>{{ fmtYmd(showTask.task.startOn) }} 〜 {{ fmtYmd(showTask.task.endOn) }}（{{ showTaskDays }}日）</template>
+            </dd>
+            <template v-if="showTask.task.progress > 0">
+              <dt>進み具合</dt>
+              <dd>{{ showTask.task.progress }}%</dd>
+            </template>
+            <template v-if="showTask.task.note">
+              <dt>メモ</dt>
+              <dd style="white-space: pre-wrap">{{ showTask.task.note }}</dd>
+            </template>
+          </dl>
+          <div style="display: flex; justify-content: flex-end; margin-top: 18px">
+            <button class="btn-ghost" @click="showTask.open = false">閉じる</button>
+          </div>
+        </div>
+      </div>
     </Transition>
 
     <!-- チャートの設定 -->
@@ -622,6 +679,56 @@ const helpText = isTouch
 }
 .ttl-btn:hover {
   background: #f1f2f4;
+}
+.ttl-btn.ro {
+  cursor: default;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.ttl-btn.ro:hover {
+  background: transparent;
+}
+.ro-badge {
+  align-self: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--mut);
+  background: #eef0f3;
+  border-radius: 99px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.ro-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ro-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.16);
+}
+.ro-row {
+  font-size: 12px;
+  color: var(--mut);
+  margin: 4px 0 14px 20px;
+}
+.ro-dl {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 8px 10px;
+  margin: 0;
+  font-size: 13px;
+}
+.ro-dl dt {
+  color: var(--faint);
+  font-size: 12px;
+}
+.ro-dl dd {
+  margin: 0;
+  color: var(--ink);
 }
 .ttl {
   font-size: 17px;

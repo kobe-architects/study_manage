@@ -2,6 +2,7 @@
 /**
  * 計画表（ガントチャート）の一覧（リスト形式）。複数の計画表（数年分の計画）を作成・複製・削除し、選んで編集画面へ進む。
  * 講師ログインでは講師自身の計画表（生徒側とは別のデータ）を扱い、生徒の計画表を複製して使い始められる。
+ * 生徒側では、講師が登録した計画表も「講師の計画表」として一覧に出す（閲覧のみ。開くと編集できない表示になる）。
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -19,6 +20,8 @@ const auth = useAuthStore()
 const ui = useUiStore()
 
 const charts = ref<GanttChart[]>([])
+/** 生徒側のみ: 講師が登録した計画表（閲覧のみ） */
+const tutorCharts = ref<GanttChart[]>([])
 const loading = ref(true)
 const isNarrow = computed(() => viewportWidth.value < 700)
 const isTutor = computed(() => auth.isTutor)
@@ -30,7 +33,9 @@ const examDate = computed(() => (isTutor.value ? auth.user?.student?.examDate : 
 async function load() {
   loading.value = true
   try {
-    charts.value = await ganttApi.list()
+    const [own, fromTutor] = await Promise.all([ganttApi.list(), isTutor.value ? Promise.resolve([]) : ganttApi.tutorCharts().catch(() => [])])
+    charts.value = own
+    tutorCharts.value = fromTutor
   } catch {
     ui.notify('計画表の取得に失敗しました')
   } finally {
@@ -159,9 +164,10 @@ function updatedLabel(c: GanttChart): string {
     </div>
 
     <div v-if="loading" class="hint" style="text-align: center">読み込み中…</div>
-    <div v-else-if="!charts.length" class="hint" style="text-align: center">
+    <div v-else-if="!charts.length && !tutorCharts.length" class="hint" style="text-align: center">
       計画表がまだありません。<template v-if="isTutor">「生徒の計画表から複製」で生徒の計画表を写すか、</template>「新規作成」から、計画の名前と期間（数年分）を決めて作成してください。
     </div>
+    <div v-else-if="!charts.length" class="hint" style="text-align: center">自分の計画表がまだありません。「新規作成」から、計画の名前と期間（数年分）を決めて作成してください。</div>
     <div v-else class="card list">
       <div v-if="!isNarrow" class="lrow head">
         <div class="c-name">名前</div>
@@ -188,6 +194,39 @@ function updatedLabel(c: GanttChart): string {
         </div>
       </div>
     </div>
+
+    <!-- 生徒側: 講師が登録した計画表（閲覧のみ） -->
+    <template v-if="!loading && tutorCharts.length">
+      <div class="ttl sec">
+        <span>講師の計画表</span>
+        <span class="ro-badge">閲覧のみ</span>
+        <HelpTip text="講師が講師の画面で作った計画表です。開いて内容を見たり、画像・PDF・Excel で出力したりできますが、行や区間の変更はできません。自分の計画として手直ししたいときは講師に相談してください。" />
+      </div>
+      <div class="card list">
+        <div v-if="!isNarrow" class="lrow head">
+          <div class="c-name">名前</div>
+          <div class="c-range">表示期間</div>
+          <div class="c-count">行 / 区間</div>
+          <div class="c-upd">更新</div>
+          <div class="c-act"></div>
+        </div>
+        <div v-for="c in tutorCharts" :key="c.id" class="lrow tap" role="button" tabindex="0" @click="openChart(c)" @keydown.enter="openChart(c)">
+          <div class="c-name">
+            <div class="name">{{ c.title }}</div>
+            <div class="note">講師: {{ c.tutorName ?? '—' }}<template v-if="c.note">・{{ c.note }}</template></div>
+            <div v-if="isNarrow" class="meta">{{ fmtYm(c.startOn) }} 〜 {{ fmtYm(c.endOn) }}・行 {{ c.rowCount }} / 区間 {{ c.taskCount }}・更新 {{ updatedLabel(c) }}</div>
+          </div>
+          <template v-if="!isNarrow">
+            <div class="c-range">{{ fmtYm(c.startOn) }} 〜 {{ fmtYm(c.endOn) }}</div>
+            <div class="c-count dm">{{ c.rowCount }} / {{ c.taskCount }}</div>
+            <div class="c-upd">{{ updatedLabel(c) }}</div>
+          </template>
+          <div class="c-act" @click.stop>
+            <button class="pill primary" @click="openChart(c)">開く</button>
+          </div>
+        </div>
+      </div>
+    </template>
 
     <!-- 新規作成 -->
     <Transition name="ui-modal">
@@ -252,6 +291,18 @@ function updatedLabel(c: GanttChart): string {
   gap: 8px;
   font-size: 17px;
   font-weight: 700;
+}
+.ttl.sec {
+  margin: 26px 0 12px;
+  font-size: 15px;
+}
+.ro-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--mut);
+  background: #eef0f3;
+  border-radius: 99px;
+  padding: 2px 8px;
 }
 .actions {
   display: flex;

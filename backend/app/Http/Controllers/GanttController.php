@@ -25,7 +25,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *
  * 生徒側と講師側でデータを分ける: user_id は常に生徒（行の科目の参照先）、tutor_id が null なら生徒の計画表、
  * 講師の users.id なら その講師の計画表。講師は自分の計画表だけ読み書きでき、生徒の計画表は一覧（studentCharts）と
- * 複製（copyFromStudent）だけできる。
+ * 複製（copyFromStudent）だけできる。生徒は講師側の計画表を閲覧（show・PDF・Excel。tutorCharts で一覧）だけできる。
  */
 class GanttController extends Controller
 {
@@ -70,7 +70,7 @@ class GanttController extends Controller
 
     public function show(Request $request, GanttChart $chart): JsonResponse
     {
-        $this->authorizeChart($request, $chart);
+        $this->authorizeRead($request, $chart);
 
         return response()->json(['data' => $this->chartPayload($this->withRows($chart), true)]);
     }
@@ -129,6 +129,21 @@ class GanttController extends Controller
         $charts = GanttChart::withCount(['rows', 'tasks'])
             ->where('user_id', $this->targetUserId($request))
             ->whereNull('tutor_id')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json(['data' => $charts->map(fn (GanttChart $c) => $this->chartPayload($c))->values()]);
+    }
+
+    /** 生徒用: 講師が登録した計画表の一覧（閲覧のみ。講師ごとの計画表を講師名つきで返す） */
+    public function tutorCharts(Request $request): JsonResponse
+    {
+        abort_if($request->user()->isTutor(), 403);
+        $charts = GanttChart::withCount(['rows', 'tasks'])
+            ->with('tutor:id,name')
+            ->where('user_id', $request->user()->id)
+            ->whereNotNull('tutor_id')
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
             ->get();
@@ -358,7 +373,7 @@ class GanttController extends Controller
      */
     public function pdf(Request $request, GanttChart $chart): BinaryFileResponse
     {
-        $this->authorizeChart($request, $chart);
+        $this->authorizeRead($request, $chart);
         $request->validate(['image' => ['required', 'file', 'max:25600']]);
 
         $disk = Storage::disk('local');
@@ -378,7 +393,7 @@ class GanttController extends Controller
     /** Excel 出力（月単位のガントチャート表＋区間一覧） */
     public function excel(Request $request, GanttChart $chart): StreamedResponse
     {
-        $this->authorizeChart($request, $chart);
+        $this->authorizeRead($request, $chart);
         $binary = GanttExcel::build($this->withRows($chart));
 
         return response()->streamDownload(function () use ($binary) {
@@ -430,6 +445,16 @@ class GanttController extends Controller
         abort_unless((int) ($chart->tutor_id ?? 0) === (int) ($this->tutorId($request) ?? 0), 403);
     }
 
+    /** 閲覧の権限: 自分側の計画表のほか、生徒は自分に対して講師が登録した計画表も見られる（編集は authorizeChart のみ） */
+    private function authorizeRead(Request $request, GanttChart $chart): void
+    {
+        $user = $request->user();
+        if (! $user->isTutor() && $chart->user_id === (int) $user->id && $chart->tutor_id !== null) {
+            return;
+        }
+        $this->authorizeChart($request, $chart);
+    }
+
     private function withRows(GanttChart $chart): GanttChart
     {
         return $chart->load(['rows.tasks', 'rows.subject']);
@@ -465,6 +490,9 @@ class GanttController extends Controller
             'rowCount' => $withRows ? $c->rows->count() : (int) ($c->rows_count ?? 0),
             'taskCount' => $withRows ? $c->rows->sum(fn (GanttRow $r) => $r->tasks->count()) : (int) ($c->tasks_count ?? 0),
             'updatedAt' => $c->updated_at?->toDateTimeString(),
+            // 講師側の計画表のときの講師（生徒が閲覧するときに「講師 ○○ の計画表」と出す）
+            'tutorId' => $c->tutor_id !== null ? (int) $c->tutor_id : null,
+            'tutorName' => $c->tutor_id !== null ? $c->tutor?->name : null,
         ];
         if ($withRows) {
             $out['rows'] = $c->rows->map(fn (GanttRow $r) => $this->rowPayload($r))->values()->all();

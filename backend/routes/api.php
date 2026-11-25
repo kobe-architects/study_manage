@@ -101,6 +101,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // ===== ガントチャート（数年分の学習計画・複数管理。チャート → 行 → 区間） =====
         Route::get('/gantt-charts', [GanttController::class, 'index']);
+        Route::get('/gantt-charts/tutor', [GanttController::class, 'tutorCharts']); // 講師が登録した計画表（閲覧のみ）
         Route::post('/gantt-charts', [GanttController::class, 'store']);
         Route::get('/gantt-charts/{chart}', [GanttController::class, 'show']);
         Route::put('/gantt-charts/{chart}', [GanttController::class, 'update']);

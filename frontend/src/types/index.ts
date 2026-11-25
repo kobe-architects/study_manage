@@ -839,6 +839,9 @@ export interface GanttChart {
   rowCount: number
   taskCount: number
   updatedAt: string | null
+  /** 講師側の計画表のときの講師（生徒側の計画表は null）。生徒が講師の計画表を開くときは閲覧のみ */
+  tutorId: number | null
+  tutorName: string | null
   /** 詳細取得（show）のときのみ */
   rows?: GanttRow[]
 }
