@@ -399,13 +399,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // ===== 計画表（ガントチャート）。講師自身の計画表（tutor_id = 講師）を生徒側とは別に持つ。生徒の計画表は一覧と複製のみ =====
         Route::get('/gantt-charts', [GanttController::class, 'index']);
-        Route::get('/gantt-charts/student', [GanttController::class, 'studentCharts']);
         Route::post('/gantt-charts', [GanttController::class, 'store']);
         Route::get('/gantt-charts/{chart}', [GanttController::class, 'show']);
         Route::put('/gantt-charts/{chart}', [GanttController::class, 'update']);
         Route::delete('/gantt-charts/{chart}', [GanttController::class, 'destroy']);
         Route::post('/gantt-charts/{chart}/duplicate', [GanttController::class, 'duplicate']);
-        Route::post('/gantt-charts/{chart}/copy-from-student', [GanttController::class, 'copyFromStudent']);
         Route::post('/gantt-charts/{chart}/pdf', [GanttController::class, 'pdf']);
         Route::get('/gantt-charts/{chart}/excel', [GanttController::class, 'excel']);
         Route::post('/gantt-charts/{chart}/rows', [GanttController::class, 'storeRow']);

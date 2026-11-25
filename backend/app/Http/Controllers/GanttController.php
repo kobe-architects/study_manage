@@ -24,8 +24,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * 画面上のドラッグで動かした結果を保存し、PDF・Excel の出力も行う。
  *
  * 生徒側と講師側でデータを分ける: user_id は常に生徒（行の科目の参照先）、tutor_id が null なら生徒の計画表、
- * 講師の users.id なら その講師の計画表。講師は自分の計画表だけ読み書きでき、生徒の計画表は一覧（studentCharts）と
- * 複製（copyFromStudent）だけできる。生徒は講師側の計画表を閲覧（show・PDF・Excel。tutorCharts で一覧）だけできる。
+ * 講師の users.id なら その講師の計画表。講師は自分の計画表だけ読み書きできる（生徒の計画表には触れない）。
+ * 生徒は講師側の計画表を閲覧（show・PDF・Excel。tutorCharts で一覧）だけできる。
  */
 class GanttController extends Controller
 {
@@ -122,20 +122,6 @@ class GanttController extends Controller
         return response()->json(['data' => $this->chartPayload($copy)], 201);
     }
 
-    /** 講師用: 担当生徒の計画表の一覧（複製元の選択用。読み取りのみ） */
-    public function studentCharts(Request $request): JsonResponse
-    {
-        abort_unless($request->user()->isTutor(), 403);
-        $charts = GanttChart::withCount(['rows', 'tasks'])
-            ->where('user_id', $this->targetUserId($request))
-            ->whereNull('tutor_id')
-            ->orderByDesc('updated_at')
-            ->orderByDesc('id')
-            ->get();
-
-        return response()->json(['data' => $charts->map(fn (GanttChart $c) => $this->chartPayload($c))->values()]);
-    }
-
     /** 生徒用: 講師が登録した計画表の一覧（閲覧のみ。講師ごとの計画表を講師名つきで返す） */
     public function tutorCharts(Request $request): JsonResponse
     {
@@ -151,17 +137,7 @@ class GanttController extends Controller
         return response()->json(['data' => $charts->map(fn (GanttChart $c) => $this->chartPayload($c))->values()]);
     }
 
-    /** 講師用: 担当生徒の計画表（例:「受験本番までの学習計画」）を講師側の計画表として複製する */
-    public function copyFromStudent(Request $request, GanttChart $chart): JsonResponse
-    {
-        abort_unless($request->user()->isTutor(), 403);
-        abort_unless($chart->user_id === $this->targetUserId($request) && $chart->tutor_id === null, 403);
-        $copy = $this->copyChart($chart, $chart->title, $request->user()->id);
-
-        return response()->json(['data' => $this->chartPayload($copy)], 201);
-    }
-
-    /** チャートを行・区間ごと複製する。tutorId を渡すと講師側の計画表として作る */
+    /** チャートを行・区間ごと複製する（同じ側＝同じ tutor_id の計画表として作る） */
     private function copyChart(GanttChart $chart, string $title, ?int $tutorId): GanttChart
     {
         $copy = DB::transaction(function () use ($chart, $title, $tutorId) {

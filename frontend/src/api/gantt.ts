@@ -64,21 +64,9 @@ export const ganttApi = {
     return data.data
   },
 
-  /** 講師用: 担当生徒の計画表の一覧（複製元の選択用） */
-  async studentCharts(): Promise<GanttChart[]> {
-    const { data } = await client.get('/tutor/gantt-charts/student')
-    return data.data
-  },
-
   /** 生徒用: 講師が登録した計画表の一覧（閲覧のみ。開くのは show） */
   async tutorCharts(): Promise<GanttChart[]> {
     const { data } = await client.get('/gantt-charts/tutor')
-    return data.data
-  },
-
-  /** 講師用: 生徒の計画表を講師側の計画表として複製する */
-  async copyFromStudent(id: number): Promise<GanttChart> {
-    const { data } = await client.post(`/tutor/gantt-charts/${id}/copy-from-student`)
     return data.data
   },
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * 計画表（ガントチャート）の一覧（リスト形式）。複数の計画表（数年分の計画）を作成・複製・削除し、選んで編集画面へ進む。
- * 講師ログインでは講師自身の計画表（生徒側とは別のデータ）を扱い、生徒の計画表を複製して使い始められる。
+ * 講師ログインでは講師自身の計画表（生徒側とは別のデータ）を扱う。
  * 生徒側では、講師が登録した計画表も「講師の計画表」として一覧に出す（閲覧のみ。開くと編集できない表示になる）。
  */
 import { computed, onMounted, reactive, ref } from 'vue'
@@ -84,34 +84,6 @@ function openChart(c: GanttChart) {
   router.push({ name: chartRoute.value, params: { id: c.id } })
 }
 
-// ---- 講師: 生徒の計画表から複製 ----
-const pick = reactive<{ open: boolean; loading: boolean; charts: GanttChart[]; busyId: number | null }>({ open: false, loading: false, charts: [], busyId: null })
-async function openPick() {
-  pick.open = true
-  pick.loading = true
-  try {
-    pick.charts = await ganttApi.studentCharts()
-  } catch {
-    ui.notify('生徒の計画表の取得に失敗しました')
-  } finally {
-    pick.loading = false
-  }
-}
-async function copyFromStudent(c: GanttChart) {
-  if (pick.busyId) return
-  pick.busyId = c.id
-  try {
-    const created = await ganttApi.copyFromStudent(c.id)
-    pick.open = false
-    ui.notify(`「${c.title}」を複製しました`)
-    router.push({ name: chartRoute.value, params: { id: created.id } })
-  } catch {
-    ui.notify('複製に失敗しました')
-  } finally {
-    pick.busyId = null
-  }
-}
-
 async function duplicate(c: GanttChart) {
   try {
     await ganttApi.duplicate(c.id)
@@ -149,14 +121,13 @@ function updatedLabel(c: GanttChart): string {
         <HelpTip
           :text="
             (isTutor
-              ? 'ここに作る計画表は講師用で、生徒の画面の計画表とは別に保存されます。「生徒の計画表から複製」で生徒の計画表（受験本番までの学習計画 など）を写して、先生の案として手直しできます。'
+              ? 'ここに作る計画表は講師用で、生徒の画面の計画表とは別に保存されます。生徒の画面の計画表には「講師の計画表」として表示され、生徒は閲覧だけできます。'
               : '数年分の学習計画を計画表（ガントチャート）で立てられます。計画表は複数作れるので、「本番までの全体計画」「夏休みの計画」のように分けて管理できます。') +
             '行（科目・学習分野）の中に「範囲学習」「復習・演習」「過去問」などの区間を並べ、バーのドラッグで期間を動かせます。画像・PDF・Excel で出力できます。'
           "
         />
       </div>
       <div class="actions">
-        <button v-if="isTutor" class="btn-ghost" @click="openPick">生徒の計画表から複製</button>
         <button class="btn-dark" @click="openCreate">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14" /></svg>新規作成
         </button>
@@ -165,7 +136,7 @@ function updatedLabel(c: GanttChart): string {
 
     <div v-if="loading" class="hint" style="text-align: center">読み込み中…</div>
     <div v-else-if="!charts.length && !tutorCharts.length" class="hint" style="text-align: center">
-      計画表がまだありません。<template v-if="isTutor">「生徒の計画表から複製」で生徒の計画表を写すか、</template>「新規作成」から、計画の名前と期間（数年分）を決めて作成してください。
+      計画表がまだありません。「新規作成」から、計画の名前と期間（数年分）を決めて作成してください。
     </div>
     <div v-else-if="!charts.length" class="hint" style="text-align: center">自分の計画表がまだありません。「新規作成」から、計画の名前と期間（数年分）を決めて作成してください。</div>
     <div v-else class="card list">
@@ -251,29 +222,6 @@ function updatedLabel(c: GanttChart): string {
       </div>
     </Transition>
 
-    <!-- 講師: 生徒の計画表から複製 -->
-    <Transition name="ui-modal">
-      <div v-if="pick.open" class="overlay ui-overlay ui-sheet" @click="pick.open = false">
-        <div class="modal ui-panel" @click.stop>
-          <div style="font-size: 16px; font-weight: 700; margin-bottom: 6px">生徒の計画表から複製</div>
-          <div class="sub" style="margin: 0 0 14px">生徒の計画表（行・区間ごと）を講師用の計画表として写します。写した後の変更は生徒の計画表には影響しません。</div>
-          <div v-if="pick.loading" class="hint" style="text-align: center">読み込み中…</div>
-          <div v-else-if="!pick.charts.length" class="hint" style="text-align: center">生徒の計画表がありません。</div>
-          <div v-else class="pick-list">
-            <div v-for="c in pick.charts" :key="c.id" class="pick-row">
-              <div style="flex: 1; min-width: 0">
-                <div class="name">{{ c.title }}</div>
-                <div class="meta">{{ fmtYm(c.startOn) }} 〜 {{ fmtYm(c.endOn) }}・行 {{ c.rowCount }} / 区間 {{ c.taskCount }}・更新 {{ updatedLabel(c) }}</div>
-              </div>
-              <button class="pill primary" :disabled="pick.busyId !== null" @click="copyFromStudent(c)">{{ pick.busyId === c.id ? '複製中…' : '複製' }}</button>
-            </div>
-          </div>
-          <div style="display: flex; justify-content: flex-end; margin-top: 18px">
-            <button class="btn-ghost" @click="pick.open = false">閉じる</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 
@@ -310,27 +258,6 @@ function updatedLabel(c: GanttChart): string {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
-}
-.pick-list {
-  border: 1px solid #eceef1;
-  border-radius: 12px;
-  overflow: hidden;
-  max-height: 50vh;
-  overflow-y: auto;
-}
-.pick-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 14px;
-  border-bottom: 1px solid #f0f1f3;
-}
-.pick-row:last-child {
-  border-bottom: none;
-}
-.pill:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 .btn-dark {
   display: flex;
