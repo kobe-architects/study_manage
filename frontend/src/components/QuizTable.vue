@@ -20,11 +20,11 @@ const emit = defineEmits<{
   remove: [q: QuizSummary]
 }>()
 
-type StatusKey = 'all' | 'assigned' | 'overdue' | 'submitted' | 'graded'
+type StatusKey = 'all' | 'assigned' | 'overdue' | 'partial' | 'submitted' | 'graded'
 type PeriodKey = 'all' | 'week' | 'month' | 'quarter'
 type SortKey = 'created' | 'due' | 'rateAsc' | 'rateDesc'
 
-const DEFAULT_STATUS: Exclude<StatusKey, 'all'>[] = props.role === 'tutor' ? ['submitted', 'assigned', 'overdue'] : ['assigned', 'overdue']
+const DEFAULT_STATUS: Exclude<StatusKey, 'all'>[] = props.role === 'tutor' ? ['submitted', 'partial', 'assigned', 'overdue'] : ['assigned', 'partial', 'overdue']
 const filter = reactive<{ status: Exclude<StatusKey, 'all'>[]; book: string; period: PeriodKey; q: string; sort: SortKey }>({
   status: [...DEFAULT_STATUS],
   book: '',
@@ -37,16 +37,18 @@ const filter = reactive<{ status: Exclude<StatusKey, 'all'>[]; book: string; per
 function statusOf(q: QuizSummary): Exclude<StatusKey, 'all'> {
   if (q.status === 'graded') return 'graded'
   if (q.status === 'submitted') return 'submitted'
+  if (q.status === 'partial') return 'partial'
   return q.overdue ? 'overdue' : 'assigned'
 }
 const STATUS_LABEL = computed<Record<Exclude<StatusKey, 'all'>, string>>(() => ({
   assigned: '未提出',
   overdue: '期限切れ',
+  partial: '分割提出中',
   submitted: props.role === 'tutor' ? '採点・添削待ち' : '提出済み',
   graded: '採点・添削済み',
 }))
 /** 絞り込みチップの並び（生徒側は「提出済み」の絞りは出さない） */
-const STATUS_ORDER = computed<Exclude<StatusKey, 'all'>[]>(() => (props.role === 'tutor' ? ['submitted', 'assigned', 'overdue', 'graded'] : ['assigned', 'overdue', 'graded']))
+const STATUS_ORDER = computed<Exclude<StatusKey, 'all'>[]>(() => (props.role === 'tutor' ? ['submitted', 'partial', 'assigned', 'overdue', 'graded'] : ['assigned', 'partial', 'overdue', 'graded']))
 function toggleStatus(k: Exclude<StatusKey, 'all'>) {
   const i = filter.status.indexOf(k)
   if (i >= 0) filter.status.splice(i, 1)
@@ -73,7 +75,7 @@ const partIndex = computed(() => {
 })
 
 const counts = computed(() => {
-  const c: Record<Exclude<StatusKey, 'all'>, number> = { assigned: 0, overdue: 0, submitted: 0, graded: 0 }
+  const c: Record<Exclude<StatusKey, 'all'>, number> = { assigned: 0, overdue: 0, partial: 0, submitted: 0, graded: 0 }
   for (const q of props.quizzes) c[statusOf(q)]++
   return c
 })
@@ -155,7 +157,7 @@ function secondary(q: QuizSummary): (ActionMenuItem & { key: ActionKey })[] {
     return list
   }
   const remove = { key: 'remove' as const, label: '削除', danger: true }
-  if (q.status === 'submitted') return [pdf, remove]
+  if (q.status === 'submitted' || q.status === 'partial') return [pdf, remove]
   if (q.status === 'graded') return [{ key: 'grade', label: '採点・添削' }, pdf, remove]
   return [{ key: 'edit', label: '編集' }, pdf, remove]
 }
@@ -231,7 +233,7 @@ function fmt(d: string | null): string {
   return `${y}/${Number(m)}/${Number(dd)}`
 }
 function dueClass(q: QuizSummary): string {
-  if (q.status !== 'assigned' || !q.dueOn) return ''
+  if ((q.status !== 'assigned' && q.status !== 'partial') || !q.dueOn) return ''
   if (q.overdue) return 'due-over'
   const d = new Date(q.dueOn)
   const today = new Date()
@@ -322,10 +324,12 @@ function dueClass(q: QuizSummary): string {
                     <button v-if="q.status === 'graded'" class="btn primary" @click="emit('result', q)">結果を見る</button>
                     <!-- 自己出題: 提出後は自分で採点・添削できる（先生の採点・添削を待ってもよい） -->
                     <button v-else-if="q.status === 'submitted' && q.selfCreated" class="btn primary" @click="emit('grade', q)">自分で採点・添削</button>
-                    <button v-else class="btn primary" @click="emit('capture', q)">{{ q.status === 'submitted' ? '撮り直して再提出' : '撮影して提出' }}</button>
+                    <button v-else class="btn primary" @click="emit('capture', q)">{{ q.status === 'submitted' ? '撮り直して再提出' : q.status === 'partial' ? '続きを撮影して提出' : '撮影して提出' }}</button>
                   </template>
                   <template v-else>
                     <button v-if="q.status === 'submitted'" class="btn primary" @click="emit('grade', q)">採点・添削する</button>
+                    <!-- 分割提出中: 提出済みのページだけ先に採点・添削できる（完了は全ページの提出後） -->
+                    <button v-else-if="q.status === 'partial'" class="btn primary" @click="emit('grade', q)">先に採点・添削</button>
                     <button v-else-if="q.status === 'graded'" class="btn primary" @click="emit('result', q)">結果を見る</button>
                   </template>
                   <!-- その他の操作: タブレット・スマホでは「操作」メニュー、PC では並べて表示 -->
@@ -340,7 +344,8 @@ function dueClass(q: QuizSummary): string {
                   <span class="badge" :class="statusOf(q)">{{ STATUS_LABEL[statusOf(q)] }}</span>
                   <span v-if="q.selfCreated" class="badge self" title="生徒が自分で出題した小テスト">自己出題</span>
                   <span v-if="q.status === 'graded' && q.selfGraded" class="badge self">自己採点</span>
-                  <span v-if="q.status === 'assigned' && q.answeredCount" class="badge sub">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</span>
+                  <span v-if="q.status === 'partial'" class="badge sub">{{ q.submittedPageCount }}/{{ q.pageCount }} ページ提出済み</span>
+                  <span v-else-if="q.status === 'assigned' && q.answeredCount" class="badge sub">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み</span>
                 </div>
               </td>
               <td class="c-date nowrap">{{ fmt(q.createdOn) }}</td>
@@ -457,6 +462,10 @@ function dueClass(q: QuizSummary): string {
 .st.overdue {
   --c: #c0444f;
   --bg: #fdf0f1;
+}
+.st.partial {
+  --c: #b7681a;
+  --bg: #fff4e5;
 }
 .st.submitted {
   --c: #2e4a8f;
@@ -682,6 +691,10 @@ function dueClass(q: QuizSummary): string {
 .badge.overdue {
   background: #fdf0f1;
   color: #c0444f;
+}
+.badge.partial {
+  background: #fff4e5;
+  color: #b7681a;
 }
 .badge.submitted {
   background: #e8eefb;

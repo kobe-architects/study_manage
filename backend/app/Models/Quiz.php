@@ -9,13 +9,16 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * 小テスト。user_id は生徒、created_by は出題した講師。
- * status: assigned(出題中) → submitted(回答提出済み) → graded(添削・採点済み)
+ * status: assigned(出題中) → partial(分割提出中: 一部のページだけ提出済み) → submitted(全ページ提出済み) → graded(添削・採点済み)
+ *   分割提出中は提出済みのページ（quiz_pages.submitted_at）だけ講師が採点・添削できる。全ページが提出されるまで submitted にはならない。
  * self_graded: 生徒が提出時に自己採点（得点・満点を入力）して graded になったもの。講師が採点・添削を完了すると false に戻る。
  * submit_note: 提出時の生徒からの一言（任意。講師への LINE 通知に含める）
  */
 class Quiz extends Model
 {
     public const STATUS_ASSIGNED = 'assigned';
+
+    public const STATUS_PARTIAL = 'partial';
 
     public const STATUS_SUBMITTED = 'submitted';
 

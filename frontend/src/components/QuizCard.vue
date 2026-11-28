@@ -26,6 +26,7 @@ const overdue = computed(() => props.parts.some((q) => q.overdue))
 const chip = computed(() => {
   if (status.value === 'graded') return { label: '採点・添削済み', cls: 'graded' }
   if (status.value === 'submitted') return { label: props.role === 'tutor' ? '採点・添削待ち' : '提出済み', cls: 'submitted' }
+  if (status.value === 'partial') return { label: '分割提出中', cls: 'partial' }
   if (overdue.value) return { label: '期限切れ', cls: 'overdue' }
   return { label: QUIZ_STATUS_LABEL[status.value] ?? status.value, cls: 'assigned' }
 })
@@ -33,6 +34,7 @@ const chip = computed(() => {
 function partChip(q: QuizSummary): { label: string; cls: string } {
   if (q.status === 'graded') return { label: '採点・添削済み', cls: 'graded' }
   if (q.status === 'submitted') return { label: props.role === 'tutor' ? '採点・添削待ち' : '提出済み', cls: 'submitted' }
+  if (q.status === 'partial') return { label: '分割提出中', cls: 'partial' }
   if (q.overdue) return { label: '期限切れ', cls: 'overdue' }
   return { label: '未提出', cls: 'assigned' }
 }
@@ -90,7 +92,8 @@ function fmt(d: string | null): string {
           <span v-if="q.status === 'submitted' && q.submittedAt">提出 {{ fmt(q.submittedAt) }}</span>
           <span v-if="q.status === 'graded' && q.gradedAt">{{ q.selfGraded ? '自己採点' : '採点・添削' }} {{ fmt(q.gradedAt) }}</span>
           <span v-if="q.status === 'graded' && q.selfGraded" class="pchip self">自己採点</span>
-          <span v-if="q.status === 'assigned' && q.answeredCount" style="color: #2f7a4f">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み（未提出）</span>
+          <span v-if="q.status === 'partial'" style="color: #b7681a">{{ q.submittedPageCount }}/{{ q.pageCount }} ページ提出済み（分割提出中）</span>
+          <span v-else-if="q.status === 'assigned' && q.answeredCount" style="color: #2f7a4f">{{ q.answeredCount }}/{{ q.pageCount }} 撮影済み（未提出）</span>
         </div>
         <div v-if="q.submitNote" class="part-meta" style="color: #5b3fa0">一言: {{ q.submitNote }}</div>
         <div v-if="q.status === 'graded' && q.score !== null" class="marks-row">
@@ -104,12 +107,13 @@ function fmt(d: string | null): string {
           <button v-if="q.status === 'graded' && q.selfGraded" class="btn" title="撮り直し・自己採点の点数の修正" @click="emit('capture', q)">再提出</button>
           <button v-if="q.status !== 'graded'" class="btn primary" @click="emit('capture', q)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-2h6l2 2h3v12H4z" /><circle cx="12" cy="13" r="3.5" /></svg>
-            {{ q.status === 'submitted' ? '撮り直して再提出' : '撮影して提出' }}
+            {{ q.status === 'submitted' ? '撮り直して再提出' : q.status === 'partial' ? '続きを撮影して提出' : '撮影して提出' }}
           </button>
           <button class="btn" title="問題 PDF を別タブでプレビュー" @click="emit('pdf', q)">問題PDF</button>
         </template>
         <template v-else>
           <button v-if="q.status === 'submitted'" class="btn primary" @click="emit('grade', q)">採点・添削する</button>
+          <button v-else-if="q.status === 'partial'" class="btn primary" @click="emit('grade', q)">先に採点・添削</button>
           <button v-else-if="q.status === 'graded'" class="btn primary" @click="emit('grade', q)">採点・添削結果</button>
           <button v-else class="btn" @click="emit('edit', q)">編集</button>
           <button class="btn" title="問題 PDF を別タブでプレビュー" @click="emit('pdf', q)">問題PDF</button>
@@ -174,6 +178,11 @@ function fmt(d: string | null): string {
 .pchip.overdue {
   background: #fdf0f1;
   color: #c0444f;
+}
+.chip.partial,
+.pchip.partial {
+  background: #fff4e5;
+  color: #b7681a;
 }
 .chip.submitted,
 .pchip.submitted {

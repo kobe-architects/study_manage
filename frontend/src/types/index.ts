@@ -552,7 +552,8 @@ export interface QuizBook {
   rowCount: number
 }
 
-export type QuizStatus = 'assigned' | 'submitted' | 'graded'
+/** assigned: 未提出 / partial: 分割提出中（一部のページだけ提出済み） / submitted: 全ページ提出済み / graded: 採点・添削済み */
+export type QuizStatus = 'assigned' | 'partial' | 'submitted' | 'graded'
 
 /** 出題ページ選択用の教材行（章行の quiz_pages 展開により同じ id が複数行になりうる） */
 export interface QuizRow {
@@ -589,6 +590,8 @@ export interface QuizSummary {
   status: QuizStatus
   pageCount: number
   answeredCount: number
+  /** 講師へ提出済みのページ数（分割提出中は pageCount 未満。撮影だけで未提出のページは含まない） */
+  submittedPageCount: number
   maxScorePerPage: number
   /** 満点（講師が採点時に入力。未入力ならページ満点の合計） */
   maxScore: number
@@ -667,6 +670,9 @@ export interface QuizPageDetail {
   answerMinutes: number | null
   hasRender: boolean
   hasAnswer: boolean
+  /** 講師へ提出済みか（分割提出では撮影・アップロードだけのページは false。講師の採点・添削はこのページだけ） */
+  submitted: boolean
+  submittedAt: string | null
   answerUploadedAt: string | null
   answerVersion: number | null
   annotations: AnnotationDoc | null
@@ -774,6 +780,8 @@ export interface QuizStats {
   summary: {
     quizCount: number
     assignedCount: number
+    /** 分割提出中 */
+    partialCount: number
     submittedCount: number
     gradedCount: number
     pageCount: number

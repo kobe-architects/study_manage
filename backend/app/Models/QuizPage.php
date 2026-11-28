@@ -17,7 +17,7 @@ class QuizPage extends Model
     protected $fillable = [
         'quiz_id', 'page_no', 'kind', 'resource_book_pdf_id', 'pdf_page', 'resource_book_item_id', 'guide_minutes', 'label',
         'vocab_spec', 'vocab_words', 'render_path', 'answer_render_path',
-        'ref_pdf_id', 'ref_page', 'answer_path', 'answer_uploaded_at', 'answer_minutes', 'annotations', 'annotated_path',
+        'ref_pdf_id', 'ref_page', 'answer_path', 'answer_uploaded_at', 'submitted_at', 'answer_minutes', 'annotations', 'annotated_path',
         'mark', 'score', 'max_score', 'comment',
     ];
 
@@ -33,7 +33,14 @@ class QuizPage extends Model
         'vocab_spec' => 'array',
         'vocab_words' => 'array',
         'answer_uploaded_at' => 'datetime',
+        'submitted_at' => 'datetime',
     ];
+
+    /** 講師へ提出済みのページか（分割提出では撮影・アップロードだけのページは未提出） */
+    public function isSubmitted(): bool
+    {
+        return $this->submitted_at !== null;
+    }
 
     public function isVocab(): bool
     {

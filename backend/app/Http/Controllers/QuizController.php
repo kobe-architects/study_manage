@@ -255,7 +255,11 @@ class QuizController extends Controller
     {
         $userId = $this->targetUserId($request);
         $quizzes = Quiz::with(['creator:id,name', 'book:id,title,subject_id', 'book.subject:id,name,sort_order,color_vivid'])
-            ->withCount(['pages', 'pages as answered_count' => fn ($q) => $q->whereNotNull('answer_path')])
+            ->withCount([
+                'pages',
+                'pages as answered_count' => fn ($q) => $q->whereNotNull('answer_path'),
+                'pages as submitted_count' => fn ($q) => $q->whereNotNull('submitted_at'),
+            ])
             ->where('user_id', $userId)
             ->orderByDesc('id')
             ->get();
@@ -271,7 +275,11 @@ class QuizController extends Controller
     {
         $this->authorizeQuiz($request, $quiz);
         $quiz->load(['creator:id,name', 'book:id,title,subject_id', 'book.subject:id,name,sort_order,color_vivid', 'pages.pdf:id,title,resource_book_id,page_count,page_links', 'pages.refPdf:id,title,page_count', 'pages.item']);
-        $quiz->loadCount(['pages', 'pages as answered_count' => fn ($q) => $q->whereNotNull('answer_path')]);
+        $quiz->loadCount([
+            'pages',
+            'pages as answered_count' => fn ($q) => $q->whereNotNull('answer_path'),
+            'pages as submitted_count' => fn ($q) => $q->whereNotNull('submitted_at'),
+        ]);
 
         $data = $this->summary($quiz, $this->scoreSums([$quiz->id])->get($quiz->id), Carbon::today());
         // 解答（英単語テスト）は講師・自己出題した生徒、または添削済みの場合のみ返す
@@ -552,7 +560,12 @@ class QuizController extends Controller
     }
 
     /**
-     * 全ページ撮影済みで提出（status: submitted）。
+     * 提出。
+     * - 通常の提出: 全ページ撮影済みで status: submitted（全ページの submitted_at を記録）。
+     * - 分割提出（partial=true）: 撮影済みのページだけ先に提出する。該当ページに submitted_at を記録し、
+     *   status は partial（分割提出中）。講師は提出済みのページだけ先に採点・添削できるが、全ページが提出されるまで
+     *   「提出済み」にはならず、採点・添削の完了もできない。全ページがそろった時点で submitted になる。
+     *   自己採点は分割提出では使えない（全ページ提出時のみ）。
      * 自己採点済み（selfGraded）の場合は得点・満点を保存してそのまま graded にする（講師の採点・添削を待たずに結果・分析へ反映）。
      * 講師が完了した採点・添削は再提出できないが、自己採点のみのものは撮り直し・点数の修正のために再提出できる。
      */
@@ -560,9 +573,8 @@ class QuizController extends Controller
     {
         $this->authorizeQuiz($request, $quiz);
         abort_if($quiz->status === Quiz::STATUS_GRADED && ! $quiz->self_graded, 422, '採点・添削済みの小テストは再提出できません。');
-        $missing = $quiz->pages()->whereNull('answer_path')->count();
-        abort_if($missing > 0, 422, "未撮影のページが {$missing} ページあります。");
         $data = $request->validate([
+            'partial' => ['nullable', 'boolean'],
             'selfGraded' => ['nullable', 'boolean'],
             'score' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'maxScore' => ['nullable', 'integer', 'min:1', 'max:100000'],
@@ -570,7 +582,20 @@ class QuizController extends Controller
             'times' => ['nullable', 'array'],
             'times.*' => ['nullable', 'integer', 'min:0', 'max:600'],
         ]);
+        $partial = (bool) ($data['partial'] ?? false);
         $selfGraded = (bool) ($data['selfGraded'] ?? false);
+        $pageCount = $quiz->pages()->count();
+        $answered = $quiz->pages()->whereNotNull('answer_path')->count();
+        $missing = $pageCount - $answered;
+        if ($partial) {
+            abort_if($quiz->status === Quiz::STATUS_GRADED, 422, '採点済みの小テストは分割提出できません。');
+            abort_if($selfGraded, 422, '分割提出では自己採点はできません。全ページを提出するときに入力してください。');
+            abort_if($answered === 0, 422, '提出できる撮影済みのページがありません。');
+            // 全ページそろっていれば通常の提出として扱う
+            $partial = $missing > 0;
+        } else {
+            abort_if($missing > 0, 422, "未撮影のページが {$missing} ページあります。");
+        }
         // 各問題（ページ）の回答にかかった時間（分）。送られてきたページだけ更新する
         foreach (($data['times'] ?? []) as $pageId => $min) {
             $quiz->pages()->where('id', (int) $pageId)->update(['answer_minutes' => $min === null ? null : (int) $min]);
@@ -579,7 +604,12 @@ class QuizController extends Controller
         $note = trim((string) ($data['note'] ?? ''));
         $note = $note === '' ? null : $note;
 
-        if ($selfGraded) {
+        // 撮影済みでまだ提出していないページを提出済みにする（分割提出で先に出したページの日時は保持）
+        $newlySubmitted = $quiz->pages()->whereNotNull('answer_path')->whereNull('submitted_at')->update(['submitted_at' => now()]);
+
+        if ($partial) {
+            $quiz->update(['status' => Quiz::STATUS_PARTIAL, 'submitted_at' => null, 'graded_at' => null, 'submit_note' => $note]);
+        } elseif ($selfGraded) {
             abort_if(! isset($data['score'], $data['maxScore']), 422, '自己採点の得点・満点を入力してください。');
             abort_if($data['score'] > $data['maxScore'], 422, '得点が満点を超えています。');
             $quiz->update([
@@ -600,7 +630,11 @@ class QuizController extends Controller
         $studentName = $quiz->user->settings?->name ?: $quiz->user->name;
         $part = $quiz->book?->title ?? '英単語テスト';
         $noteLine = $note !== null ? "一言: {$note}\n" : '';
-        if ($selfGraded) {
+        if ($partial) {
+            $message = "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）の一部を分割提出しました。\n"
+                ."提出済み {$answered} / {$pageCount} ページ（今回 {$newlySubmitted} ページ）\n".$noteLine
+                .'提出済みのページは先に採点・添削できます（完了は全ページの提出後）。';
+        } elseif ($selfGraded) {
             $rate = (int) round($data['score'] / $data['maxScore'] * 100);
             $message = "{$studentName}さんが小テスト「{$quiz->title}」（{$part}）を自己採点して提出しました。\n"
                 ."得点 {$data['score']} / {$data['maxScore']}点（{$rate}%）\n".$noteLine;
@@ -614,7 +648,13 @@ class QuizController extends Controller
             LineNotify::push($quiz->creator, $message);
         }
 
-        return response()->json(['data' => ['id' => $quiz->id, 'status' => $quiz->status, 'selfGraded' => $quiz->self_graded]]);
+        return response()->json(['data' => [
+            'id' => $quiz->id,
+            'status' => $quiz->status,
+            'selfGraded' => $quiz->self_graded,
+            'submittedPageCount' => $answered,
+            'pageCount' => $pageCount,
+        ]]);
     }
 
     // ====================== 講師: 添削・採点 ======================
@@ -690,6 +730,8 @@ class QuizController extends Controller
     public function finish(Request $request, Quiz $quiz): JsonResponse
     {
         $this->authorizeManage($request, $quiz);
+        abort_if($quiz->status === Quiz::STATUS_ASSIGNED, 422, 'まだ提出されていません。');
+        abort_if($quiz->status === Quiz::STATUS_PARTIAL, 422, '分割提出中です。全ページが提出されてから完了できます。');
         abort_if($quiz->score === null || $quiz->max_score === null, 422, '採点（得点・満点）が未入力です。');
 
         // 講師が完了した採点で自己採点を上書きする（生徒が自分で添削して完了したときは「自己採点」のまま）
@@ -912,6 +954,7 @@ class QuizController extends Controller
             'summary' => [
                 'quizCount' => $all->count(),
                 'assignedCount' => $all->where('status', Quiz::STATUS_ASSIGNED)->count(),
+                'partialCount' => $all->where('status', Quiz::STATUS_PARTIAL)->count(),
                 'submittedCount' => $all->where('status', Quiz::STATUS_SUBMITTED)->count(),
                 'gradedCount' => $graded->count(),
                 'pageCount' => $pages->count(),
@@ -1205,6 +1248,7 @@ class QuizController extends Controller
     {
         $pageCount = (int) ($q->pages_count ?? 0);
         $answered = (int) ($q->answered_count ?? 0);
+        $submittedPages = (int) ($q->submitted_count ?? 0);
         // 満点は講師が採点時に入力する。未入力ならページ満点の合計（英単語テストは出題数、教材ページは既定値）
         $defaultMax = $score !== null ? (int) $score->max_total : $pageCount * $q->max_score_per_page;
         $max = $q->max_score ?? $defaultMax;
@@ -1221,6 +1265,8 @@ class QuizController extends Controller
             'status' => $q->status,
             'pageCount' => $pageCount,
             'answeredCount' => $answered,
+            // 講師へ提出済みのページ数（分割提出中は pageCount 未満。撮影だけで未提出のページは含まない）
+            'submittedPageCount' => $submittedPages,
             'maxScorePerPage' => $q->max_score_per_page,
             'maxScore' => $max,
             'defaultMaxScore' => $defaultMax,
@@ -1245,7 +1291,7 @@ class QuizController extends Controller
             'createdByName' => $q->creator?->name,
             // 生徒が自分で出題した小テスト（講師の採点・添削のほか、生徒自身でも採点・添削できる）
             'selfCreated' => $q->created_by !== null && $q->created_by === $q->user_id,
-            'overdue' => $q->status === Quiz::STATUS_ASSIGNED && $q->due_on !== null && $q->due_on->lt($today),
+            'overdue' => in_array($q->status, [Quiz::STATUS_ASSIGNED, Quiz::STATUS_PARTIAL], true) && $q->due_on !== null && $q->due_on->lt($today),
         ];
     }
 
@@ -1309,6 +1355,9 @@ class QuizController extends Controller
             'vocabWords' => $withAnswers ? $p->vocab_words : null,
             'hasRender' => $p->render_path !== null,
             'hasAnswer' => $p->answer_path !== null,
+            // 講師へ提出済みか（分割提出では撮影・アップロードだけのページは false。講師の採点・添削はこのページだけ）
+            'submitted' => $p->submitted_at !== null,
+            'submittedAt' => $p->submitted_at?->toDateTimeString(),
             'answerUploadedAt' => $p->answer_uploaded_at?->toDateTimeString(),
             'answerVersion' => $p->answer_uploaded_at?->timestamp,
             'annotations' => $p->annotations,

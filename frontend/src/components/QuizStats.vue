@@ -31,7 +31,7 @@ function ymd(d: string | null): string {
     <div v-if="!hasData" class="empty">
       採点・添削済みの小テストがまだありません。採点・添削が完了すると、科目・教材ごとの得点率がここに表示されます。
       <div v-if="s.quizCount" style="margin-top: 6px; font-size: 11.5px">
-        出題 {{ s.quizCount }}件（未提出 {{ s.assignedCount }}・採点・添削待ち {{ s.submittedCount }}）
+        出題 {{ s.quizCount }}件（未提出 {{ s.assignedCount }}<template v-if="s.partialCount">・分割提出中 {{ s.partialCount }}</template>・採点・添削待ち {{ s.submittedCount }}）
       </div>
     </div>
 

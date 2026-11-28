@@ -9,6 +9,8 @@ import type { QuizDetail } from '@/types'
 /**
  * 回答用紙の撮影・提出（生徒）。ブラウザから直接カメラを起動し、出題ページ数分を順番に撮影して提出する。
  * カメラが使えない環境ではファイル選択（スマホでは端末のカメラアプリ）にフォールバックする。
+ * 全ページがそろっていなくても、撮影済みのページだけ先に出す「分割提出」ができる（小テストは「分割提出中」になり、
+ * 先生は提出済みのページから先に採点・添削できる。全ページがそろうと提出済みになる。自己採点は全ページ提出時のみ）。
  */
 const props = defineProps<{ quiz: QuizDetail }>()
 const emit = defineEmits<{ close: []; submitted: [] }>()
@@ -25,7 +27,8 @@ const camError = ref('')
 const facing = ref<'environment' | 'user'>('environment')
 const canSwitch = ref(false)
 
-const idx = ref(0)
+// 分割提出の続きは最初の未撮影ページから始める
+const idx = ref(Math.max(0, props.quiz.pages.findIndex((p) => !p.hasAnswer)))
 // 全ページ提出済み（再提出・自己採点の修正）のときは撮影を飛ばして確認画面から始める
 const phase = ref<'shoot' | 'review' | 'done' | 'uploading'>(props.quiz.pages.length && props.quiz.pages.every((p) => p.hasAnswer) ? 'done' : 'shoot')
 const shots = ref<Map<number, { blob: Blob; url: string }>>(new Map())
@@ -35,6 +38,11 @@ const current = computed(() => pages.value[idx.value] ?? null)
 const currentShot = computed(() => (current.value ? shots.value.get(current.value.id) ?? null : null))
 const hasAll = computed(() => pages.value.every((p) => shots.value.has(p.id) || p.hasAnswer))
 const newCount = computed(() => shots.value.size)
+/** 分割提出で提出されるページ数（新しく撮影したページ＋撮影済みのページ） */
+const readyCount = computed(() => pages.value.filter((p) => shots.value.has(p.id) || p.hasAnswer).length)
+/** 分割提出できるか: 未撮影のページが残っていて、まだ提出していないページ（新規撮影・撮影済みで未提出）がある */
+const canPartial = computed(() => !hasAll.value && pages.value.some((p) => shots.value.has(p.id) || (p.hasAnswer && !p.submitted)))
+const isPartialQuiz = computed(() => props.quiz.status === 'partial')
 
 // 自己採点: チェックして得点・満点を入力すると、先生の採点を待たずに採点済みとして登録される
 const selfGrade = reactive<{ on: boolean; score: number | null; maxScore: number | null }>({
@@ -59,10 +67,15 @@ const timesPayload = computed(() => {
   return out
 })
 
-function stateOf(pageId: number, hasAnswer: boolean): 'new' | 'old' | 'none' {
-  if (shots.value.has(pageId)) return 'new'
-  return hasAnswer ? 'old' : 'none'
+/** ページの状態: new=今回撮影 / old=提出済みの写真あり / kept=撮影済みだが未提出（分割提出前にアップロードだけ済んだもの） / none=未撮影 */
+type PageState = 'new' | 'old' | 'kept' | 'none'
+function stateOf(p: { id: number; hasAnswer: boolean; submitted: boolean }): PageState {
+  if (shots.value.has(p.id)) return 'new'
+  if (p.hasAnswer) return p.submitted ? 'old' : 'kept'
+  return 'none'
 }
+const STATE_CHIP: Record<PageState, string> = { new: '撮影済', old: '提出済', kept: '未提出', none: '未撮影' }
+const STATE_DESC: Record<PageState, string> = { new: '新しく撮影', old: '提出済みの写真を使用', kept: '撮影済みの写真を使用（未提出）', none: '未撮影（タップして撮影）' }
 
 async function startCamera() {
   stopCamera()
@@ -215,12 +228,19 @@ function goto(i: number) {
   phase.value = shots.value.has(pages.value[i]!.id) ? 'review' : 'shoot'
 }
 
-async function submit() {
-  if (!hasAll.value) {
+/** 提出。partial=true は撮影済みのページだけ先に出す分割提出 */
+async function submit(partial = false) {
+  if (partial) {
+    if (!canPartial.value) {
+      ui.notify('先に提出できる撮影済みのページがありません')
+      return
+    }
+  } else if (!hasAll.value) {
     ui.notify('すべてのページを撮影してください')
     return
   }
-  if (selfGrade.on && !selfGradeValid.value) {
+  const withSelfGrade = selfGrade.on && !partial
+  if (withSelfGrade && !selfGradeValid.value) {
     ui.notify(selfGrade.score !== null && selfGrade.maxScore !== null && selfGrade.score > selfGrade.maxScore ? '得点が満点を超えています' : '自己採点の得点と満点を入力してください')
     return
   }
@@ -233,8 +253,9 @@ async function submit() {
       await quizApi.uploadAnswer(props.quiz.id, p.id, s.blob)
       progress.value.done++
     }
-    await quizApi.submit(props.quiz.id, selfGrade.on ? { score: selfGrade.score!, maxScore: selfGrade.maxScore! } : null, submitNote.value.trim() || null, timesPayload.value)
-    ui.notify(selfGrade.on ? '自己採点つきで提出しました' : '回答を提出しました')
+    const res = await quizApi.submit(props.quiz.id, withSelfGrade ? { score: selfGrade.score!, maxScore: selfGrade.maxScore! } : null, submitNote.value.trim() || null, timesPayload.value, partial)
+    if (res.status === 'partial') ui.notify(`${res.submittedPageCount} / ${res.pageCount} ページを先に提出しました（残りは後から提出できます）`)
+    else ui.notify(withSelfGrade ? '自己採点つきで提出しました' : '回答を提出しました')
     emit('submitted')
   } catch (e: unknown) {
     const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -257,8 +278,12 @@ onBeforeUnmount(() => {
     <div class="cam-top">
       <div style="min-width: 0">
         <div style="font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ quiz.title }}</div>
-        <div style="font-size: 11px; color: #b7bcc6">回答用紙を撮影して提出（{{ pages.length }}ページ）</div>
+        <div style="font-size: 11px; color: #b7bcc6">
+          回答用紙を撮影して提出（{{ pages.length }}ページ）<template v-if="isPartialQuiz">・分割提出中 {{ quiz.submittedPageCount }}/{{ pages.length }} ページ提出済み</template>
+        </div>
       </div>
+      <!-- 途中でも確認・提出画面へ（撮影済みのページだけ先に出す分割提出のため） -->
+      <button v-if="phase !== 'done' && phase !== 'uploading' && readyCount > 0" class="top-btn" @click="phase = 'done'">確認・提出へ</button>
       <button class="x" @click="emit('close')">×</button>
     </div>
 
@@ -268,12 +293,12 @@ onBeforeUnmount(() => {
         v-for="(p, i) in pages"
         :key="p.id"
         class="chip"
-        :class="[stateOf(p.id, p.hasAnswer), { cur: i === idx && phase !== 'done' }]"
+        :class="[stateOf(p), { cur: i === idx && phase !== 'done' }]"
         @click="goto(i)"
       >
         <span class="chip-n">{{ i + 1 }}</span>
         <span class="chip-l">{{ p.label }}</span>
-        <span class="chip-s">{{ stateOf(p.id, p.hasAnswer) === 'new' ? '撮影済' : stateOf(p.id, p.hasAnswer) === 'old' ? '提出済' : '未撮影' }}</span>
+        <span class="chip-s">{{ STATE_CHIP[stateOf(p)] }}</span>
       </button>
     </div>
 
@@ -299,7 +324,7 @@ onBeforeUnmount(() => {
         </button>
       </div>
       <input ref="fileInput" type="file" accept="image/*" capture="environment" style="display: none" @change="onFile" />
-      <div v-if="current?.hasAnswer && !currentShot" class="note">このページは提出済みの写真があります。撮影すると差し替えられます。</div>
+      <div v-if="current?.hasAnswer && !currentShot" class="note">{{ current.submitted ? 'このページは提出済みの写真があります。撮影すると差し替えられます。' : 'このページは撮影済み（未提出）の写真があります。撮影すると差し替えられます。' }}</div>
     </div>
 
     <!-- 確認 -->
@@ -327,9 +352,7 @@ onBeforeUnmount(() => {
           </div>
           <div style="flex: 1; min-width: 0">
             <div style="font-size: 12.5px; font-weight: 600">{{ i + 1 }}. {{ p.label }}</div>
-            <div style="font-size: 11px" :style="{ color: stateOf(p.id, p.hasAnswer) === 'none' ? '#ff9f9f' : '#b7bcc6' }">
-              {{ stateOf(p.id, p.hasAnswer) === 'new' ? '新しく撮影' : stateOf(p.id, p.hasAnswer) === 'old' ? '提出済みの写真を使用' : '未撮影（タップして撮影）' }}
-            </div>
+            <div style="font-size: 11px" :style="{ color: stateOf(p) === 'none' ? '#ff9f9f' : '#b7bcc6' }">{{ STATE_DESC[stateOf(p)] }}</div>
             <!-- 回答にかかった時間（分）。目安時間があれば並べて表示 -->
             <label class="time-row" @click.stop>
               <span class="time-lab">かかった時間</span>
@@ -345,8 +368,8 @@ onBeforeUnmount(() => {
       <div class="msg-row">
         <input v-model="submitNote" type="text" maxlength="500" placeholder="先生への一言（任意）" class="msg-input" />
       </div>
-      <!-- 自己採点（任意） -->
-      <div class="sg">
+      <!-- 自己採点（任意。全ページそろっているときだけ。分割提出では使えない） -->
+      <div v-if="hasAll" class="sg">
         <label class="sg-toggle">
           <input v-model="selfGrade.on" type="checkbox" />
           <span>自己採点済み</span>
@@ -362,9 +385,14 @@ onBeforeUnmount(() => {
       </div>
       <div class="controls">
         <button class="btn ghost" @click="goto(0)">最初から撮り直す</button>
-        <button class="btn primary" :disabled="!hasAll" @click="submit">{{ selfGrade.on ? '自己採点して提出' : '提出する' }}</button>
+        <button v-if="hasAll" class="btn primary" @click="submit(false)">{{ selfGrade.on ? '自己採点して提出' : '提出する' }}</button>
+        <!-- 全ページそろっていないときは、撮影済みのページだけ先に出す分割提出 -->
+        <button v-else class="btn primary" :disabled="!canPartial" @click="submit(true)">{{ readyCount }} / {{ pages.length }} ページを先に提出</button>
       </div>
-      <div v-if="!selfGrade.on" class="note">{{ quiz.selfCreated ? '提出後、先生が採点・添削するか、一覧の「自分で採点・添削」から自分で採点・添削できます。' : '提出後、先生が採点・添削します。採点・添削が始まる前なら撮り直して再提出できます。' }}</div>
+      <div v-if="!hasAll" class="note">
+        撮影済みのページだけ先に提出できます（分割提出）。先生は提出済みのページから先に採点・添削できます。残りの {{ pages.length - readyCount }} ページは後から「続きを撮影して提出」で提出し、全ページがそろうと提出済みになります。
+      </div>
+      <div v-else-if="!selfGrade.on" class="note">{{ quiz.selfCreated ? '提出後、先生が採点・添削するか、一覧の「自分で採点・添削」から自分で採点・添削できます。' : '提出後、先生が採点・添削します。採点・添削が始まる前なら撮り直して再提出できます。' }}</div>
     </div>
 
     <!-- 送信中 -->
@@ -520,6 +548,19 @@ onBeforeUnmount(() => {
   gap: 10px;
   padding: 12px 14px 8px;
 }
+.top-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .x {
   border: none;
   background: rgba(255, 255, 255, 0.1);
@@ -586,6 +627,9 @@ onBeforeUnmount(() => {
 }
 .chip.old .chip-s {
   color: #9fb4ff;
+}
+.chip.kept .chip-s {
+  color: #f3c175;
 }
 .stage {
   flex: 1;

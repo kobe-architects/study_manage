@@ -1,5 +1,5 @@
 import client from '@/api/client'
-import type { AnnotationDoc, BookPdf, PdfPageMap, QuizBook, QuizDetail, QuizPageDetail, QuizPageSpec, QuizRow, QuizStats, QuizSummary, StudyResource, Vocabulary } from '@/types'
+import type { AnnotationDoc, BookPdf, PdfPageMap, QuizBook, QuizDetail, QuizPageDetail, QuizPageSpec, QuizRow, QuizStats, QuizStatus, QuizSummary, StudyResource, Vocabulary } from '@/types'
 import { saveFile } from '@/lib/native'
 import { showPdf, useInAppViewer } from '@/lib/docViewer'
 
@@ -251,18 +251,24 @@ export const quizApi = {
     await client.post(`/quizzes/${quizId}/pages/${pageId}/answer`, fd)
   },
 
-  /** 提出。自己採点済みなら得点・満点を、先生への一言（任意）があれば note を、ページごとの回答時間（分）を times で一緒に送る */
+  /**
+   * 提出。自己採点済みなら得点・満点を、先生への一言（任意）があれば note を、ページごとの回答時間（分）を times で一緒に送る。
+   * partial=true は分割提出（撮影済みのページだけ先に提出。全ページがそろうまで「分割提出中」。自己採点は不可）。
+   */
   async submit(
     quizId: number,
     selfGrade?: { score: number; maxScore: number } | null,
     note?: string | null,
     times: Record<number, number> = {},
-  ): Promise<void> {
-    await client.post(`/quizzes/${quizId}/submit`, {
+    partial = false,
+  ): Promise<{ status: QuizStatus; submittedPageCount: number; pageCount: number }> {
+    const { data } = await client.post(`/quizzes/${quizId}/submit`, {
       ...(selfGrade ? { selfGraded: true, score: selfGrade.score, maxScore: selfGrade.maxScore } : { selfGraded: false }),
       note: note ?? null,
       times,
+      partial,
     })
+    return data.data
   },
 
   // ===== 添削・採点（講師） =====
@@ -298,6 +304,7 @@ export const quizApi = {
 /** 表示用ヘルパー */
 export const QUIZ_STATUS_LABEL: Record<string, string> = {
   assigned: '未提出',
+  partial: '分割提出中',
   submitted: '提出済み（採点・添削待ち）',
   graded: '採点・添削済み',
 }
@@ -320,15 +327,17 @@ export function groupQuizzes(list: QuizSummary[]): QuizSummary[][] {
   return order.map((k) => map.get(k)!.sort((a, b) => a.id - b.id))
 }
 
-/** 箱の代表ステータス（一覧のグループ分け用）。owner: 未提出優先 / tutor: 採点・添削待ち優先 */
-export function groupStatus(parts: QuizSummary[], role: 'owner' | 'tutor'): 'assigned' | 'submitted' | 'graded' {
+/** 箱の代表ステータス（一覧のグループ分け用）。owner: 未提出優先 / tutor: 採点・添削待ち優先（分割提出中も先に採点・添削できるので次） */
+export function groupStatus(parts: QuizSummary[], role: 'owner' | 'tutor'): QuizStatus {
   const has = (s: string) => parts.some((q) => q.status === s)
   if (role === 'tutor') {
     if (has('submitted')) return 'submitted'
+    if (has('partial')) return 'partial'
     if (has('assigned')) return 'assigned'
     return 'graded'
   }
   if (has('assigned')) return 'assigned'
+  if (has('partial')) return 'partial'
   if (has('submitted')) return 'submitted'
   return 'graded'
 }

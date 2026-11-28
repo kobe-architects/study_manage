@@ -128,7 +128,7 @@ function onDocTouchMove(e: TouchEvent) {
   if (e.touches.length > 1 || !t || !t.closest('.fs-answer, .fs-pages, .fs-side')) e.preventDefault()
 }
 async function openFs() {
-  if (!page.value?.hasAnswer) return
+  if (!page.value?.submitted) return
   // PC のエディタで自動保存待ちの変更があれば先に保存してから全画面のエディタに切り替える（切替で失われないように）
   if (!(await flushAnnotations())) return
   fsOpen.value = true
@@ -193,16 +193,21 @@ function onKey(e: KeyboardEvent) {
 
 async function load(keepIdx = true) {
   const q = await quizApi.show(quizId)
+  const first = quiz.value === null
   quiz.value = q
   if (!keepIdx || pageIdx.value >= q.pages.length) pageIdx.value = 0
+  // 初回は提出済みの最初のページを開く（分割提出中は未提出のページが先頭にあることがある）
+  if (first) pageIdx.value = Math.max(0, q.pages.findIndex((p) => p.submitted))
   syncScoreForm()
 }
+/** 分割提出中（提出済みのページだけ先に採点・添削できる。完了は全ページの提出後） */
+const partial = computed(() => quiz.value?.status === 'partial')
 
 async function loadAnswer() {
   if (answerUrl.value) URL.revokeObjectURL(answerUrl.value)
   answerUrl.value = null
   const p = page.value
-  if (!p || !p.hasAnswer || !quiz.value) return
+  if (!p || !p.submitted || !quiz.value) return
   try {
     answerUrl.value = await fetchBlobUrl(quizApi.answerImageUrl(quiz.value.id, p.id, p.answerVersion))
   } catch {
@@ -421,7 +426,7 @@ async function downloadResult() {
   <div v-if="quiz" class="grade">
     <!-- 左レール: 添削ツール（エディタからテレポート）＋ページリスト -->
     <aside class="rail rail-l">
-      <div v-if="page && page.hasAnswer" class="card tools-card">
+      <div v-if="page && page.submitted" class="card tools-card">
         <div class="rail-title">添削ツール</div>
         <div id="grade-tools"></div>
       </div>
@@ -431,7 +436,8 @@ async function downloadResult() {
           <button v-for="(p, i) in quiz.pages" :key="p.id" class="prow" :class="{ on: i === pageIdx }" @click="gotoPage(i)">
             <span class="pn">{{ p.pageNo }}</span>
             <span class="pl">{{ p.label }}</span>
-            <span v-if="!p.hasAnswer" class="pm ng">未</span>
+            <span v-if="!p.submitted" class="pm ng">未</span>
+            <span v-else-if="partial" class="pm ok">済</span>
           </button>
         </div>
       </div>
@@ -445,6 +451,7 @@ async function downloadResult() {
         <span class="meta">
           {{ quiz.bookTitle ?? '英単語テスト' }}・{{ quiz.pageCount }}ページ
           <template v-if="quiz.submittedAt">・提出 {{ quiz.submittedAt.slice(0, 16).replace(/-/g, '/') }}</template>
+          <template v-if="partial">・分割提出中（{{ quiz.submittedPageCount }} / {{ quiz.pageCount }} ページ提出済み）</template>
         </span>
       </div>
       <div v-if="quiz.submitNote" class="snote">生徒からの一言: {{ quiz.submitNote }}</div>
@@ -488,8 +495,8 @@ async function downloadResult() {
           @save="onSave"
           @dirty="dirty = $event"
         />
-        <div v-else-if="page.hasAnswer && !fsOpen" class="empty">回答画像を読み込み中…</div>
-        <div v-else-if="!page.hasAnswer" class="empty">このページの回答はまだ提出されていません。</div>
+        <div v-else-if="page.submitted && !fsOpen" class="empty">回答画像を読み込み中…</div>
+        <div v-else-if="!page.submitted" class="empty">このページの回答はまだ提出されていません。</div>
       </template>
     </div>
 
@@ -497,7 +504,7 @@ async function downloadResult() {
     <aside class="rail rail-r">
       <div class="card status-card">
         <div class="status-line">
-          <span class="chip" :class="quiz.status">{{ quiz.status === 'graded' ? '採点・添削済み' : quiz.status === 'submitted' ? '採点・添削待ち' : '未提出' }}</span>
+          <span class="chip" :class="quiz.status">{{ quiz.status === 'graded' ? '採点・添削済み' : quiz.status === 'submitted' ? '採点・添削待ち' : partial ? `分割提出中 ${quiz.submittedPageCount}/${quiz.pageCount}` : '未提出' }}</span>
           <span v-if="quiz.selfGraded" class="chip self" title="生徒が提出時に自己採点した得点です。「やり直す」で講師の採点・添削に置き換えられます">自己採点</span>
           <span class="total">
             <template v-if="scoreEntered"><b :style="{ color: rateColor(scoreRate) }">{{ scoreForm.score }}</b> / {{ scoreForm.maxScore }}点（{{ scoreRate }}%）</template>
@@ -520,7 +527,8 @@ async function downloadResult() {
           <div class="score-hint">満点の初期値はページ満点の合計（英単語テストは出題数）です。自由に変更できます。</div>
         </div>
         <div class="status-btns">
-          <button v-if="quiz.status !== 'graded'" class="btn primary" :disabled="quiz.status === 'assigned'" @click="finish">採点・添削を完了</button>
+          <button v-if="quiz.status !== 'graded'" class="btn primary" :disabled="quiz.status === 'assigned' || partial" :title="partial ? '全ページが提出されると完了できます' : undefined" @click="finish">採点・添削を完了</button>
+          <div v-if="partial" class="partial-hint">分割提出中です。提出済みのページは先に添削・コメントできます。全ページが提出されると完了できます。</div>
           <button v-if="quiz.status === 'graded'" class="btn" @click="reopen">やり直す</button>
           <button v-if="quiz.status === 'graded'" class="btn" @click="downloadResult">採点・添削済みPDF</button>
           <button v-if="hasVocab" class="btn" @click="downloadAnswers">英単語 解答PDF</button>
@@ -532,7 +540,7 @@ async function downloadResult() {
           このページへのコメント
           <span v-if="form.saving" style="font-size: 11px; font-weight: 400; color: var(--faint); margin-left: 6px">保存中…</span>
         </div>
-        <textarea v-model="form.comment" rows="3" placeholder="コメント（生徒に表示されます）" :disabled="!page.hasAnswer" @blur="saveGrade"></textarea>
+        <textarea v-model="form.comment" rows="3" placeholder="コメント（生徒に表示されます）" :disabled="!page.submitted" @blur="saveGrade"></textarea>
         <div class="nav">
           <button class="btn" :disabled="pageIdx === 0" @click="gotoPage(pageIdx - 1)">‹ 前へ</button>
           <button class="btn" :disabled="pageIdx >= quiz.pages.length - 1" @click="gotoPage(pageIdx + 1)">次へ ›</button>
@@ -585,7 +593,7 @@ async function downloadResult() {
         <button v-for="(p, i) in quiz.pages" :key="p.id" class="fs-page" :class="{ on: i === pageIdx }" @click="gotoPage(i)">
           <span class="pn">{{ p.pageNo }}</span>
           <span class="pl">{{ p.label }}</span>
-          <span v-if="!p.hasAnswer" class="pm ng">未</span>
+          <span v-if="!p.submitted" class="pm ng">未</span>
         </button>
       </div>
       <button v-if="hasAnsPane" class="fs-ans-btn" :class="{ on: showAns }" @click="showAns = !showAns">{{ showAns ? '解答を閉じる' : '解答を表示' }}</button>
@@ -616,7 +624,7 @@ async function downloadResult() {
             @save="onSave"
             @dirty="dirty = $event"
           />
-          <div v-else-if="!page.hasAnswer" class="fs-empty">このページの回答はまだ提出されていません。</div>
+          <div v-else-if="!page.submitted" class="fs-empty">このページの回答はまだ提出されていません。</div>
           <div v-else class="fs-empty">回答画像を読み込み中…</div>
         </div>
         <template v-if="showAns && hasAnsPane">
@@ -1041,6 +1049,12 @@ async function downloadResult() {
 .prow.on .pm.ng {
   color: #ffb3ba;
 }
+.pm.ok {
+  color: #2f7a4f;
+}
+.prow.on .pm.ok {
+  color: #a8e6bf;
+}
 /* 中央 */
 .main {
   min-width: 0;
@@ -1175,6 +1189,15 @@ async function downloadResult() {
 .chip.submitted {
   background: #e8eefb;
   color: #2e4a8f;
+}
+.chip.partial {
+  background: #fff4e5;
+  color: #b7681a;
+}
+.partial-hint {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #b7681a;
 }
 .chip.graded {
   background: #e6f5ec;
